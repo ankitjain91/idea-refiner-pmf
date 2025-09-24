@@ -9,12 +9,15 @@ import ActionTips from "@/components/ActionTips";
 import CollaborationHub from "@/components/CollaborationHub";
 import RealTimeRefinementChart from "@/components/RealTimeRefinementChart";
 import Auth from "@/components/Auth";
+import PaywallOverlay from "@/components/PaywallOverlay";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Rocket, Sparkles, RefreshCw, LogOut, Save, Loader2, Database } from "lucide-react";
+import { Rocket, Sparkles, RefreshCw, LogOut, Save, Loader2, Database, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
+import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -27,9 +30,6 @@ const Index = () => {
     market: "niche",
     timeline: "mvp",
   });
-  const [saving, setSaving] = useState(false);
-  const [ideaId, setIdeaId] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     // Check current auth status

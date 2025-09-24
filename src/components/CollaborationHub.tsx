@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, ArrowRight, Sparkles, Eye } from "lucide-react";
+import { Users, ArrowRight, Sparkles, Eye, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import PaywallOverlay from "@/components/PaywallOverlay";
 
 interface SimilarIdea {
   id: string;
