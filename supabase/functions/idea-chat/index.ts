@@ -80,10 +80,17 @@ serve(async (req) => {
         }
         
         FOR NORMAL CONVERSATION:
+        Your response MUST follow this EXACT format:
+        
         [Your response - encouraging, use emojis 🚀💡🎯💰, max 100 words]
         
         SUGGESTIONS:
-        [Exactly 3-4 clickable options, one per line, contextual to your question]`
+        - First suggestion option
+        - Second suggestion option
+        - Third suggestion option
+        - Fourth suggestion option
+        
+        IMPORTANT: The word "SUGGESTIONS:" must be on its own line, followed by exactly 4 suggestions, each starting with a dash and space.`
       },
       ...conversationHistory,
       { role: 'user', content: message }
@@ -163,21 +170,56 @@ serve(async (req) => {
       const suggestionText = parts[1].trim();
       suggestions = suggestionText
         .split('\n')
-        .map((s: string) => s.trim())
+        .map((s: string) => s.replace(/^[-•*]\s*/, '').trim()) // Remove bullet points
         .filter((s: string) => s.length > 0)
         .slice(0, 4); // Limit to 4 suggestions
+      
+      console.log('Parsed suggestions:', suggestions);
     } else {
       // Fallback: If AI didn't format suggestions properly, provide defaults
       console.log('AI response did not include proper SUGGESTIONS format');
+      console.log('Attempting to extract suggestions from response...');
+      
       const lowerResponse = fullResponse.toLowerCase();
       
-      if (lowerResponse.includes('❌') || lowerResponse.includes('real startup')) {
+      // Try to intelligently generate suggestions based on context
+      if (messages.length === 0 || lowerResponse.includes('idea') || lowerResponse.includes('tell me')) {
         suggestions = [
-          "A mobile app that helps people find parking spots",
-          "Platform connecting freelancers with local businesses",
-          "AI tool that summarizes long documents"
+          "An AI-powered social media marketing platform",
+          "A marketplace for local services",
+          "A productivity app for remote teams",
+          "An educational platform for skills training"
+        ];
+      } else if (lowerResponse.includes('target') || lowerResponse.includes('who') || lowerResponse.includes('demographic')) {
+        suggestions = [
+          "Young professionals aged 25-35",
+          "Small business owners",
+          "Students and educators",
+          "Parents with young children"
+        ];
+      } else if (lowerResponse.includes('solution') || lowerResponse.includes('how') || lowerResponse.includes('feature')) {
+        suggestions = [
+          "AI-powered automation",
+          "Marketplace with verified reviews",
+          "Mobile-first design",
+          "Subscription-based model"
+        ];
+      } else if (lowerResponse.includes('price') || lowerResponse.includes('monetiz') || lowerResponse.includes('revenue')) {
+        suggestions = [
+          "$9.99/month subscription",
+          "Freemium with premium features",
+          "One-time purchase of $49",
+          "Transaction-based fees (5%)"
+        ];
+      } else if (lowerResponse.includes('compet') || lowerResponse.includes('unique') || lowerResponse.includes('different')) {
+        suggestions = [
+          "No direct competitors yet",
+          "Better UX than existing solutions",
+          "50% more affordable",
+          "Unique AI-powered features"
         ];
       } else {
+        // Default suggestions for continuing conversation
         suggestions = [
           "Tell me more about this",
           "Calculate my PMF score",
@@ -185,6 +227,7 @@ serve(async (req) => {
           "What about competition?"
         ];
       }
+      console.log('Generated fallback suggestions:', suggestions);
     }
 
     return new Response(
