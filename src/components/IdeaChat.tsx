@@ -144,16 +144,51 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
 
       if (error) throw error;
 
+      // Check if it's a quota error
+      if (data.error && data.error.includes('quota exceeded')) {
+        toast({
+          title: "OpenAI Quota Exceeded",
+          description: "The OpenAI API key has reached its usage limit. Please add credits to your OpenAI account or update the API key.",
+          variant: "destructive"
+        });
+      }
+
       return {
         message: data.response || "I'm here to help refine your idea. Could you tell me more?",
         suggestions: data.suggestions || []
       };
     } catch (error) {
       console.error('Error getting AI response:', error);
-      // Fallback response if API fails
+      
+      // Provide intelligent fallback responses based on conversation context
+      const lowerMessage = userMessage.toLowerCase();
+      let fallbackMessage = "";
+      let fallbackSuggestions: string[] = [];
+      
+      // Determine conversation context and provide appropriate fallback
+      if (messages.length <= 2) {
+        fallbackMessage = "👋 Great idea! Let me help you refine it. First, who specifically would benefit most from this? What's your target demographic?";
+        fallbackSuggestions = ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"];
+      } else if (lowerMessage.includes('professional') || lowerMessage.includes('business') || lowerMessage.includes('student')) {
+        fallbackMessage = "Excellent target audience! 🎯 Now, how exactly do you plan to solve their problem? What makes your approach unique?";
+        fallbackSuggestions = ["AI-powered automation", "Marketplace connecting users", "Educational platform", "Mobile-first solution"];
+      } else if (lowerMessage.includes('ai') || lowerMessage.includes('marketplace') || lowerMessage.includes('platform')) {
+        fallbackMessage = "That's innovative! 🚀 For this to be profitable, what pricing model would work best for your target demographic?";
+        fallbackSuggestions = ["$9.99/month subscription", "Freemium with premium features", "One-time purchase", "Transaction-based fees"];
+      } else if (lowerMessage.includes('subscription') || lowerMessage.includes('freemium') || lowerMessage.includes('price')) {
+        fallbackMessage = "Smart pricing strategy! 💰 Who are your main competitors, and what's your unique advantage?";
+        fallbackSuggestions = ["No direct competitors yet", "Better UX and simpler onboarding", "50% more affordable", "Unique features they don't have"];
+      } else if (lowerMessage.includes('competitor') || lowerMessage.includes('better') || lowerMessage.includes('unique')) {
+        fallbackMessage = "Great competitive analysis! What's your go-to-market strategy? How will you reach your first 100 customers?";
+        fallbackSuggestions = ["Social media marketing", "Content marketing & SEO", "Direct B2B sales", "Product Hunt launch"];
+      } else {
+        fallbackMessage = "Perfect! 🎉 Based on our conversation, I can see strong potential. Would you like me to calculate your PMF score now?";
+        fallbackSuggestions = ["Yes, show me the PMF analysis!", "Let me add more details first"];
+      }
+      
       return {
-        message: "I'm having trouble connecting right now. Let's continue - could you tell me more about your target audience?",
-        suggestions: ["Young professionals", "Small businesses", "Students", "General consumers"]
+        message: fallbackMessage,
+        suggestions: fallbackSuggestions
       };
     }
   };
