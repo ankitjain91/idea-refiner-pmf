@@ -76,19 +76,10 @@ const IdeaSuggestions: React.FC<{ onSelect: (idea: string) => void }> = ({ onSel
   ];
   
   useEffect(() => {
-    // Generate random suggestions on mount and periodically
-    const generateSuggestions = () => {
-      const shuffled = [...allSuggestions].sort(() => Math.random() - 0.5);
-      setSuggestions(shuffled.slice(0, 3));
-    };
-    
-    generateSuggestions();
-    
-    // Change suggestions every 10 seconds
-    const interval = setInterval(generateSuggestions, 10000);
-    
-    return () => clearInterval(interval);
-  }, []);
+    // Generate random suggestions only once on mount (page refresh)
+    const shuffled = [...allSuggestions].sort(() => Math.random() - 0.5);
+    setSuggestions(shuffled.slice(0, 3));
+  }, []); // Empty dependency array means this only runs once on mount
   
   return (
     <>
