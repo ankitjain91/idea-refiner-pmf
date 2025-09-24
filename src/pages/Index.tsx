@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import IdeaInput from "@/components/IdeaInput";
-import GuidedIdeaInput from "@/components/GuidedIdeaInput";
+import IdeaChat from "@/components/IdeaChat";
 import RefinementControls from "@/components/RefinementControls";
 import PMFDashboard from "@/components/PMFDashboard";
 import DemographicsAnalysis from "@/components/DemographicsAnalysis";
@@ -24,7 +23,6 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [idea, setIdea] = useState("");
   const [ideaMetadata, setIdeaMetadata] = useState<any>(null);
-  const [showGuidedInput, setShowGuidedInput] = useState(true);
   const [pmfScore, setPmfScore] = useState(0);
   const [refinements, setRefinements] = useState({
     budget: "bootstrapped",
@@ -33,7 +31,7 @@ const Index = () => {
   });
   const [saving, setSaving] = useState(false);
   const [ideaId, setIdeaId] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(1); // 1: Idea, 2: Calculating, 3: Dashboard
+  const [showAnalysis, setShowAnalysis] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -87,9 +85,9 @@ const Index = () => {
           timeline: "mvp", // This isn't stored in DB yet
         });
       }
-      // If we have a saved idea, show the dashboard
+      // If we have a saved idea, show the analysis
       if (data.original_idea) {
-        setCurrentStep(3);
+        setShowAnalysis(true);
       }
     }
   };
@@ -97,7 +95,6 @@ const Index = () => {
   const handleIdeaSubmit = async (ideaText: string, metadata: any) => {
     setIdea(ideaText);
     setIdeaMetadata(metadata);
-    setShowGuidedInput(false);
     
     // Auto-adjust refinements based on metadata
     if (metadata.targetUsers === 'enterprise') {
@@ -106,14 +103,13 @@ const Index = () => {
       setRefinements(prev => ({ ...prev, market: 'mass' }));
     }
 
-    // Move to calculating step
-    setCurrentStep(2);
+    // Start calculating
     setIsCalculating(true);
 
     // Simulate calculation process
     setTimeout(() => {
       setIsCalculating(false);
-      setCurrentStep(3);
+      setShowAnalysis(true);
       toast({
         title: "Analysis Complete",
         description: "Your startup idea has been analyzed successfully",
@@ -224,7 +220,7 @@ const Index = () => {
     });
     setPmfScore(0);
     setIdeaId(null);
-    setCurrentStep(1);
+    setShowAnalysis(false);
   };
 
   // Show auth screen if not logged in
@@ -253,7 +249,7 @@ const Index = () => {
                 {user.email}
               </span>
               <div className="flex items-center gap-2">
-                {currentStep === 3 && (
+                {showAnalysis && (
                   <>
                     <Button
                       variant="ghost"
@@ -295,87 +291,15 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Progress Indicator */}
-      <div className="container-fluid mt-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            {[
-              { step: 1, label: "Describe Idea", icon: Brain },
-              { step: 2, label: "Analyzing", icon: Target },
-              { step: 3, label: "Results", icon: TrendingUp }
-            ].map((item, index) => (
-              <div key={item.step} className="flex items-center flex-1">
-                <div className={`flex flex-col items-center ${index < 2 ? 'flex-1' : ''}`}>
-                  <div className={`
-                    w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500
-                    ${currentStep >= item.step 
-                      ? 'bg-primary text-primary-foreground animate-glow' 
-                      : 'glass-panel text-muted-foreground'
-                    }
-                  `}>
-                    <item.icon className="w-5 h-5" />
-                  </div>
-                  <span className={`
-                    text-xs mt-2 transition-all duration-500
-                    ${currentStep >= item.step ? 'text-primary' : 'text-muted-foreground'}
-                  `}>
-                    {item.label}
-                  </span>
-                </div>
-                {index < 2 && (
-                  <div className={`
-                    flex-1 h-0.5 mx-4 transition-all duration-500
-                    ${currentStep > item.step ? 'bg-primary' : 'bg-muted'}
-                  `} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <main className="container-fluid py-8 relative z-10">
-        {/* Step 1: Idea Input */}
-        {currentStep === 1 && (
-          <div className="max-w-3xl mx-auto animate-fade-in">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold mb-4 gradient-text">
-                What's Your Big Idea?
-              </h2>
-              <p className="text-muted-foreground text-lg">
-                Describe your startup concept and we'll analyze its market potential
-              </p>
-            </div>
-            
-            <div className="glass-card p-8">
-              {showGuidedInput ? (
-                <GuidedIdeaInput onSubmit={handleIdeaSubmit} value={idea} />
-              ) : (
-                <>
-                  <IdeaInput value={idea} onChange={setIdea} />
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => setShowGuidedInput(true)}
-                    className="w-full mt-4 glass-button"
-                  >
-                    Use Guided Input
-                  </Button>
-                  <Button
-                    onClick={() => handleIdeaSubmit(idea, {})}
-                    disabled={!idea}
-                    className="w-full mt-4"
-                  >
-                    Analyze Idea <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+        {/* Chat Interface or Analysis */}
+        {!showAnalysis && !isCalculating && (
+          <IdeaChat onAnalysisReady={handleIdeaSubmit} />
         )}
 
-        {/* Step 2: Calculating */}
-        {currentStep === 2 && (
+        {/* Calculating Animation */}
+        {isCalculating && (
           <div className="max-w-3xl mx-auto animate-fade-in">
             <div className="glass-card p-12 text-center">
               <div className="flex justify-center mb-6">
@@ -403,8 +327,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Step 3: Dashboard */}
-        {currentStep === 3 && (
+        {/* Dashboard */}
+        {showAnalysis && (
           <div className="animate-fade-in">
             <div className="flex items-center justify-between mb-8">
               <div>
