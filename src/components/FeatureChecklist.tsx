@@ -99,7 +99,7 @@ const FeatureChecklist = ({ idea, budget, metadata }: FeatureChecklistProps) => 
     ];
 
     setFeatures(baseFeatures);
-  }, [idea, budget]);
+  }, [idea, budget, metadata]);
 
   const toggleFeature = (id: string) => {
     setFeatures(prev =>

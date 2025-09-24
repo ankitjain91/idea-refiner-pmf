@@ -97,11 +97,14 @@ const Index = () => {
     setIdeaMetadata(metadata);
     
     // If we have PMF analysis data from ChatGPT, use it
-    if (metadata.pmfScore) {
+    if (metadata?.pmfScore) {
+      // Set the PMF score immediately
+      setPmfScore(metadata.pmfScore);
+      
       // Set refinements based on ChatGPT's analysis
       setRefinements({
-        budget: metadata.competition === 'High' ? 'funded' : 'bootstrapped',
-        market: metadata.marketSize?.includes('B') ? 'enterprise' : 'niche',
+        budget: metadata.competition === 'High' ? 'series-a' : metadata.competition === 'Medium' ? 'seed' : 'bootstrapped',
+        market: metadata.marketSize?.includes('B') ? 'enterprise' : metadata.marketSize?.includes('M') ? 'mainstream' : 'niche',
         timeline: 'mvp'
       });
       
@@ -109,10 +112,15 @@ const Index = () => {
       // including pmfScore, demographics, features, refinements, actionTips
     } else {
       // Fallback: Auto-adjust refinements based on basic metadata
-      if (metadata.targetUsers === 'enterprise') {
-        setRefinements(prev => ({ ...prev, market: 'enterprise', budget: 'funded' }));
-      } else if (metadata.targetUsers === 'consumers') {
-        setRefinements(prev => ({ ...prev, market: 'mass' }));
+      if (metadata?.targetUsers === 'enterprise') {
+        setRefinements(prev => ({ ...prev, market: 'enterprise', budget: 'seed' }));
+      } else if (metadata?.targetUsers === 'consumers') {
+        setRefinements(prev => ({ ...prev, market: 'mainstream' }));
+      }
+      
+      // Set a default PMF score for fallback
+      if (metadata?.pmfScore === undefined) {
+        setPmfScore(70);
       }
     }
 
@@ -127,7 +135,7 @@ const Index = () => {
         title: "Analysis Complete",
         description: "Your startup idea has been analyzed successfully",
       });
-    }, metadata.pmfScore ? 1500 : 3000);
+    }, metadata?.pmfScore ? 1500 : 3000);
   };
 
   const saveIdea = async () => {
@@ -381,6 +389,7 @@ const Index = () => {
                     idea={idea}
                     pmfScore={pmfScore}
                     refinements={refinements}
+                    metadata={ideaMetadata}
                     onRefinementSuggestion={handleRefinementSuggestion}
                   />
                 </div>

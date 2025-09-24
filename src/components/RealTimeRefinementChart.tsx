@@ -27,6 +27,7 @@ interface RealTimeRefinementChartProps {
     market: string;
     timeline: string;
   };
+  metadata?: any; // ChatGPT analysis data
   onRefinementSuggestion?: (suggestion: string) => void;
 }
 
