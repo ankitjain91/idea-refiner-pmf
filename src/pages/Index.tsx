@@ -6,6 +6,7 @@ import DemographicsAnalysis from "@/components/DemographicsAnalysis";
 import FeatureChecklist from "@/components/FeatureChecklist";
 import ActionTips from "@/components/ActionTips";
 import CollaborationHub from "@/components/CollaborationHub";
+import RealTimeRefinementChart from "@/components/RealTimeRefinementChart";
 import Auth from "@/components/Auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -163,6 +164,13 @@ const Index = () => {
     setRefinements(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleRefinementSuggestion = (suggestion: string) => {
+    toast({
+      title: "Refinement Suggestion Applied",
+      description: suggestion,
+    });
+  };
+
   const handleReset = () => {
     setIdea("");
     setRefinements({
@@ -262,6 +270,12 @@ const Index = () => {
             <div className="lg:col-span-1 space-y-6">
               <IdeaInput value={idea} onChange={setIdea} />
               <RefinementControls refinements={refinements} onChange={handleRefinementChange} />
+              <RealTimeRefinementChart
+                idea={idea}
+                pmfScore={pmfScore}
+                refinements={refinements}
+                onRefinementSuggestion={handleRefinementSuggestion}
+              />
             </div>
 
             {/* Middle Column - Dashboard & Demographics */}
