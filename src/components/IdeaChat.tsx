@@ -511,8 +511,8 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
             </Button>
           </div>
           
-          {/* Show Analyze button after collecting enough information */}
-          {messages.length >= 6 && !messages.some(m => m.showPMF) && (
+          {/* Always show Analyze button unless PMF is already shown */}
+          {!messages.some(m => m.showPMF) && (
             <div className="mt-3 flex justify-center">
               <Button
                 onClick={() => {
