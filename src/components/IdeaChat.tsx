@@ -127,7 +127,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     }, 600);
   };
 
-  const generateBotResponse = async (userMessage: string): Promise<{ message: string; suggestions: string[] }> => {
+  const generateBotResponse = async (userMessage: string): Promise<{ message: string; suggestions: string[]; pmfAnalysis?: any }> => {
     try {
       // Build conversation history for context
       const conversationHistory = messages.map(msg => ({
@@ -151,6 +151,15 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           description: "The OpenAI API key has reached its usage limit. Please add credits to your OpenAI account or update the API key.",
           variant: "destructive"
         });
+      }
+
+      // Check if we got PMF analysis data
+      if (data?.pmfAnalysis) {
+        return {
+          message: data.response || "Here's your comprehensive PMF analysis!",
+          suggestions: data.suggestions || [],
+          pmfAnalysis: data.pmfAnalysis
+        };
       }
 
       return {
@@ -220,8 +229,8 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
         const pmfResponse = await generateBotResponse(input);
         
         // Check if we got PMF analysis data
-        if (pmfResponse && typeof pmfResponse === 'object' && 'pmfAnalysis' in pmfResponse) {
-          const pmfData = (pmfResponse as any).pmfAnalysis;
+        if (pmfResponse && pmfResponse.pmfAnalysis) {
+          const pmfData = pmfResponse.pmfAnalysis;
           
           // Update idea data with ChatGPT's analysis
           const enrichedIdeaData = {

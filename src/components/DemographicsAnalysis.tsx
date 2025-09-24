@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 interface DemographicsAnalysisProps {
   idea: string;
   market: string;
+  metadata?: any; // ChatGPT analysis data
 }
 
 interface Demographics {
@@ -23,31 +24,64 @@ interface Demographics {
   behaviorsExplanation: string;
 }
 
-export default function DemographicsAnalysis({ idea, market }: DemographicsAnalysisProps) {
+export default function DemographicsAnalysis({ idea, market, metadata }: DemographicsAnalysisProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   
   const generateDemographics = (): Demographics => {
     const isEnterprise = market === 'enterprise';
     const isMass = market === 'mass';
     
+    // Use ChatGPT data if available
+    const targetAge = metadata?.targetAge || (isEnterprise ? '35-44' : isMass ? '18-34' : '22-30');
+    const interests = metadata?.interests || [];
+    const incomeRange = metadata?.incomeRange || '$60k-100k';
+    const marketSize = metadata?.marketSize || '$2.5B';
+    const competition = metadata?.competition || 'Medium';
+    
+    // Parse age range to create distribution
+    const getAgeDistribution = () => {
+      if (targetAge.includes('18') || targetAge.includes('25-35')) {
+        return [
+          { range: '18-24', percentage: 20, color: '#8b5cf6' },
+          { range: '25-34', percentage: 45, color: '#3b82f6' },
+          { range: '35-44', percentage: 25, color: '#10b981' },
+          { range: '45+', percentage: 10, color: '#f59e0b' }
+        ];
+      } else if (targetAge.includes('25-45')) {
+        return [
+          { range: '25-34', percentage: 35, color: '#8b5cf6' },
+          { range: '35-44', percentage: 40, color: '#3b82f6' },
+          { range: '45-54', percentage: 20, color: '#10b981' },
+          { range: '55+', percentage: 5, color: '#f59e0b' }
+        ];
+      } else if (targetAge.includes('35-55')) {
+        return [
+          { range: '35-44', percentage: 40, color: '#8b5cf6' },
+          { range: '45-54', percentage: 35, color: '#3b82f6' },
+          { range: '55-64', percentage: 20, color: '#10b981' },
+          { range: '65+', percentage: 5, color: '#f59e0b' }
+        ];
+      } else if (targetAge.includes('45-65')) {
+        return [
+          { range: '45-54', percentage: 35, color: '#8b5cf6' },
+          { range: '55-64', percentage: 40, color: '#3b82f6' },
+          { range: '65-74', percentage: 20, color: '#10b981' },
+          { range: '75+', percentage: 5, color: '#f59e0b' }
+        ];
+      } else {
+        // Default distribution
+        return [
+          { range: '25-34', percentage: 35, color: '#8b5cf6' },
+          { range: '35-44', percentage: 35, color: '#3b82f6' },
+          { range: '45-54', percentage: 20, color: '#10b981' },
+          { range: '55+', percentage: 10, color: '#f59e0b' }
+        ];
+      }
+    };
+    
     return {
-      ageGroups: isEnterprise ? [
-        { range: '25-34', percentage: 25, color: '#8b5cf6' },
-        { range: '35-44', percentage: 40, color: '#3b82f6' },
-        { range: '45-54', percentage: 25, color: '#10b981' },
-        { range: '55+', percentage: 10, color: '#f59e0b' }
-      ] : isMass ? [
-        { range: '18-24', percentage: 30, color: '#8b5cf6' },
-        { range: '25-34', percentage: 35, color: '#3b82f6' },
-        { range: '35-44', percentage: 20, color: '#10b981' },
-        { range: '45+', percentage: 15, color: '#f59e0b' }
-      ] : [
-        { range: '22-30', percentage: 45, color: '#8b5cf6' },
-        { range: '31-40', percentage: 35, color: '#3b82f6' },
-        { range: '41-50', percentage: 15, color: '#10b981' },
-        { range: '50+', percentage: 5, color: '#f59e0b' }
-      ],
-      ageGroupsExplanation: `Age distribution analysis shows ${isEnterprise ? 'decision-makers are primarily 35-44 (40%), representing senior management with budget authority' : isMass ? 'broad appeal across age groups with concentration in 18-34 (65%), indicating strong adoption potential' : 'early-career professionals 22-30 (45%) are the primary adopters, seeking innovative solutions'}. This demographic alignment suggests rapid adoption cycles with price-sensitive considerations for maximum market penetration.`,
+      ageGroups: getAgeDistribution(),
+      ageGroupsExplanation: `Target demographic: ${targetAge} with income range ${incomeRange}. Market size estimated at ${marketSize} with ${competition} competition level. Key interests include ${interests.join(', ') || 'technology and innovation'}.`,
       
       locations: isEnterprise ? [
         { name: 'North America', percentage: 45, type: 'Primary' },

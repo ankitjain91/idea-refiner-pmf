@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 interface FeatureChecklistProps {
   idea: string;
   budget: string;
+  metadata?: any; // ChatGPT analysis data
 }
 
 interface Feature {
@@ -19,12 +20,25 @@ interface Feature {
   effort: "low" | "medium" | "high";
 }
 
-const FeatureChecklist = ({ idea, budget }: FeatureChecklistProps) => {
+const FeatureChecklist = ({ idea, budget, metadata }: FeatureChecklistProps) => {
   const [features, setFeatures] = useState<Feature[]>([]);
   const [newFeature, setNewFeature] = useState("");
 
   useEffect(() => {
-    // Generate features based on idea and budget
+    // Use ChatGPT features if available, otherwise generate defaults
+    if (metadata?.features && Array.isArray(metadata.features)) {
+      const chatGptFeatures: Feature[] = metadata.features.map((f: any, index: number) => ({
+        id: (index + 1).toString(),
+        label: f.name,
+        priority: f.priority === 'high' ? 'must-have' : f.priority === 'medium' ? 'nice-to-have' : 'future',
+        checked: f.checked || false,
+        effort: f.priority === 'high' ? 'high' : f.priority === 'medium' ? 'medium' : 'low'
+      }));
+      setFeatures(chatGptFeatures);
+      return;
+    }
+    
+    // Fallback to default features
     const baseFeatures: Feature[] = [
       {
         id: "1",

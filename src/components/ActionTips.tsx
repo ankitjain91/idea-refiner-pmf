@@ -15,9 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ActionTipsProps {
   score: number;
+  metadata?: any; // ChatGPT analysis data
 }
 
-const ActionTips = ({ score }: ActionTipsProps) => {
+const ActionTips = ({ score, metadata }: ActionTipsProps) => {
   const { toast } = useToast();
 
   const handleAction = (action: string) => {
@@ -27,7 +28,10 @@ const ActionTips = ({ score }: ActionTipsProps) => {
     });
   };
 
-  const tips = [
+  // Use ChatGPT action tips if available
+  const chatGptTips = metadata?.actionTips || [];
+  
+  const defaultTips = [
     {
       icon: Calendar,
       title: "Sync with Calendar",
@@ -71,6 +75,17 @@ const ActionTips = ({ score }: ActionTipsProps) => {
       priority: score > 40,
     },
   ];
+
+  // Merge ChatGPT tips with default tips
+  const tips = chatGptTips.length > 0 
+    ? chatGptTips.map((tip: string, index: number) => ({
+        icon: [Rocket, TrendingUp, MessageSquare, Calendar, FileText, Mail][index % 6],
+        title: tip.split('.')[0] || tip.substring(0, 30),
+        description: tip,
+        action: "Take Action",
+        priority: true,
+      }))
+    : defaultTips;
 
   const activeTips = tips.filter(tip => tip.priority);
 

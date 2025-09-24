@@ -372,6 +372,7 @@ const Index = () => {
                   <PMFDashboard 
                     idea={idea} 
                     refinements={refinements} 
+                    metadata={ideaMetadata}
                     onScoreUpdate={setPmfScore}
                   />
                 </div>
@@ -391,17 +392,17 @@ const Index = () => {
                   <RefinementControls refinements={refinements} onChange={handleRefinementChange} />
                 </div>
                 <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
-                  <DemographicsAnalysis idea={idea} market={refinements.market} />
+                  <DemographicsAnalysis idea={idea} market={refinements.market} metadata={ideaMetadata} />
                 </div>
                 <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
-                  <ActionTips score={pmfScore} />
+                  <ActionTips score={pmfScore} metadata={ideaMetadata} />
                 </div>
               </div>
 
               {/* Features & Collaboration */}
               <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-1 xl:col-span-1 lg:col-span-2 xl:col-span-1">
                 <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
-                  <FeatureChecklist idea={idea} budget={refinements.budget} />
+                  <FeatureChecklist idea={idea} budget={refinements.budget} metadata={ideaMetadata} />
                 </div>
                 <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <CollaborationHub 
