@@ -188,14 +188,63 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       setMessages([userMessage]);
       setIdeaData(prev => ({ ...prev, problem: initialIdea }));
 
-      // Add bot response after a delay
+      // Add bot response after a delay with context-aware suggestions
       setTimeout(() => {
+        // Generate contextual suggestions based on the idea
+        const ideaLower = initialIdea.toLowerCase();
+        let contextualSuggestions: string[] = [];
+        
+        if (ideaLower.includes('volunteer') && (ideaLower.includes('parent') || ideaLower.includes('elder'))) {
+          contextualSuggestions = [
+            "Working parents with children under 10",
+            "Single parents needing childcare support", 
+            "Families caring for elderly relatives",
+            "Dual-income households with limited time"
+          ];
+        } else if (ideaLower.includes('ai') || ideaLower.includes('automate')) {
+          contextualSuggestions = [
+            "Tech-savvy startup founders",
+            "Digital marketing agencies",
+            "E-commerce businesses",
+            "Content creators and influencers"
+          ];
+        } else if (ideaLower.includes('remote') || ideaLower.includes('team')) {
+          contextualSuggestions = [
+            "Distributed tech companies",
+            "Remote-first startups",
+            "Hybrid work teams",
+            "Global consulting firms"
+          ];
+        } else if (ideaLower.includes('health') || ideaLower.includes('fitness') || ideaLower.includes('wellness')) {
+          contextualSuggestions = [
+            "Health-conscious millennials",
+            "Busy professionals seeking balance",
+            "Fitness enthusiasts",
+            "People with chronic conditions"
+          ];
+        } else if (ideaLower.includes('education') || ideaLower.includes('learn') || ideaLower.includes('tutor')) {
+          contextualSuggestions = [
+            "K-12 students needing support",
+            "Adult learners changing careers",
+            "University students",
+            "Parents homeschooling children"
+          ];
+        } else {
+          // Generic fallback for other ideas
+          contextualSuggestions = [
+            "Early adopters in urban areas",
+            "Tech-forward professionals",
+            "Cost-conscious consumers",
+            "Innovation-seeking businesses"
+          ];
+        }
+        
         const botMessage: Message = {
           id: '2',
           type: 'bot',
-          content: "👋 Great idea! I'm your PMF advisor and I'll help you refine this to maximize product-market fit. Let me ask you a few questions to better understand your vision. First, who specifically faces this problem? What demographic would benefit most?",
+          content: `👋 Great idea! I'm your PMF advisor and I'll help you refine this to maximize product-market fit. Let me ask you a few questions to better understand your vision. First, who specifically would benefit most from ${initialIdea.includes('volunteer') ? 'this volunteer assistance platform' : 'your solution'}?`,
           timestamp: new Date(),
-          suggestions: ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"]
+          suggestions: contextualSuggestions
         };
         setMessages(prev => [...prev, botMessage]);
       }, 800);
@@ -251,11 +300,51 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       
       // Determine conversation context and provide appropriate fallback
       if (messages.length <= 2) {
-        fallbackMessage = "👋 Great idea! Let me help you refine it. First, who specifically would benefit most from this? What's your target demographic?";
-        fallbackSuggestions = ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"];
+        // First response - ask about specific target demographic based on idea
+        const ideaText = messages[0]?.content || userMessage;
+        const ideaLower = ideaText.toLowerCase();
+        
+        if (ideaLower.includes('volunteer') && (ideaLower.includes('parent') || ideaLower.includes('elder'))) {
+          fallbackMessage = "👋 Great idea! Connecting volunteers with families is meaningful. Who specifically needs this help most urgently?";
+          fallbackSuggestions = [
+            "Working single parents with young kids",
+            "Families with special needs children",
+            "Adult children caring for aging parents",
+            "New parents without family nearby"
+          ];
+        } else if (ideaLower.includes('ai') || ideaLower.includes('automate')) {
+          fallbackMessage = "Excellent! AI automation can save tons of time. Which businesses struggle most with this?";
+          fallbackSuggestions = [
+            "Solopreneurs managing everything alone",
+            "Small agencies with limited staff",
+            "E-commerce stores scaling quickly",
+            "Local businesses new to digital"
+          ];
+        } else {
+          fallbackMessage = "Interesting concept! Who experiences this problem most acutely?";
+          fallbackSuggestions = [
+            "People in your target market segment",
+            "Users with specific pain points",
+            "Businesses in your industry",
+            "Communities you want to serve"
+          ];
+        }
+      } else if (lowerMessage.includes('parent') || lowerMessage.includes('single') || lowerMessage.includes('families')) {
+        fallbackMessage = "Perfect target group! 🎯 Now, what specific assistance would be most valuable to them?";
+        fallbackSuggestions = [
+          "Emergency childcare coverage",
+          "School pickup and homework help",
+          "Grocery shopping and meal prep",
+          "Household tasks and errands"
+        ];
       } else if (lowerMessage.includes('professional') || lowerMessage.includes('business') || lowerMessage.includes('student')) {
-        fallbackMessage = "Excellent target audience! 🎯 Now, how exactly do you plan to solve their problem? What makes your approach unique?";
-        fallbackSuggestions = ["AI-powered automation", "Marketplace connecting users", "Educational platform", "Mobile-first solution"];
+        fallbackMessage = "Excellent target audience! 🎯 Now, how exactly does your solution help them? What makes it unique?";
+        fallbackSuggestions = [
+          "AI-powered personalization",
+          "Vetted and background-checked providers",
+          "Real-time matching algorithm",
+          "Community-driven trust system"
+        ];
       } else if (lowerMessage.includes('ai') || lowerMessage.includes('marketplace') || lowerMessage.includes('platform')) {
         fallbackMessage = "That's innovative! 🚀 For this to be profitable, what pricing model would work best for your target demographic?";
         fallbackSuggestions = ["$9.99/month subscription", "Freemium with premium features", "One-time purchase", "Transaction-based fees"];
