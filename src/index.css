@@ -64,9 +64,10 @@ All colors MUST be HSL.
                       radial-gradient(at 0% 50%, hsl(267 84% 81% / 0.1) 0px, transparent 50%);
     
     /* Shadows */
-    --shadow-glow: 0 0 40px hsl(0 0% 0% / 0.05);
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.08);
-    --shadow-hover: 0 10px 40px hsl(0 0% 0% / 0.12);
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.15);
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.1);
+    --shadow-hover: 0 8px 32px hsl(280 85% 65% / 0.2);
+    --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.15);
     
     /* Spacing Scale */
     --spacing-xs: 0.5rem;
@@ -95,27 +96,76 @@ All colors MUST be HSL.
 
 @layer components {
   .glass-card {
-    @apply bg-background border border-border rounded-xl;
-    box-shadow: var(--shadow-card);
+    @apply relative overflow-hidden rounded-2xl border border-white/10;
+    background: linear-gradient(135deg, hsl(217 33% 17% / 0.8), hsl(217 33% 14% / 0.6));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-glass);
+  }
+  
+  .glass-panel {
+    @apply relative overflow-hidden rounded-xl;
+    background: linear-gradient(135deg, hsl(217 33% 17% / 0.4), hsl(217 33% 14% / 0.2));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(217 91% 60% / 0.1);
+  }
+  
+  .glass-input {
+    @apply rounded-lg border border-white/5;
+    background: hsl(217 33% 17% / 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .glass-button {
+    @apply relative overflow-hidden rounded-lg;
+    background: linear-gradient(135deg, hsl(217 91% 60% / 0.15), hsl(280 85% 65% / 0.15));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(217 91% 60% / 0.2);
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-hover hover:-translate-y-1;
+    @apply transition-all duration-500 hover:-translate-y-2;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-hover:hover {
+    box-shadow: var(--shadow-hover);
   }
   
   .gradient-text {
-    @apply text-foreground font-semibold;
+    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-semibold;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  .animate-glow {
+    animation: glow 3s ease-in-out infinite alternate;
+  }
+  
+  @keyframes glow {
+    from { box-shadow: 0 0 20px hsl(217 91% 60% / 0.2); }
+    to { box-shadow: 0 0 40px hsl(280 85% 65% / 0.3); }
   }
   
   .section-spacing {
     @apply py-[var(--spacing-2xl)] px-[var(--spacing-lg)];
   }
   
-  .container-width {
-    @apply max-w-7xl mx-auto;
+  .container-fluid {
+    @apply w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  .grid-responsive {
-    @apply grid gap-[var(--spacing-lg)] grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+  .grid-liquid {
+    @apply grid gap-4 sm:gap-6 lg:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
   }
 }

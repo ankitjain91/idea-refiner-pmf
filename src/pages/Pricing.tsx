@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Crown, Zap, Building2, Loader2, RefreshCw } from "lucide-react";
+import { Check, X, Crown, Zap, Building2, Loader2, RefreshCw, ArrowRight, Sparkles, Star, Target, Rocket } from "lucide-react";
 import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
