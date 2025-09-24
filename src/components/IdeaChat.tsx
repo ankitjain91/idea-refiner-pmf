@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Send, Sparkles, Bot, User, Target, TrendingUp, Users, Lightbulb } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Send, Sparkles, Bot, User, Target, TrendingUp, Users, Lightbulb, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,15 +21,9 @@ interface IdeaChatProps {
 }
 
 const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'bot',
-      content: "👋 Hi! I'm your PMF advisor. Tell me about your startup idea, and I'll help you refine it to maximize product-market fit and profitability. What problem are you trying to solve?",
-      timestamp: new Date(),
-      suggestions: ["I want to build an app that...", "I noticed a problem with...", "People struggle with..."]
-    }
-  ]);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [initialIdea, setInitialIdea] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [ideaData, setIdeaData] = useState({
@@ -52,36 +47,62 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     scrollToBottom();
   }, [messages]);
 
+  const startConversation = () => {
+    if (!initialIdea.trim()) return;
+
+    setHasStarted(true);
+    
+    // Add user's initial idea as first message
+    const userMessage: Message = {
+      id: '1',
+      type: 'user',
+      content: initialIdea,
+      timestamp: new Date()
+    };
+
+    // Bot's first response
+    const botMessage: Message = {
+      id: '2',
+      type: 'bot',
+      content: "👋 Great idea! I'm your PMF advisor and I'll help you refine this to maximize product-market fit. Let me ask you a few questions to better understand your vision. First, who specifically faces this problem? What demographic would benefit most?",
+      timestamp: new Date(),
+      suggestions: ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"]
+    };
+
+    setMessages([userMessage, botMessage]);
+    setIdeaData(prev => ({ ...prev, problem: initialIdea }));
+  };
+
   const generateBotResponse = (userMessage: string, stage: number): { message: string; suggestions?: string[]; nextStage: number } => {
     const responses = [
-      // Stage 0: Initial idea
+      // Stage 0: Target audience
       {
-        message: "Interesting! That sounds like a real pain point. Can you tell me more about WHO specifically faces this problem? What demographic would benefit most from your solution?",
-        suggestions: ["Young professionals", "Small business owners", "Students", "Parents"],
+        message: "Excellent target audience! 🎯 Now, let's talk about your solution. How exactly do you plan to solve this problem? What makes your approach unique compared to existing solutions?",
+        suggestions: ["AI-powered automation", "Marketplace connecting users", "Educational platform", "Mobile-first solution"],
         nextStage: 1
       },
-      // Stage 1: Target audience
+      // Stage 1: Solution approach
       {
-        message: "Great target audience! Now, how do you plan to solve this problem? What's your unique approach that competitors aren't doing?",
-        suggestions: ["Mobile app with AI", "Marketplace platform", "SaaS tool", "Community-driven solution"],
+        message: "That's innovative! 🚀 For this to be profitable, we need the right monetization strategy. How would you charge for this? What pricing model fits your target demographic best?",
+        suggestions: ["$9.99/month subscription", "Freemium with premium features", "One-time purchase", "Transaction-based fees"],
         nextStage: 2
       },
-      // Stage 2: Solution approach
+      // Stage 2: Monetization
       {
-        message: "That's innovative! 🚀 Let's talk money - how would you monetize this? What pricing model would work best for your target demographic?",
-        suggestions: ["Subscription model", "Freemium", "One-time purchase", "Transaction fees"],
+        message: "Smart pricing strategy! 💰 Now let's understand your competitive landscape. Who are your main competitors, and what's your unique advantage over them?",
+        suggestions: ["No direct competitors yet", "Better UX and simpler onboarding", "50% more affordable", "Unique features they don't have"],
         nextStage: 3
       },
-      // Stage 3: Monetization
+      // Stage 3: Competition
       {
-        message: "Smart monetization strategy! Who are your main competitors, and what makes you different? This will help us refine your unique value proposition.",
-        suggestions: ["No direct competitors", "Better UX than existing solutions", "More affordable", "More features"],
+        message: "Great competitive analysis! One more thing - what's your go-to-market strategy? How will you reach your first 100 customers?",
+        suggestions: ["Social media marketing", "Content marketing & SEO", "Direct B2B sales", "Product Hunt launch"],
         nextStage: 4
       },
-      // Stage 4: Competition
+      // Stage 4: Go-to-market
       {
-        message: "Excellent! Based on our conversation, I can see strong potential here. Would you like me to analyze your product-market fit score now? I'll show you detailed insights on demographics, profitability potential, and actionable recommendations.",
-        suggestions: ["Yes, show me the PMF analysis!", "Let me refine more details first"],
+        message: "Perfect! 🎉 Based on our conversation, I can see strong potential here. Your idea addresses a real problem with a clear monetization path. Would you like me to calculate your detailed PMF score now? I'll show you demographic insights, profitability projections, and actionable next steps.",
+        suggestions: ["Yes, show me the PMF analysis!", "Let me add more details first"],
         nextStage: 5
       }
     ];
@@ -91,20 +112,17 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       const updatedData = { ...ideaData };
       switch (stage) {
         case 0:
-          updatedData.problem = userMessage;
-          break;
-        case 1:
           updatedData.targetUsers = userMessage;
           break;
-        case 2:
+        case 1:
           updatedData.solution = userMessage;
+          updatedData.uniqueness = userMessage;
           break;
-        case 3:
+        case 2:
           updatedData.monetization = userMessage;
           break;
-        case 4:
+        case 3:
           updatedData.competition = userMessage;
-          updatedData.uniqueness = userMessage;
           break;
       }
       setIdeaData(updatedData);
@@ -114,7 +132,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
 
     return {
       message: "Let me analyze that further. What specific features would be most valuable to your users?",
-      suggestions: ["Analytics dashboard", "Automation features", "Integration capabilities", "Mobile app"],
+      suggestions: ["Real-time analytics", "Team collaboration", "API integrations", "Mobile app"],
       nextStage: stage
     };
   };
@@ -174,11 +192,57 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
-    handleSend();
+    setTimeout(() => {
+      handleSend();
+    }, 100);
   };
 
+  // Initial idea input interface
+  if (!hasStarted) {
+    return (
+      <div className="w-full max-w-3xl mx-auto animate-fade-in">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold mb-4 gradient-text">
+            What's Your Big Idea? 🚀
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Describe your startup concept and I'll help you maximize its potential
+          </p>
+        </div>
+        
+        <Card className="bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-xl border-primary/10 shadow-2xl p-8">
+          <Textarea
+            value={initialIdea}
+            onChange={(e) => setInitialIdea(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                startConversation();
+              }
+            }}
+            placeholder="I want to build an app that helps people..."
+            className="min-h-[120px] text-lg bg-background/50 border-primary/20 focus:border-primary/50 resize-none"
+          />
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-muted-foreground">
+              Press Enter to start • {initialIdea.length} characters
+            </p>
+            <Button
+              onClick={startConversation}
+              disabled={!initialIdea.trim()}
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            >
+              Start Analysis <Sparkles className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Chat interface
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto animate-fade-in">
       <Card className="bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-xl border-primary/10 shadow-2xl">
         <div className="p-4 border-b border-primary/10 bg-gradient-to-r from-primary/5 to-secondary/5">
           <div className="flex items-center gap-3">
@@ -187,7 +251,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
             </div>
             <div>
               <h3 className="font-semibold text-lg">PMF Advisor</h3>
-              <p className="text-xs text-muted-foreground">AI-powered startup idea refinement</p>
+              <p className="text-xs text-muted-foreground">Refining your idea for maximum profitability</p>
             </div>
           </div>
         </div>
@@ -197,7 +261,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
             <div
               key={message.id}
               className={cn(
-                "flex gap-3",
+                "flex gap-3 animate-fade-in",
                 message.type === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
@@ -231,7 +295,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
                         key={idx}
                         variant="outline"
                         size="sm"
-                        className="text-xs hover:bg-primary/10 hover:border-primary/50"
+                        className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all"
                         onClick={() => handleSuggestionClick(suggestion)}
                       >
                         <Lightbulb className="h-3 w-3 mr-1" />
@@ -253,7 +317,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           ))}
 
           {isTyping && (
-            <div className="flex gap-3 justify-start">
+            <div className="flex gap-3 justify-start animate-fade-in">
               <div className="flex-shrink-0 mt-1">
                 <div className="p-2 rounded-full bg-primary/10">
                   <Bot className="h-4 w-4 text-primary" />
