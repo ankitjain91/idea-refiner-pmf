@@ -18,7 +18,7 @@ export default function PaywallOverlay({
   children,
   className = ""
 }: PaywallOverlayProps) {
-  const { subscription, canAccess } = useSubscription();
+  const { subscription, canAccess, loading } = useSubscription();
   const navigate = useNavigate();
   
   // Map features to access keys - using type assertion for feature keys
@@ -33,6 +33,12 @@ export default function PaywallOverlay({
   };
   
   const accessKey = featureMap[feature];
+  
+  // If still loading subscription status, show the content without overlay
+  if (loading) {
+    return <>{children}</>;
+  }
+  
   const hasAccess = accessKey ? canAccess(accessKey) : false;
 
   if (hasAccess) {

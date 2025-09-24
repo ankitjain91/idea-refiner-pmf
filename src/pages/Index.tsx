@@ -232,6 +232,33 @@ const Index = () => {
     });
   };
 
+  const handleRefreshData = async () => {
+    // Refresh data without resetting the entire state
+    if (user && ideaId) {
+      const { data, error } = await supabase
+        .from("ideas")
+        .select("*")
+        .eq("id", ideaId)
+        .single();
+
+      if (data) {
+        setPmfScore(data.pmf_score || pmfScore);
+        if (data.market_size || data.competition) {
+          setRefinements({
+            budget: data.competition || refinements.budget,
+            market: data.market_size || refinements.market,
+            timeline: refinements.timeline,
+          });
+        }
+      }
+    }
+    
+    toast({
+      title: "Dashboard Refreshed",
+      description: "Your data has been updated",
+    });
+  };
+
   const handleReset = () => {
     setIdea("");
     setRefinements({
@@ -242,6 +269,7 @@ const Index = () => {
     setPmfScore(0);
     setIdeaId(null);
     setShowAnalysis(false);
+    setIdeaMetadata(null);
   };
 
   // Show auth screen if not logged in
@@ -289,8 +317,8 @@ const Index = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={handleReset}
-                      title="New Idea"
+                      onClick={handleRefreshData}
+                      title="Refresh Data"
                       className="glass-button hover:animate-glow"
                     >
                       <RefreshCw className="w-4 h-4" />
@@ -362,14 +390,24 @@ const Index = () => {
                   Real-time insights and recommendations for your idea
                 </p>
               </div>
-              <Button
-                onClick={handleReset}
-                variant="outline"
-                className="glass-button w-full sm:w-auto"
-                size="sm"
-              >
-                <ArrowLeft className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" /> New Idea
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRefreshData}
+                  variant="outline"
+                  className="glass-button w-full sm:w-auto"
+                  size="sm"
+                >
+                  <RefreshCw className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" /> Refresh
+                </Button>
+                <Button
+                  onClick={handleReset}
+                  variant="outline"
+                  className="glass-button w-full sm:w-auto"
+                  size="sm"
+                >
+                  <ArrowLeft className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" /> New Idea
+                </Button>
+              </div>
             </div>
 
             {/* Responsive Grid Layout */}
