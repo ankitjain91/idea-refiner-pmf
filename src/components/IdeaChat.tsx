@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, Sparkles, Bot, User, Target, TrendingUp, Users, Lightbulb, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -126,71 +127,38 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     }, 600);
   };
 
-  const generateBotResponse = (userMessage: string, stage: number): { message: string; suggestions?: string[]; nextStage: number } => {
-    const responses = [
-      // Stage 0: Target audience
-      {
-        message: "Excellent target audience! 🎯 Now, let's talk about your solution. How exactly do you plan to solve this problem? What makes your approach unique compared to existing solutions?",
-        suggestions: ["AI-powered automation", "Marketplace connecting users", "Educational platform", "Mobile-first solution"],
-        nextStage: 1
-      },
-      // Stage 1: Solution approach
-      {
-        message: "That's innovative! 🚀 For this to be profitable, we need the right monetization strategy. How would you charge for this? What pricing model fits your target demographic best?",
-        suggestions: ["$9.99/month subscription", "Freemium with premium features", "One-time purchase", "Transaction-based fees"],
-        nextStage: 2
-      },
-      // Stage 2: Monetization
-      {
-        message: "Smart pricing strategy! 💰 Now let's understand your competitive landscape. Who are your main competitors, and what's your unique advantage over them?",
-        suggestions: ["No direct competitors yet", "Better UX and simpler onboarding", "50% more affordable", "Unique features they don't have"],
-        nextStage: 3
-      },
-      // Stage 3: Competition
-      {
-        message: "Great competitive analysis! One more thing - what's your go-to-market strategy? How will you reach your first 100 customers?",
-        suggestions: ["Social media marketing", "Content marketing & SEO", "Direct B2B sales", "Product Hunt launch"],
-        nextStage: 4
-      },
-      // Stage 4: Go-to-market
-      {
-        message: "Perfect! 🎉 Based on our conversation, I can see strong potential here. Your idea addresses a real problem with a clear monetization path. Would you like me to calculate your detailed PMF score now? I'll show you demographic insights, profitability projections, and actionable next steps.",
-        suggestions: ["Yes, show me the PMF analysis!", "Let me add more details first"],
-        nextStage: 5
-      }
-    ];
+  const generateBotResponse = async (userMessage: string): Promise<{ message: string; suggestions: string[] }> => {
+    try {
+      // Build conversation history for context
+      const conversationHistory = messages.map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }));
 
-    if (stage < responses.length) {
-      // Update idea data based on stage
-      const updatedData = { ...ideaData };
-      switch (stage) {
-        case 0:
-          updatedData.targetUsers = userMessage;
-          break;
-        case 1:
-          updatedData.solution = userMessage;
-          updatedData.uniqueness = userMessage;
-          break;
-        case 2:
-          updatedData.monetization = userMessage;
-          break;
-        case 3:
-          updatedData.competition = userMessage;
-          break;
-      }
-      setIdeaData(updatedData);
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: { 
+          message: userMessage,
+          conversationHistory
+        }
+      });
 
-      return responses[stage];
+      if (error) throw error;
+
+      return {
+        message: data.response || "I'm here to help refine your idea. Could you tell me more?",
+        suggestions: data.suggestions || []
+      };
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      // Fallback response if API fails
+      return {
+        message: "I'm having trouble connecting right now. Let's continue - could you tell me more about your target audience?",
+        suggestions: ["Young professionals", "Small businesses", "Students", "General consumers"]
+      };
     }
-
-    return {
-      message: "Let me analyze that further. What specific features would be most valuable to your users?",
-      suggestions: ["Real-time analytics", "Team collaboration", "API integrations", "Mobile app"],
-      nextStage: stage
-    };
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -207,7 +175,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     // Check if user wants to see PMF analysis
     if (input.toLowerCase().includes('show') && input.toLowerCase().includes('pmf') || 
         input.toLowerCase().includes('analysis') || 
-        input.toLowerCase().includes('yes') && conversationStage === 4) {
+        input.toLowerCase().includes('yes') && messages.length > 6) {
       
       // Trigger PMF analysis
       setTimeout(() => {
@@ -226,9 +194,27 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       return;
     }
 
-    // Simulate bot typing and response
-    setTimeout(() => {
-      const response = generateBotResponse(input, conversationStage);
+    // Get AI response
+    try {
+      const response = await generateBotResponse(input);
+      
+      // Update idea data based on conversation content
+      const lowerInput = input.toLowerCase();
+      const updatedData = { ...ideaData };
+      
+      if (!updatedData.targetUsers && (lowerInput.includes('professional') || lowerInput.includes('business') || lowerInput.includes('student') || lowerInput.includes('parent'))) {
+        updatedData.targetUsers = input;
+      } else if (!updatedData.solution && (lowerInput.includes('ai') || lowerInput.includes('marketplace') || lowerInput.includes('platform') || lowerInput.includes('app'))) {
+        updatedData.solution = input;
+        updatedData.uniqueness = input;
+      } else if (!updatedData.monetization && (lowerInput.includes('subscription') || lowerInput.includes('freemium') || lowerInput.includes('purchase') || lowerInput.includes('fee'))) {
+        updatedData.monetization = input;
+      } else if (!updatedData.competition && (lowerInput.includes('competitor') || lowerInput.includes('better') || lowerInput.includes('unique'))) {
+        updatedData.competition = input;
+      }
+      
+      setIdeaData(updatedData);
+      
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
@@ -238,9 +224,12 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       };
 
       setMessages(prev => [...prev, botMessage]);
-      setConversationStage(response.nextStage);
+      setConversationStage(prev => prev + 1);
+    } catch (error) {
+      console.error('Error in handleSend:', error);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -446,13 +435,19 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !isTyping) {
+                  handleSend();
+                }
+              }}
               placeholder="Type your message..."
               className="flex-1 text-sm"
+              disabled={isTyping}
             />
             <Button
               onClick={handleSend}
               size="sm"
+              disabled={isTyping || !input.trim()}
             >
               <Send className="h-4 w-4" />
             </Button>
