@@ -30,6 +30,11 @@ const Index = () => {
     market: "niche",
     timeline: "mvp",
   });
+  const [saving, setSaving] = useState(false);
+  const [ideaId, setIdeaId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { subscription, canAccess, getRemainingIdeas, incrementIdeaCount } = useSubscription();
 
   useEffect(() => {
     // Check current auth status
