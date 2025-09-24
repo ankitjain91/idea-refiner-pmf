@@ -5,6 +5,7 @@ import PMFDashboard from "@/components/PMFDashboard";
 import DemographicsAnalysis from "@/components/DemographicsAnalysis";
 import FeatureChecklist from "@/components/FeatureChecklist";
 import ActionTips from "@/components/ActionTips";
+import CollaborationHub from "@/components/CollaborationHub";
 import Auth from "@/components/Auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,12 +90,20 @@ const Index = () => {
 
     setSaving(true);
     
+    // Extract keywords from the idea (simple implementation)
+    const keywords = idea.toLowerCase().split(' ')
+      .filter(word => word.length > 4)
+      .slice(0, 5);
+    
     const ideaData = {
       user_id: user.id,
       original_idea: idea,
       pmf_score: pmfScore,
       market_size: refinements.market,
       competition: refinements.budget,
+      category: refinements.market,
+      keywords: keywords,
+      is_public: true
     };
 
     if (ideaId) {
@@ -265,10 +274,16 @@ const Index = () => {
               <DemographicsAnalysis idea={idea} market={refinements.market} />
             </div>
 
-            {/* Right Column - Features & Actions */}
+            {/* Right Column - Features, Actions & Collaboration */}
             <div className="lg:col-span-1 space-y-6">
               <FeatureChecklist idea={idea} budget={refinements.budget} />
               <ActionTips score={pmfScore} />
+              <CollaborationHub 
+                currentIdea={idea}
+                currentCategory={refinements.market}
+                currentKeywords={[]}
+                userId={user.id}
+              />
             </div>
           </div>
 

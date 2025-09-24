@@ -14,13 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      collaborations: {
+        Row: {
+          created_at: string
+          id: string
+          idea_id: string
+          message: string | null
+          recipient_id: string
+          requester_id: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idea_id: string
+          message?: string | null
+          recipient_id: string
+          requester_id: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idea_id?: string
+          message?: string | null
+          recipient_id?: string
+          requester_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborations_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ideas: {
         Row: {
+          category: string | null
           competition: string | null
           created_at: string
           id: string
           income_range: string | null
           interests: string[] | null
+          is_public: boolean | null
+          keywords: string[] | null
           market_size: string | null
           original_idea: string
           pmf_score: number | null
@@ -31,11 +72,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           competition?: string | null
           created_at?: string
           id?: string
           income_range?: string | null
           interests?: string[] | null
+          is_public?: boolean | null
+          keywords?: string[] | null
           market_size?: string | null
           original_idea: string
           pmf_score?: number | null
@@ -46,11 +90,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           competition?: string | null
           created_at?: string
           id?: string
           income_range?: string | null
           interests?: string[] | null
+          is_public?: boolean | null
+          keywords?: string[] | null
           market_size?: string | null
           original_idea?: string
           pmf_score?: number | null
