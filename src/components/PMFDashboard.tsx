@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Target, Users, Zap, AlertCircle, CheckCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Users, Target, AlertCircle, ChevronUp, ChevronDown, CheckCircle, XCircle, BarChart, PieChart, Activity, MessageSquare, GitBranch, CircleDollarSign, Sparkles, Lock, Crown } from "lucide-react";
+import PaywallOverlay from "./PaywallOverlay";
+import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface PMFDashboardProps {
   idea: string;
@@ -15,174 +17,289 @@ interface PMFDashboardProps {
   onScoreUpdate: (score: number) => void;
 }
 
-const PMFDashboard = ({ idea, refinements, onScoreUpdate }: PMFDashboardProps) => {
-  const [score, setScore] = useState(0);
-  const [animatedScore, setAnimatedScore] = useState(0);
-  const [metrics, setMetrics] = useState({
-    marketSize: 0,
-    competition: 0,
-    feasibility: 0,
-    timing: 0,
-  });
+interface Metrics {
+  pmfScore: number;
+  pmfExplanation: string;
+  marketSize: string;
+  marketGrowth: string;
+  marketExplanation: string;
+  competitors: Array<{ name: string; strength: string }>;
+  competitorsExplanation: string;
+  targetCustomers: Array<{ segment: string; size: string; painPoint: string }>;
+  targetCustomersExplanation: string;
+  keyMetrics: Array<{ label: string; value: string; trend: 'up' | 'down' | 'neutral'; icon: any }>;
+}
 
-  // Calculate PMF score based on idea and refinements
-  useEffect(() => {
-    if (!idea) {
-      setScore(0);
-      return;
-    }
-
-    let newScore = 30; // Base score for having an idea
-
-    // Budget impact
-    if (refinements.budget === "bootstrapped") newScore += 10;
-    else if (refinements.budget === "seed") newScore += 15;
-    else if (refinements.budget === "series-a") newScore += 20;
-
-    // Market impact
-    if (refinements.market === "niche") newScore += 8;
-    else if (refinements.market === "mainstream") newScore += 15;
-    else if (refinements.market === "enterprise") newScore += 18;
-
-    // Timeline impact
-    if (refinements.timeline === "mvp") newScore += 12;
-    else if (refinements.timeline === "6-months") newScore += 10;
-    else if (refinements.timeline === "1-year") newScore += 8;
-
-    // Idea length bonus (more detailed = better)
-    newScore += Math.min(idea.length / 10, 15);
-
-    // Calculate individual metrics
-    setMetrics({
-      marketSize: Math.min(refinements.market === "enterprise" ? 85 : refinements.market === "mainstream" ? 70 : 50, 100),
-      competition: Math.min(idea.length > 50 ? 65 : 40, 100),
-      feasibility: Math.min(refinements.budget === "bootstrapped" ? 80 : 60, 100),
-      timing: Math.min(refinements.timeline === "mvp" ? 90 : 60, 100),
-    });
-
-    const finalScore = Math.min(newScore, 100);
-    setScore(finalScore);
-    onScoreUpdate(finalScore);
-  }, [idea, refinements, onScoreUpdate]);
-
-  // Animate score changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimatedScore(score);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [score]);
-
-  const getScoreColor = (score: number) => {
-    if (score >= 75) return "text-success";
-    if (score >= 50) return "text-warning";
-    return "text-destructive";
+export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDashboardProps) {
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  
+  // Generate mock metrics based on idea and refinements
+  const generateMetrics = (): Metrics => {
+    const baseScore = 45;
+    let score = baseScore;
+    
+    // Adjust score based on refinements
+    if (refinements.budget === 'funded') score += 10;
+    if (refinements.market === 'enterprise') score += 15;
+    if (refinements.timeline === 'mvp') score += 10;
+    
+    // Add randomness for demo
+    score = Math.min(95, score + Math.floor(Math.random() * 20));
+    
+    return {
+      pmfScore: score,
+      pmfExplanation: `This score reflects strong market demand signals based on your ${refinementData.market} target market. The ${refinementData.budget} funding approach aligns well with the ${refinementData.timeline} timeline. Key strengths include clear value proposition and identified customer pain points. To improve: focus on competitive differentiation and validate pricing strategy.`,
+      marketSize: refinementData.market === 'enterprise' ? '$12.5B' : refinementData.market === 'mass' ? '$45.2B' : '$3.8B',
+      marketGrowth: 'Growing 23% YoY',
+      marketExplanation: `The ${refinementData.market} market shows robust growth driven by digital transformation trends. TAM analysis indicates ${refinementData.market === 'enterprise' ? '50,000+ potential accounts' : '2.5M+ potential users'}. Market timing is favorable with increasing adoption rates and regulatory tailwinds supporting innovation in this space.`,
+      competitors: [
+        { name: 'Competitor A', strength: 'Strong' },
+        { name: 'Competitor B', strength: 'Moderate' },
+        { name: 'Competitor C', strength: 'Emerging' }
+      ],
+      competitorsExplanation: `Competitive landscape analysis reveals 3 main players with combined 65% market share. Competitor A leads with enterprise features but lacks user experience focus. Your differentiation opportunity lies in the ${refinementData.timeline === 'mvp' ? 'speed to market' : 'comprehensive feature set'} combined with superior customer experience.`,
+      targetCustomers: [
+        { segment: 'Early Adopters', size: '15%', painPoint: 'Need innovative solutions' },
+        { segment: 'Main Market', size: '68%', painPoint: 'Seeking proven ROI' },
+        { segment: 'Late Market', size: '17%', painPoint: 'Risk-averse, need stability' }
+      ],
+      targetCustomersExplanation: `Customer segmentation based on adoption lifecycle and psychographic analysis. Early adopters (15%) provide initial validation and feedback. Main market (68%) represents scaling opportunity with proven product-market fit. Focus on early adopters first to establish credibility before mainstream expansion.`,
+      keyMetrics: [
+        { label: 'CAC Payback', value: '6 months', trend: 'up', icon: CircleDollarSign },
+        { label: 'Market Share', value: '2.3%', trend: 'up', icon: PieChart },
+        { label: 'Growth Rate', value: '15% MoM', trend: 'up', icon: BarChart },
+        { label: 'Churn Rate', value: '5%', trend: 'down', icon: Activity }
+      ]
+    };
   };
 
-  const getScoreLabel = (score: number) => {
-    if (score >= 75) return "Strong PMF";
-    if (score >= 50) return "Moderate PMF";
-    if (score >= 25) return "Weak PMF";
-    return "No PMF";
-  };
+  const metrics = generateMetrics();
 
   return (
-    <div className="space-y-6">
-      {/* Main Score Card */}
-      <Card className="glass-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">Product-Market Fit Score</h3>
-            <p className="text-sm text-muted-foreground">Real-time analysis based on your inputs</p>
-          </div>
-          <Badge 
-            variant={animatedScore >= 75 ? "default" : animatedScore >= 50 ? "secondary" : "destructive"}
-            className="px-3 py-1"
+    <PaywallOverlay feature="Advanced PMF Analytics" requiredTier="pro">
+      <div className="space-y-6">
+        {/* PMF Score Card */}
+        <div>
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-gradient-primary text-white">
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Product-Market Fit Score
+                </span>
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                  AI Analysis
+                </Badge>
+              </CardTitle>
+              <CardDescription className="text-white/80">
+                Comprehensive analysis of your startup's potential
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 pt-2">
+              <div className="text-3xl font-bold mb-2">{metrics.pmfScore}%</div>
+              <Progress value={metrics.pmfScore} className="mb-3" />
+              <Collapsible open={expandedSections.pmf} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, pmf: open }))}>
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full mt-4 bg-gradient-primary hover:opacity-90 text-white border-0 shadow-glow group"
+                  >
+                    <Crown className="w-4 h-4 mr-2 text-yellow-300" />
+                    <span className="font-semibold">AI Analysis</span>
+                    <Sparkles className="w-4 h-4 ml-1 text-yellow-300" />
+                    {expandedSections.pmf ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-4 bg-gradient-subtle p-4 rounded-lg border border-primary/20 backdrop-blur-sm">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {metrics.pmfExplanation}
+                    </p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Market Analysis */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
           >
-            {getScoreLabel(animatedScore)}
-          </Badge>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  Market Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-2">
+                <div className="text-2xl font-bold mb-2">{metrics.marketSize}</div>
+                <Badge variant={metrics.marketGrowth.includes("Growing") ? "default" : "secondary"} className="mb-3">
+                  {metrics.marketGrowth}
+                </Badge>
+                <Collapsible open={expandedSections.market} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, market: open }))}>
+                  <CollapsibleTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-4 bg-gradient-primary hover:opacity-90 text-white border-0 shadow-glow group"
+                    >
+                      <Crown className="w-4 h-4 mr-2 text-yellow-300" />
+                      <span className="font-semibold">AI Insights</span>
+                      <Sparkles className="w-4 h-4 ml-1 text-yellow-300" />
+                      {expandedSections.market ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-4 bg-gradient-subtle p-4 rounded-lg border border-primary/20 backdrop-blur-sm">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {metrics.marketExplanation}
+                      </p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Competitive Landscape */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="w-4 h-4 text-accent" />
+                  Competitive Landscape
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-2">
+                <div className="space-y-3">
+                  {metrics.competitors.map((competitor, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <span className="font-medium">{competitor.name}</span>
+                      <Badge variant="outline">{competitor.strength}</Badge>
+                    </div>
+                  ))}
+                </div>
+                <Collapsible open={expandedSections.competitors} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, competitors: open }))}>
+                  <CollapsibleTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-4 bg-gradient-primary hover:opacity-90 text-white border-0 shadow-glow group"
+                    >
+                      <Crown className="w-4 h-4 mr-2 text-yellow-300" />
+                      <span className="font-semibold">AI Research</span>
+                      <Sparkles className="w-4 h-4 ml-1 text-yellow-300" />
+                      {expandedSections.competitors ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-4 bg-gradient-subtle p-4 rounded-lg border border-primary/20 backdrop-blur-sm">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {metrics.competitorsExplanation}
+                      </p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Target Customers */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Target className="w-4 h-4 text-success" />
+                  Target Customers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-2">
+                <div className="space-y-3">
+                  {metrics.targetCustomers.map((segment, idx) => (
+                    <div key={idx} className="p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">{segment.segment}</span>
+                        <Badge>{segment.size}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{segment.painPoint}</p>
+                    </div>
+                  ))}
+                </div>
+                <Collapsible open={expandedSections.customers} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, customers: open }))}>
+                  <CollapsibleTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-4 bg-gradient-primary hover:opacity-90 text-white border-0 shadow-glow group"
+                    >
+                      <Crown className="w-4 h-4 mr-2 text-yellow-300" />
+                      <span className="font-semibold">AI Deep Dive</span>
+                      <Sparkles className="w-4 h-4 ml-1 text-yellow-300" />
+                      {expandedSections.customers ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-4 bg-gradient-subtle p-4 rounded-lg border border-primary/20 backdrop-blur-sm">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {metrics.targetCustomersExplanation}
+                      </p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className={cn("text-4xl font-display font-bold transition-all duration-500", getScoreColor(animatedScore))}>
-              {Math.round(animatedScore)}%
-            </span>
-            <div className="flex items-center gap-2">
-              {animatedScore >= 50 ? (
-                <TrendingUp className="w-5 h-5 text-success" />
-              ) : (
-                <TrendingDown className="w-5 h-5 text-destructive" />
-              )}
-            </div>
-          </div>
-          
-          <Progress value={animatedScore} className="h-3 transition-all duration-500" />
-        </div>
-      </Card>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="glass-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Target className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Market Size</span>
-          </div>
-          <div className="space-y-2">
-            <span className="text-2xl font-bold">{metrics.marketSize}%</span>
-            <Progress value={metrics.marketSize} className="h-2" />
-          </div>
-        </Card>
-
-        <Card className="glass-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium">Competition</span>
-          </div>
-          <div className="space-y-2">
-            <span className="text-2xl font-bold">{metrics.competition}%</span>
-            <Progress value={metrics.competition} className="h-2" />
-          </div>
-        </Card>
-
-        <Card className="glass-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-success" />
-            <span className="text-sm font-medium">Feasibility</span>
-          </div>
-          <div className="space-y-2">
-            <span className="text-2xl font-bold">{metrics.feasibility}%</span>
-            <Progress value={metrics.feasibility} className="h-2" />
-          </div>
-        </Card>
-
-        <Card className="glass-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-warning" />
-            <span className="text-sm font-medium">Timing</span>
-          </div>
-          <div className="space-y-2">
-            <span className="text-2xl font-bold">{metrics.timing}%</span>
-            <Progress value={metrics.timing} className="h-2" />
-          </div>
-        </Card>
+        {/* Key Metrics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="w-5 h-5 text-primary" />
+                Key Performance Indicators
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {metrics.keyMetrics.map((metric, idx) => (
+                  <div key={idx} className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <metric.icon className="w-4 h-4 text-muted-foreground" />
+                      {metric.trend === 'up' ? (
+                        <TrendingUp className="w-4 h-4 text-success" />
+                      ) : metric.trend === 'down' ? (
+                        <TrendingUp className="w-4 h-4 text-destructive rotate-180" />
+                      ) : null}
+                    </div>
+                    <div className="text-lg font-bold">{metric.value}</div>
+                    <div className="text-xs text-muted-foreground">{metric.label}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-
-      {/* Status Indicators */}
-      <Card className="glass-card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-success" />
-            <span className="text-sm text-muted-foreground">Live Analysis Active</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-success rounded-full pulse-glow" />
-            <span className="text-xs text-muted-foreground">Updating</span>
-          </div>
-        </div>
-      </Card>
-    </div>
+    </PaywallOverlay>
   );
-};
-
-export default PMFDashboard;
+}

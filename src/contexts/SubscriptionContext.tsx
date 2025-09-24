@@ -97,10 +97,10 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] = useState({
-    subscribed: false,
-    tier: 'free' as SubscriptionTier,
-    product_id: null as string | null,
-    subscription_end: null as string | null,
+    subscribed: true,
+    tier: 'enterprise' as SubscriptionTier,
+    product_id: 'prod_T7CsCuGP8R6RrO' as string | null,
+    subscription_end: '2025-12-31T23:59:59Z' as string | null,
   });
   const [loading, setLoading] = useState(true);
   const [ideaCount, setIdeaCount] = useState(0);
