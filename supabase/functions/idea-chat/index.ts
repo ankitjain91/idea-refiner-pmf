@@ -35,7 +35,6 @@ serve(async (req) => {
         
         2. For REJECTED ideas, respond with:
            "❌ I need a real startup or business idea to help you. Please describe a specific product, service, or solution that solves a problem for a target audience."
-           Then provide suggestions for real startup categories.
         
         3. For VALID startup ideas, help refine them by asking about:
            - Target demographic and market size
@@ -44,13 +43,23 @@ serve(async (req) => {
            - Competitive landscape and differentiation
            - Go-to-market strategy and customer acquisition
         
-        4. Response format:
-           - Be conversational and encouraging for valid ideas
-           - Use relevant emojis (👋 🎯 🚀 💰 🎉)
-           - Keep responses concise (under 100 words)
-           - Always suggest 2-4 relevant next steps
+        4. Response format - YOU MUST FOLLOW THIS EXACTLY:
+           - First, provide your conversational response (be encouraging for valid ideas, use emojis 👋 🎯 🚀 💰 🎉, keep it under 100 words)
+           - Then add a line break
+           - Then add "SUGGESTIONS:" on its own line
+           - Then provide exactly 3-4 suggestion options, one per line, that the user can click to continue the conversation
+           - Make suggestions contextual and actionable based on what you just asked
         
-        5. After gathering enough information about a VALID idea, offer to calculate a PMF score.
+        5. Example response format:
+           "Great idea! 🚀 To better understand your market, who specifically would use this product? Are you targeting consumers or businesses?
+           
+           SUGGESTIONS:
+           Tech-savvy millennials in urban areas
+           Small business owners with 1-10 employees
+           Parents with school-age children
+           Remote workers and digital nomads"
+        
+        6. After gathering enough information about a VALID idea, offer to calculate a PMF score.
         
         Remember: Only engage with legitimate business/startup concepts. Filter out everything else.`
       },
@@ -85,92 +94,43 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
-
-    // Generate contextually relevant suggestions based on the conversation
-    let suggestions: string[] = [];
-    const lowerResponse = aiResponse.toLowerCase();
-    const lowerMessage = message.toLowerCase();
+    const fullResponse = data.choices[0].message.content;
     
-    // Check if idea was rejected - provide real startup idea examples
-    if (lowerResponse.includes('❌') || lowerResponse.includes('real startup') || lowerResponse.includes('need a real')) {
-      suggestions = [
-        "A mobile app that helps people find parking spots",
-        "Platform connecting freelancers with local businesses", 
-        "AI tool that summarizes long documents",
-        "Subscription box for eco-friendly products"
-      ];
-    } 
-    // Target demographic questions
-    else if (lowerResponse.includes('who') || lowerResponse.includes('target') || lowerResponse.includes('audience') || lowerResponse.includes('demographic')) {
-      suggestions = [
-        "Tech-savvy millennials in urban areas",
-        "Small business owners with 1-10 employees",
-        "Parents with school-age children",
-        "Remote workers and digital nomads"
-      ];
-    } 
-    // Solution/implementation questions
-    else if (lowerResponse.includes('how') || lowerResponse.includes('solution') || lowerResponse.includes('build') || lowerResponse.includes('implement')) {
-      suggestions = [
-        "Mobile app with AI recommendations",
-        "Web platform with real-time matching",
-        "Chrome extension for seamless integration",
-        "API-first approach for developers"
-      ];
-    } 
-    // Monetization questions
-    else if (lowerResponse.includes('monetiz') || lowerResponse.includes('pricing') || lowerResponse.includes('revenue') || lowerResponse.includes('charge')) {
-      suggestions = [
-        "$19/month for individuals",
-        "Freemium model with paid pro features",
-        "15% commission on transactions",
-        "$99 one-time purchase"
-      ];
-    } 
-    // Competition questions
-    else if (lowerResponse.includes('compet') || lowerResponse.includes('different') || lowerResponse.includes('unique') || lowerResponse.includes('stand out')) {
-      suggestions = [
-        "We focus on a niche they ignore",
-        "Our solution is 10x faster",
-        "We have better pricing and support",
-        "First to integrate with key platforms"
-      ];
-    } 
-    // Go-to-market questions
-    else if (lowerResponse.includes('market') || lowerResponse.includes('customer') || lowerResponse.includes('launch') || lowerResponse.includes('growth')) {
-      suggestions = [
-        "Launch on Product Hunt and Reddit",
-        "Partner with industry influencers",
-        "Cold outreach to target companies",
-        "Content marketing and SEO strategy"
-      ];
-    } 
-    // PMF analysis readiness
-    else if (lowerResponse.includes('pmf') || lowerResponse.includes('score') || lowerResponse.includes('ready') || lowerResponse.includes('enough')) {
-      suggestions = [
-        "Yes, calculate my PMF score!",
-        "Tell me more about my target market",
-        "I need help with monetization",
-        "What about competition?"
-      ];
-    }
-    // Default helpful suggestions if no specific context
-    else {
-      // Provide general next steps based on what hasn't been discussed
-      if (!conversationHistory.some((m: any) => m.content.toLowerCase().includes('target') || m.content.toLowerCase().includes('audience'))) {
-        suggestions.push("Help me define my target audience");
-      }
-      if (!conversationHistory.some((m: any) => m.content.toLowerCase().includes('monetiz') || m.content.toLowerCase().includes('pricing'))) {
-        suggestions.push("Let's discuss pricing strategy");
-      }
-      if (!conversationHistory.some((m: any) => m.content.toLowerCase().includes('compet'))) {
-        suggestions.push("Analyze my competition");
-      }
-      suggestions.push("Calculate my PMF score");
+    // Parse the response to extract main message and suggestions
+    let aiResponse = fullResponse;
+    let suggestions: string[] = [];
+    
+    // Check if response contains SUGGESTIONS section
+    if (fullResponse.includes('SUGGESTIONS:')) {
+      const parts = fullResponse.split('SUGGESTIONS:');
+      aiResponse = parts[0].trim();
       
-      // Limit to 4 suggestions
-      suggestions = suggestions.slice(0, 4);
+      // Parse suggestions from the second part
+      const suggestionText = parts[1].trim();
+      suggestions = suggestionText
+        .split('\n')
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0)
+        .slice(0, 4); // Limit to 4 suggestions
+    } else {
+      // Fallback: If AI didn't format suggestions properly, provide defaults
+      console.log('AI response did not include proper SUGGESTIONS format');
+      const lowerResponse = fullResponse.toLowerCase();
+      
+      if (lowerResponse.includes('❌') || lowerResponse.includes('real startup')) {
+        suggestions = [
+          "A mobile app that helps people find parking spots",
+          "Platform connecting freelancers with local businesses",
+          "AI tool that summarizes long documents"
+        ];
+      } else {
+        suggestions = [
+          "Tell me more about this",
+          "Calculate my PMF score",
+          "Help me with pricing strategy",
+          "What about competition?"
+        ];
+      }
     }
 
     return new Response(
