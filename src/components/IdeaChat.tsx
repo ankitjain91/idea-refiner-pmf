@@ -510,6 +510,24 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          
+          {/* Show Analyze button after collecting enough information */}
+          {messages.length >= 6 && !messages.some(m => m.showPMF) && (
+            <div className="mt-3 flex justify-center">
+              <Button
+                onClick={() => {
+                  const analyzeMessage = "Calculate my PMF score and provide detailed analysis";
+                  setInput(analyzeMessage);
+                  setTimeout(() => handleSend(), 100);
+                }}
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                size="sm"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Analyze PMF Score
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
     </div>
