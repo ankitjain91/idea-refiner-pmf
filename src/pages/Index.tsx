@@ -292,33 +292,35 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container-fluid py-8 relative z-10">
+      <main className="container-fluid py-4 sm:py-6 md:py-8 relative z-10">
         {/* Chat Interface or Analysis */}
         {!showAnalysis && !isCalculating && (
-          <IdeaChat onAnalysisReady={handleIdeaSubmit} />
+          <div className="flex justify-center">
+            <IdeaChat onAnalysisReady={handleIdeaSubmit} />
+          </div>
         )}
 
         {/* Calculating Animation */}
         {isCalculating && (
-          <div className="max-w-3xl mx-auto animate-fade-in">
-            <div className="glass-card p-12 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="w-24 h-24 glass-panel rounded-full flex items-center justify-center animate-glow">
-                  <Brain className="w-12 h-12 text-primary animate-pulse" />
+          <div className="max-w-2xl mx-auto px-4 animate-fade-in">
+            <div className="glass-card p-8 sm:p-10 md:p-12 text-center">
+              <div className="flex justify-center mb-4 sm:mb-6">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 glass-panel rounded-full flex items-center justify-center animate-glow">
+                  <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-pulse" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold mb-4 gradient-text">
+              <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 gradient-text">
                 Analyzing Your Idea
               </h3>
-              <p className="text-muted-foreground mb-8">
+              <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">
                 Our AI is evaluating market potential, competition, and product-market fit...
               </p>
               <Progress value={66} className="w-full max-w-md mx-auto animate-pulse" />
               
-              <div className="grid grid-cols-3 gap-4 mt-12">
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-12">
                 {["Market Analysis", "Competition Check", "PMF Score"].map((item, i) => (
-                  <div key={item} className="glass-panel p-4 rounded-lg">
-                    <CheckCircle2 className={`w-5 h-5 mx-auto mb-2 ${i < 2 ? 'text-success' : 'text-muted-foreground animate-pulse'}`} />
+                  <div key={item} className="glass-panel p-3 sm:p-4 rounded-lg">
+                    <CheckCircle2 className={`w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-1 sm:mb-2 ${i < 2 ? 'text-success' : 'text-muted-foreground animate-pulse'}`} />
                     <p className="text-xs text-muted-foreground">{item}</p>
                   </div>
                 ))}
@@ -329,37 +331,38 @@ const Index = () => {
 
         {/* Dashboard */}
         {showAnalysis && (
-          <div className="animate-fade-in">
-            <div className="flex items-center justify-between mb-8">
+          <div className="animate-fade-in px-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
               <div>
-                <h2 className="text-3xl font-bold gradient-text">
+                <h2 className="text-2xl sm:text-3xl font-bold gradient-text">
                   Your Startup Analysis
                 </h2>
-                <p className="text-muted-foreground mt-2">
+                <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
                   Real-time insights and recommendations for your idea
                 </p>
               </div>
               <Button
                 onClick={handleReset}
                 variant="outline"
-                className="glass-button"
+                className="glass-button w-full sm:w-auto"
+                size="sm"
               >
-                <ArrowLeft className="mr-2 w-4 h-4" /> New Idea
+                <ArrowLeft className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" /> New Idea
               </Button>
             </div>
 
             {/* Responsive Grid Layout */}
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
               {/* Analytics Section */}
-              <div className="space-y-6 lg:col-span-1">
-                <div className="glass-card p-6 card-hover">
+              <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-1">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <PMFDashboard 
                     idea={idea} 
                     refinements={refinements} 
                     onScoreUpdate={setPmfScore}
                   />
                 </div>
-                <div className="glass-card p-6 card-hover">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <RealTimeRefinementChart
                     idea={idea}
                     pmfScore={pmfScore}
@@ -370,24 +373,24 @@ const Index = () => {
               </div>
 
               {/* Controls & Demographics */}
-              <div className="space-y-6 lg:col-span-1">
-                <div className="glass-card p-6 card-hover">
+              <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-1">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <RefinementControls refinements={refinements} onChange={handleRefinementChange} />
                 </div>
-                <div className="glass-card p-6 card-hover">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <DemographicsAnalysis idea={idea} market={refinements.market} />
                 </div>
-                <div className="glass-card p-6 card-hover">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <ActionTips score={pmfScore} />
                 </div>
               </div>
 
               {/* Features & Collaboration */}
-              <div className="space-y-6 lg:col-span-1 xl:col-span-1 lg:col-span-2 xl:col-span-1">
-                <div className="glass-card p-6 card-hover">
+              <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-1 xl:col-span-1 lg:col-span-2 xl:col-span-1">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <FeatureChecklist idea={idea} budget={refinements.budget} />
                 </div>
-                <div className="glass-card p-6 card-hover">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <CollaborationHub 
                     currentIdea={idea}
                     currentCategory={refinements.market}

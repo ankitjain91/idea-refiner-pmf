@@ -210,15 +210,15 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   // Initial idea input interface with morph animation
   if (!hasStarted) {
     return (
-      <div className="w-full max-w-3xl mx-auto">
+      <div className="w-full max-w-2xl mx-auto px-4">
         <div className={cn(
-          "text-center mb-12 transition-all duration-700 ease-out",
+          "text-center mb-6 sm:mb-8 transition-all duration-700 ease-out",
           isTransitioning ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"
         )}>
-          <h2 className="text-4xl font-bold mb-4 gradient-text">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4 gradient-text">
             What's Your Big Idea? 🚀
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm sm:text-base md:text-lg px-4">
             Describe your startup concept and I'll help you maximize its potential
           </p>
         </div>
@@ -227,7 +227,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           "transition-all duration-700 ease-out transform-gpu",
           isTransitioning ? "scale-95 opacity-0" : "scale-100 opacity-100"
         )}>
-          <Card className="bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-xl border-primary/10 shadow-2xl p-8">
+          <Card className="bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-xl border-primary/10 shadow-2xl p-4 sm:p-6 md:p-8">
             <div className="relative">
               <Textarea
                 value={initialIdea}
@@ -240,7 +240,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
                 }}
                 placeholder="I want to build an app that helps people..."
                 className={cn(
-                  "min-h-[120px] text-lg bg-background/50 border-primary/20 focus:border-primary/50 resize-none transition-all duration-700",
+                  "min-h-[100px] sm:min-h-[120px] text-sm sm:text-base md:text-lg bg-background/50 border-primary/20 focus:border-primary/50 resize-none transition-all duration-700",
                   isTransitioning && "transform scale-95"
                 )}
                 disabled={isTransitioning}
@@ -249,27 +249,27 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
               {/* Morphing bubble preview - shows during transition */}
               {isTransitioning && (
                 <div className="absolute inset-0 flex items-center justify-end pointer-events-none">
-                  <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-sm max-w-[70%] animate-slide-in-right opacity-0" 
+                  <div className="bg-primary text-primary-foreground px-3 sm:px-4 py-2 sm:py-3 rounded-2xl rounded-br-sm max-w-[70%] animate-slide-in-right opacity-0" 
                        style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}>
-                    <p className="text-sm leading-relaxed">{initialIdea}</p>
+                    <p className="text-xs sm:text-sm leading-relaxed break-words">{initialIdea}</p>
                   </div>
                 </div>
               )}
             </div>
             
             <div className={cn(
-              "flex items-center justify-between mt-4 transition-all duration-500",
+              "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-4 transition-all duration-500",
               isTransitioning ? "opacity-0" : "opacity-100"
             )}>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Press Enter to start • {initialIdea.length} characters
               </p>
               <Button
                 onClick={startConversation}
                 disabled={!initialIdea.trim() || isTransitioning}
-                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 w-full sm:w-auto text-sm"
               >
-                Start Analysis <Sparkles className="ml-2 h-4 w-4" />
+                Start Analysis <Sparkles className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </Card>
@@ -280,26 +280,26 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
 
   // Chat interface
   return (
-    <div className="w-full max-w-4xl mx-auto animate-fade-in">
+    <div className="w-full max-w-3xl mx-auto px-4 animate-fade-in">
       <Card className="bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-xl border-primary/10 shadow-2xl">
-        <div className="p-4 border-b border-primary/10 bg-gradient-to-r from-primary/5 to-secondary/5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <Bot className="h-6 w-6 text-primary" />
+        <div className="p-3 sm:p-4 border-b border-primary/10 bg-gradient-to-r from-primary/5 to-secondary/5">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-full bg-primary/10">
+              <Bot className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">PMF Advisor</h3>
-              <p className="text-xs text-muted-foreground">Refining your idea for maximum profitability</p>
+              <h3 className="font-semibold text-sm sm:text-base md:text-lg">PMF Advisor</h3>
+              <p className="text-xs text-muted-foreground hidden sm:block">Refining your idea for maximum profitability</p>
             </div>
           </div>
         </div>
 
-        <div className="h-[500px] overflow-y-auto p-4 space-y-4">
+        <div className="h-[350px] sm:h-[400px] md:h-[450px] lg:h-[500px] overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
           {messages.map((message, index) => (
             <div
               key={message.id}
               className={cn(
-                "flex gap-3",
+                "flex gap-2 sm:gap-3",
                 message.type === 'user' ? 'justify-end' : 'justify-start',
                 index === 0 ? 'animate-slide-in-right' : 'animate-fade-in'
               )}
@@ -307,39 +307,39 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
             >
               {message.type === 'bot' && (
                 <div className="flex-shrink-0 mt-1">
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <Bot className="h-4 w-4 text-primary" />
+                  <div className="p-1.5 sm:p-2 rounded-full bg-primary/10">
+                    <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                   </div>
                 </div>
               )}
               
               <div className={cn(
-                "max-w-[70%] space-y-2",
+                "max-w-[80%] sm:max-w-[70%] space-y-2",
                 message.type === 'user' ? 'items-end' : 'items-start'
               )}>
                 <div
                   className={cn(
-                    "px-4 py-3 rounded-2xl",
+                    "px-3 sm:px-4 py-2 sm:py-3 rounded-2xl",
                     message.type === 'user'
                       ? 'bg-primary text-primary-foreground rounded-br-sm'
                       : 'bg-muted rounded-bl-sm'
                   )}
                 >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <p className="text-xs sm:text-sm leading-relaxed break-words">{message.content}</p>
                 </div>
                 
                 {message.suggestions && (
-                  <div className="flex flex-wrap gap-2 mt-2 animate-fade-in" style={{ animationDelay: '200ms' }}>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 animate-fade-in" style={{ animationDelay: '200ms' }}>
                     {message.suggestions.map((suggestion, idx) => (
                       <Button
                         key={idx}
                         variant="outline"
                         size="sm"
-                        className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all"
+                        className="text-xs h-auto py-1.5 px-2 sm:px-3 hover:bg-primary/10 hover:border-primary/50 transition-all"
                         onClick={() => handleSuggestionClick(suggestion)}
                       >
-                        <Lightbulb className="h-3 w-3 mr-1" />
-                        {suggestion}
+                        <Lightbulb className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="break-words">{suggestion}</span>
                       </Button>
                     ))}
                   </div>
@@ -348,8 +348,8 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
 
               {message.type === 'user' && (
                 <div className="flex-shrink-0 mt-1">
-                  <div className="p-2 rounded-full bg-secondary/10">
-                    <User className="h-4 w-4 text-secondary" />
+                  <div className="p-1.5 sm:p-2 rounded-full bg-secondary/10">
+                    <User className="h-3 w-3 sm:h-4 sm:w-4 text-secondary" />
                   </div>
                 </div>
               )}
@@ -357,17 +357,17 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           ))}
 
           {isTyping && (
-            <div className="flex gap-3 justify-start animate-fade-in">
+            <div className="flex gap-2 sm:gap-3 justify-start animate-fade-in">
               <div className="flex-shrink-0 mt-1">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <Bot className="h-4 w-4 text-primary" />
+                <div className="p-1.5 sm:p-2 rounded-full bg-primary/10">
+                  <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                 </div>
               </div>
-              <div className="px-4 py-3 rounded-2xl bg-muted rounded-bl-sm">
+              <div className="px-3 sm:px-4 py-2 sm:py-3 rounded-2xl bg-muted rounded-bl-sm">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>
@@ -376,20 +376,21 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="p-4 border-t border-primary/10">
+        <div className="p-3 sm:p-4 border-t border-primary/10">
           <div className="flex gap-2">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Type your message..."
-              className="flex-1 bg-background/50 border-primary/20 focus:border-primary/50"
+              className="flex-1 text-sm bg-background/50 border-primary/20 focus:border-primary/50"
             />
             <Button
               onClick={handleSend}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              size="sm"
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 px-3 sm:px-4"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
