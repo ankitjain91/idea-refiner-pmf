@@ -22,6 +22,7 @@ interface IdeaChatProps {
 
 const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   const [hasStarted, setHasStarted] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [initialIdea, setInitialIdea] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -50,27 +51,36 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   const startConversation = () => {
     if (!initialIdea.trim()) return;
 
-    setHasStarted(true);
+    // Start transition animation
+    setIsTransitioning(true);
     
-    // Add user's initial idea as first message
-    const userMessage: Message = {
-      id: '1',
-      type: 'user',
-      content: initialIdea,
-      timestamp: new Date()
-    };
+    // After animation starts, set up the chat
+    setTimeout(() => {
+      setHasStarted(true);
+      
+      // Add user's initial idea as first message
+      const userMessage: Message = {
+        id: '1',
+        type: 'user',
+        content: initialIdea,
+        timestamp: new Date()
+      };
 
-    // Bot's first response
-    const botMessage: Message = {
-      id: '2',
-      type: 'bot',
-      content: "👋 Great idea! I'm your PMF advisor and I'll help you refine this to maximize product-market fit. Let me ask you a few questions to better understand your vision. First, who specifically faces this problem? What demographic would benefit most?",
-      timestamp: new Date(),
-      suggestions: ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"]
-    };
+      setMessages([userMessage]);
+      setIdeaData(prev => ({ ...prev, problem: initialIdea }));
 
-    setMessages([userMessage, botMessage]);
-    setIdeaData(prev => ({ ...prev, problem: initialIdea }));
+      // Add bot response after a delay
+      setTimeout(() => {
+        const botMessage: Message = {
+          id: '2',
+          type: 'bot',
+          content: "👋 Great idea! I'm your PMF advisor and I'll help you refine this to maximize product-market fit. Let me ask you a few questions to better understand your vision. First, who specifically faces this problem? What demographic would benefit most?",
+          timestamp: new Date(),
+          suggestions: ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"]
+        };
+        setMessages(prev => [...prev, botMessage]);
+      }, 800);
+    }, 600);
   };
 
   const generateBotResponse = (userMessage: string, stage: number): { message: string; suggestions?: string[]; nextStage: number } => {
@@ -197,11 +207,14 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     }, 100);
   };
 
-  // Initial idea input interface
+  // Initial idea input interface with morph animation
   if (!hasStarted) {
     return (
-      <div className="w-full max-w-3xl mx-auto animate-fade-in">
-        <div className="text-center mb-12">
+      <div className="w-full max-w-3xl mx-auto">
+        <div className={cn(
+          "text-center mb-12 transition-all duration-700 ease-out",
+          isTransitioning ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"
+        )}>
           <h2 className="text-4xl font-bold mb-4 gradient-text">
             What's Your Big Idea? 🚀
           </h2>
@@ -210,32 +223,57 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           </p>
         </div>
         
-        <Card className="bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-xl border-primary/10 shadow-2xl p-8">
-          <Textarea
-            value={initialIdea}
-            onChange={(e) => setInitialIdea(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                startConversation();
-              }
-            }}
-            placeholder="I want to build an app that helps people..."
-            className="min-h-[120px] text-lg bg-background/50 border-primary/20 focus:border-primary/50 resize-none"
-          />
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-muted-foreground">
-              Press Enter to start • {initialIdea.length} characters
-            </p>
-            <Button
-              onClick={startConversation}
-              disabled={!initialIdea.trim()}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-            >
-              Start Analysis <Sparkles className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </Card>
+        <div className={cn(
+          "transition-all duration-700 ease-out transform-gpu",
+          isTransitioning ? "scale-95 opacity-0" : "scale-100 opacity-100"
+        )}>
+          <Card className="bg-gradient-to-br from-background/80 via-background/60 to-background/80 backdrop-blur-xl border-primary/10 shadow-2xl p-8">
+            <div className="relative">
+              <Textarea
+                value={initialIdea}
+                onChange={(e) => setInitialIdea(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    startConversation();
+                  }
+                }}
+                placeholder="I want to build an app that helps people..."
+                className={cn(
+                  "min-h-[120px] text-lg bg-background/50 border-primary/20 focus:border-primary/50 resize-none transition-all duration-700",
+                  isTransitioning && "transform scale-95"
+                )}
+                disabled={isTransitioning}
+              />
+              
+              {/* Morphing bubble preview - shows during transition */}
+              {isTransitioning && (
+                <div className="absolute inset-0 flex items-center justify-end pointer-events-none">
+                  <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-sm max-w-[70%] animate-slide-in-right opacity-0" 
+                       style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}>
+                    <p className="text-sm leading-relaxed">{initialIdea}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className={cn(
+              "flex items-center justify-between mt-4 transition-all duration-500",
+              isTransitioning ? "opacity-0" : "opacity-100"
+            )}>
+              <p className="text-sm text-muted-foreground">
+                Press Enter to start • {initialIdea.length} characters
+              </p>
+              <Button
+                onClick={startConversation}
+                disabled={!initialIdea.trim() || isTransitioning}
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              >
+                Start Analysis <Sparkles className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -257,13 +295,15 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
         </div>
 
         <div className="h-[500px] overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
+          {messages.map((message, index) => (
             <div
               key={message.id}
               className={cn(
-                "flex gap-3 animate-fade-in",
-                message.type === 'user' ? 'justify-end' : 'justify-start'
+                "flex gap-3",
+                message.type === 'user' ? 'justify-end' : 'justify-start',
+                index === 0 ? 'animate-slide-in-right' : 'animate-fade-in'
               )}
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               {message.type === 'bot' && (
                 <div className="flex-shrink-0 mt-1">
@@ -289,7 +329,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
                 </div>
                 
                 {message.suggestions && (
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2 animate-fade-in" style={{ animationDelay: '200ms' }}>
                     {message.suggestions.map((suggestion, idx) => (
                       <Button
                         key={idx}
