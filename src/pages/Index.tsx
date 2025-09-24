@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import IdeaInput from "@/components/IdeaInput";
+import GuidedIdeaInput from "@/components/GuidedIdeaInput";
 import RefinementControls from "@/components/RefinementControls";
 import PMFDashboard from "@/components/PMFDashboard";
 import DemographicsAnalysis from "@/components/DemographicsAnalysis";
@@ -18,6 +19,8 @@ import { User } from "@supabase/supabase-js";
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [idea, setIdea] = useState("");
+  const [ideaMetadata, setIdeaMetadata] = useState<any>(null);
+  const [showGuidedInput, setShowGuidedInput] = useState(true);
   const [pmfScore, setPmfScore] = useState(0);
   const [refinements, setRefinements] = useState({
     budget: "bootstrapped",
@@ -79,6 +82,19 @@ const Index = () => {
     }
   };
 
+  const handleIdeaSubmit = (ideaText: string, metadata: any) => {
+    setIdea(ideaText);
+    setIdeaMetadata(metadata);
+    setShowGuidedInput(false);
+    
+    // Auto-adjust refinements based on metadata
+    if (metadata.targetUsers === 'enterprise') {
+      setRefinements(prev => ({ ...prev, market: 'enterprise', budget: 'funded' }));
+    } else if (metadata.targetUsers === 'consumers') {
+      setRefinements(prev => ({ ...prev, market: 'mass' }));
+    }
+  };
+
   const saveIdea = async () => {
     if (!user) {
       toast({
@@ -91,8 +107,8 @@ const Index = () => {
 
     setSaving(true);
     
-    // Extract keywords from the idea (simple implementation)
-    const keywords = idea.toLowerCase().split(' ')
+    // Extract keywords from the idea or use metadata tags
+    const keywords = ideaMetadata?.tags || idea.toLowerCase().split(' ')
       .filter(word => word.length > 4)
       .slice(0, 5);
     
@@ -102,9 +118,11 @@ const Index = () => {
       pmf_score: pmfScore,
       market_size: refinements.market,
       competition: refinements.budget,
-      category: refinements.market,
+      category: ideaMetadata?.targetUsers || refinements.market,
       keywords: keywords,
-      is_public: true
+      is_public: true,
+      target_age: ideaMetadata?.targetUsers || null,
+      interests: ideaMetadata?.tags || []
     };
 
     if (ideaId) {
@@ -268,7 +286,20 @@ const Index = () => {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Left Column - Input & Controls */}
             <div className="lg:col-span-1 space-y-6">
-              <IdeaInput value={idea} onChange={setIdea} />
+              {showGuidedInput ? (
+                <GuidedIdeaInput onSubmit={handleIdeaSubmit} value={idea} />
+              ) : (
+                <>
+                  <IdeaInput value={idea} onChange={setIdea} />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowGuidedInput(true)}
+                    className="w-full"
+                  >
+                    Use Guided Input
+                  </Button>
+                </>
+              )}
               <RefinementControls refinements={refinements} onChange={handleRefinementChange} />
               <RealTimeRefinementChart
                 idea={idea}
