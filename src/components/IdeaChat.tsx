@@ -40,16 +40,59 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const validateIdea = (idea: string): { isValid: boolean; message?: string } => {
+    const trimmedIdea = idea.trim();
+    
+    // Check minimum length
+    if (trimmedIdea.length < 20) {
+      return { isValid: false, message: "Please provide more detail about your startup idea (at least 20 characters)" };
+    }
+    
+    // Check for repetitive characters
+    const uniqueChars = new Set(trimmedIdea.toLowerCase().replace(/\s/g, ''));
+    if (uniqueChars.size < 10) {
+      return { isValid: false, message: "Please describe a real startup concept" };
+    }
+    
+    // Check for business-related keywords
+    const businessKeywords = ['app', 'platform', 'service', 'product', 'help', 'solve', 'business', 'market', 'users', 'customers', 'tool', 'software', 'solution', 'connect', 'automate', 'improve', 'create', 'build', 'develop', 'manage', 'provide', 'enable', 'streamline', 'optimize', 'sell', 'buy', 'marketplace', 'network', 'community', 'system'];
+    const hasBusinessContext = businessKeywords.some(keyword => 
+      trimmedIdea.toLowerCase().includes(keyword)
+    );
+    
+    if (!hasBusinessContext) {
+      return { isValid: false, message: "Please describe a business or product idea that solves a problem" };
+    }
+    
+    // Check if it's just nonsense (all same word repeated, random letters, etc)
+    const words = trimmedIdea.split(/\s+/);
+    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+    if (uniqueWords.size < 3) {
+      return { isValid: false, message: "Please provide a meaningful description of your startup idea" };
+    }
+    
+    return { isValid: true };
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const startConversation = () => {
-    if (!initialIdea.trim()) return;
+    if (!initialIdea.trim()) {
+      toast({
+        title: "Empty idea",
+        description: "Please describe your startup idea before continuing",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const validation = validateIdea(initialIdea);
+    if (!validation.isValid) {
+      toast({
+        title: "Invalid idea",
+        description: validation.message,
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Start transition animation
     setIsTransitioning(true);
@@ -238,13 +281,34 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
                     startConversation();
                   }
                 }}
-                placeholder="I want to build an app that helps people..."
+                placeholder="Example: I want to build a marketplace that connects local farmers directly with consumers, eliminating middlemen and ensuring fresh produce delivery..."
                 className={cn(
-                  "min-h-[80px] text-sm bg-background border resize-none transition-all duration-700",
+                  "min-h-[80px] text-sm bg-background border resize-none transition-all duration-700 placeholder:text-muted-foreground/60",
                   isTransitioning && "transform scale-95"
                 )}
                 disabled={isTransitioning}
               />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="text-xs text-muted-foreground">Try ideas like:</span>
+                <button 
+                  onClick={() => setInitialIdea("An AI-powered platform that helps small businesses automate their social media marketing")}
+                  className="text-xs text-primary hover:underline"
+                >
+                  AI Marketing
+                </button>
+                <button 
+                  onClick={() => setInitialIdea("A mobile app that connects elderly people with local volunteers for daily assistance")}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Elder Care
+                </button>
+                <button 
+                  onClick={() => setInitialIdea("A SaaS tool that helps remote teams track productivity and wellbeing metrics")}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Remote Work
+                </button>
+              </div>
               
               {/* Morphing bubble preview - shows during transition */}
               {isTransitioning && (
