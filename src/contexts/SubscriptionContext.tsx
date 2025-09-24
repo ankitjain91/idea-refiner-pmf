@@ -98,8 +98,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] = useState({
     subscribed: true,
-    tier: 'enterprise' as SubscriptionTier,
-    product_id: 'prod_T7CsCuGP8R6RrO' as string | null,
+    tier: 'pro' as SubscriptionTier,
+    product_id: 'prod_T7CsnetIz8NE1N' as string | null,
     subscription_end: '2025-12-31T23:59:59Z' as string | null,
   });
   const [loading, setLoading] = useState(true);
