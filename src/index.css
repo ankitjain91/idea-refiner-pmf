@@ -10,26 +10,26 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
 
-    --card: 240 10% 8%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
 
-    --popover: 240 10% 8%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
 
-    --primary: 243 75% 59%;
+    --primary: 0 0% 9%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 10% 16%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 240 10% 16%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
 
-    --accent: 269 66% 61%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
     
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
@@ -40,38 +40,41 @@ All colors MUST be HSL.
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 10% 16%;
-    --input: 240 10% 16%;
-    --ring: 243 75% 59%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-foreground: 0 0% 26.1%;
+    --sidebar-primary: 0 0% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 0 0% 95.9%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 91%;
+    --sidebar-ring: 0 0% 59.8%;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(243 75% 59%), hsl(269 66% 61%));
-    --gradient-accent: linear-gradient(135deg, hsl(269 66% 61%), hsl(243 75% 59%));
-    --gradient-mesh: radial-gradient(at 40% 20%, hsl(243 75% 59% / 0.2) 0px, transparent 50%),
-                      radial-gradient(at 80% 0%, hsl(269 66% 61% / 0.15) 0px, transparent 50%),
-                      radial-gradient(at 0% 50%, hsl(243 75% 59% / 0.1) 0px, transparent 50%);
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 3%), hsl(0 0% 15%));
+    --gradient-accent: linear-gradient(135deg, hsl(0 0% 96%), hsl(0 0% 100%));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(0 0% 50% / 0.05) 0px, transparent 50%),
+                      radial-gradient(at 80% 0%, hsl(0 0% 40% / 0.05) 0px, transparent 50%),
+                      radial-gradient(at 0% 50%, hsl(0 0% 30% / 0.05) 0px, transparent 50%);
     
     /* Shadows */
-    --shadow-glow: 0 0 40px hsl(243 75% 59% / 0.3);
-    --shadow-card: 0 4px 24px hsl(240 10% 3.9% / 0.4);
+    --shadow-glow: 0 0 40px hsl(0 0% 0% / 0.05);
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.08);
+    --shadow-hover: 0 10px 40px hsl(0 0% 0% / 0.12);
+    
+    /* Spacing Scale */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    --spacing-2xl: 4rem;
+    --spacing-3xl: 6rem;
   }
 }
 
@@ -91,15 +94,27 @@ All colors MUST be HSL.
 
 @layer components {
   .glass-card {
-    @apply bg-card/50 backdrop-blur-xl border border-border/50 rounded-lg;
+    @apply bg-background border border-border rounded-xl;
     box-shadow: var(--shadow-card);
   }
   
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-hover hover:-translate-y-1;
   }
   
-  .pulse-glow {
-    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  .gradient-text {
+    @apply text-foreground font-semibold;
+  }
+  
+  .section-spacing {
+    @apply py-[var(--spacing-2xl)] px-[var(--spacing-lg)];
+  }
+  
+  .container-width {
+    @apply max-w-7xl mx-auto;
+  }
+  
+  .grid-responsive {
+    @apply grid gap-[var(--spacing-lg)] grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
   }
 }

@@ -211,140 +211,113 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background gradient mesh */}
-      <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
-      
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="relative z-10 border-b border-border/50 bg-card/30 backdrop-blur-xl">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-primary">
-                <Rocket className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-display font-bold gradient-text">PMF Validator</h1>
-                <p className="text-xs text-muted-foreground">Product-Market Fit Analysis Tool</p>
-              </div>
+      <header className="border-b border-border">
+        <div className="container-width px-6">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <Rocket className="w-5 h-5" />
+              <h1 className="text-lg font-semibold">PMF Validator</h1>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="flex items-center gap-1">
-                {user.email}
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={saveIdea}
-                disabled={saving || !idea}
-                className="flex items-center gap-2"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Save
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                className="flex items-center gap-2 hover:bg-destructive/10 hover:border-destructive"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Reset
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSignOut}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground hidden sm:block">{user.email}</span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={saveIdea}
+                  disabled={saving || !idea}
+                  title="Save"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleReset}
+                  title="Reset"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Hero Section */}
-          <div className="text-center mb-8 animate-slide-up">
-            <Badge variant="secondary" className="mb-4">
-              <Sparkles className="w-3 h-3 mr-1" />
-              AI-Powered Validation
-            </Badge>
-            <h2 className="text-4xl font-display font-bold mb-3">
-              Validate Your <span className="gradient-text">Startup Idea</span>
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Get instant Product-Market Fit analysis with AI-driven insights, demographic targeting, 
-              and actionable recommendations to refine your startup concept.
-            </p>
+      <main className="container-width px-6 py-12">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold mb-4">
+            Validate Your Startup Idea
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Get instant Product-Market Fit analysis with AI-driven insights
+          </p>
+        </div>
+
+        {/* Main Grid Layout */}
+        <div className="grid lg:grid-cols-12 gap-8">
+          {/* Left Column - Input */}
+          <div className="lg:col-span-4 space-y-6">
+            {showGuidedInput ? (
+              <GuidedIdeaInput onSubmit={handleIdeaSubmit} value={idea} />
+            ) : (
+              <>
+                <IdeaInput value={idea} onChange={setIdea} />
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setShowGuidedInput(true)}
+                  className="w-full"
+                >
+                  Use Guided Input
+                </Button>
+              </>
+            )}
+            <RefinementControls refinements={refinements} onChange={handleRefinementChange} />
           </div>
 
-          {/* Main Grid Layout */}
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Left Column - Input & Controls */}
-            <div className="lg:col-span-1 space-y-6">
-              {showGuidedInput ? (
-                <GuidedIdeaInput onSubmit={handleIdeaSubmit} value={idea} />
-              ) : (
-                <>
-                  <IdeaInput value={idea} onChange={setIdea} />
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowGuidedInput(true)}
-                    className="w-full"
-                  >
-                    Use Guided Input
-                  </Button>
-                </>
-              )}
-              <RefinementControls refinements={refinements} onChange={handleRefinementChange} />
-              <RealTimeRefinementChart
-                idea={idea}
-                pmfScore={pmfScore}
-                refinements={refinements}
-                onRefinementSuggestion={handleRefinementSuggestion}
-              />
-            </div>
-
-            {/* Middle Column - Dashboard & Demographics */}
-            <div className="lg:col-span-1 space-y-6">
-              <PMFDashboard 
-                idea={idea} 
-                refinements={refinements} 
-                onScoreUpdate={setPmfScore}
-              />
-              <DemographicsAnalysis idea={idea} market={refinements.market} />
-            </div>
-
-            {/* Right Column - Features, Actions & Collaboration */}
-            <div className="lg:col-span-1 space-y-6">
-              <FeatureChecklist idea={idea} budget={refinements.budget} />
-              <ActionTips score={pmfScore} />
-              <CollaborationHub 
-                currentIdea={idea}
-                currentCategory={refinements.market}
-                currentKeywords={[]}
-                userId={user.id}
-              />
-            </div>
+          {/* Middle Column - Analytics */}
+          <div className="lg:col-span-4 space-y-6">
+            <PMFDashboard 
+              idea={idea} 
+              refinements={refinements} 
+              onScoreUpdate={setPmfScore}
+            />
+            <RealTimeRefinementChart
+              idea={idea}
+              pmfScore={pmfScore}
+              refinements={refinements}
+              onRefinementSuggestion={handleRefinementSuggestion}
+            />
           </div>
 
-          {/* Footer */}
-          <footer className="mt-12 pt-8 border-t border-border/50">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Your ideas are automatically saved to your account
-              </p>
-            </div>
-          </footer>
+          {/* Right Column - Insights */}
+          <div className="lg:col-span-4 space-y-6">
+            <DemographicsAnalysis idea={idea} market={refinements.market} />
+            <FeatureChecklist idea={idea} budget={refinements.budget} />
+            <ActionTips score={pmfScore} />
+            <CollaborationHub 
+              currentIdea={idea}
+              currentCategory={refinements.market}
+              currentKeywords={[]}
+              userId={user.id}
+            />
+          </div>
         </div>
       </main>
     </div>
