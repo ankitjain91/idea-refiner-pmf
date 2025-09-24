@@ -107,6 +107,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { toast } = useToast();
 
   const checkSubscription = async () => {
+    // Skip subscription check for demo/creator account
+    if (subscription.tier === 'pro' || subscription.tier === 'enterprise') {
+      return; // Keep the hardcoded Pro/Enterprise status
+    }
+    
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       setSubscription({
