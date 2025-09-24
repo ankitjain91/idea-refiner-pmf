@@ -14,6 +14,7 @@ interface PMFDashboardProps {
     market: string;
     timeline: string;
   };
+  metadata?: any; // ChatGPT analysis data
   onScoreUpdate: (score: number) => void;
 }
 
@@ -30,20 +31,47 @@ interface Metrics {
   keyMetrics: Array<{ label: string; value: string; trend: 'up' | 'down' | 'neutral'; icon: any }>;
 }
 
-export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDashboardProps) {
+export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdate }: PMFDashboardProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   
-  // Generate mock metrics based on idea and refinements
+  // Generate metrics based on ChatGPT data or fall back to mock data
   const generateMetrics = (): Metrics => {
+    // If we have ChatGPT analysis data, use it
+    if (metadata?.pmfScore) {
+      const score = metadata.pmfScore;
+      
+      return {
+        pmfScore: score,
+        pmfExplanation: "Based on AI analysis of market fit, competition, and monetization strategy",
+        marketSize: metadata.marketSize || "$2.5B",
+        marketGrowth: "15% YoY",
+        marketExplanation: "Growing market with strong demand",
+        competitors: [
+          { name: "Competitor A", strength: metadata.competition || "Medium" },
+          { name: "Competitor B", strength: "Low" }
+        ],
+        competitorsExplanation: `Competition level: ${metadata.competition || "Medium"}`,
+        targetCustomers: [
+          { segment: metadata.targetAge || "25-45", size: "Large", painPoint: "Efficiency" }
+        ],
+        targetCustomersExplanation: `Target: ${metadata.targetAge || "25-45"}, ${metadata.incomeRange || "$60k-100k"}`,
+        keyMetrics: [
+          { label: "Market Readiness", value: `${score}%`, trend: 'up' as const, icon: TrendingUp },
+          { label: "Competition", value: metadata.competition || "Medium", trend: 'neutral' as const, icon: Target },
+          { label: "Target Market", value: metadata.targetAge || "25-45", trend: 'up' as const, icon: Users },
+          { label: "Revenue Potential", value: metadata.incomeRange || "$60k+", trend: 'up' as const, icon: CircleDollarSign }
+        ]
+      };
+    }
+    
+    // Fallback to mock data
     const baseScore = 45;
     let score = baseScore;
     
-    // Adjust score based on refinements
     if (refinements.budget === 'funded') score += 10;
     if (refinements.market === 'enterprise') score += 15;
     if (refinements.timeline === 'mvp') score += 10;
     
-    // Add randomness for demo
     score = Math.min(95, score + Math.floor(Math.random() * 20));
     
     return {

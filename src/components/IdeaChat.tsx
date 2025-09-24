@@ -208,24 +208,47 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     setIsTyping(true);
 
     // Check if user wants to see PMF analysis
-    if (input.toLowerCase().includes('show') && input.toLowerCase().includes('pmf') || 
-        input.toLowerCase().includes('analysis') || 
-        input.toLowerCase().includes('yes') && messages.length > 6) {
+    if (input.toLowerCase().includes('pmf') || 
+        input.toLowerCase().includes('score') || 
+        input.toLowerCase().includes('calculate') ||
+        input.toLowerCase().includes('analyze') ||
+        (input.toLowerCase().includes('yes') && messages.length > 6)) {
       
-      // Trigger PMF analysis
-      setTimeout(() => {
+      // Request PMF analysis from ChatGPT via edge function
+      const pmfResponse = await generateBotResponse(input);
+      
+      // Check if we got PMF analysis data
+      if (pmfResponse && typeof pmfResponse === 'object' && 'pmfAnalysis' in pmfResponse) {
+        const pmfData = (pmfResponse as any).pmfAnalysis;
+        
+        // Update idea data with ChatGPT's analysis
+        const enrichedIdeaData = {
+          ...ideaData,
+          pmfScore: pmfData.pmfScore,
+          targetAge: pmfData.demographics.targetAge,
+          incomeRange: pmfData.demographics.incomeRange,
+          interests: pmfData.demographics.interests,
+          marketSize: pmfData.demographics.marketSize,
+          competition: pmfData.demographics.competition,
+          features: pmfData.features,
+          refinements: pmfData.refinements,
+          actionTips: pmfData.actionTips
+        };
+        
+        // Trigger analysis with enriched data
         const fullIdea = `${ideaData.problem} Solution: ${ideaData.solution} Target: ${ideaData.targetUsers} Monetization: ${ideaData.monetization}`;
-        onAnalysisReady(fullIdea, ideaData);
+        onAnalysisReady(fullIdea, enrichedIdeaData);
         
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
           type: 'bot',
-          content: "🎯 Perfect! I'm calculating your PMF score based on our conversation. This will include demographic analysis, market potential, and profitability projections...",
+          content: pmfData.summary || "🎯 Perfect! I've calculated your PMF score and created a comprehensive analysis...",
           timestamp: new Date(),
-          showPMF: true
+          showPMF: true,
+          suggestions: (pmfResponse as any).suggestions || []
         }]);
         setIsTyping(false);
-      }, 1500);
+      }
       return;
     }
 

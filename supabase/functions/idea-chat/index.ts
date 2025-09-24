@@ -41,27 +41,49 @@ serve(async (req) => {
         FOR NEW STARTUP IDEAS:
         - Accept: Any description of a product, service, app, platform, or business solution
         - Reject ONLY: Random text, gibberish, non-business content, or extremely vague statements
-        - If rejected, respond: "❌ I need a real startup or business idea to help you. Please describe a specific product, service, or solution."
         
-        FOR ONGOING CONVERSATIONS (user answering your questions):
+        FOR ONGOING CONVERSATIONS:
         - Accept ALL responses as valid answers
         - Continue the conversation naturally
         - Guide them through: demographics, solution, monetization, competition, go-to-market
         
-        RESPONSE FORMAT - MUST FOLLOW EXACTLY:
+        WHEN USER REQUESTS PMF ANALYSIS (keywords: "PMF", "score", "analyze", "calculate"):
+        Return a SPECIAL JSON response with this EXACT structure:
+        {
+          "type": "pmf_analysis",
+          "pmfScore": [60-95],
+          "demographics": {
+            "targetAge": "18-35" | "25-45" | "35-55" | "45-65" | "All ages",
+            "incomeRange": "$30k-60k" | "$60k-100k" | "$100k-200k" | "$200k+",
+            "interests": ["3-5 relevant interests"],
+            "marketSize": "estimate like $2.5B or 10M users",
+            "competition": "Low" | "Medium" | "High"
+          },
+          "features": [
+            {"name": "Feature 1", "checked": true/false, "priority": "high"},
+            {"name": "Feature 2", "checked": true/false, "priority": "medium"},
+            {"name": "Feature 3", "checked": true/false, "priority": "low"},
+            {"name": "Feature 4", "checked": true/false, "priority": "high"},
+            {"name": "Feature 5", "checked": true/false, "priority": "medium"}
+          ],
+          "refinements": [
+            {"type": "pricing", "title": "Pricing Strategy", "description": "Specific advice", "impact": 5-15},
+            {"type": "target", "title": "Target Market", "description": "Specific advice", "impact": 5-15},
+            {"type": "feature", "title": "Core Feature", "description": "Specific advice", "impact": 5-15}
+          ],
+          "actionTips": [
+            "Specific action item 1",
+            "Specific action item 2",
+            "Specific action item 3"
+          ],
+          "summary": "Brief encouraging summary of the analysis"
+        }
+        
+        FOR NORMAL CONVERSATION:
         [Your response - encouraging, use emojis 🚀💡🎯💰, max 100 words]
         
         SUGGESTIONS:
-        [Exactly 3-4 clickable options, one per line, contextual to your question]
-        
-        Example for demographic answer:
-        "Perfect! 🎯 Small business owners are an excellent target market. They have budget and clear needs. How would you monetize this - subscription, transaction fees, or freemium?
-        
-        SUGGESTIONS:
-        Monthly subscription ($29-99/month)
-        15% commission per transaction
-        Freemium with paid premium features
-        One-time setup fee plus recurring"`
+        [Exactly 3-4 clickable options, one per line, contextual to your question]`
       },
       ...conversationHistory,
       { role: 'user', content: message }
@@ -77,7 +99,7 @@ serve(async (req) => {
         model: 'gpt-4o-mini',
         messages,
         temperature: 0.7,
-        max_tokens: 300,
+        max_tokens: 800, // Increased for PMF analysis responses
       }),
     });
 
@@ -96,7 +118,39 @@ serve(async (req) => {
     const data = await response.json();
     const fullResponse = data.choices[0].message.content;
     
-    // Parse the response to extract main message and suggestions
+    console.log('Full AI response:', fullResponse);
+    
+    // Check if this is a PMF analysis JSON response
+    let isPMFAnalysis = false;
+    let pmfData = null;
+    
+    try {
+      // Try to parse as JSON (for PMF analysis)
+      const parsed = JSON.parse(fullResponse);
+      if (parsed.type === 'pmf_analysis') {
+        isPMFAnalysis = true;
+        pmfData = parsed;
+        console.log('PMF Analysis detected:', pmfData);
+      }
+    } catch (e) {
+      // Not JSON, process as regular conversation
+    }
+    
+    if (isPMFAnalysis && pmfData) {
+      // Return PMF analysis data
+      return new Response(
+        JSON.stringify({ 
+          response: pmfData.summary || "Here's your comprehensive PMF analysis!",
+          suggestions: ["Start implementing these changes", "Share with co-founders", "Create action plan", "Save this analysis"],
+          pmfAnalysis: pmfData
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
+    // Parse regular conversation response
     let aiResponse = fullResponse;
     let suggestions: string[] = [];
     

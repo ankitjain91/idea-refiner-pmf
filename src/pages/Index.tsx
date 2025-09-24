@@ -96,17 +96,30 @@ const Index = () => {
     setIdea(ideaText);
     setIdeaMetadata(metadata);
     
-    // Auto-adjust refinements based on metadata
-    if (metadata.targetUsers === 'enterprise') {
-      setRefinements(prev => ({ ...prev, market: 'enterprise', budget: 'funded' }));
-    } else if (metadata.targetUsers === 'consumers') {
-      setRefinements(prev => ({ ...prev, market: 'mass' }));
+    // If we have PMF analysis data from ChatGPT, use it
+    if (metadata.pmfScore) {
+      // Set refinements based on ChatGPT's analysis
+      setRefinements({
+        budget: metadata.competition === 'High' ? 'funded' : 'bootstrapped',
+        market: metadata.marketSize?.includes('B') ? 'enterprise' : 'niche',
+        timeline: 'mvp'
+      });
+      
+      // The metadata already contains all the analysis data from ChatGPT
+      // including pmfScore, demographics, features, refinements, actionTips
+    } else {
+      // Fallback: Auto-adjust refinements based on basic metadata
+      if (metadata.targetUsers === 'enterprise') {
+        setRefinements(prev => ({ ...prev, market: 'enterprise', budget: 'funded' }));
+      } else if (metadata.targetUsers === 'consumers') {
+        setRefinements(prev => ({ ...prev, market: 'mass' }));
+      }
     }
 
     // Start calculating
     setIsCalculating(true);
 
-    // Simulate calculation process
+    // Shorter calculation time since ChatGPT already did the analysis
     setTimeout(() => {
       setIsCalculating(false);
       setShowAnalysis(true);
@@ -114,7 +127,7 @@ const Index = () => {
         title: "Analysis Complete",
         description: "Your startup idea has been analyzed successfully",
       });
-    }, 3000);
+    }, metadata.pmfScore ? 1500 : 3000);
   };
 
   const saveIdea = async () => {
