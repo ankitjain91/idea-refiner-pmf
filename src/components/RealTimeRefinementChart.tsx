@@ -35,6 +35,7 @@ export default function RealTimeRefinementChart({
   idea,
   pmfScore,
   refinements,
+  metadata,
   onRefinementSuggestion
 }: RealTimeRefinementChartProps) {
   const [chartData, setChartData] = useState<RefinementData[]>([]);
@@ -58,17 +59,17 @@ export default function RealTimeRefinementChart({
     ];
     setChartData(initialData);
 
-    // Initialize radar data based on refinements
-    const radarMetrics: MetricData[] = [
+    // Initialize radar data based on ChatGPT metadata or refinements
+    const radarMetrics: MetricData[] = metadata?.radarMetrics ? metadata.radarMetrics : [
       { 
         subject: 'Market Fit', 
-        current: refinements.market === 'mass' ? 90 : refinements.market === 'niche' ? 60 : 30,
+        current: refinements.market === 'enterprise' ? 90 : refinements.market === 'mainstream' ? 70 : refinements.market === 'niche' ? 60 : 30,
         potential: 95,
         average: 65
       },
       { 
         subject: 'Scalability', 
-        current: refinements.budget === 'funded' ? 85 : refinements.budget === 'bootstrapped' ? 50 : 70,
+        current: refinements.budget === 'series-a' ? 85 : refinements.budget === 'seed' ? 70 : 50,
         potential: 90,
         average: 60
       },
@@ -92,7 +93,7 @@ export default function RealTimeRefinementChart({
       },
     ];
     setRadarData(radarMetrics);
-  }, [pmfScore, refinements]);
+  }, [pmfScore, refinements, metadata]);
 
   useEffect(() => {
     // Simulate real-time updates
@@ -124,32 +125,52 @@ export default function RealTimeRefinementChart({
   }, [pmfScore]);
 
   useEffect(() => {
-    // Generate refinement suggestions based on score and refinements
+    // Generate refinement suggestions from ChatGPT metadata or based on score
     if (!idea) return;
 
     const newSuggestions: string[] = [];
     
-    if (pmfScore < 40) {
-      newSuggestions.push("Consider narrowing your target market");
-      newSuggestions.push("Add unique differentiation features");
-    } else if (pmfScore < 70) {
-      newSuggestions.push("Validate with potential customers");
-      newSuggestions.push("Refine your value proposition");
+    // Use ChatGPT's refinement suggestions if available
+    if (metadata?.refinements && Array.isArray(metadata.refinements)) {
+      // Add the AI-generated refinements specific to this idea
+      newSuggestions.push(...metadata.refinements.slice(0, 4));
     } else {
-      newSuggestions.push("Ready for MVP development");
-      newSuggestions.push("Consider early user testing");
+      // Fallback to generic suggestions based on score and settings
+      if (pmfScore < 40) {
+        newSuggestions.push(`Consider narrowing your ${idea.includes('parent') || idea.includes('elder') ? 'caregiver demographic' : 'target market'}`);
+        newSuggestions.push(`Add unique features for ${idea.includes('volunteer') ? 'volunteer verification' : 'differentiation'}`);
+      } else if (pmfScore < 70) {
+        newSuggestions.push(`Validate with ${idea.includes('parent') ? 'parent communities' : 'potential customers'}`);
+        newSuggestions.push(`Refine your ${idea.includes('care') ? 'care service offerings' : 'value proposition'}`);
+      } else {
+        newSuggestions.push(`Ready for ${idea.includes('app') ? 'app prototype' : 'MVP'} development`);
+        newSuggestions.push(`Consider ${idea.includes('local') ? 'local pilot testing' : 'early user testing'}`);
+      }
+
+      // Add context-aware suggestions based on refinements
+      if (refinements.budget === 'bootstrapped' && idea.includes('volunteer')) {
+        newSuggestions.push("Leverage volunteer networks for organic growth");
+      } else if (refinements.budget === 'bootstrapped') {
+        newSuggestions.push("Focus on organic growth strategies");
+      }
+      
+      if (refinements.market === 'enterprise' && idea.includes('care')) {
+        newSuggestions.push("Build HIPAA compliance for healthcare data");
+      } else if (refinements.market === 'enterprise') {
+        newSuggestions.push("Build compliance and security features");
+      }
+      
+      if (idea.includes('elder') || idea.includes('senior')) {
+        newSuggestions.push("Ensure accessibility features for elderly users");
+      }
+      
+      if (idea.includes('parent') && idea.includes('assist')) {
+        newSuggestions.push("Add background check integration for safety");
+      }
     }
 
-    if (refinements.budget === 'bootstrapped') {
-      newSuggestions.push("Focus on organic growth strategies");
-    }
-    
-    if (refinements.market === 'enterprise') {
-      newSuggestions.push("Build compliance and security features");
-    }
-
-    setSuggestions(newSuggestions);
-  }, [idea, pmfScore, refinements]);
+    setSuggestions(newSuggestions.slice(0, 4)); // Limit to 4 suggestions
+  }, [idea, pmfScore, refinements, metadata]);
 
   // Set up real-time collaboration channel
   useEffect(() => {
