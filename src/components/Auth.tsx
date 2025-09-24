@@ -5,10 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogIn, UserPlus } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Chrome, Twitter, Facebook } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+
+// Custom Microsoft icon component
+const MicrosoftIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+    <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+    <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+    <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+  </svg>
+);
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { toast } = useToast();
@@ -17,9 +29,14 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     
+    const redirectUrl = `${window.location.origin}/`;
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: redirectUrl
+      }
     });
 
     if (error) {
@@ -59,6 +76,26 @@ export default function Auth() {
       });
     }
     setLoading(false);
+  };
+
+  const handleSocialSignIn = async (provider: 'google' | 'azure' | 'twitter' | 'facebook') => {
+    setSocialLoading(provider);
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      }
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setSocialLoading(null);
+    }
   };
 
   return (
@@ -108,6 +145,87 @@ export default function Auth() {
                   Sign In
                 </Button>
               </form>
+
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('google')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'google' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Chrome className="w-4 h-4 mr-2" />
+                        Google
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('azure')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'azure' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <MicrosoftIcon />
+                        <span className="ml-2">Microsoft</span>
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('twitter')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'twitter' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Twitter className="w-4 h-4 mr-2" />
+                        X
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('facebook')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'facebook' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Facebook className="w-4 h-4 mr-2" />
+                        Facebook
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="signup">
@@ -142,6 +260,87 @@ export default function Auth() {
                   Sign Up
                 </Button>
               </form>
+
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('google')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'google' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Chrome className="w-4 h-4 mr-2" />
+                        Google
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('azure')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'azure' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <MicrosoftIcon />
+                        <span className="ml-2">Microsoft</span>
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('twitter')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'twitter' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Twitter className="w-4 h-4 mr-2" />
+                        X
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('facebook')}
+                    disabled={socialLoading !== null}
+                    className="relative"
+                  >
+                    {socialLoading === 'facebook' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Facebook className="w-4 h-4 mr-2" />
+                        Facebook
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
