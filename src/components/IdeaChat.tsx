@@ -116,6 +116,76 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Build contextual, idea-specific suggestions (max 4)
+  const buildContextualSuggestions = (ideaText: string, lastInput?: string, pmf?: any): string[] => {
+    const text = `${(ideaText || '').toLowerCase()} ${(lastInput || '').toLowerCase()}`;
+    const out: string[] = [];
+
+    // Prefer AI-provided refinements if available
+    if (pmf?.refinements && Array.isArray(pmf.refinements)) {
+      out.push(...pmf.refinements);
+    }
+
+    // Domain-specific suggestion sets
+    if (text.includes('volunteer') && (text.includes('parent') || text.includes('elder') || text.includes('care'))) {
+      out.push(
+        'Working single parents needing flexible support',
+        'Families coordinating elder care across siblings',
+        'Parents needing school pickup and homework help',
+        'Care needs scheduling with vetted volunteers'
+      );
+    } else if (text.includes('ai') || text.includes('automate') || text.includes('gpt')) {
+      out.push(
+        'Solopreneurs automating repetitive tasks',
+        'SMBs needing content/workflow automation',
+        'Agencies improving throughput with AI',
+        'Teams wanting AI-assisted analytics'
+      );
+    } else if (text.includes('remote') || text.includes('team')) {
+      out.push(
+        'Remote-first startups improving visibility',
+        'Hybrid teams streamlining async comms',
+        'Consultancies coordinating global projects',
+        'Distributed teams enhancing wellbeing metrics'
+      );
+    } else if (text.includes('marketplace') || text.includes('platform')) {
+      out.push(
+        'Two-sided marketplace supply constraints',
+        'Demand acquisition channels to test first',
+        'Trust/safety features to increase conversion',
+        'Liquidity strategy for the cold start problem'
+      );
+    } else if (text.includes('education') || text.includes('tutor') || text.includes('learn')) {
+      out.push(
+        'Adult learners upskilling for career change',
+        'K-12 students needing personalized help',
+        'University students optimizing study plans',
+        'Corporate L&D microlearning use-cases'
+      );
+    } else if (text.includes('health') || text.includes('fitness') || text.includes('wellness') || text.includes('care')) {
+      out.push(
+        'Chronic care patients needing adherence support',
+        'Busy professionals seeking wellness routines',
+        'Seniors needing remote check-ins',
+        'Caregivers coordinating with providers'
+      );
+    }
+
+    // If still empty, add strategic next-step prompts (non-generic)
+    if (out.length === 0) {
+      out.push(
+        'Identify the top 3 pains this solves (specific)',
+        'Define the primary user persona you’ll start with',
+        'Outline the 4 MVP features for week-1 testing',
+        'Pick 1 channel to get the first 10 users'
+      );
+    }
+
+    // Ensure uniqueness and cap at 4
+    const unique = Array.from(new Set(out)).slice(0, 4);
+    return unique;
+  };
+
   const validateIdea = (idea: string): { isValid: boolean; message?: string } => {
     const trimmedIdea = idea.trim();
     
@@ -277,18 +347,17 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
         });
       }
 
-      // Check if we got PMF analysis data
       if (data?.pmfAnalysis) {
         return {
           message: data.response || "Here's your comprehensive PMF analysis!",
-          suggestions: data.suggestions || [],
+          suggestions: buildContextualSuggestions(messages[0]?.content || initialIdea || userMessage, userMessage, data.pmfAnalysis),
           pmfAnalysis: data.pmfAnalysis
         };
       }
 
       return {
         message: data.response || "I'm here to help refine your idea. Could you tell me more?",
-        suggestions: data.suggestions || []
+        suggestions: buildContextualSuggestions(messages[0]?.content || initialIdea || userMessage, userMessage)
       };
     } catch (error) {
       console.error('Error getting AI response:', error);
@@ -361,7 +430,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       
       return {
         message: fallbackMessage,
-        suggestions: fallbackSuggestions
+        suggestions: buildContextualSuggestions(messages[0]?.content || userMessage, userMessage)
       };
     }
   };
@@ -417,7 +486,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
             content: pmfData.summary || "🎯 Perfect! I've calculated your PMF score and created a comprehensive analysis. Your dashboard is ready!",
             timestamp: new Date(),
             showPMF: true,
-            suggestions: (pmfResponse as any).suggestions || []
+            suggestions: buildContextualSuggestions(messages[0]?.content || input, input, pmfData)
           }]);
           
           // Trigger analysis with enriched data - this shows the dashboard
