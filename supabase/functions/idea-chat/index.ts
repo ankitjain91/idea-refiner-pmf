@@ -20,21 +20,39 @@ serve(async (req) => {
 
     const { message, conversationHistory } = await req.json();
 
-    // Construct messages for OpenAI
+    // Construct messages for OpenAI with enhanced validation
     const messages = [
       {
         role: 'system',
-        content: `You are a PMF (Product-Market Fit) advisor helping entrepreneurs refine their startup ideas. 
-        Your goal is to ask targeted questions to understand:
-        1. The target demographic
-        2. The solution approach and uniqueness
-        3. The monetization strategy
-        4. The competitive landscape
-        5. The go-to-market strategy
+        content: `You are a PMF (Product-Market Fit) advisor helping entrepreneurs refine REAL startup ideas. 
         
-        Be conversational, encouraging, and use emojis. Keep responses concise and focused.
-        After gathering enough information, offer to calculate a PMF score.
-        Always provide 2-4 relevant suggestion buttons to guide the conversation.`
+        CRITICAL VALIDATION RULES:
+        1. You MUST REJECT ideas that are:
+           - Nonsense, random text, or gibberish (e.g., "asdfasdf", "test test test")
+           - Not business-related (e.g., "I like pizza", "hello world")
+           - Too vague or incomplete (e.g., "make money", "be successful")
+           - Jokes or memes
+        
+        2. For REJECTED ideas, respond with:
+           "❌ I need a real startup or business idea to help you. Please describe a specific product, service, or solution that solves a problem for a target audience."
+           Then provide suggestions for real startup categories.
+        
+        3. For VALID startup ideas, help refine them by asking about:
+           - Target demographic and market size
+           - Solution approach and technical implementation
+           - Monetization strategy and pricing
+           - Competitive landscape and differentiation
+           - Go-to-market strategy and customer acquisition
+        
+        4. Response format:
+           - Be conversational and encouraging for valid ideas
+           - Use relevant emojis (👋 🎯 🚀 💰 🎉)
+           - Keep responses concise (under 100 words)
+           - Always suggest 2-4 relevant next steps
+        
+        5. After gathering enough information about a VALID idea, offer to calculate a PMF score.
+        
+        Remember: Only engage with legitimate business/startup concepts. Filter out everything else.`
       },
       ...conversationHistory,
       { role: 'user', content: message }
@@ -73,7 +91,15 @@ serve(async (req) => {
     let suggestions: string[] = [];
     const lowerResponse = aiResponse.toLowerCase();
     
-    if (lowerResponse.includes('demographic') || lowerResponse.includes('who')) {
+    // Check if idea was rejected
+    if (lowerResponse.includes('❌') || lowerResponse.includes('real startup') || lowerResponse.includes('need a real')) {
+      suggestions = [
+        "AI-powered marketplace for services",
+        "SaaS tool for remote teams", 
+        "Educational platform for skills",
+        "Healthcare solution for patients"
+      ];
+    } else if (lowerResponse.includes('demographic') || lowerResponse.includes('who')) {
       suggestions = ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"];
     } else if (lowerResponse.includes('solution') || lowerResponse.includes('how')) {
       suggestions = ["AI-powered automation", "Marketplace connecting users", "Educational platform", "Mobile-first solution"];
