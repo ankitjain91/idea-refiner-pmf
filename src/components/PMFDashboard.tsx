@@ -48,16 +48,16 @@ export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDa
     
     return {
       pmfScore: score,
-      pmfExplanation: `This score reflects strong market demand signals based on your ${refinementData.market} target market. The ${refinementData.budget} funding approach aligns well with the ${refinementData.timeline} timeline. Key strengths include clear value proposition and identified customer pain points. To improve: focus on competitive differentiation and validate pricing strategy.`,
-      marketSize: refinementData.market === 'enterprise' ? '$12.5B' : refinementData.market === 'mass' ? '$45.2B' : '$3.8B',
+      pmfExplanation: `This score reflects strong market demand signals based on your ${refinements.market} target market. The ${refinements.budget} funding approach aligns well with the ${refinements.timeline} timeline. Key strengths include clear value proposition and identified customer pain points. To improve: focus on competitive differentiation and validate pricing strategy.`,
+      marketSize: refinements.market === 'enterprise' ? '$12.5B' : refinements.market === 'mass' ? '$45.2B' : '$3.8B',
       marketGrowth: 'Growing 23% YoY',
-      marketExplanation: `The ${refinementData.market} market shows robust growth driven by digital transformation trends. TAM analysis indicates ${refinementData.market === 'enterprise' ? '50,000+ potential accounts' : '2.5M+ potential users'}. Market timing is favorable with increasing adoption rates and regulatory tailwinds supporting innovation in this space.`,
+      marketExplanation: `The ${refinements.market} market shows robust growth driven by digital transformation trends. TAM analysis indicates ${refinements.market === 'enterprise' ? '50,000+ potential accounts' : '2.5M+ potential users'}. Market timing is favorable with increasing adoption rates and regulatory tailwinds supporting innovation in this space.`,
       competitors: [
         { name: 'Competitor A', strength: 'Strong' },
         { name: 'Competitor B', strength: 'Moderate' },
         { name: 'Competitor C', strength: 'Emerging' }
       ],
-      competitorsExplanation: `Competitive landscape analysis reveals 3 main players with combined 65% market share. Competitor A leads with enterprise features but lacks user experience focus. Your differentiation opportunity lies in the ${refinementData.timeline === 'mvp' ? 'speed to market' : 'comprehensive feature set'} combined with superior customer experience.`,
+      competitorsExplanation: `Competitive landscape analysis reveals 3 main players with combined 65% market share. Competitor A leads with enterprise features but lacks user experience focus. Your differentiation opportunity lies in the ${refinements.timeline === 'mvp' ? 'speed to market' : 'comprehensive feature set'} combined with superior customer experience.`,
       targetCustomers: [
         { segment: 'Early Adopters', size: '15%', painPoint: 'Need innovative solutions' },
         { segment: 'Main Market', size: '68%', painPoint: 'Seeking proven ROI' },
@@ -126,11 +126,7 @@ export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDa
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Market Analysis */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
+          <div>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -166,14 +162,10 @@ export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDa
                 </Collapsible>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Competitive Landscape */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+          <div>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -213,14 +205,10 @@ export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDa
                 </Collapsible>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Target Customers */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
+          <div>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -263,15 +251,11 @@ export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDa
                 </Collapsible>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
 
         {/* Key Metrics */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
+        <div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -298,7 +282,7 @@ export default function PMFDashboard({ idea, refinements, onScoreUpdate }: PMFDa
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </PaywallOverlay>
   );

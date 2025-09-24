@@ -27,8 +27,8 @@ export default function DemographicsAnalysis({ idea, market }: DemographicsAnaly
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   
   const generateDemographics = (): Demographics => {
-    const isEnterprise = refinementData.market === 'enterprise';
-    const isMass = refinementData.market === 'mass';
+    const isEnterprise = market === 'enterprise';
+    const isMass = market === 'mass';
     
     return {
       ageGroups: isEnterprise ? [
@@ -47,7 +47,7 @@ export default function DemographicsAnalysis({ idea, market }: DemographicsAnaly
         { range: '41-50', percentage: 15, color: '#10b981' },
         { range: '50+', percentage: 5, color: '#f59e0b' }
       ],
-      ageGroupsExplanation: `Age distribution analysis shows ${isEnterprise ? 'decision-makers are primarily 35-44 (40%), representing senior management with budget authority' : isMass ? 'broad appeal across age groups with concentration in 18-34 (65%), indicating strong adoption potential' : 'early-career professionals 22-30 (45%) are the primary adopters, seeking innovative solutions'}. This demographic alignment suggests ${refinementData.timeline === 'mvp' ? 'rapid adoption cycles' : 'steady growth potential'} with ${refinementData.budget === 'funded' ? 'strong purchasing power' : 'price-sensitive considerations'}.`,
+      ageGroupsExplanation: `Age distribution analysis shows ${isEnterprise ? 'decision-makers are primarily 35-44 (40%), representing senior management with budget authority' : isMass ? 'broad appeal across age groups with concentration in 18-34 (65%), indicating strong adoption potential' : 'early-career professionals 22-30 (45%) are the primary adopters, seeking innovative solutions'}. This demographic alignment suggests rapid adoption cycles with price-sensitive considerations for maximum market penetration.`,
       
       locations: isEnterprise ? [
         { name: 'North America', percentage: 45, type: 'Primary' },
@@ -60,7 +60,7 @@ export default function DemographicsAnalysis({ idea, market }: DemographicsAnaly
         { name: 'Rural Areas', percentage: 10, type: 'Growth' },
         { name: 'International', percentage: 5, type: 'Future' }
       ],
-      locationsExplanation: `Geographic concentration in ${isEnterprise ? 'North America (45%) and Europe (30%) reflects enterprise spending patterns' : 'Urban Centers (60%) indicates tech-savvy early adopters'}. Market entry strategy should prioritize ${isEnterprise ? 'established business hubs' : 'metropolitan areas'} with ${refinementData.budget === 'funded' ? 'aggressive expansion plans' : 'organic growth approach'}. Infrastructure and cultural factors favor initial focus on primary markets.`,
+      locationsExplanation: `Geographic concentration in ${isEnterprise ? 'North America (45%) and Europe (30%) reflects enterprise spending patterns' : 'Urban Centers (60%) indicates tech-savvy early adopters'}. Market entry strategy should prioritize ${isEnterprise ? 'established business hubs' : 'metropolitan areas'} with organic growth approach. Infrastructure and cultural factors favor initial focus on primary markets.`,
       
       occupations: isEnterprise ? [
         { title: 'C-Suite Executives', percentage: 15, income: '$200k+' },
@@ -78,7 +78,7 @@ export default function DemographicsAnalysis({ idea, market }: DemographicsAnaly
         { title: 'Entrepreneurs', percentage: 20, income: 'Variable' },
         { title: 'Creatives', percentage: 15, income: '$40k-80k' }
       ],
-      occupationsExplanation: `Occupation analysis reveals ${isEnterprise ? 'budget holders concentrated in Director/VP level (35%) with significant C-Suite involvement (15%)' : isMass ? 'diverse professional backgrounds with varied income levels' : 'tech-forward professionals (40%) leading adoption'}. Income distribution supports ${refinementData.budget === 'funded' ? 'premium pricing strategies' : 'value-based pricing models'}. Decision-making processes align with ${refinementData.timeline} deployment schedules.`,
+      occupationsExplanation: `Occupation analysis reveals ${isEnterprise ? 'budget holders concentrated in Director/VP level (35%) with significant C-Suite involvement (15%)' : isMass ? 'diverse professional backgrounds with varied income levels' : 'tech-forward professionals (40%) leading adoption'}. Income distribution supports value-based pricing models. Decision-making processes align with MVP deployment schedules.`,
       
       behaviors: isEnterprise ? [
         { behavior: 'Research-driven purchasing', frequency: 'Always', impact: 'High' },
@@ -91,7 +91,7 @@ export default function DemographicsAnalysis({ idea, market }: DemographicsAnaly
         { behavior: 'Price comparison', frequency: 'Always', impact: 'Medium' },
         { behavior: 'Impulse purchasing', frequency: 'Sometimes', impact: 'Low' }
       ],
-      behaviorsExplanation: `Behavioral patterns indicate ${isEnterprise ? 'complex B2B buying processes with multiple stakeholders and ROI requirements' : 'consumer-driven decisions influenced by social proof and convenience'}. Key success factors include ${isEnterprise ? 'demonstrable business value and stakeholder alignment' : 'user experience excellence and community building'}. Marketing approach should emphasize ${refinementData.market === 'enterprise' ? 'case studies and white papers' : 'testimonials and user-generated content'}.`
+      behaviorsExplanation: `Behavioral patterns indicate ${isEnterprise ? 'complex B2B buying processes with multiple stakeholders and ROI requirements' : 'consumer-driven decisions influenced by social proof and convenience'}. Key success factors include ${isEnterprise ? 'demonstrable business value and stakeholder alignment' : 'user experience excellence and community building'}. Marketing approach should emphasize ${market === 'enterprise' ? 'case studies and white papers' : 'testimonials and user-generated content'}.`
     };
   };
 
