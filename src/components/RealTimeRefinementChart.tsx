@@ -125,52 +125,179 @@ export default function RealTimeRefinementChart({
   }, [pmfScore]);
 
   useEffect(() => {
-    // Generate refinement suggestions from ChatGPT metadata or based on score
+    // Generate dynamic refinement suggestions from ChatGPT metadata or based on context
     if (!idea) return;
 
-    const newSuggestions: string[] = [];
-    
-    // Use ChatGPT's refinement suggestions if available
-    if (metadata?.refinements && Array.isArray(metadata.refinements)) {
-      // Add the AI-generated refinements specific to this idea
-      newSuggestions.push(...metadata.refinements.slice(0, 4));
-    } else {
-      // Fallback to generic suggestions based on score and settings
-      if (pmfScore < 40) {
-        newSuggestions.push(`Consider narrowing your ${idea.includes('parent') || idea.includes('elder') ? 'caregiver demographic' : 'target market'}`);
-        newSuggestions.push(`Add unique features for ${idea.includes('volunteer') ? 'volunteer verification' : 'differentiation'}`);
-      } else if (pmfScore < 70) {
-        newSuggestions.push(`Validate with ${idea.includes('parent') ? 'parent communities' : 'potential customers'}`);
-        newSuggestions.push(`Refine your ${idea.includes('care') ? 'care service offerings' : 'value proposition'}`);
+    const generateDynamicSuggestions = () => {
+      const allSuggestions: string[] = [];
+      
+      // Use ChatGPT's refinement suggestions if available
+      if (metadata?.refinements && Array.isArray(metadata.refinements)) {
+        allSuggestions.push(...metadata.refinements);
+      }
+      
+      // Add contextual suggestions based on the idea content
+      const ideaLower = idea.toLowerCase();
+      
+      // Parent/Elder care specific suggestions
+      if (ideaLower.includes('parent') || ideaLower.includes('elder') || ideaLower.includes('care')) {
+        allSuggestions.push(
+          "Implement emergency contact system for urgent care needs",
+          "Add caregiver rating and review system",
+          "Create scheduling system for regular care visits",
+          "Integrate health monitoring and reporting features",
+          "Build trust through background verification process",
+          "Add insurance and liability coverage options",
+          "Create care plan templates for different needs",
+          "Implement real-time location tracking for safety"
+        );
+      }
+      
+      // Volunteer specific suggestions
+      if (ideaLower.includes('volunteer')) {
+        allSuggestions.push(
+          "Gamify volunteer hours with achievement badges",
+          "Create volunteer skill matching algorithm",
+          "Add volunteer hour tracking for certificates",
+          "Build community recognition system",
+          "Implement volunteer screening and training modules",
+          "Create volunteer-family matching preferences",
+          "Add volunteer availability calendar system",
+          "Build volunteer impact dashboard"
+        );
+      }
+      
+      // App/Platform specific suggestions
+      if (ideaLower.includes('app') || ideaLower.includes('platform')) {
+        allSuggestions.push(
+          "Optimize mobile UI for elderly users",
+          "Add offline mode for essential features",
+          "Implement push notifications for care reminders",
+          "Create family member access portal",
+          "Add voice commands for accessibility",
+          "Build integration with medical systems",
+          "Create automated matching algorithms",
+          "Add multi-language support for diverse communities"
+        );
+      }
+      
+      // Score-based strategic suggestions
+      if (pmfScore < 50) {
+        allSuggestions.push(
+          "Conduct user interviews with 20+ target users",
+          "Run A/B testing on value propositions",
+          "Create detailed user journey maps",
+          "Analyze competitor weaknesses and gaps",
+          "Test pricing models with focus groups",
+          "Build minimum lovable product first"
+        );
+      } else if (pmfScore < 75) {
+        allSuggestions.push(
+          "Launch beta program with 100 early adopters",
+          "Set up analytics for user behavior tracking",
+          "Create referral program for growth",
+          "Build automated onboarding flow",
+          "Implement customer feedback loops",
+          "Develop content marketing strategy"
+        );
       } else {
-        newSuggestions.push(`Ready for ${idea.includes('app') ? 'app prototype' : 'MVP'} development`);
-        newSuggestions.push(`Consider ${idea.includes('local') ? 'local pilot testing' : 'early user testing'}`);
+        allSuggestions.push(
+          "Scale infrastructure for 10x growth",
+          "Explore partnership opportunities",
+          "Consider geographic expansion strategy",
+          "Build API for third-party integrations",
+          "Implement advanced analytics dashboard",
+          "Prepare for Series A fundraising"
+        );
       }
+      
+      // Market-specific suggestions
+      if (refinements.market === 'enterprise') {
+        allSuggestions.push(
+          "Add SSO and enterprise authentication",
+          "Build comprehensive admin dashboard",
+          "Create SLA and support tiers",
+          "Implement audit logs and compliance"
+        );
+      } else if (refinements.market === 'mainstream') {
+        allSuggestions.push(
+          "Simplify onboarding to under 2 minutes",
+          "Create viral sharing mechanisms",
+          "Build freemium model with clear upgrade path",
+          "Add social proof and testimonials"
+        );
+      }
+      
+      // Budget-specific suggestions
+      if (refinements.budget === 'bootstrapped') {
+        allSuggestions.push(
+          "Focus on SEO and organic acquisition",
+          "Build in public for community growth",
+          "Use no-code tools for rapid prototyping",
+          "Partner with complementary services"
+        );
+      } else if (refinements.budget === 'seed' || refinements.budget === 'series-a') {
+        allSuggestions.push(
+          "Hire key technical talent",
+          "Invest in paid acquisition channels",
+          "Build robust data infrastructure",
+          "Expand to adjacent markets"
+        );
+      }
+      
+      // Randomly select 4 different suggestions each time
+      const shuffled = allSuggestions.sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 4);
+    };
 
-      // Add context-aware suggestions based on refinements
-      if (refinements.budget === 'bootstrapped' && idea.includes('volunteer')) {
-        newSuggestions.push("Leverage volunteer networks for organic growth");
-      } else if (refinements.budget === 'bootstrapped') {
-        newSuggestions.push("Focus on organic growth strategies");
-      }
-      
-      if (refinements.market === 'enterprise' && idea.includes('care')) {
-        newSuggestions.push("Build HIPAA compliance for healthcare data");
-      } else if (refinements.market === 'enterprise') {
-        newSuggestions.push("Build compliance and security features");
-      }
-      
-      if (idea.includes('elder') || idea.includes('senior')) {
-        newSuggestions.push("Ensure accessibility features for elderly users");
-      }
-      
-      if (idea.includes('parent') && idea.includes('assist')) {
-        newSuggestions.push("Add background check integration for safety");
-      }
-    }
-
-    setSuggestions(newSuggestions.slice(0, 4)); // Limit to 4 suggestions
+    setSuggestions(generateDynamicSuggestions());
   }, [idea, pmfScore, refinements, metadata]);
+  
+  // Refresh suggestions periodically for variety
+  useEffect(() => {
+    if (!idea) return;
+    
+    const refreshInterval = setInterval(() => {
+      const ideaLower = idea.toLowerCase();
+      const contextualSuggestions: string[] = [];
+      
+      // Generate fresh contextual suggestions
+      const timestamp = Date.now();
+      const variant = (timestamp % 5); // Create 5 different variants
+      
+      if (ideaLower.includes('parent') || ideaLower.includes('care')) {
+        const careSuggestions = [
+          ["Partner with local healthcare providers", "Create care coordination features", "Add medication reminder system", "Build caregiver support groups"],
+          ["Integrate telehealth consultations", "Add daily check-in system", "Create care cost calculator", "Build respite care network"],
+          ["Add activity suggestions for seniors", "Create cognitive exercise features", "Build nutrition tracking", "Add fall detection system"],
+          ["Create care team collaboration tools", "Add transportation coordination", "Build care quality metrics", "Create family update system"],
+          ["Add legal document storage", "Create care preference profiles", "Build emergency response system", "Add social engagement features"]
+        ];
+        contextualSuggestions.push(...careSuggestions[variant]);
+      } else if (metadata?.refinements && Array.isArray(metadata.refinements)) {
+        // Rotate through ChatGPT suggestions with variations
+        const rotated = [...metadata.refinements];
+        for (let i = 0; i < variant; i++) {
+          rotated.push(rotated.shift()!);
+        }
+        contextualSuggestions.push(...rotated.slice(0, 4));
+      } else {
+        // Generic business suggestions that rotate
+        const genericSuggestions = [
+          ["Define clear success metrics", "Build user feedback system", "Create growth experiments", "Test market assumptions"],
+          ["Optimize conversion funnel", "Build retention features", "Create viral loops", "Add engagement metrics"],
+          ["Develop pricing strategy", "Build customer segments", "Create value matrix", "Add competitive analysis"],
+          ["Build product roadmap", "Create feature prioritization", "Add user analytics", "Develop go-to-market plan"],
+          ["Create brand identity", "Build community features", "Add referral system", "Develop content strategy"]
+        ];
+        contextualSuggestions.push(...genericSuggestions[variant]);
+      }
+      
+      setSuggestions(contextualSuggestions.slice(0, 4));
+    }, 8000); // Refresh every 8 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [idea, metadata]);
 
   // Set up real-time collaboration channel
   useEffect(() => {
