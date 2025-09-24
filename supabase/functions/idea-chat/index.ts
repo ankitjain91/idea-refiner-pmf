@@ -19,6 +19,13 @@ serve(async (req) => {
     }
 
     const { message, conversationHistory } = await req.json();
+    
+    // Log the conversation for debugging
+    console.log('Incoming message:', message);
+    console.log('Conversation history length:', conversationHistory?.length || 0);
+    if (conversationHistory?.length > 0) {
+      console.log('Last AI message:', conversationHistory[conversationHistory.length - 1]?.content?.substring(0, 100));
+    }
 
     // Construct messages for OpenAI with enhanced validation
     const messages = [
@@ -26,46 +33,35 @@ serve(async (req) => {
         role: 'system',
         content: `You are a PMF (Product-Market Fit) advisor helping entrepreneurs refine startup ideas. 
         
-        IMPORTANT: Check if this is a NEW conversation or ONGOING:
-        - If the user provides a startup idea (describing a product/service), validate it
-        - If the user is ANSWERING your question, continue the conversation naturally
+        CRITICAL CONTEXT AWARENESS:
+        - Check the conversation history to understand if this is a NEW idea or an ANSWER to your question
+        - If you previously asked a question, the user is likely ANSWERING it
+        - NEVER reject valid answers to your own questions
         
-        For NEW IDEAS, validate:
-        - Reject only if: nonsense text, gibberish, not business-related, too vague
-        - Accept if: describes a product, service, or solution
+        FOR NEW STARTUP IDEAS:
+        - Accept: Any description of a product, service, app, platform, or business solution
+        - Reject ONLY: Random text, gibberish, non-business content, or extremely vague statements
+        - If rejected, respond: "❌ I need a real startup or business idea to help you. Please describe a specific product, service, or solution."
         
-        For ONGOING CONVERSATIONS:
-        - The user is likely answering YOUR previous question
-        - Continue refining their idea by exploring:
-          * Target demographic and market size
-          * Solution approach and technical implementation  
-          * Monetization strategy and pricing
-          * Competitive landscape and differentiation
-          * Go-to-market strategy
+        FOR ONGOING CONVERSATIONS (user answering your questions):
+        - Accept ALL responses as valid answers
+        - Continue the conversation naturally
+        - Guide them through: demographics, solution, monetization, competition, go-to-market
         
-        RESPONSE FORMAT (MANDATORY):
-        [Your conversational response - be encouraging, use emojis 🚀 💡 🎯, max 100 words]
+        RESPONSE FORMAT - MUST FOLLOW EXACTLY:
+        [Your response - encouraging, use emojis 🚀💡🎯💰, max 100 words]
         
         SUGGESTIONS:
-        [Exactly 3-4 contextual options the user can click, one per line]
+        [Exactly 3-4 clickable options, one per line, contextual to your question]
         
-        Example for demographic question:
-        "Excellent choice! 🎯 Small business owners are a great target market with clear pain points. How would you monetize this service? Would you charge a subscription, transaction fee, or freemium model?
+        Example for demographic answer:
+        "Perfect! 🎯 Small business owners are an excellent target market. They have budget and clear needs. How would you monetize this - subscription, transaction fees, or freemium?
         
         SUGGESTIONS:
         Monthly subscription ($29-99/month)
-        10% transaction fee per booking
+        15% commission per transaction
         Freemium with paid premium features
-        One-time setup fee plus monthly maintenance"
-        
-        Example for new idea validation:
-        "Great idea! 🚀 Connecting elderly people with volunteers addresses a real need. Who would be your primary user - the elderly themselves or their family members who arrange help?
-        
-        SUGGESTIONS:
-        Elderly people directly using the app
-        Adult children managing care for parents
-        Both elderly and family members
-        Senior living communities as organizations"`
+        One-time setup fee plus recurring"`
       },
       ...conversationHistory,
       { role: 'user', content: message }
