@@ -87,30 +87,90 @@ serve(async (req) => {
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
-    // Generate suggestions based on the conversation stage
+    // Generate contextually relevant suggestions based on the conversation
     let suggestions: string[] = [];
     const lowerResponse = aiResponse.toLowerCase();
+    const lowerMessage = message.toLowerCase();
     
-    // Check if idea was rejected
+    // Check if idea was rejected - provide real startup idea examples
     if (lowerResponse.includes('❌') || lowerResponse.includes('real startup') || lowerResponse.includes('need a real')) {
       suggestions = [
-        "AI-powered marketplace for services",
-        "SaaS tool for remote teams", 
-        "Educational platform for skills",
-        "Healthcare solution for patients"
+        "A mobile app that helps people find parking spots",
+        "Platform connecting freelancers with local businesses", 
+        "AI tool that summarizes long documents",
+        "Subscription box for eco-friendly products"
       ];
-    } else if (lowerResponse.includes('demographic') || lowerResponse.includes('who')) {
-      suggestions = ["Young professionals aged 25-35", "Small business owners", "Students and educators", "Parents with young children"];
-    } else if (lowerResponse.includes('solution') || lowerResponse.includes('how')) {
-      suggestions = ["AI-powered automation", "Marketplace connecting users", "Educational platform", "Mobile-first solution"];
-    } else if (lowerResponse.includes('monetiz') || lowerResponse.includes('pricing')) {
-      suggestions = ["$9.99/month subscription", "Freemium with premium features", "One-time purchase", "Transaction-based fees"];
-    } else if (lowerResponse.includes('compet')) {
-      suggestions = ["No direct competitors yet", "Better UX and simpler onboarding", "50% more affordable", "Unique features they don't have"];
-    } else if (lowerResponse.includes('market') || lowerResponse.includes('customer')) {
-      suggestions = ["Social media marketing", "Content marketing & SEO", "Direct B2B sales", "Product Hunt launch"];
-    } else if (lowerResponse.includes('pmf') || lowerResponse.includes('score') || lowerResponse.includes('analysis')) {
-      suggestions = ["Yes, show me the PMF analysis!", "Let me add more details first"];
+    } 
+    // Target demographic questions
+    else if (lowerResponse.includes('who') || lowerResponse.includes('target') || lowerResponse.includes('audience') || lowerResponse.includes('demographic')) {
+      suggestions = [
+        "Tech-savvy millennials in urban areas",
+        "Small business owners with 1-10 employees",
+        "Parents with school-age children",
+        "Remote workers and digital nomads"
+      ];
+    } 
+    // Solution/implementation questions
+    else if (lowerResponse.includes('how') || lowerResponse.includes('solution') || lowerResponse.includes('build') || lowerResponse.includes('implement')) {
+      suggestions = [
+        "Mobile app with AI recommendations",
+        "Web platform with real-time matching",
+        "Chrome extension for seamless integration",
+        "API-first approach for developers"
+      ];
+    } 
+    // Monetization questions
+    else if (lowerResponse.includes('monetiz') || lowerResponse.includes('pricing') || lowerResponse.includes('revenue') || lowerResponse.includes('charge')) {
+      suggestions = [
+        "$19/month for individuals",
+        "Freemium model with paid pro features",
+        "15% commission on transactions",
+        "$99 one-time purchase"
+      ];
+    } 
+    // Competition questions
+    else if (lowerResponse.includes('compet') || lowerResponse.includes('different') || lowerResponse.includes('unique') || lowerResponse.includes('stand out')) {
+      suggestions = [
+        "We focus on a niche they ignore",
+        "Our solution is 10x faster",
+        "We have better pricing and support",
+        "First to integrate with key platforms"
+      ];
+    } 
+    // Go-to-market questions
+    else if (lowerResponse.includes('market') || lowerResponse.includes('customer') || lowerResponse.includes('launch') || lowerResponse.includes('growth')) {
+      suggestions = [
+        "Launch on Product Hunt and Reddit",
+        "Partner with industry influencers",
+        "Cold outreach to target companies",
+        "Content marketing and SEO strategy"
+      ];
+    } 
+    // PMF analysis readiness
+    else if (lowerResponse.includes('pmf') || lowerResponse.includes('score') || lowerResponse.includes('ready') || lowerResponse.includes('enough')) {
+      suggestions = [
+        "Yes, calculate my PMF score!",
+        "Tell me more about my target market",
+        "I need help with monetization",
+        "What about competition?"
+      ];
+    }
+    // Default helpful suggestions if no specific context
+    else {
+      // Provide general next steps based on what hasn't been discussed
+      if (!conversationHistory.some((m: any) => m.content.toLowerCase().includes('target') || m.content.toLowerCase().includes('audience'))) {
+        suggestions.push("Help me define my target audience");
+      }
+      if (!conversationHistory.some((m: any) => m.content.toLowerCase().includes('monetiz') || m.content.toLowerCase().includes('pricing'))) {
+        suggestions.push("Let's discuss pricing strategy");
+      }
+      if (!conversationHistory.some((m: any) => m.content.toLowerCase().includes('compet'))) {
+        suggestions.push("Analyze my competition");
+      }
+      suggestions.push("Calculate my PMF score");
+      
+      // Limit to 4 suggestions
+      suggestions = suggestions.slice(0, 4);
     }
 
     return new Response(
