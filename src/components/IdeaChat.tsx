@@ -21,6 +21,90 @@ interface IdeaChatProps {
   onAnalysisReady: (idea: string, metadata: any) => void;
 }
 
+// Component for dynamic idea suggestions
+const IdeaSuggestions: React.FC<{ onSelect: (idea: string) => void }> = ({ onSelect }) => {
+  const [suggestions, setSuggestions] = useState<{ label: string; idea: string }[]>([]);
+  
+  const allSuggestions = [
+    // Tech & AI
+    { label: "AI Assistant", idea: "An AI-powered personal assistant that helps manage daily tasks and schedules using natural language processing" },
+    { label: "AI Marketing", idea: "An AI-powered platform that helps small businesses automate their social media marketing and content creation" },
+    { label: "AI Tutor", idea: "An adaptive AI tutoring platform that personalizes learning paths for students based on their learning style" },
+    { label: "AI Health", idea: "An AI health companion that monitors vitals and provides personalized wellness recommendations" },
+    
+    // Healthcare & Wellness
+    { label: "Elder Care", idea: "A mobile app that connects elderly people with local volunteers for daily assistance and companionship" },
+    { label: "Mental Health", idea: "A platform connecting people with licensed therapists for affordable online counseling sessions" },
+    { label: "Fitness Coach", idea: "A virtual fitness coaching app that creates personalized workout plans using computer vision" },
+    { label: "Nutrition Tracker", idea: "An app that analyzes meal photos to track nutrition and suggests healthier alternatives" },
+    
+    // Remote Work & Productivity
+    { label: "Remote Work", idea: "A SaaS tool that helps remote teams track productivity and wellbeing metrics without being invasive" },
+    { label: "Team Collab", idea: "A virtual office platform that recreates spontaneous office interactions for remote teams" },
+    { label: "Task Manager", idea: "An intelligent task management system that prioritizes work based on deadlines and energy levels" },
+    { label: "Focus App", idea: "A productivity app that uses gamification to help people maintain deep focus sessions" },
+    
+    // Marketplaces & Platforms
+    { label: "Local Services", idea: "A marketplace connecting homeowners with vetted local service providers for home repairs" },
+    { label: "Skill Exchange", idea: "A platform where people can exchange skills and services without monetary transactions" },
+    { label: "Farmer Market", idea: "A direct-to-consumer marketplace connecting local farmers with urban consumers" },
+    { label: "Freelance Hub", idea: "A specialized platform for creative freelancers to showcase portfolios and find clients" },
+    
+    // Education & Learning
+    { label: "Language Learning", idea: "A conversational AI app that helps people learn languages through real-time practice" },
+    { label: "Coding Bootcamp", idea: "An online coding bootcamp that guarantees job placement through industry partnerships" },
+    { label: "Parent Resources", idea: "An app providing parents with age-appropriate educational activities and parenting tips" },
+    { label: "Career Mentor", idea: "A platform matching young professionals with industry mentors for career guidance" },
+    
+    // Finance & Business
+    { label: "Micro Investing", idea: "An app that rounds up purchases and invests the spare change in sustainable companies" },
+    { label: "Expense Tracker", idea: "An AI expense tracker that categorizes spending and provides personalized saving tips" },
+    { label: "Small Biz Tools", idea: "An all-in-one platform for small businesses to manage invoicing, expenses, and taxes" },
+    { label: "Crypto Education", idea: "A gamified platform teaching cryptocurrency and blockchain concepts to beginners" },
+    
+    // Sustainability & Environment
+    { label: "Carbon Tracker", idea: "An app that tracks personal carbon footprint and suggests ways to reduce environmental impact" },
+    { label: "Food Waste", idea: "A platform connecting restaurants with excess food to local charities and food banks" },
+    { label: "Green Shopping", idea: "A browser extension that suggests eco-friendly alternatives while shopping online" },
+    { label: "Solar Advisor", idea: "An AI platform that analyzes homes for solar panel potential and ROI calculations" },
+    
+    // Social & Community
+    { label: "Neighborhood", idea: "A hyperlocal social network for neighbors to share resources and organize events" },
+    { label: "Pet Care", idea: "An app connecting pet owners with trusted pet sitters and dog walkers in their area" },
+    { label: "Event Planning", idea: "An AI event planning assistant that handles vendor coordination and budget management" },
+    { label: "Hobby Groups", idea: "A platform helping people find and join local hobby groups based on their interests" }
+  ];
+  
+  useEffect(() => {
+    // Generate random suggestions on mount and periodically
+    const generateSuggestions = () => {
+      const shuffled = [...allSuggestions].sort(() => Math.random() - 0.5);
+      setSuggestions(shuffled.slice(0, 3));
+    };
+    
+    generateSuggestions();
+    
+    // Change suggestions every 10 seconds
+    const interval = setInterval(generateSuggestions, 10000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <>
+      {suggestions.map((suggestion, index) => (
+        <button
+          key={index}
+          onClick={() => onSelect(suggestion.idea)}
+          className="text-xs text-primary hover:underline transition-all duration-300 hover:text-primary/80"
+        >
+          {suggestion.label}
+        </button>
+      ))}
+    </>
+  );
+};
+
 const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   const [hasStarted, setHasStarted] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -401,24 +485,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
               />
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className="text-xs text-muted-foreground">Try ideas like:</span>
-                <button 
-                  onClick={() => setInitialIdea("An AI-powered platform that helps small businesses automate their social media marketing")}
-                  className="text-xs text-primary hover:underline"
-                >
-                  AI Marketing
-                </button>
-                <button 
-                  onClick={() => setInitialIdea("A mobile app that connects elderly people with local volunteers for daily assistance")}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Elder Care
-                </button>
-                <button 
-                  onClick={() => setInitialIdea("A SaaS tool that helps remote teams track productivity and wellbeing metrics")}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Remote Work
-                </button>
+                <IdeaSuggestions onSelect={setInitialIdea} />
               </div>
               
               {/* Morphing bubble preview - shows during transition */}
