@@ -20,7 +20,8 @@ import {
   Brain, 
   Globe,
   Clock,
-  Rocket
+  Rocket,
+  Chrome
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -33,6 +34,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -45,6 +47,28 @@ export default function LandingPage() {
     };
     checkAuth();
   }, [navigate]);
+
+  const handleSocialSignIn = async (provider: 'google') => {
+    setSocialLoading(provider);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Authentication Failed",
+        description: error.message || "An error occurred during authentication",
+        variant: "destructive",
+      });
+    } finally {
+      setSocialLoading(null);
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,9 +287,37 @@ export default function LandingPage() {
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading}
+                    disabled={isLoading || socialLoading !== null}
                   >
-                    {isLoading ? "Signing in..." : "Sign In"}
+                    {isLoading ? "Signing in..." : "Sign In with Email"}
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialSignIn('google')}
+                    disabled={socialLoading !== null || isLoading}
+                  >
+                    {socialLoading === 'google' ? (
+                      "Connecting..."
+                    ) : (
+                      <>
+                        <Chrome className="mr-2 h-4 w-4" />
+                        Google
+                      </>
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -301,9 +353,37 @@ export default function LandingPage() {
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading}
+                    disabled={isLoading || socialLoading !== null}
                   >
-                    {isLoading ? "Creating account..." : "Create Account"}
+                    {isLoading ? "Creating account..." : "Sign Up with Email"}
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialSignIn('google')}
+                    disabled={socialLoading !== null || isLoading}
+                  >
+                    {socialLoading === 'google' ? (
+                      "Connecting..."
+                    ) : (
+                      <>
+                        <Chrome className="mr-2 h-4 w-4" />
+                        Google
+                      </>
+                    )}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
                     By signing up, you agree to our Terms of Service and Privacy Policy
