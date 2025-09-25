@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PMFAnalyzer from "@/components/PMFAnalyzer";
 import { UserMenu } from "@/components/UserMenu";
@@ -10,6 +10,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const analyzerRef = useRef<any>(null);
   
   useEffect(() => {
     // Redirect to auth if not logged in and not loading
@@ -34,7 +35,7 @@ const Index = () => {
   
   return (
     <div className="min-h-screen flex w-full">
-      <AppSidebar />
+      <AppSidebar onNewChat={() => analyzerRef.current?.resetAnalyzer?.()} />
       <div className="flex-1 relative">
         <div className="absolute top-4 right-4 z-50">
           <UserMenu />
@@ -42,7 +43,7 @@ const Index = () => {
         <div className="absolute top-4 left-4 z-50">
           <SidebarTrigger />
         </div>
-        <PMFAnalyzer />
+        <PMFAnalyzer ref={analyzerRef} />
       </div>
     </div>
   );

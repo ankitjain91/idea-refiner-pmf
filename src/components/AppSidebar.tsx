@@ -46,7 +46,11 @@ interface Session {
   is_active: boolean;
 }
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNewChat?: () => void;
+}
+
+export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   const { open } = useSidebar();
   const isOpen = open !== false;
   const { user } = useAuth();
@@ -97,8 +101,13 @@ export function AppSidebar() {
     localStorage.removeItem('ideaMetadata');
     setCurrentSessionId(null);
     
-    // Navigate to home for fresh start
-    navigate('/');
+    // If on dashboard, navigate to home
+    if (window.location.pathname === '/dashboard') {
+      navigate('/');
+    } else {
+      // Otherwise trigger reset on current page
+      onNewChat?.();
+    }
     
     // Reload sessions list
     await loadSessions();

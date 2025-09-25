@@ -28,7 +28,7 @@ interface SignalStatus {
   message?: string;
 }
 
-export default function PMFAnalyzer() {
+const PMFAnalyzer = React.forwardRef((props, ref) => {
   const [idea, setIdea] = useState('');
   const [initialIdea, setInitialIdea] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,6 +54,7 @@ export default function PMFAnalyzer() {
   const { toast } = useToast();
   const [chatCollapsed, setChatCollapsed] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(0);
   
   // Handle scroll to detect when user scrolls down
   useEffect(() => {
@@ -455,6 +456,48 @@ export default function PMFAnalyzer() {
     }
   };
 
+  // Add method to reset entire analyzer
+  const resetAnalyzer = () => {
+    // Clear all state
+    setIdea('');
+    setInitialIdea('');
+    setMessages([]);
+    setIsLoading(false);
+    setCurrentQuestion(1);
+    setSignals([]);
+    setShowDashboard(false);
+    setPmfScore(0);
+    setCurrentSuggestions([]);
+    setLoadingSuggestions(false);
+    setUserAnswers({});
+    setRefinements({
+      ageRange: [18, 45],
+      regionFocus: 'global',
+      pricePoint: 50,
+      channelWeights: { tiktok: 0.3, instagram: 0.2, reddit: 0.2, youtube: 0.15, linkedin: 0.15 },
+      b2b: false,
+      premium: false,
+      niche: true
+    });
+    setMetadata(null);
+    setChatCollapsed(false);
+    
+    // Clear localStorage
+    localStorage.removeItem('userIdea');
+    localStorage.removeItem('userAnswers');
+    localStorage.removeItem('userRefinements');
+    localStorage.removeItem('ideaMetadata');
+    localStorage.removeItem('currentSessionId');
+    
+    // Trigger chat reset
+    setResetTrigger(Date.now());
+  };
+
+  // Expose reset method via ref
+  React.useImperativeHandle(ref, () => ({
+    resetAnalyzer
+  }));
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
@@ -504,7 +547,7 @@ export default function PMFAnalyzer() {
               "overflow-y-auto transition-all duration-300",
               isScrolled ? "max-h-[30vh]" : "max-h-[40vh]"
             )}>
-              <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} />
+              <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
             </div>
           </div>
         </div>
@@ -878,4 +921,8 @@ export default function PMFAnalyzer() {
       </div>
     </div>
   );
-}
+});
+
+PMFAnalyzer.displayName = 'PMFAnalyzer';
+
+export default PMFAnalyzer;

@@ -92,9 +92,10 @@ interface Message {
 
 interface EnhancedIdeaChatProps {
   onAnalysisReady: (idea: string, metadata: any) => void;
+  resetTrigger?: number; // Add reset trigger prop
 }
 
-const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) => {
+const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady, resetTrigger }) => {
   // Force new suggestions on every render by not memoizing
   const [messages, setMessages] = useState<Message[]>(() => {
     const welcomeMessage: Message = {
@@ -114,6 +115,25 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  
+  // Reset chat when trigger changes
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      const welcomeMessage: Message = {
+        id: 'welcome',
+        type: 'bot',
+        content: "✨ Welcome to your AI-powered PMF advisor! Share your startup idea and I'll help transform it into a validated business concept through intelligent conversation.",
+        timestamp: new Date(),
+        suggestions: getRandomSuggestions(4)
+      };
+      setMessages([welcomeMessage]);
+      setInput('');
+      setIsTyping(false);
+      setConversationStarted(false);
+      setPMFData(null);
+      setShowPMFAnalysis(false);
+    }
+  }, [resetTrigger]);
   
   // Reset function to start new analysis
   const resetChat = () => {
