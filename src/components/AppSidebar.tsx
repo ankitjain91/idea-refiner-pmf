@@ -189,7 +189,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b p-4">
         {isOpen && (
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">PMF Analyzer</h2>
+            <h2 className="text-lg font-semibold">Start Your PMF Journey</h2>
             <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'}>
               {subscription.tier}
             </Badge>

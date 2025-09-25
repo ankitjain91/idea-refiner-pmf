@@ -17,11 +17,17 @@ const Dashboard = () => {
   const [pmfScore, setPmfScore] = useState(0);
   const [savingSession, setSavingSession] = useState(false);
   
-  // Get saved data from localStorage or URL params
-  const savedIdea = localStorage.getItem('userIdea') || '';
-  const savedRefinements = JSON.parse(localStorage.getItem('userRefinements') || '{}');
-  const savedMetadata = JSON.parse(localStorage.getItem('ideaMetadata') || '{}');
-  const savedAnswers = JSON.parse(localStorage.getItem('userAnswers') || '{}');
+  // Reactive saved data from localStorage
+  const [idea, setIdea] = useState<string>(localStorage.getItem('userIdea') || '');
+  const [refinements, setRefinements] = useState<Record<string, any>>(
+    JSON.parse(localStorage.getItem('userRefinements') || '{}')
+  );
+  const [metadata, setMetadata] = useState<Record<string, any>>(
+    JSON.parse(localStorage.getItem('ideaMetadata') || '{}')
+  );
+  const [answers, setAnswers] = useState<Record<string, any>>(
+    JSON.parse(localStorage.getItem('userAnswers') || '{}')
+  );
   
   useEffect(() => {
     if (!loading && !user) {
@@ -29,26 +35,38 @@ const Dashboard = () => {
     }
   }, [user, loading, navigate]);
 
-  // Auto-save session every time score updates
+  // Sync with localStorage changes
   useEffect(() => {
-    if (user && savedIdea && pmfScore > 0) {
+    const handleStorage = () => {
+      setIdea(localStorage.getItem('userIdea') || '');
+      setRefinements(JSON.parse(localStorage.getItem('userRefinements') || '{}'));
+      setMetadata(JSON.parse(localStorage.getItem('ideaMetadata') || '{}'));
+      setAnswers(JSON.parse(localStorage.getItem('userAnswers') || '{}'));
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // Auto-save session when score updates and idea exists
+  useEffect(() => {
+    if (user && idea && pmfScore > 0) {
       saveSession();
     }
-  }, [pmfScore, user]);
+  }, [pmfScore, user, idea]);
 
   const saveSession = async () => {
-    if (!user || !savedIdea || savingSession) return;
+    if (!user || !idea || savingSession) return;
     
     setSavingSession(true);
     try {
       const sessionId = localStorage.getItem('currentSessionId');
       const sessionData = {
         user_id: user.id,
-        session_name: savedIdea.substring(0, 50) + (savedIdea.length > 50 ? '...' : ''),
-        idea: savedIdea,
-        user_answers: savedAnswers,
-        refinements: savedRefinements,
-        metadata: savedMetadata,
+        session_name: idea.substring(0, 50) + (idea.length > 50 ? '...' : ''),
+        idea: idea,
+        user_answers: answers,
+        refinements: refinements,
+        metadata: metadata,
         insights: {},
         pmf_score: pmfScore,
         last_accessed: new Date().toISOString()
@@ -82,6 +100,21 @@ const Dashboard = () => {
       setSavingSession(false);
     }
   };
+
+  const clearAll = () => {
+    localStorage.removeItem('currentSessionId');
+    localStorage.removeItem('userIdea');
+    localStorage.removeItem('userAnswers');
+    localStorage.removeItem('userRefinements');
+    localStorage.removeItem('ideaMetadata');
+    setIdea('');
+    setAnswers({});
+    setRefinements({});
+    setMetadata({});
+    setPmfScore(0);
+    toast({ title: 'Reset complete', description: 'Start a fresh analysis.' });
+    navigate('/');
+  };
   
   if (loading) {
     return (
@@ -104,17 +137,21 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <h1 className="text-2xl font-bold">Dashboard</h1>
+              <h1 className="text-2xl font-bold">Start Your PMF Journey</h1>
             </div>
-            <UserMenu />
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/')}>Back to Chat</Button>
+              <Button variant="destructive" onClick={clearAll}>Start Fresh</Button>
+              <UserMenu />
+            </div>
           </div>
           
           {/* Dashboard Content */}
           <EnhancedPMFDashboard
-            idea={savedIdea}
-            refinements={savedRefinements}
-            metadata={savedMetadata}
-            userAnswers={savedAnswers}
+            idea={idea}
+            refinements={refinements}
+            metadata={metadata}
+            userAnswers={answers}
             onScoreUpdate={setPmfScore}
           />
         </div>
