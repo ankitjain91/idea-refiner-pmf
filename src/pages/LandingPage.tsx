@@ -76,7 +76,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate('/signin')}
                 className="gap-2 text-lg px-8 shadow-lg hover:shadow-xl transition-all hover-scale"
               >
                 Start Free <ArrowRight className="w-5 h-5" />
@@ -396,7 +396,7 @@ export default function LandingPage() {
                     <Button 
                       className="w-full" 
                       variant={plan.variant}
-                      onClick={() => navigate('/auth')}
+                      onClick={() => navigate('/signin')}
                     >
                       {plan.cta}
                     </Button>

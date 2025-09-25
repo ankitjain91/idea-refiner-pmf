@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Pricing from "./pages/Pricing";
 import AuthPage from "./pages/Auth";
+import Auth from "./components/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,8 +26,9 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Routes>
-                {/* Auth route - always accessible */}
+                {/* Auth routes */}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/signin" element={<Auth />} />
                 
                 {/* Public routes that become protected when accessed directly */}
                 <Route path="/" element={
