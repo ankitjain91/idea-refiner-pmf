@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogIn, UserPlus, Chrome, Shield, Check, Sparkles, Building2 } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Chrome, Shield, ArrowRight, Check, Sparkles, Building2, Mail } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -21,6 +21,15 @@ const authSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
 });
 
+// Custom Microsoft icon component
+const MicrosoftIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+    <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+    <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+    <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+  </svg>
+);
 
 export default function EnterpriseAuth() {
   const [loading, setLoading] = useState(false);
@@ -153,14 +162,17 @@ export default function EnterpriseAuth() {
     }
   };
 
-  const handleSocialSignIn = async (provider: 'google') => {
+  const handleSocialSignIn = async (provider: 'google' | 'azure') => {
     setSocialLoading(provider);
     
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: `${window.location.origin}/`,
+          queryParams: provider === 'azure' ? {
+            prompt: 'select_account'
+          } : undefined
         }
       });
 
@@ -296,20 +308,37 @@ export default function EnterpriseAuth() {
                   </div>
                 </div>
 
-                <div className="w-full">
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => handleSocialSignIn('google')}
                     disabled={socialLoading !== null}
-                    className="w-full h-11 font-medium hover:bg-muted/50"
+                    className="h-11 font-medium hover:bg-muted/50"
                   >
                     {socialLoading === 'google' ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
                         <Chrome className="w-4 h-4 mr-2" />
-                        Continue with Google
+                        Google
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('azure')}
+                    disabled={socialLoading !== null}
+                    className="h-11 font-medium hover:bg-muted/50"
+                  >
+                    {socialLoading === 'azure' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <MicrosoftIcon />
+                        <span className="ml-2">Microsoft</span>
                       </>
                     )}
                   </Button>
@@ -419,20 +448,37 @@ export default function EnterpriseAuth() {
                   </div>
                 </div>
 
-                <div className="w-full">
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => handleSocialSignIn('google')}
                     disabled={socialLoading !== null}
-                    className="w-full h-11 font-medium hover:bg-muted/50"
+                    className="h-11 font-medium hover:bg-muted/50"
                   >
                     {socialLoading === 'google' ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
                         <Chrome className="w-4 h-4 mr-2" />
-                        Continue with Google
+                        Google
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSocialSignIn('azure')}
+                    disabled={socialLoading !== null}
+                    className="h-11 font-medium hover:bg-muted/50"
+                  >
+                    {socialLoading === 'azure' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <MicrosoftIcon />
+                        <span className="ml-2">Microsoft</span>
                       </>
                     )}
                   </Button>
