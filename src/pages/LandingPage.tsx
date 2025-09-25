@@ -370,14 +370,6 @@ export default function LandingPage() {
                 {isSignUp ? "By signing up, you agree to our Terms of Service and Privacy Policy" : ""}
               </p>
             </form>
-
-            {isAuthenticated && (
-              <div className="mt-2">
-                <Button variant="secondary" className="w-full" onClick={() => navigate('/dashboard')}>
-                  Go to Dashboard
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
