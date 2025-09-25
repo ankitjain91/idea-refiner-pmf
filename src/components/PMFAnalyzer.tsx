@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -494,7 +494,7 @@ const PMFAnalyzer = React.forwardRef((props, ref) => {
   };
 
   // Expose reset method via ref
-  React.useImperativeHandle(ref, () => ({
+  useImperativeHandle(ref, () => ({
     resetAnalyzer
   }));
 
