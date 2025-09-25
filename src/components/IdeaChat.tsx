@@ -524,17 +524,15 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           setMessages(prev => [...prev, {
             id: Date.now().toString(),
             type: 'bot',
-            content: pmfData.summary || "🎯 Perfect! I've calculated your PMF score and created a comprehensive analysis. Your dashboard is ready!",
+            content: pmfData.summary || "🎯 Perfect! I've calculated your PMF score and created a comprehensive analysis. Keep refining your idea in the chat above for better results!",
             timestamp: new Date(),
             showPMF: true,
             suggestions: buildContextualSuggestions(messages[0]?.content || input, input, pmfData)
           }]);
           
-          // Trigger analysis with enriched data - this shows the dashboard
-          setTimeout(() => {
-            const fullIdea = `${ideaData.problem} Solution: ${ideaData.solution || 'Innovative approach'} Target: ${ideaData.targetUsers || 'Wide market'} Monetization: ${ideaData.monetization || 'Subscription model'}`;
-            onAnalysisReady(fullIdea, enrichedIdeaData);
-          }, 1000);
+          // Trigger analysis with enriched data but DON'T close the chat
+          const fullIdea = `${ideaData.problem} Solution: ${ideaData.solution || 'Innovative approach'} Target: ${ideaData.targetUsers || 'Wide market'} Monetization: ${ideaData.monetization || 'Subscription model'}`;
+          onAnalysisReady(fullIdea, enrichedIdeaData);
           
         } else {
           // Fallback: If no PMF data, still trigger analysis with basic data

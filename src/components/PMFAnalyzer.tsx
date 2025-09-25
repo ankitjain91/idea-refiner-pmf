@@ -63,6 +63,7 @@ export default function PMFAnalyzer() {
     return saved ? JSON.parse(saved) : null;
   });
   const { toast } = useToast();
+  const [chatCollapsed, setChatCollapsed] = useState(false);
 
   const sampleQuestions = [
     {
@@ -389,11 +390,51 @@ export default function PMFAnalyzer() {
     }
   };
 
+  const handleIdeaChatAnalysis = (idea: string, metadata: any) => {
+    // Handle the analysis from the enhanced chat
+    setInitialIdea(idea);
+    setMetadata(metadata);
+    setShowDashboard(true);
+    setPmfScore(metadata?.pmfScore || 75);
+    
+    // Store data
+    localStorage.setItem('userIdea', idea);
+    localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
+  };
+
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto p-6 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Chat Interface */}
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
+      {/* Sticky Chat Header - Always Visible */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b shadow-sm">
+        <div className="container mx-auto p-4 max-w-7xl">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold gradient-text flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              Refine Your Idea (Devil's Advocate Mode Active)
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setChatCollapsed(!chatCollapsed)}
+            >
+              {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
+            </Button>
+          </div>
+          <div className={cn(
+            "transition-all duration-300 overflow-hidden",
+            chatCollapsed ? "max-h-0" : "max-h-[40vh]"
+          )}>
+            <div className="overflow-y-auto">
+              <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 container mx-auto p-6 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">{/* Chat Interface - Now shows the old chat interface for backward compatibility */}
           <div className="lg:col-span-2">
             <Card className="h-[600px] flex flex-col shadow-xl border-0 bg-card/95 backdrop-blur">
               <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10">
