@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, TrendingUp, Users, DollarSign, Target, Zap, ChevronRight, Crown } from 'lucide-react';
+import { Loader2, Send, TrendingUp, Users, DollarSign, Target, Zap, ChevronRight, Crown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import PMFDashboard from './PMFDashboard';
 import RefinementControlsAdvanced from './RefinementControlsAdvanced';
 import RealTimeRefinementChart from './RealTimeRefinementChart';
@@ -18,6 +19,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  suggestions?: string[];
 }
 
 interface SignalStatus {
@@ -35,6 +37,9 @@ export default function PMFAnalyzer() {
   const [signals, setSignals] = useState<SignalStatus[]>([]);
   const [showDashboard, setShowDashboard] = useState(false);
   const [pmfScore, setPmfScore] = useState(0);
+  const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [refinements, setRefinements] = useState({
     ageRange: [18, 45],
     regionFocus: 'global',
@@ -215,6 +220,34 @@ export default function PMFAnalyzer() {
     return generatedMetadata;
   }, []);
 
+  // Fetch AI-generated suggestions for the current question
+  const fetchSuggestions = async (question: string, ideaDesc: string) => {
+    setLoadingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-suggestions', {
+        body: {
+          question,
+          ideaDescription: ideaDesc,
+          previousAnswers: userAnswers
+        }
+      });
+
+      if (error) throw error;
+      
+      const suggestions = data?.suggestions || [];
+      setCurrentSuggestions(suggestions);
+      return suggestions;
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error);
+      // Return fallback suggestions
+      const fallbacks = sampleQuestions[currentQuestion - 1]?.options || [];
+      setCurrentSuggestions(fallbacks);
+      return fallbacks;
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const ideaToSend = idea.trim();
     if (!ideaToSend) return;
@@ -230,18 +263,34 @@ export default function PMFAnalyzer() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // Store the answer
+    if (currentQuestion > 1 && currentQuestion <= maxQuestions) {
+      const questionKey = sampleQuestions[currentQuestion - 2].question;
+      setUserAnswers(prev => ({ ...prev, [questionKey]: ideaToSend }));
+    }
 
     try {
       // Start fetching signals
       const metadata = await fetchSignals(ideaToSend);
 
+      // Get the next question
+      const nextQuestion = currentQuestion < maxQuestions 
+        ? sampleQuestions[currentQuestion].question
+        : null;
+      
+      // Fetch AI suggestions for the next question
+      let suggestions: string[] = [];
+      if (nextQuestion) {
+        suggestions = await fetchSuggestions(nextQuestion, messages[0]?.content || ideaToSend);
+      }
+
       // Simulate AI response
       const assistantMessage: Message = {
         role: 'assistant',
-        content: currentQuestion < maxQuestions 
-          ? sampleQuestions[currentQuestion].question
-          : "Great! I've analyzed your idea. Let me show you the PM-Fit dashboard...",
-        timestamp: new Date()
+        content: nextQuestion || "Great! I've analyzed your idea. Let me show you the PM-Fit dashboard...",
+        timestamp: new Date(),
+        suggestions: nextQuestion ? suggestions : undefined
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -491,38 +540,45 @@ export default function PMFAnalyzer() {
                       </div>
                     </div>
                     
-                    {/* Show answer options for the last assistant message */}
+                    {/* Show AI-generated suggestions for the last assistant message */}
                     {message.role === 'assistant' && 
                      idx === messages.length - 1 && 
                      !isLoading && 
-                     currentQuestion <= maxQuestions && (
+                     currentQuestion <= maxQuestions && 
+                     message.suggestions && message.suggestions.length > 0 && (
                       <div className="mt-4 space-y-2 max-w-[80%] ml-3">
-                        <p className="text-xs text-muted-foreground mb-2">Quick answer options:</p>
-                        {sampleQuestions[currentQuestion - 2]?.options?.map((option, optionIdx) => (
-                          <button
-                            key={optionIdx}
-                            onClick={async () => {
-                              // Set the answer in the input field
-                              setIdea(option);
-                              // Wait a moment for state to update, then submit
-                              setTimeout(() => {
-                                const event = new Event('submit', { bubbles: true });
-                                document.querySelector('form')?.dispatchEvent(event);
-                              }, 100);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 hover:border-primary/50 transition-all hover:scale-[1.02] transition-transform"
-                          >
-                            {option}
-                          </button>
-                        ))}
-                        <div className="relative my-3">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-border/50"></div>
-                          </div>
-                          <div className="relative flex justify-center text-xs">
-                            <span className="bg-background px-2 text-muted-foreground">or type your own answer</span>
-                          </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-3 w-3 text-primary" />
+                          <p className="text-xs text-muted-foreground">AI-suggested answers:</p>
                         </div>
+                        {loadingSuggestions ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Generating personalized suggestions...
+                          </div>
+                        ) : (
+                          message.suggestions.map((suggestion, optionIdx) => (
+                            <button
+                              key={optionIdx}
+                              onClick={async () => {
+                                // Set the answer in the input field
+                                setIdea(suggestion);
+                                // Wait a moment for state to update, then submit
+                                setTimeout(() => {
+                                  const event = new Event('submit', { bubbles: true });
+                                  document.querySelector('form')?.dispatchEvent(event);
+                                }, 100);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 hover:border-primary/50 transition-all hover:scale-[1.02] transition-transform flex items-center gap-2 group"
+                            >
+                              <span className="text-primary/60 group-hover:text-primary">
+                                {optionIdx + 1}.
+                              </span>
+                              <span className="flex-1">{suggestion}</span>
+                              <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+                            </button>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>

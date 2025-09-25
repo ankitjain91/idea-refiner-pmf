@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.amazon-public]
 verify_jwt = false
+
+[functions.generate-suggestions]
+verify_jwt = false
