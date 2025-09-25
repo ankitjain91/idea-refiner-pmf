@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PMFAnalyzer from "@/components/PMFAnalyzer";
-import PMFDashboardTabs from "@/components/PMFDashboardTabs";
+import EnhancedPMFDashboard from "@/components/EnhancedPMFDashboard";
 import { UserMenu } from "@/components/UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, ArrowLeft } from "lucide-react";
@@ -53,7 +52,7 @@ const Dashboard = () => {
         </div>
         
         {/* Dashboard Content */}
-        <PMFDashboardTabs
+        <EnhancedPMFDashboard
           idea={savedIdea}
           refinements={savedRefinements}
           metadata={savedMetadata}
