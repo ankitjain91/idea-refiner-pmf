@@ -127,17 +127,17 @@ function recommendImprovements(ctx: {
   if (ctx.scores.demand < 65) {
     R.push({
       factor: 'demand',
-      title: 'Broaden intent & intercept rising queries',
-      why: 'Search & social velocity are below benchmark; you\'re missing adjacent, faster-growing intents.',
+      title: 'Get more people interested',
+      why: 'Not enough people are searching for or talking about this. You\'re missing related topics people care about.',
       howTo: [
-        'Add 3 adjacent intents to landing page (e.g., "alternatives to ___", "for ___ use case")',
-        'Ship 4 SEO pages matching rising queries; link from homepage hero',
-        'Run $200 test on TikTok Spark Ads targeting those intents'
+        'Add 3 similar topics to your main page (like "other ways to do this")',
+        'Create 4 new pages for what people are searching for',
+        'Spend $200 testing ads on TikTok to reach these people'
       ],
       experiment: {
-        hypothesis: 'Adding adjacent intents grows qualified visits by 20% and lifts signup rate 10%',
+        hypothesis: 'Adding related topics will bring 20% more visitors and 10% more signups',
         metric: 'CR',
-        design: ['A/B: current LP vs LP+adjacent intents', '14-day run', 'Hold geo constant'],
+        design: ['Test: old page vs new page with more topics', 'Run for 2 weeks', 'Keep location the same'],
         costBand: '$',
         timeToImpactDays: 14
       },
@@ -150,17 +150,17 @@ function recommendImprovements(ctx: {
   if (ctx.scores.painIntensity < 70 || (ctx.signals?.redditPainMentions ?? 0) < 5) {
     R.push({
       factor: 'painIntensity',
-      title: 'Narrow to a pain-dense ICP & rewrite problem-first hero',
-      why: 'Communities show diffuse complaints; stronger resonance requires a sharper use case.',
+      title: 'Focus on people with the biggest problem',
+      why: 'People have lots of different complaints. You need to pick the ones who need help the most.',
       howTo: [
-        'Pick 1 subsegment with frequent complaints (from Reddit threads)',
-        'Rewrite hero: "{pain statement} → in {time} with {mechanism}"',
-        'Add 3 proof bullets (before/after, time saved, money saved)'
+        'Find 1 group of people who complain the most (check Reddit)',
+        'Change your main message to: "Solve {their problem} in {time}"',
+        'Show 3 proofs it works (before/after, time saved, money saved)'
       ],
       experiment: {
-        hypothesis: 'A pain-first hero for a narrower ICP increases LP-to-signup by 25%',
+        hypothesis: 'Focusing on the biggest problem will get 25% more signups',
         metric: 'CR',
-        design: ['Multivariate: current vs pain-first copy', 'Record session replays', 'Survey 50 visitors (1 Q)'],
+        design: ['Test different messages', 'Watch how people use the site', 'Ask 50 visitors what they think'],
         costBand: '$',
         timeToImpactDays: 7
       },
@@ -173,17 +173,17 @@ function recommendImprovements(ctx: {
   if (ctx.scores.competitionGap < 65) {
     R.push({
       factor: 'competitionGap',
-      title: 'Launch a wedge feature + switching plan',
-      why: 'Top competitors own general use cases; winning wedge accelerates adoption.',
+      title: 'Build something your competitors don\'t have',
+      why: 'Big companies already do the basic stuff. You need something special they\'re missing.',
       howTo: [
-        'Identify one underserved workflow from competitor reviews',
-        'Ship a lightweight "killer micro-feature" around that workflow',
-        'Publish a "Switch in 15 minutes" guide + import tool'
+        'Find one thing people complain about in competitor reviews',
+        'Build a simple feature that fixes that problem',
+        'Make a guide showing how easy it is to switch to you'
       ],
       experiment: {
-        hypothesis: 'Wedge + import raises win rate on head-to-head deals by 15%',
+        hypothesis: 'A special feature will help you win 15% more customers',
         metric: 'ARR',
-        design: ['Track deals flagged "switch"', 'Compare close rates pre/post feature'],
+        design: ['Track people switching from competitors', 'Compare before and after'],
         costBand: '$$',
         timeToImpactDays: 21
       },
@@ -196,17 +196,17 @@ function recommendImprovements(ctx: {
   if (ctx.scores.differentiation < 70) {
     R.push({
       factor: 'differentiation',
-      title: 'Create a 10× moment and make it legible',
-      why: 'Users can\'t articulate why you\'re uniquely better.',
+      title: 'Show why you\'re 10 times better',
+      why: 'People don\'t understand what makes you special.',
       howTo: [
-        'Benchmark 3 tasks vs top alt; show time/cost deltas',
-        'Add interactive demo or sandbox to prove the 10×',
-        'Secure 2 creator reviews that replicate the benchmark'
+        'Compare 3 things you do vs competitors - show the difference',
+        'Let people try it free to see how much better it is',
+        'Get 2 influencers to show the difference'
       ],
       experiment: {
-        hypothesis: 'Visible 10× proof increases demo-to-close by 20%',
+        hypothesis: 'Showing clear proof will get 20% more sales',
         metric: 'CR',
-        design: ['Prospect flow A/B: with vs without benchmark section'],
+        design: ['Test showing comparisons vs not showing them'],
         costBand: '$$',
         timeToImpactDays: 10
       },
@@ -220,17 +220,17 @@ function recommendImprovements(ctx: {
     const ch = ctx.signals?.dominantChannel ?? 'tiktok';
     R.push({
       factor: 'distribution',
-      title: `Go deep on ${ch} with 2 repeatable formats`,
-      why: 'Broad-but-shallow channel mix dilutes reach and CAC learning.',
+      title: `Focus on ${ch} and stick with it`,
+      why: 'Trying too many places at once wastes money and time.',
       howTo: [
-        `Pick 2 repeatable formats (e.g., "myth-busters", "POV demo"). Post 5×/wk for 3 weeks`,
-        'Partner with 3 micro-creators (10–50k) for seeded UGC',
-        'Retarget site visitors with 2 hooks tied to pain'
+        `Pick 2 video styles that work. Post 5 times a week for 3 weeks`,
+        'Work with 3 small influencers (10-50k followers)',
+        'Show ads to people who visited your site'
       ],
       experiment: {
-        hypothesis: 'Channel focus improves CAC by 20% and lifts signups by 15%',
+        hypothesis: 'Focusing on one platform will save 20% money and get 15% more signups',
         metric: 'CTR',
-        design: ['Hold budget constant; reallocate 80% to one channel', 'Compare CAC 2-week rolling'],
+        design: ['Use most of your budget on one platform', 'Track costs for 2 weeks'],
         costBand: '$$',
         timeToImpactDays: 14
       },

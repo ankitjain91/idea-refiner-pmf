@@ -38,24 +38,24 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
       
       return {
         pmfScore: score,
-        pmfExplanation: "Based on AI analysis of market fit, competition, and monetization strategy",
-        marketSize: metadata.marketSize || "$2.5B",
-        marketGrowth: "15% YoY",
-        marketExplanation: "Growing market with strong demand",
+        pmfExplanation: "We analyzed how much people need this, who else is doing it, and if you can make money from it",
+        marketSize: metadata.marketSize || "$2.5 billion",
+        marketGrowth: "Growing 15% each year",
+        marketExplanation: "More and more people are looking for something like this",
         competitors: [
-          { name: "Competitor A", strength: metadata.competition || "Medium" },
-          { name: "Competitor B", strength: "Low" }
+          { name: "Similar App A", strength: metadata.competition || "Some competition" },
+          { name: "Similar App B", strength: "Not much competition" }
         ],
-        competitorsExplanation: `Competition level: ${metadata.competition || "Medium"}`,
+        competitorsExplanation: `How many others are doing this: ${metadata.competition || "A few"}`,
         targetCustomers: [
-          { segment: metadata.targetAge || "25-45", size: "Large", painPoint: "Efficiency" }
+          { segment: metadata.targetAge || "People aged 25-45", size: "Lots of people", painPoint: "Want things to be easier" }
         ],
-        targetCustomersExplanation: `Target: ${metadata.targetAge || "25-45"}, ${metadata.incomeRange || "$60k-100k"}`,
+        targetCustomersExplanation: `Best for: ${metadata.targetAge || "People aged 25-45"} who make ${metadata.incomeRange || "$60k-100k a year"}`,
         keyMetrics: [
-          { label: "Market Readiness", value: `${score}%`, trend: 'up' as const, icon: TrendingUp },
-          { label: "Competition", value: metadata.competition || "Medium", trend: 'neutral' as const, icon: Target },
-          { label: "Target Market", value: metadata.targetAge || "25-45", trend: 'up' as const, icon: Users },
-          { label: "Revenue Potential", value: metadata.incomeRange || "$60k+", trend: 'up' as const, icon: CircleDollarSign }
+          { label: "Ready to Launch", value: `${score}%`, trend: 'up' as const, icon: TrendingUp },
+          { label: "Competition Level", value: metadata.competition || "Some", trend: 'neutral' as const, icon: Target },
+          { label: "Who Will Use It", value: metadata.targetAge || "Ages 25-45", trend: 'up' as const, icon: Users },
+          { label: "Money You Can Make", value: metadata.incomeRange || "$60k+", trend: 'up' as const, icon: CircleDollarSign }
         ]
       };
     }
@@ -72,27 +72,27 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
     
     return {
       pmfScore: score,
-      pmfExplanation: `This score reflects strong market demand signals based on your ${refinements.market} target market. The ${refinements.budget} funding approach aligns well with the ${refinements.timeline} timeline. Key strengths include clear value proposition and identified customer pain points. To improve: focus on competitive differentiation and validate pricing strategy.`,
-      marketSize: refinements.market === 'enterprise' ? '$12.5B' : refinements.market === 'mass' ? '$45.2B' : '$3.8B',
-      marketGrowth: 'Growing 23% YoY',
-      marketExplanation: `The ${refinements.market} market shows robust growth driven by digital transformation trends. TAM analysis indicates ${refinements.market === 'enterprise' ? '50,000+ potential accounts' : '2.5M+ potential users'}. Market timing is favorable with increasing adoption rates and regulatory tailwinds supporting innovation in this space.`,
+      pmfExplanation: `Here's what we found: People ${refinements.market === 'enterprise' ? 'at big companies' : refinements.market === 'mass' ? 'everywhere' : 'in specific groups'} are looking for this. Your ${refinements.budget === 'funded' ? 'money situation' : 'budget'} works well with your ${refinements.timeline === 'mvp' ? 'quick start plan' : 'timeline'}. What's good: People understand what you're offering and it solves real problems. To get better: Make sure you're different from others and test if people will pay your price.`,
+      marketSize: refinements.market === 'enterprise' ? '$12.5 billion' : refinements.market === 'mass' ? '$45.2 billion' : '$3.8 billion',
+      marketGrowth: 'Getting 23% bigger each year',
+      marketExplanation: `The ${refinements.market === 'enterprise' ? 'business' : refinements.market === 'mass' ? 'everyone' : 'specific'} market is growing fast because everyone's going digital. We found ${refinements.market === 'enterprise' ? 'over 50,000 companies' : 'over 2.5 million people'} who might want this. It's a good time to start because more people are ready to try new things.`,
       competitors: [
-        { name: 'Competitor A', strength: 'Strong' },
-        { name: 'Competitor B', strength: 'Moderate' },
-        { name: 'Competitor C', strength: 'Emerging' }
+        { name: 'Big Player', strength: 'Doing really well' },
+        { name: 'Medium Player', strength: 'Doing okay' },
+        { name: 'New Player', strength: 'Just starting' }
       ],
-      competitorsExplanation: `Competitive landscape analysis reveals 3 main players with combined 65% market share. Competitor A leads with enterprise features but lacks user experience focus. Your differentiation opportunity lies in the ${refinements.timeline === 'mvp' ? 'speed to market' : 'comprehensive feature set'} combined with superior customer experience.`,
+      competitorsExplanation: `There are 3 main companies doing something similar - together they have most of the customers. The biggest one has lots of features but isn't easy to use. You can win by being ${refinements.timeline === 'mvp' ? 'faster to launch' : 'more complete'} and easier to use.`,
       targetCustomers: [
-        { segment: 'Early Adopters', size: '15%', painPoint: 'Need innovative solutions' },
-        { segment: 'Main Market', size: '68%', painPoint: 'Seeking proven ROI' },
-        { segment: 'Late Market', size: '17%', painPoint: 'Risk-averse, need stability' }
+        { segment: 'People who try new things', size: '15% of users', painPoint: 'Want the latest stuff' },
+        { segment: 'Regular people', size: '68% of users', painPoint: 'Want to know it works' },
+        { segment: 'Careful buyers', size: '17% of users', painPoint: 'Need to be sure it\'s safe' }
       ],
-      targetCustomersExplanation: `Customer segmentation based on adoption lifecycle and psychographic analysis. Early adopters (15%) provide initial validation and feedback. Main market (68%) represents scaling opportunity with proven product-market fit. Focus on early adopters first to establish credibility before mainstream expansion.`,
+      targetCustomersExplanation: `We grouped your future customers by how they buy things. The adventurous ones (15%) will try it first and tell you what to fix. Most people (68%) will buy once others say it's good. Start with the adventurous ones to prove it works.`,
       keyMetrics: [
-        { label: 'CAC Payback', value: '6 months', trend: 'up', icon: CircleDollarSign },
-        { label: 'Market Share', value: '2.3%', trend: 'up', icon: PieChart },
-        { label: 'Growth Rate', value: '15% MoM', trend: 'up', icon: BarChart },
-        { label: 'Churn Rate', value: '5%', trend: 'down', icon: Activity }
+        { label: 'Money Back Time', value: '6 months', trend: 'up', icon: CircleDollarSign },
+        { label: 'Your Share', value: '2.3%', trend: 'up', icon: PieChart },
+        { label: 'Growing Speed', value: '15% per month', trend: 'up', icon: BarChart },
+        { label: 'People Leaving', value: '5%', trend: 'down', icon: Activity }
       ]
     };
   };
@@ -108,14 +108,14 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
               <CardTitle className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <Target className="w-5 h-5" />
-                  Product-Market Fit Score
+                  How Good Is Your Idea?
                 </span>
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                  AI Analysis
+                  AI Rating
                 </Badge>
               </CardTitle>
               <CardDescription className="text-white/80">
-                Comprehensive analysis of your startup's potential
+                A simple score showing if people will love what you're building
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-2">
@@ -154,12 +154,12 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-primary" />
-                  Market Analysis
+                  How Big Is The Opportunity?
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 pt-2">
                 <div className="text-2xl font-bold mb-2">{metrics.marketSize}</div>
-                <Badge variant={metrics.marketGrowth.includes("Growing") ? "default" : "secondary"} className="mb-3">
+                <Badge variant={metrics.marketGrowth.includes("Getting") ? "default" : "secondary"} className="mb-3">
                   {metrics.marketGrowth}
                 </Badge>
                 <Collapsible open={expandedSections.market} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, market: open }))}>
@@ -193,7 +193,7 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Users className="w-4 h-4 text-accent" />
-                  Competitive Landscape
+                  Who Else Is Doing This?
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 pt-2">
@@ -236,7 +236,7 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Target className="w-4 h-4 text-success" />
-                  Target Customers
+                  Who Will Use This?
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 pt-2">
@@ -283,7 +283,7 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart className="w-5 h-5 text-primary" />
-                Key Performance Indicators
+                Important Numbers To Watch
               </CardTitle>
             </CardHeader>
             <CardContent>
