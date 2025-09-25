@@ -633,26 +633,23 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="✨ Describe your startup idea or ask for guidance..."
-              className="min-h-[80px] resize-none pr-4 bg-background/50 border-2 focus:border-primary/50 transition-all duration-200"
+              placeholder="Describe your startup idea or ask for guidance..."
+              className="min-h-[60px] resize-none pr-4 bg-background/95 border focus:border-primary/50 transition-all duration-200 text-sm"
               disabled={isTyping}
             />
-            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-              Press Enter to send
-            </div>
+            <Button 
+              onClick={() => sendMessage()}
+              disabled={!input.trim() || isTyping}
+              size="sm"
+              className="absolute bottom-2 right-2 h-8 w-8 p-0 rounded-full bg-primary hover:bg-primary/90 transition-all duration-200"
+            >
+              {isTyping ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowRight className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-          <Button 
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || isTyping}
-            size="icon"
-            className="h-[80px] w-[80px] bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 transition-all duration-200"
-          >
-            {isTyping ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
         </div>
         
         {/* Quick Actions */}
