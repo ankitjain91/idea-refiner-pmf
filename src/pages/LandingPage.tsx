@@ -33,7 +33,7 @@ const authSchema = z.object({
 export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const redirectPath = (location.state as any)?.from?.pathname as string | undefined;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
@@ -49,15 +49,16 @@ export default function LandingPage() {
     };
     checkAuth();
 
-    // Listen for auth state changes - redirect only on new sign in
+    // Listen for auth state changes - only redirect when coming from a protected route
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        navigate(from);
+      setIsAuthenticated(!!session);
+      if (event === 'SIGNED_IN' && session && redirectPath) {
+        navigate(redirectPath);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, redirectPath]);
 
   const handleSocialSignIn = async (provider: 'google') => {
     setSocialLoading(provider);
@@ -65,7 +66,7 @@ export default function LandingPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: `${window.location.origin}${from}`
+          redirectTo: `${window.location.origin}${redirectPath || '/auth'}`
         }
       });
       
@@ -92,7 +93,7 @@ export default function LandingPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `${window.location.origin}/auth`
         }
       });
 
@@ -369,6 +370,14 @@ export default function LandingPage() {
                 {isSignUp ? "By signing up, you agree to our Terms of Service and Privacy Policy" : ""}
               </p>
             </form>
+
+            {isAuthenticated && (
+              <div className="mt-2">
+                <Button variant="secondary" className="w-full" onClick={() => navigate('/dashboard')}>
+                  Go to Dashboard
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
