@@ -127,9 +127,9 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
       {/* Left Side - Landing Content */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/5 via-accent/5 to-background relative overflow-hidden">
+      <div className="w-full lg:w-1/2 bg-gradient-to-br from-primary/5 via-accent/5 to-background relative overflow-hidden flex">
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
         <div className="relative z-10 p-12 flex flex-col justify-between w-full">
           <motion.div 
