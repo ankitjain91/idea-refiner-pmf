@@ -1,5 +1,5 @@
-import EnterpriseAuth from "@/components/EnterpriseAuth";
+import LandingPage from "./LandingPage";
 
 export default function AuthPage() {
-  return <EnterpriseAuth />;
+  return <LandingPage />;
 }

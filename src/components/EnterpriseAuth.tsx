@@ -33,16 +33,18 @@ export default function EnterpriseAuth() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if user is already authenticated
+  // Check if user is already authenticated (but don't redirect on landing page)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/dashboard');
+        setIsAuthenticated(true);
       }
     };
     checkAuth();
-  }, [navigate]);
+  }, []);
 
   // Check password strength
   useEffect(() => {
