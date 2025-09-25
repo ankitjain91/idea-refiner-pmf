@@ -13,7 +13,7 @@ import RefinementControlsAdvanced from './RefinementControlsAdvanced';
 import RealTimeRefinementChart from './RealTimeRefinementChart';
 import PMFImprovements from './PMFImprovements';
 import RealDataPMFAnalyzer from './RealDataPMFAnalyzer';
-import EnhancedIdeaChat from './EnhancedIdeaChat';
+import StreamlinedPMFChat from './StreamlinedPMFChat';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -488,7 +488,7 @@ export default function PMFAnalyzer() {
       <div className="container mx-auto px-4 max-w-7xl py-6">
         {/* Chat Section */}
         <div className="mb-8">
-          <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
+          <StreamlinedPMFChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
         </div>
 
         {/* Dashboard Content - Only show when we have analyzed data */}

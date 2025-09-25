@@ -34,11 +34,7 @@ const App = () => (
                     <Index />
                   </ProtectedRoute>
                 } />
-                <Route path="/pricing" element={
-                  <ProtectedRoute>
-                    <Pricing />
-                  </ProtectedRoute>
-                } />
+                <Route path="/pricing" element={<Pricing />} />
                 
                 {/* Protected routes - require authentication */}
                 <Route path="/dashboard" element={

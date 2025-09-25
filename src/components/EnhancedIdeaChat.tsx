@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { 
   Send, 
   Sparkles, 
@@ -24,7 +25,10 @@ import {
   Lightbulb,
   Star,
   ArrowRight,
-  RotateCcw
+  RotateCcw,
+  Edit2,
+  SkipForward,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -96,6 +100,12 @@ interface EnhancedIdeaChatProps {
 }
 
 const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady, resetTrigger }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [editingStep, setEditingStep] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [showMarketPreview, setShowMarketPreview] = useState(false);
+  const maxSteps = 8;
+  
   // Force new suggestions on every render by not memoizing
   const [messages, setMessages] = useState<Message[]>(() => {
     const welcomeMessage: Message = {
