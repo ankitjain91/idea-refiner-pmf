@@ -89,15 +89,19 @@ export function AppSidebar() {
   };
 
   const createNewSession = async () => {
-    // Clear all data for completely fresh start
-    localStorage.clear();
-    sessionStorage.clear();
+    // Clear current session data
+    localStorage.removeItem('currentSessionId');
+    localStorage.removeItem('userIdea');
+    localStorage.removeItem('userAnswers');
+    localStorage.removeItem('userRefinements');
+    localStorage.removeItem('ideaMetadata');
+    setCurrentSessionId(null);
     
-    // Navigate and force reload to reset all React state
+    // Navigate to home for fresh start
     navigate('/');
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    
+    // Reload sessions list
+    await loadSessions();
   };
 
   const loadSession = async (sessionId: string) => {
@@ -224,7 +228,74 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Removed Recent Sessions section */}
+        {/* Recent Sessions */}
+        {isOpen && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center justify-between">
+              <span>Your Sessions</span>
+              <Badge variant="outline" className="text-xs">
+                {sessions.length}
+              </Badge>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <ScrollArea className="h-[250px]">
+                <SidebarMenu>
+                  {loadingSessions ? (
+                    <div className="px-2 py-4 text-sm text-muted-foreground">
+                      Loading sessions...
+                    </div>
+                  ) : sessions.length === 0 ? (
+                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                      <p>No saved sessions yet</p>
+                      <p className="text-xs mt-1">Your analyses will be saved here</p>
+                    </div>
+                  ) : (
+                    sessions.map((session) => (
+                      <SidebarMenuItem key={session.id}>
+                        <div
+                          className={`group flex items-center justify-between px-2 py-2 rounded-md cursor-pointer transition-all hover:bg-muted/50 ${
+                            currentSessionId === session.id
+                              ? 'bg-primary/10 border-l-2 border-primary'
+                              : ''
+                          }`}
+                        >
+                          <div 
+                            className="flex-1 min-w-0"
+                            onClick={() => loadSession(session.id)}
+                          >
+                            <p className="text-sm font-medium truncate">
+                              {session.session_name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="secondary" className="text-xs">
+                                {session.pmf_score}%
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(session.last_accessed), 'MMM d, h:mm a')}
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSession(session.id);
+                            }}
+                            title="Delete session"
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      </SidebarMenuItem>
+                    ))
+                  )}
+                </SidebarMenu>
+              </ScrollArea>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Help & Settings */}
         <SidebarGroup className="mt-auto">

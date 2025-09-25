@@ -390,7 +390,7 @@ export default function PMFAnalyzer() {
     }
   };
 
-  const handleIdeaChatAnalysis = (idea: string, metadata: any) => {
+  const handleIdeaChatAnalysis = async (idea: string, metadata: any) => {
     // Reset everything for fresh analysis
     setInitialIdea(idea);
     setMetadata(metadata);
@@ -413,6 +413,46 @@ export default function PMFAnalyzer() {
     localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
     localStorage.removeItem('userAnswers'); // Clear old data
     localStorage.removeItem('userRefinements');
+    
+    // Save session to database
+    const userResponse = await supabase.auth.getUser();
+    if (userResponse.data?.user) {
+      try {
+        const sessionId = localStorage.getItem('currentSessionId');
+        const sessionData = {
+          user_id: userResponse.data.user.id,
+          session_name: idea.substring(0, 50) + (idea.length > 50 ? '...' : ''),
+          idea: idea,
+          user_answers: {},
+          refinements: refinements,
+          metadata: metadata,
+          insights: {},
+          pmf_score: metadata?.pmfScore || 75,
+          last_accessed: new Date().toISOString()
+        };
+
+        if (sessionId) {
+          // Update existing session
+          await supabase
+            .from('analysis_sessions')
+            .update(sessionData)
+            .eq('id', sessionId);
+        } else {
+          // Create new session
+          const { data, error } = await supabase
+            .from('analysis_sessions')
+            .insert([sessionData])
+            .select()
+            .single();
+          
+          if (!error && data) {
+            localStorage.setItem('currentSessionId', data.id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to save session:', error);
+      }
+    }
   };
 
 
