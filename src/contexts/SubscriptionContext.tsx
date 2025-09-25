@@ -107,54 +107,29 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { toast } = useToast();
 
   const checkSubscription = async () => {
-    
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      setSubscription({
-        subscribed: false,
-        tier: 'free',
-        product_id: null,
-        subscription_end: null,
-      });
-      return;
+    
+    // All users get enterprise access
+    if (session?.user) {
+      setUser(session.user);
     }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-
-      setSubscription({
-        subscribed: data.subscribed || false,
-        tier: data.tier || 'free',
-        product_id: data.product_id || null,
-        subscription_end: data.subscription_end || null,
-      });
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-      setSubscription({
-        subscribed: false,
-        tier: 'free',
-        product_id: null,
-        subscription_end: null,
-      });
-    }
+    
+    setSubscription({
+      subscribed: true,
+      tier: 'enterprise',
+      product_id: 'prod_T7CsCuGP8R6RrO',
+      subscription_end: '2099-12-31',
+    });
   };
 
   const canAccess = (feature: keyof typeof SUBSCRIPTION_TIERS.free.features): boolean => {
-    const tierConfig = SUBSCRIPTION_TIERS[subscription.tier];
-    return tierConfig.features[feature] === true || tierConfig.features[feature] === -1;
+    // Enterprise users have access to everything
+    return true;
   };
 
   const getRemainingIdeas = (): number => {
-    const tierConfig = SUBSCRIPTION_TIERS[subscription.tier];
-    const limit = tierConfig.features.ideasPerMonth;
-    if (limit === -1) return -1; // unlimited
-    return Math.max(0, limit - ideaCount);
+    // Unlimited for enterprise
+    return -1;
   };
 
   const incrementIdeaCount = () => {

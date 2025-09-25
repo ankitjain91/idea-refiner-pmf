@@ -14,8 +14,9 @@ export class RealDataFetcher {
   private supabaseKey: string;
 
   constructor() {
-    this.supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    this.supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
+    // Use the actual Supabase project URL
+    this.supabaseUrl = 'https://wppwfiiomxmnjyokxnin.supabase.co';
+    this.supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwcHdmaWlvbXhtbmp5b2t4bmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3MzgwMzMsImV4cCI6MjA3NDMxNDAzM30.fZ9-3bEP9hSZRUIU27Pv5xwtZvXiG59dvh-1x92P7F8';
   }
 
   async searchWeb(query: string, recencyDays?: number): Promise<DataSourceResponse> {
@@ -30,11 +31,17 @@ export class RealDataFetcher {
       });
 
       if (!response.ok) {
-        return this.unavailable('Web search API error');
+        console.error('Web search API error:', response.status);
+        const error = await response.text();
+        console.error('Error details:', error);
+        return this.unavailable('Web search API error: ' + response.status);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log('Web search response:', data);
+      return data;
     } catch (error) {
+      console.error('Web search failed:', error);
       return this.unavailable('Web search failed: ' + String(error));
     }
   }

@@ -237,19 +237,24 @@ export default function PMFAnalyzer() {
 
       if (error) {
         console.error('Failed to fetch suggestions:', error);
-        // Return fallback suggestions
-        return ['Tell me more about this', 'I need help with this', 'Skip this question', 'Not sure yet'];
+        throw new Error('Unable to get suggestions from API');
       }
       
-      const suggestions = data?.suggestions || ['Tell me more', 'Need clarification', 'Skip', 'Help me'];
+      const suggestions = data?.suggestions;
+      if (!suggestions || suggestions.length === 0) {
+        throw new Error('No suggestions received from API');
+      }
+      
       setCurrentSuggestions(suggestions);
       return suggestions;
     } catch (error) {
       console.error('Failed to fetch suggestions:', error);
-      // Return fallback suggestions
-      const fallbacks = sampleQuestions[currentQuestion - 1]?.options || [];
-      setCurrentSuggestions(fallbacks);
-      return fallbacks;
+      toast({
+        title: "Error",
+        description: "Unable to fetch suggestions. Please check API configuration.",
+        variant: "destructive"
+      });
+      return [];
     } finally {
       setLoadingSuggestions(false);
     }

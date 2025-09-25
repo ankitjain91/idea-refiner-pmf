@@ -128,14 +128,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Check if user has a specific role
   const hasRole = (role: UserRole): boolean => {
-    if (!userProfile) return false;
-    return userProfile.role === role;
+    // All users have enterprise access
+    return true;
   };
 
   // Check if user can access a feature based on role hierarchy
   const canAccessFeature = (requiredRole: UserRole): boolean => {
-    if (!userProfile) return false;
-    return roleHierarchy[userProfile.role] >= roleHierarchy[requiredRole];
+    // All users have enterprise access
+    return true;
   };
 
   // Function to refresh the session
