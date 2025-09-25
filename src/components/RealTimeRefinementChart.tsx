@@ -133,7 +133,10 @@ export default function RealTimeRefinementChart({
       
       // Use ChatGPT's refinement suggestions if available
       if (metadata?.refinements && Array.isArray(metadata.refinements)) {
-        allSuggestions.push(...metadata.refinements);
+        const normalized = metadata.refinements.map((r: any) =>
+          typeof r === 'string' ? r : (r.title || r.description || JSON.stringify(r))
+        );
+        allSuggestions.push(...normalized);
       }
       
       // Add contextual suggestions based on the idea content
@@ -276,7 +279,10 @@ export default function RealTimeRefinementChart({
         contextualSuggestions.push(...careSuggestions[variant]);
       } else if (metadata?.refinements && Array.isArray(metadata.refinements)) {
         // Rotate through ChatGPT suggestions with variations
-        const rotated = [...metadata.refinements];
+        const base = metadata.refinements.map((r: any) =>
+          typeof r === 'string' ? r : (r.title || r.description || JSON.stringify(r))
+        );
+        const rotated = [...base];
         for (let i = 0; i < variant; i++) {
           rotated.push(rotated.shift()!);
         }

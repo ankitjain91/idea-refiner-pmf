@@ -76,9 +76,11 @@ const Index = () => {
       .eq("user_id", user?.id)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (data) {
+    if (!data || error) {
+      return; // No previous ideas; keep dashboard hidden until analysis
+    }
       setIdea(data.original_idea || "");
       setIdeaId(data.id);
       setPmfScore(data.pmf_score || 0);
@@ -106,13 +108,11 @@ const Index = () => {
           timeline: "mvp", // This isn't stored in DB yet
         });
       }
-      
-      // If we have a saved idea with metadata, show the analysis
-      if (data.original_idea && (data.refined_idea || data.pmf_score > 0)) {
-        setShowAnalysis(true);
-      }
-    }
-  };
+  // If we have a saved idea with metadata, show the analysis
+  if (data.original_idea && (data.refined_idea || data.pmf_score > 0)) {
+    setShowAnalysis(true);
+  }
+};
 
   const handleIdeaSubmit = async (ideaText: string, metadata: any) => {
     setIdea(ideaText);
