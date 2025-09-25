@@ -134,6 +134,14 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     setConversationStage(0);
     setInput('');
     setIsTyping(false);
+    setHasStarted(true); // Keep chat visible
+    
+    // Clear all localStorage to ensure fresh start
+    localStorage.removeItem('userIdea');
+    localStorage.removeItem('userAnswers');
+    localStorage.removeItem('userRefinements');
+    localStorage.removeItem('ideaMetadata');
+    localStorage.removeItem('currentSessionId');
   };
 
   // Build contextual, idea-specific suggestions (max 4)
@@ -756,8 +764,8 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
               <Bot className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm truncate">PMF Advisor (Devil's Advocate Mode)</h3>
-              <p className="text-xs text-muted-foreground hidden sm:block">Challenging assumptions to strengthen your idea</p>
+              <h3 className="font-semibold text-sm truncate">PMF Advisor</h3>
+              <p className="text-xs text-muted-foreground hidden sm:block">Refining your idea for maximum potential</p>
             </div>
             <Button
               variant="ghost"

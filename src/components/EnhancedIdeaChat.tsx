@@ -120,7 +120,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
     const welcomeMessage: Message = {
       id: 'welcome',
       type: 'bot',
-      content: "✨ Welcome to your AI-powered PMF advisor! I'm here to transform your startup idea into a validated business concept through intelligent conversation. Share your vision with me!",
+      content: "✨ Welcome to your AI-powered PMF advisor! Share your startup idea and I'll help transform it into a validated business concept through intelligent conversation.",
       timestamp: new Date(),
       suggestions: getRandomSuggestions(4)
     };
@@ -130,6 +130,13 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
     setConversationStarted(false);
     setPMFData(null);
     setShowPMFAnalysis(false);
+    
+    // Clear all localStorage for completely fresh start
+    localStorage.removeItem('userIdea');
+    localStorage.removeItem('userAnswers');
+    localStorage.removeItem('userRefinements');
+    localStorage.removeItem('ideaMetadata');
+    localStorage.removeItem('currentSessionId');
   };
 
   const scrollToBottom = () => {
@@ -551,7 +558,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
             </div>
             <div>
               <h3 className="font-bold text-lg">AI PMF Advisor</h3>
-              <p className="text-xs text-muted-foreground">Devil's advocate mode active</p>
+              <p className="text-xs text-muted-foreground">Your intelligent startup companion</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

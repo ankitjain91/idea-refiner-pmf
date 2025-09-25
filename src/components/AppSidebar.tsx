@@ -89,12 +89,15 @@ export function AppSidebar() {
   };
 
   const createNewSession = async () => {
+    // Clear all data for completely fresh start
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Navigate and force reload to reset all React state
     navigate('/');
-    localStorage.removeItem('currentSessionId');
-    localStorage.removeItem('userIdea');
-    localStorage.removeItem('userAnswers');
-    localStorage.removeItem('userRefinements');
-    localStorage.removeItem('ideaMetadata');
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const loadSession = async (sessionId: string) => {

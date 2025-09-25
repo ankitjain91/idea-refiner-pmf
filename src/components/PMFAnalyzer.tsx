@@ -435,7 +435,7 @@ export default function PMFAnalyzer() {
                 "text-primary transition-all duration-300",
                 isScrolled ? "h-4 w-4" : "h-5 w-5"
               )} />
-              {isScrolled ? "Refine Your Idea" : "Start Your PMF Journey (Devil's Advocate Mode Active)"}
+              {isScrolled ? "Refine Your Idea" : "Start Your PMF Journey"}
             </h2>
             <div className="flex items-center gap-2">
               {isScrolled && (
