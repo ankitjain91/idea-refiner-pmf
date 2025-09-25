@@ -32,6 +32,17 @@ export default function EnterpriseAuth() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/dashboard');
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   // Check password strength
   useEffect(() => {
@@ -135,8 +146,8 @@ export default function EnterpriseAuth() {
         className: "bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20",
       });
       
-      // Navigate to the page they were trying to access or dashboard
-      const from = (location.state as any)?.from?.pathname || '/dashboard';
+        // Navigate to dashboard after successful login
+        const from = '/dashboard';
       navigate(from);
     } catch (error) {
       if (error instanceof Error) {
@@ -178,9 +189,9 @@ export default function EnterpriseAuth() {
   };
 
   const features = [
-    { icon: Shield, text: "Enterprise-grade security" },
-    { icon: Building2, text: "Role-based access control" },
-    { icon: Sparkles, text: "Premium AI features" },
+    { icon: Sparkles, text: "AI-powered market analysis" },
+    { icon: Shield, text: "Real data from Reddit, Twitter & more" },
+    { icon: Building2, text: "Instant competitor insights" },
   ];
 
   return (
@@ -197,12 +208,12 @@ export default function EnterpriseAuth() {
           
           <div className="space-y-8 mt-20">
             <div>
-              <h1 className="text-4xl font-bold mb-4">
-                Welcome to Enterprise-Grade
-                <span className="gradient-text block mt-2">Product Validation</span>
+              <h1 className="text-5xl font-bold mb-4">
+                Validate Your Product
+                <span className="gradient-text block mt-2">Before You Build</span>
               </h1>
-              <p className="text-lg text-muted-foreground">
-                Join thousands of founders and product teams validating their ideas with AI-powered insights.
+      <p className="text-lg text-muted-foreground">
+                Get instant AI analysis to validate your product-market fit before building.
               </p>
             </div>
             
