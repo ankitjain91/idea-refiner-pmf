@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          idea: string
+          insights: Json | null
+          is_active: boolean | null
+          last_accessed: string | null
+          metadata: Json | null
+          pmf_score: number | null
+          refinements: Json | null
+          session_name: string
+          updated_at: string
+          user_answers: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idea: string
+          insights?: Json | null
+          is_active?: boolean | null
+          last_accessed?: string | null
+          metadata?: Json | null
+          pmf_score?: number | null
+          refinements?: Json | null
+          session_name: string
+          updated_at?: string
+          user_answers?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idea?: string
+          insights?: Json | null
+          is_active?: boolean | null
+          last_accessed?: string | null
+          metadata?: Json | null
+          pmf_score?: number | null
+          refinements?: Json | null
+          session_name?: string
+          updated_at?: string
+          user_answers?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       collaborations: {
         Row: {
           created_at: string

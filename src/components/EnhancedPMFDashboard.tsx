@@ -224,57 +224,57 @@ export default function EnhancedPMFDashboard({
         </CardContent>
       </Card>
 
-      {/* Market Intelligence Section - Premium */}
-      <PaywallOverlay feature="marketAnalysis">
-        <Collapsible open={expandedSections.market} onOpenChange={() => toggleSection('market')}>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-primary" />
-                    <CardTitle className="text-lg">Market Intelligence</CardTitle>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {loadingInsights.market && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {expandedSections.market ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </div>
+      {/* Market Intelligence Section - FREE for basic info, PREMIUM for detailed analysis */}
+      <Collapsible open={expandedSections.market} onOpenChange={() => toggleSection('market')}>
+        <Card>
+          <CollapsibleTrigger className="w-full">
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-lg">Market Intelligence</CardTitle>
                 </div>
-                <CardDescription>
-                  Market size, growth trends, and competitive landscape
-                </CardDescription>
-              </CardHeader>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent>
-              <CardContent className="space-y-4 pt-0">
-                {insights.market ? (
-                  <>
-                    {/* Market Size & Growth */}
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-primary/5 rounded-lg">
-                        <h4 className="font-semibold mb-2 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" />
-                          Market Opportunity
-                        </h4>
-                        <div className="space-y-1 text-sm">
-                          <p><strong>Global Size:</strong> {insights.market.marketSize?.global || 'Loading...'}</p>
-                          <p><strong>Growth Rate:</strong> {insights.market.marketSize?.growth || 'Loading...'}</p>
-                          <div className="mt-2">
-                            <p className="font-medium mb-1">Top Regions:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {insights.market.marketSize?.topRegions?.map((region: string, idx: number) => (
-                                <Badge key={idx} variant="secondary">{region}</Badge>
-                              ))}
-                            </div>
+                <div className="flex items-center gap-2">
+                  {loadingInsights.market && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {expandedSections.market ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </div>
+              </div>
+              <CardDescription>
+                Market size, growth trends, and competitive landscape
+              </CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              {insights.market ? (
+                <>
+                  {/* Market Size & Growth - FREE TEASER */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-primary/5 rounded-lg">
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        Market Opportunity
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <p><strong>Market Potential:</strong> {insights.market.marketSize?.potential || 'High'}</p>
+                        <p><strong>Growth Trend:</strong> {insights.market.marketSize?.trend || 'Growing'}</p>
+                        <PaywallOverlay feature="marketAnalysis" blurContent={false}>
+                          <div className="mt-2 p-2 bg-background/50 rounded">
+                            <p className="text-xs text-muted-foreground">
+                              🔒 Unlock detailed market size, regional data, and growth projections
+                            </p>
                           </div>
-                        </div>
+                        </PaywallOverlay>
                       </div>
-                      
+                    </div>
+                    
+                    {/* Detailed Market Data - PREMIUM */}
+                    <PaywallOverlay feature="marketAnalysis">
                       <div className="p-4 bg-success/5 rounded-lg">
                         <h4 className="font-semibold mb-2 flex items-center gap-2">
                           <Search className="w-4 h-4" />
-                          Search Demand
+                          Search Demand Analysis
                         </h4>
                         <div className="space-y-1 text-sm">
                           <p><strong>Monthly Searches:</strong> {insights.market.searchData?.monthlySearches || 'Loading...'}</p>
@@ -289,9 +289,11 @@ export default function EnhancedPMFDashboard({
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Competitors */}
+                    </PaywallOverlay>
+                  </div>
+                  
+                  {/* Competitors - PREMIUM */}
+                  <PaywallOverlay feature="marketAnalysis">
                     <div className="space-y-2">
                       <h4 className="font-semibold flex items-center gap-2">
                         <Trophy className="w-4 h-4" />
@@ -325,47 +327,42 @@ export default function EnhancedPMFDashboard({
                         </div>
                       ))}
                     </div>
-                    
-                    {/* Opportunities */}
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <Zap className="w-4 h-4" />
-                        Market Opportunities
-                      </h4>
-                      <div className="grid gap-2">
-                        {insights.market.opportunities?.map((opp: any, idx: number) => (
-                          <div key={idx} className="p-3 border rounded-lg">
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="font-medium">{opp.title}</span>
-                              <div className="flex gap-1">
-                                <Badge variant={opp.difficulty === 'easy' ? 'default' : opp.difficulty === 'medium' ? 'secondary' : 'destructive'}>
-                                  {opp.difficulty}
-                                </Badge>
-                                <Badge variant="outline">{opp.timeframe}</Badge>
-                              </div>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-2">{opp.description}</p>
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="font-medium">Impact:</span>
-                              <Badge variant={opp.expectedImpact === 'high' ? 'default' : 'secondary'}>
-                                {opp.expectedImpact}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
+                  </PaywallOverlay>
+                  
+                  {/* Opportunities - FREE */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      Top Opportunity
+                    </h4>
+                    {insights.market.opportunities?.slice(0, 1).map((opp: any, idx: number) => (
+                      <div key={idx} className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-medium">{opp.title}</span>
+                          <Badge variant="default">Quick Win</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{opp.description}</p>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Click to load detailed market insights...
+                    ))}
+                    
+                    <PaywallOverlay feature="marketAnalysis" blurContent={false}>
+                      <div className="p-3 bg-background/50 rounded-lg border">
+                        <p className="text-sm text-muted-foreground">
+                          🔒 Unlock {(insights.market.opportunities?.length || 1) - 1} more opportunities with detailed implementation plans
+                        </p>
+                      </div>
+                    </PaywallOverlay>
                   </div>
-                )}
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-      </PaywallOverlay>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Click to load market insights...
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Social Media Intelligence */}
       <Collapsible open={expandedSections.social} onOpenChange={() => toggleSection('social')}>

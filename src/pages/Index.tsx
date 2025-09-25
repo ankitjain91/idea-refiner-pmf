@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PMFAnalyzer from "@/components/PMFAnalyzer";
 import { UserMenu } from "@/components/UserMenu";
+import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -31,11 +33,17 @@ const Index = () => {
   }
   
   return (
-    <div className="min-h-screen">
-      <div className="absolute top-4 right-4 z-50">
-        <UserMenu />
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <div className="flex-1 relative">
+        <div className="absolute top-4 right-4 z-50">
+          <UserMenu />
+        </div>
+        <div className="absolute top-4 left-4 z-50">
+          <SidebarTrigger />
+        </div>
+        <PMFAnalyzer />
       </div>
-      <PMFAnalyzer />
     </div>
   );
 };
