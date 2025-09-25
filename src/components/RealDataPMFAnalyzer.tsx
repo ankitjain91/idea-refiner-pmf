@@ -29,7 +29,13 @@ import {
   Zap,
   Shield,
   Rocket,
-  ChartBar
+  ChartBar,
+  Sparkles,
+  ArrowUp,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Share2
 } from 'lucide-react';
 import { RealDataFetcher } from '@/lib/real-data-fetcher';
 import { computeRealDataScores, recommendRealDataImprovements } from '@/lib/real-data-scoring';
@@ -216,16 +222,18 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
   };
 
   const SourceStatusBadge = ({ status }: { status: 'ok' | 'degraded' | 'unavailable' }) => {
-    const colors = {
-      ok: 'bg-green-500',
-      degraded: 'bg-yellow-500',
-      unavailable: 'bg-red-500'
+    const variants = {
+      ok: { icon: CheckCircle, className: 'text-green-600 bg-green-50 border-green-200' },
+      degraded: { icon: AlertTriangle, className: 'text-yellow-600 bg-yellow-50 border-yellow-200' },
+      unavailable: { icon: XCircle, className: 'text-red-600 bg-red-50 border-red-200' }
     };
     
+    const { icon: Icon, className } = variants[status];
+    
     return (
-      <Badge variant="outline" className="gap-1">
-        <div className={`w-2 h-2 rounded-full ${colors[status]}`} />
-        {status}
+      <Badge variant="outline" className={`gap-1.5 px-2.5 py-1 ${className}`}>
+        <Icon className="w-3.5 h-3.5" />
+        <span className="font-medium capitalize">{status}</span>
       </Badge>
     );
   };
@@ -234,118 +242,185 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
     if (!citations.length) return null;
     
     return (
-      <div className="text-xs space-y-1 mt-2">
-        <div className="font-medium text-muted-foreground">Sources:</div>
-        {citations.slice(0, 3).map((cite, i) => (
-          <a
-            key={i}
-            href={cite.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-          >
-            <ExternalLink className="w-3 h-3" />
-            {cite.source} • {new Date(cite.fetchedAtISO).toLocaleTimeString()}
-          </a>
-        ))}
+      <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+        <div className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
+          <Sparkles className="w-3 h-3" />
+          Data Sources
+        </div>
+        <div className="space-y-1.5">
+          {citations.slice(0, 3).map((cite, i) => (
+            <a
+              key={i}
+              href={cite.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors group"
+            >
+              <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              <span className="font-medium">{cite.source}</span>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-muted-foreground">{new Date(cite.fetchedAtISO).toLocaleTimeString()}</span>
+            </a>
+          ))}
+        </div>
       </div>
     );
   };
 
   const ScoreCard = ({ factor, value, icon: Icon }: { factor: string; value: number; icon: any }) => {
-    const getColor = (score: number) => {
-      if (score >= 80) return 'text-green-600';
-      if (score >= 60) return 'text-yellow-600';
-      return 'text-red-600';
+    const getColorClass = (score: number) => {
+      if (score >= 80) return 'from-green-500/20 to-green-500/5 border-green-500/20 text-green-700';
+      if (score >= 60) return 'from-yellow-500/20 to-yellow-500/5 border-yellow-500/20 text-yellow-700';
+      return 'from-red-500/20 to-red-500/5 border-red-500/20 text-red-700';
+    };
+
+    const getBgGradient = (score: number) => {
+      if (score >= 80) return 'bg-gradient-to-r from-green-500 to-green-600';
+      if (score >= 60) return 'bg-gradient-to-r from-yellow-500 to-yellow-600';
+      return 'bg-gradient-to-r from-red-500 to-red-600';
     };
 
     return (
       <Card 
-        className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
+        className={`relative overflow-hidden border bg-gradient-to-br ${getColorClass(value)} hover:shadow-xl transition-all duration-300 cursor-pointer group`}
         onClick={() => setSelectedFactor(factor)}
       >
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Icon className="w-5 h-5 text-muted-foreground" />
-            <span className="font-medium capitalize">{factor}</span>
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-background/80 backdrop-blur">
+                <Icon className="w-5 h-5 text-foreground" />
+              </div>
+              <span className="font-semibold text-sm text-foreground capitalize">{factor.replace(/([A-Z])/g, ' $1').trim()}</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
           </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          <div className="space-y-3">
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-bold">{value}</span>
+              <span className="text-sm text-muted-foreground">/100</span>
+            </div>
+            <div className="h-2 bg-background/50 rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-500 ${getBgGradient(value)}`}
+                style={{ width: `${value}%` }}
+              />
+            </div>
+          </div>
         </div>
-        <div className={`text-3xl font-bold ${getColor(value)}`}>{value}</div>
-        <Progress value={value} className="mt-2" />
       </Card>
     );
   };
 
   const ImprovementCard = ({ improvement }: { improvement: RealDataImprovement }) => {
+    const getConfidenceBadge = (confidence: string) => {
+      const variants = {
+        high: 'bg-green-100 text-green-700 border-green-300',
+        med: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+        low: 'bg-gray-100 text-gray-700 border-gray-300'
+      };
+      return variants[confidence as keyof typeof variants] || variants.low;
+    };
+
     return (
-      <Card className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="text-xs">
-                {improvement.factor}
+      <Card className="p-6 hover:shadow-lg transition-all duration-300 border-muted">
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="font-semibold">
+                  {improvement.factor.replace(/([A-Z])/g, ' $1').trim()}
+                </Badge>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  <ArrowUp className="w-3 h-3 mr-1" />
+                  +{improvement.estDelta} pts
+                </Badge>
+                <Badge 
+                  variant="outline" 
+                  className={getConfidenceBadge(improvement.confidence)}
+                >
+                  {improvement.confidence === 'high' ? '⚡' : improvement.confidence === 'med' ? '🎯' : '💡'} {improvement.confidence} confidence
+                </Badge>
+              </div>
+              <h4 className="text-lg font-semibold text-foreground">{improvement.title}</h4>
+            </div>
+          </div>
+          
+          {/* Why Section */}
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <p className="text-sm text-foreground/80 leading-relaxed">{improvement.why}</p>
+          </div>
+          
+          {/* How To Section */}
+          <div className="space-y-3">
+            <h5 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Implementation Steps
+            </h5>
+            <ol className="space-y-2">
+              {improvement.howTo.map((step, i) => (
+                <li key={i} className="flex gap-3 text-sm text-muted-foreground">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary font-semibold text-xs flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  <span className="pt-0.5">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Experiment Design */}
+          <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg space-y-3">
+            <h5 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <ChartBar className="w-4 h-4" />
+              Experiment Design
+            </h5>
+            <p className="text-sm text-muted-foreground italic">{improvement.experiment.hypothesis}</p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="gap-1">
+                <Target className="w-3 h-3" />
+                {improvement.experiment.metric}
               </Badge>
-              <Badge variant="secondary" className="text-xs">
-                +{improvement.estDelta} pts
+              <Badge variant="secondary" className="gap-1">
+                <Clock className="w-3 h-3" />
+                {improvement.experiment.timeToImpactDays} days
               </Badge>
-              <Badge 
-                variant="outline" 
-                className={`text-xs ${
-                  improvement.confidence === 'high' ? 'border-green-500' :
-                  improvement.confidence === 'med' ? 'border-yellow-500' :
-                  'border-gray-500'
-                }`}
-              >
-                {improvement.confidence} confidence
+              <Badge variant="secondary" className="gap-1">
+                <DollarSign className="w-3 h-3" />
+                {improvement.experiment.costBand}
               </Badge>
             </div>
-            <h4 className="font-semibold text-sm">{improvement.title}</h4>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              {improvement.experiment.design.map((step, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-primary mt-1">•</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-        
-        <p className="text-sm text-muted-foreground mb-3">{improvement.why}</p>
-        
-        <div className="space-y-2 mb-3">
-          <div className="text-xs font-medium">How to implement:</div>
-          <ol className="list-decimal list-inside text-xs space-y-1 text-muted-foreground">
-            {improvement.howTo.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ol>
-        </div>
 
-        <div className="bg-muted rounded-lg p-3">
-          <div className="text-xs font-medium mb-2">Experiment Design:</div>
-          <p className="text-xs text-muted-foreground mb-2">{improvement.experiment.hypothesis}</p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <Badge variant="secondary">
-              <Target className="w-3 h-3 mr-1" />
-              {improvement.experiment.metric}
-            </Badge>
-            <Badge variant="secondary">
-              <Clock className="w-3 h-3 mr-1" />
-              {improvement.experiment.timeToImpactDays}d
-            </Badge>
-            <Badge variant="secondary">
-              <DollarSign className="w-3 h-3 mr-1" />
-              {improvement.experiment.costBand}
-            </Badge>
-          </div>
+          <CitationsList citations={improvement.citations} />
         </div>
-
-        <CitationsList citations={improvement.citations} />
       </Card>
     );
   };
 
   if (loading) {
     return (
-      <Card className="p-8">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-lg font-medium">Fetching real-time data...</p>
-          <p className="text-sm text-muted-foreground">No mock data - all metrics from live sources</p>
+      <Card className="p-12 bg-gradient-to-br from-primary/5 to-primary/10">
+        <div className="flex flex-col items-center justify-center space-y-6">
+          <div className="relative">
+            <RefreshCw className="w-12 h-12 animate-spin text-primary" />
+            <div className="absolute inset-0 animate-ping">
+              <RefreshCw className="w-12 h-12 text-primary opacity-30" />
+            </div>
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-xl font-semibold text-foreground">Fetching real-time data...</p>
+            <p className="text-sm text-muted-foreground">No mock data • All metrics from live sources</p>
+          </div>
         </div>
       </Card>
     );
@@ -353,9 +428,9 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
 
   if (!data) {
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="border-yellow-200 bg-yellow-50">
+        <AlertCircle className="h-5 w-5 text-yellow-600" />
+        <AlertDescription className="text-yellow-800 font-medium">
           No data available. Enter an idea to start real-data analysis.
         </AlertDescription>
       </Alert>
@@ -371,32 +446,51 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Main Score */}
-      <Card className="p-6 bg-gradient-to-r from-primary/10 to-primary/5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold">PM-Fit Score: {data.scores.pmFitScore}</h2>
-            <p className="text-muted-foreground mt-1">Based on 100% real data • No simulations</p>
+    <div className="space-y-8">
+      {/* Main Score Card - Hero Section */}
+      <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary/10 via-primary/5 to-background">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
+        <div className="relative p-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h2 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                PM-Fit Score: {data.scores.pmFitScore}
+              </h2>
+              <p className="text-muted-foreground font-medium flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Based on 100% real data • No simulations
+              </p>
+            </div>
+            <Button 
+              onClick={fetchAllData} 
+              disabled={loading}
+              size="lg"
+              className="shadow-lg"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh All Data
+            </Button>
           </div>
-          <Button onClick={fetchAllData} disabled={loading}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh All Data
-          </Button>
         </div>
       </Card>
 
-      {/* Source Status */}
-      <Card className="p-4">
-        <h3 className="text-sm font-medium mb-3">Data Source Status</h3>
-        <div className="flex flex-wrap gap-2">
+      {/* Source Status Bar */}
+      <Card className="p-5 bg-card/50 backdrop-blur border-muted">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Data Source Status</h3>
+          <Badge variant="outline" className="text-xs">
+            Live Monitoring
+          </Badge>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {Object.entries(data.sourceStatus).map(([source, status]) => (
-            <div key={source} className="flex items-center gap-2">
-              <span className="text-xs capitalize">{source}:</span>
+            <div key={source} className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border">
+              <span className="text-xs font-medium capitalize text-foreground">{source}</span>
               <SourceStatusBadge status={status} />
               <Button
                 size="sm"
                 variant="ghost"
+                className="h-6 w-6 p-0 ml-auto"
                 onClick={() => refreshSource(source)}
                 disabled={refreshing[source]}
               >
@@ -407,8 +501,8 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
         </div>
       </Card>
 
-      {/* Scores Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Score Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <ScoreCard factor="demand" value={data.scores.demand} icon={TrendingUp} />
         <ScoreCard factor="painIntensity" value={data.scores.painIntensity} icon={AlertCircle} />
         <ScoreCard factor="competitionGap" value={data.scores.competitionGap} icon={Shield} />
@@ -417,32 +511,51 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
       </div>
 
       {/* Radar Chart */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Factor Analysis</h3>
+      <Card className="p-6 bg-gradient-to-br from-card to-card/50">
+        <h3 className="text-lg font-semibold mb-4 text-foreground">Factor Analysis</h3>
         <ResponsiveContainer width="100%" height={300}>
           <RadarChart data={radarData}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="factor" />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} />
+            <PolarGrid stroke="#e5e7eb" />
+            <PolarAngleAxis dataKey="factor" className="text-sm" />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} className="text-xs" />
             <Radar
               name="Score"
               dataKey="value"
-              stroke="#8884d8"
-              fill="#8884d8"
-              fillOpacity={0.6}
+              stroke="hsl(var(--primary))"
+              fill="hsl(var(--primary))"
+              fillOpacity={0.3}
+              strokeWidth={2}
             />
-            <Tooltip />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'hsl(var(--background))', 
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '8px'
+              }}
+            />
           </RadarChart>
         </ResponsiveContainer>
       </Card>
 
-      {/* Tabs for Different Data Views */}
+      {/* Enhanced Tabs */}
       <Tabs defaultValue="improvements" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="improvements">Improvements</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
-          <TabsTrigger value="channels">Channels</TabsTrigger>
-          <TabsTrigger value="metrics">Raw Metrics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+          <TabsTrigger value="improvements" className="data-[state=active]:bg-background">
+            <Sparkles className="w-4 h-4 mr-2" />
+            Improvements
+          </TabsTrigger>
+          <TabsTrigger value="trends" className="data-[state=active]:bg-background">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Trends
+          </TabsTrigger>
+          <TabsTrigger value="channels" className="data-[state=active]:bg-background">
+            <Share2 className="w-4 h-4 mr-2" />
+            Channels
+          </TabsTrigger>
+          <TabsTrigger value="metrics" className="data-[state=active]:bg-background">
+            <ChartBar className="w-4 h-4 mr-2" />
+            Raw Metrics
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="improvements" className="space-y-4">
