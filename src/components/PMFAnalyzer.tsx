@@ -52,19 +52,7 @@ export default function PMFAnalyzer() {
   });
   const [metadata, setMetadata] = useState<any>(null);
   const { toast } = useToast();
-  const [chatCollapsed, setChatCollapsed] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
-  
-  // Handle scroll to detect when user scrolls down
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const sampleQuestions = [
     {
@@ -480,7 +468,6 @@ export default function PMFAnalyzer() {
       niche: true
     });
     setMetadata(null);
-    setChatCollapsed(false);
     
     // Clear localStorage
     localStorage.removeItem('userIdea');
@@ -496,156 +483,108 @@ export default function PMFAnalyzer() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
-
-      {/* Main Chat Interface */}
-      <div className={cn(
-        "sticky top-0 z-40 transition-all duration-300",
-        isScrolled 
-          ? "bg-background/98 backdrop-blur-xl border-b shadow-lg py-2" 
-          : "bg-background/95 backdrop-blur-lg border-b shadow-sm py-4"
-      )}>
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className={cn(
-              "font-semibold gradient-text flex items-center gap-2 transition-all duration-300",
-              isScrolled ? "text-base" : "text-lg"
-            )}>
-              <Zap className={cn(
-                "text-primary transition-all duration-300",
-                isScrolled ? "h-4 w-4" : "h-5 w-5"
-              )} />
-              {isScrolled ? "Refine Your Idea" : "Start Your PMF Journey"}
-            </h2>
-            <div className="flex items-center gap-2">
-              {isScrolled && (
-                <Badge 
-                  variant="outline" 
-                  className="animate-fade-in text-xs"
-                >
-                  {messages.length} iterations
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setChatCollapsed(!chatCollapsed)}
-                className="transition-transform hover:scale-105"
-              >
-                {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
-              </Button>
-            </div>
-          </div>
-          <div className={cn(
-            "transition-all duration-300 ease-in-out",
-            chatCollapsed ? "h-0 overflow-hidden opacity-0" : "h-auto opacity-100"
-          )}>
-            <div className={cn(
-              "overflow-y-auto transition-all duration-300",
-              isScrolled ? "max-h-[30vh]" : "max-h-[40vh]"
-            )}>
-              <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Main Container */}
+      <div className="container mx-auto px-4 max-w-7xl py-6">
+        {/* Chat Section */}
+        <div className="mb-8">
+          <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
         </div>
-      </div>
 
-      {/* Main Content - Only show when we have analyzed data */}
-      {showDashboard && (
-        <div className={cn(
-          "flex-1 container mx-auto p-6 max-w-7xl transition-all duration-500",
-          "animate-fade-in"
-        )}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* PM-Fit Score Card */}
-            <Card className="shadow-xl border-0 bg-card/95 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Live Signals
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {signals.map((signal, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border animate-in slide-in-from-right"
-                      style={{ animationDelay: `${idx * 100}ms` }}
-                    >
-                      <span className="text-sm font-medium">{signal.source}</span>
-                      <Badge
-                        variant={
-                          signal.status === 'success' ? 'default' :
-                          signal.status === 'fetching' ? 'secondary' :
-                          signal.status === 'degraded' ? 'outline' :
-                          'destructive'
-                        }
-                        className="animate-pulse"
+        {/* Dashboard Content - Only show when we have analyzed data */}
+        {showDashboard && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* PM-Fit Score Card */}
+              <Card className="shadow-xl border-0 bg-card/95 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Live Signals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {signals.map((signal, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border animate-in slide-in-from-right"
+                        style={{ animationDelay: `${idx * 100}ms` }}
                       >
-                        {signal.status}
-                      </Badge>
-                    </div>
-                  ))}
-                  
-                  {signals.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      Signals will appear here when analyzing your idea
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            {showDashboard && (
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-primary/5 to-primary/10">
-                <CardContent className="pt-6">
-                  <div className="text-center space-y-2">
-                    <div className="text-4xl font-bold text-primary">{pmfScore}</div>
-                    <div className="text-sm text-muted-foreground">PM-Fit Score</div>
-                    <Progress value={pmfScore} className="mt-2" />
+                        <span className="text-sm font-medium">{signal.source}</span>
+                        <Badge
+                          variant={
+                            signal.status === 'success' ? 'default' :
+                            signal.status === 'fetching' ? 'secondary' :
+                            signal.status === 'degraded' ? 'outline' :
+                            'destructive'
+                          }
+                          className="animate-pulse"
+                        >
+                          {signal.status}
+                        </Badge>
+                      </div>
+                    ))}
+                    
+                    {signals.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Signals will appear here when analyzing your idea
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
-          
-          {/* Dashboard and Controls */}
-          <div className="mt-8 space-y-6">
-            {/* PM-Fit Improvements Section */}
-            <PMFImprovements
-              idea={messages[0]?.content || ''}
-              scores={{
-                demand: metadata?.scoreBreakdown?.demand || 75,
-                painIntensity: metadata?.scoreBreakdown?.painIntensity || 80,
-                competitionGap: metadata?.scoreBreakdown?.competitionGap || 65,
-                differentiation: metadata?.scoreBreakdown?.differentiation || 70,
-                distribution: metadata?.scoreBreakdown?.distribution || 72
-              }}
-              signals={{
-                dominantChannel: refinements.channelWeights && Object.entries(refinements.channelWeights)
-                  .reduce((a, b) => a[1] > b[1] ? a : b)[0] as any,
-                b2b: refinements.b2b,
-                priceBand: refinements.pricePoint < 30 ? 'budget' : refinements.pricePoint < 100 ? 'mid' : 'premium'
-              }}
-              refinements={refinements}
-              onApplyExperiment={(improvement) => {
-                toast({
-                  title: "Experiment Applied",
-                  description: `"${improvement.title}" added to your roadmap (+${improvement.estDelta} pts expected)`,
-                });
-              }}
-            />
+
+              {/* Quick Stats */}
+              {showDashboard && (
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-primary/5 to-primary/10">
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-2">
+                      <div className="text-4xl font-bold text-primary">{pmfScore}</div>
+                      <div className="text-sm text-muted-foreground">PM-Fit Score</div>
+                      <Progress value={pmfScore} className="mt-2" />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
             
-            {/* Real Data PM-Fit Analyzer */}
-            <RealDataPMFAnalyzer 
-              idea={messages[0]?.content || idea}
-              assumptions={refinements}
-            />
-          </div>
-        </div>
-      )}
+            {/* Dashboard and Controls */}
+            <div className="mt-8 space-y-6">
+              {/* PM-Fit Improvements Section */}
+              <PMFImprovements
+                idea={messages[0]?.content || ''}
+                scores={{
+                  demand: metadata?.scoreBreakdown?.demand || 75,
+                  painIntensity: metadata?.scoreBreakdown?.painIntensity || 80,
+                  competitionGap: metadata?.scoreBreakdown?.competitionGap || 65,
+                  differentiation: metadata?.scoreBreakdown?.differentiation || 70,
+                  distribution: metadata?.scoreBreakdown?.distribution || 72
+                }}
+                signals={{
+                  dominantChannel: refinements.channelWeights && Object.entries(refinements.channelWeights)
+                    .reduce((a, b) => a[1] > b[1] ? a : b)[0] as any,
+                  b2b: refinements.b2b,
+                  priceBand: refinements.pricePoint < 30 ? 'budget' : refinements.pricePoint < 100 ? 'mid' : 'premium'
+                }}
+                refinements={refinements}
+                onApplyExperiment={(improvement) => {
+                  toast({
+                    title: "Experiment Applied",
+                    description: `"${improvement.title}" added to your roadmap (+${improvement.estDelta} pts expected)`,
+                  });
+                }}
+              />
+              
+              {/* Real Data PM-Fit Analyzer */}
+              <RealDataPMFAnalyzer 
+                idea={messages[0]?.content || idea}
+                assumptions={refinements}
+              />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
