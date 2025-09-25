@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import PMFDashboard from './PMFDashboard';
 import RefinementControlsAdvanced from './RefinementControlsAdvanced';
 import RealTimeRefinementChart from './RealTimeRefinementChart';
+import PMFImprovements from './PMFImprovements';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -462,32 +463,60 @@ export default function PMFAnalyzer() {
 
         {/* Dashboard and Controls */}
         {showDashboard && (
-          <div className="mt-8 grid grid-cols-1 xl:grid-cols-4 gap-6">
-            <div className="xl:col-span-3 space-y-6">
-              <PMFDashboard 
-                idea={messages[0]?.content || ''}
-                refinements={refinements}
-                metadata={metadata}
-                onScoreUpdate={setPmfScore}
-              />
-              <RealTimeRefinementChart
-                idea={messages[0]?.content || ''}
-                pmfScore={pmfScore}
-                refinements={refinements}
-                metadata={metadata}
-                onRefinementSuggestion={(suggestion) => {
-                  toast({
-                    title: "Refinement Suggestion",
-                    description: suggestion,
-                  });
-                }}
-              />
-            </div>
-            <div className="xl:col-span-1">
-              <RefinementControlsAdvanced
-                refinements={refinements}
-                onChange={handleRefinementChange}
-              />
+          <div className="mt-8 space-y-6">
+            {/* PM-Fit Improvements Section */}
+            <PMFImprovements
+              idea={messages[0]?.content || ''}
+              scores={{
+                demand: metadata?.scoreBreakdown?.demand || 75,
+                painIntensity: metadata?.scoreBreakdown?.painIntensity || 80,
+                competitionGap: metadata?.scoreBreakdown?.competitionGap || 65,
+                differentiation: metadata?.scoreBreakdown?.differentiation || 70,
+                distribution: metadata?.scoreBreakdown?.distribution || 72
+              }}
+              signals={{
+                dominantChannel: refinements.channelWeights && Object.entries(refinements.channelWeights)
+                  .reduce((a, b) => a[1] > b[1] ? a : b)[0] as any,
+                b2b: refinements.b2b,
+                priceBand: refinements.pricePoint < 30 ? 'budget' : refinements.pricePoint < 100 ? 'mid' : 'premium'
+              }}
+              refinements={refinements}
+              onApplyExperiment={(improvement) => {
+                toast({
+                  title: "Experiment Applied",
+                  description: `"${improvement.title}" added to your roadmap (+${improvement.estDelta} pts expected)`,
+                });
+              }}
+            />
+            
+            {/* Main Dashboard Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              <div className="xl:col-span-3 space-y-6">
+                <PMFDashboard 
+                  idea={messages[0]?.content || ''}
+                  refinements={refinements}
+                  metadata={metadata}
+                  onScoreUpdate={setPmfScore}
+                />
+                <RealTimeRefinementChart
+                  idea={messages[0]?.content || ''}
+                  pmfScore={pmfScore}
+                  refinements={refinements}
+                  metadata={metadata}
+                  onRefinementSuggestion={(suggestion) => {
+                    toast({
+                      title: "Refinement Suggestion",
+                      description: suggestion,
+                    });
+                  }}
+                />
+              </div>
+              <div className="xl:col-span-1">
+                <RefinementControlsAdvanced
+                  refinements={refinements}
+                  onChange={handleRefinementChange}
+                />
+              </div>
             </div>
           </div>
         )}
