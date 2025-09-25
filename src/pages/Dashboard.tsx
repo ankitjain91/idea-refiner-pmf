@@ -6,7 +6,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { Loader2, Sparkles } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -55,8 +57,15 @@ const Dashboard = () => {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute top-4 right-4 z-50"
+          className="absolute top-4 right-4 z-50 flex gap-2"
         >
+          <Button onClick={() => {
+            supabase.auth.signOut().then(() => {
+              window.location.href = '/';
+            });
+          }} variant="outline" size="sm">
+            Sign Out
+          </Button>
           <UserMenu />
         </motion.div>
         <motion.div 
