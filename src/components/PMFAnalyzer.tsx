@@ -12,6 +12,7 @@ import RefinementControlsAdvanced from './RefinementControlsAdvanced';
 import RealTimeRefinementChart from './RealTimeRefinementChart';
 import PMFImprovements from './PMFImprovements';
 import RealDataPMFAnalyzer from './RealDataPMFAnalyzer';
+import EnhancedIdeaChat from './EnhancedIdeaChat';
 
 interface Message {
   role: 'user' | 'assistant';
