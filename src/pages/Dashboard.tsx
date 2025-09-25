@@ -14,6 +14,22 @@ const Dashboard = () => {
   const [chatKey, setChatKey] = useState(0);
   
   useEffect(() => {
+    // Clear all chat-related storage on mount (new login session)
+    localStorage.removeItem('currentSessionId');
+    localStorage.removeItem('userIdea');
+    localStorage.removeItem('userAnswers');
+    localStorage.removeItem('userRefinements');
+    localStorage.removeItem('ideaMetadata');
+    localStorage.removeItem('pmfCurrentIdea');
+    localStorage.removeItem('pmfTabHistory');
+    localStorage.removeItem('pmfFeatures');
+    localStorage.removeItem('pmfAuthMethod');
+    localStorage.removeItem('pmfTheme');
+    localStorage.removeItem('pmfScreens');
+    setChatKey(prev => prev + 1);
+  }, []); // Only run once on component mount
+  
+  useEffect(() => {
     // Redirect to auth if not logged in and not loading
     if (!loading && !user) {
       navigate('/');

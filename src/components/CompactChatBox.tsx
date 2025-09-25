@@ -51,6 +51,13 @@ export default function CompactChatBox({ onAnalysisReady, className }: CompactCh
   }, [messages]);
 
   useEffect(() => {
+    // Clear chat on component mount (new session)
+    setMessages([]);
+    setCurrentIdea('');
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
