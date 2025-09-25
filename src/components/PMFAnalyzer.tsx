@@ -30,6 +30,7 @@ interface SignalStatus {
 
 export default function PMFAnalyzer() {
   const [idea, setIdea] = useState('');
+  const [initialIdea, setInitialIdea] = useState(''); // Store the initial startup idea
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(1);
@@ -252,6 +253,11 @@ export default function PMFAnalyzer() {
     const ideaToSend = idea.trim();
     if (!ideaToSend) return;
 
+    // Store the initial idea on first submission
+    if (currentQuestion === 1 && !initialIdea) {
+      setInitialIdea(ideaToSend);
+    }
+
     // Clear input immediately for better UX
     setIdea('');
     setIsLoading(true);
@@ -280,9 +286,11 @@ export default function PMFAnalyzer() {
         : null;
       
       // Fetch AI suggestions for the next question
+      // Always use the initial idea as the base context
       let suggestions: string[] = [];
       if (nextQuestion) {
-        suggestions = await fetchSuggestions(nextQuestion, messages[0]?.content || ideaToSend);
+        const ideaContext = initialIdea || ideaToSend; // Use initial idea if available
+        suggestions = await fetchSuggestions(nextQuestion, ideaContext);
       }
 
       // Simulate AI response

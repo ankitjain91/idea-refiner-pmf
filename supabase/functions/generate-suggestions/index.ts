@@ -26,26 +26,30 @@ serve(async (req) => {
     console.log('[GENERATE-SUGGESTIONS] Generating suggestions for:', question);
 
     // Create a context-aware prompt
-    const systemPrompt = `You are an expert startup advisor helping entrepreneurs validate their ideas through Product-Market Fit analysis. Generate concise, relevant answer options for the given question.`;
+    const systemPrompt = `You are an expert startup advisor helping entrepreneurs validate their ideas through Product-Market Fit analysis. Generate specific, contextual answer suggestions based on the user's startup idea.`;
     
     const userPrompt = `
-    Startup Idea: ${ideaDescription || 'Not provided yet'}
+    Startup Idea: "${ideaDescription || 'Not provided yet'}"
     
-    Previous Answers:
+    Previous context from conversation:
     ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`).join('\n') : 'None'}
     
-    Current Question: ${question}
+    Current Question: "${question}"
     
-    Generate exactly 5 relevant, diverse answer suggestions for this question. Each suggestion should be:
-    - Concise (2-10 words)
-    - Specific and actionable
-    - Relevant to the startup context
-    - Different from each other to cover various perspectives
+    Generate exactly 4 specific, realistic answer suggestions for this question that are:
+    1. Directly relevant to the startup idea described
+    2. Concrete and specific (not generic)
+    3. Diverse to cover different strategic approaches
+    4. Actionable and clear (2-15 words each)
     
-    Format your response as a JSON array of strings, ordered from most likely to least likely to be helpful.
-    Example: ["First suggestion", "Second suggestion", "Third suggestion", "Fourth suggestion", "Fifth suggestion"]
+    For example, if the idea is "AI-powered fitness app" and the question is "Who is your target audience?", good suggestions would be:
+    - "Busy professionals aged 25-40 seeking quick home workouts"
+    - "Fitness beginners intimidated by traditional gyms"
+    - "Parents wanting family-friendly exercise routines"
+    - "Senior citizens needing low-impact personalized training"
     
-    Only return the JSON array, no additional text.`;
+    Return ONLY a JSON array of 4 strings, no other text:
+    ["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -59,8 +63,7 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 150,
-        response_format: { type: "json_object" }
+        max_completion_tokens: 200
       }),
     });
 
@@ -75,31 +78,50 @@ serve(async (req) => {
     
     let suggestions = [];
     try {
-      // Try to parse the content as JSON
+      // Parse the content as JSON
       const content = data.choices[0].message.content;
-      const parsed = JSON.parse(content);
       
-      // Handle different response formats
-      if (Array.isArray(parsed)) {
-        suggestions = parsed;
-      } else if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
-        suggestions = parsed.suggestions;
-      } else {
-        // If it's an object with other structure, try to extract array
-        const values = Object.values(parsed);
-        if (values.length > 0 && Array.isArray(values[0])) {
-          suggestions = values[0];
-        }
+      // Handle empty content
+      if (!content || content.trim() === '') {
+        throw new Error('Empty response from OpenAI');
       }
+      
+      // Try to parse as JSON array directly
+      suggestions = JSON.parse(content);
+      
+      // Validate it's an array
+      if (!Array.isArray(suggestions)) {
+        throw new Error('Response is not an array');
+      }
+      
+      // Take only the first 4 suggestions
+      suggestions = suggestions.slice(0, 4);
+      
     } catch (parseError) {
       console.error('[GENERATE-SUGGESTIONS] Failed to parse suggestions:', parseError);
-      // Fallback suggestions
-      suggestions = [
-        "Please provide more details",
-        "I need to think about this",
-        "Let me research this further",
-        "This requires more analysis"
-      ];
+      // Return context-aware fallback suggestions based on the question
+      if (question.toLowerCase().includes('target audience')) {
+        suggestions = [
+          "Tech-savvy millennials in urban areas",
+          "Small business owners seeking efficiency",
+          "Parents looking for family solutions",
+          "Students and young professionals"
+        ];
+      } else if (question.toLowerCase().includes('problem')) {
+        suggestions = [
+          "Saves time on repetitive tasks",
+          "Reduces costs and overhead",
+          "Improves team collaboration",
+          "Provides better data insights"
+        ];
+      } else {
+        suggestions = [
+          "Please provide more details",
+          "I need to think about this",
+          "Let me research this further",
+          "This requires more analysis"
+        ];
+      }
     }
     
     // Ensure we have exactly 4 suggestions (take top 4)
