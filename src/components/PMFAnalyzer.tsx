@@ -30,7 +30,9 @@ interface SignalStatus {
 
 export default function PMFAnalyzer() {
   const [idea, setIdea] = useState('');
-  const [initialIdea, setInitialIdea] = useState(''); // Store the initial startup idea
+  const [initialIdea, setInitialIdea] = useState(() => {
+    return localStorage.getItem('userIdea') || '';
+  }); // Store the initial startup idea
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(1);
@@ -40,17 +42,26 @@ export default function PMFAnalyzer() {
   const [pmfScore, setPmfScore] = useState(0);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
-  const [refinements, setRefinements] = useState({
-    ageRange: [18, 45],
-    regionFocus: 'global',
-    pricePoint: 50,
-    channelWeights: { tiktok: 0.3, instagram: 0.2, reddit: 0.2, youtube: 0.15, linkedin: 0.15 },
-    b2b: false,
-    premium: false,
-    niche: true
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('userAnswers');
+    return saved ? JSON.parse(saved) : {};
   });
-  const [metadata, setMetadata] = useState<any>(null);
+  const [refinements, setRefinements] = useState(() => {
+    const saved = localStorage.getItem('userRefinements');
+    return saved ? JSON.parse(saved) : {
+      ageRange: [18, 45],
+      regionFocus: 'global',
+      pricePoint: 50,
+      channelWeights: { tiktok: 0.3, instagram: 0.2, reddit: 0.2, youtube: 0.15, linkedin: 0.15 },
+      b2b: false,
+      premium: false,
+      niche: true
+    };
+  });
+  const [metadata, setMetadata] = useState<any>(() => {
+    const saved = localStorage.getItem('ideaMetadata');
+    return saved ? JSON.parse(saved) : null;
+  });
   const { toast } = useToast();
 
   const sampleQuestions = [
@@ -218,6 +229,7 @@ export default function PMFAnalyzer() {
     };
 
     setMetadata(generatedMetadata);
+    localStorage.setItem('ideaMetadata', JSON.stringify(generatedMetadata));
     return generatedMetadata;
   }, []);
 
@@ -256,6 +268,7 @@ export default function PMFAnalyzer() {
     // Store the initial idea on first submission
     if (currentQuestion === 1 && !initialIdea) {
       setInitialIdea(ideaToSend);
+      localStorage.setItem('userIdea', ideaToSend);
     }
 
     // Clear input immediately for better UX
@@ -280,6 +293,7 @@ export default function PMFAnalyzer() {
       updatedAnswers[questionKey] = ideaToSend;
     }
     setUserAnswers(updatedAnswers);
+    localStorage.setItem('userAnswers', JSON.stringify(updatedAnswers));
 
     try {
       // Start fetching signals
@@ -359,6 +373,7 @@ export default function PMFAnalyzer() {
 
   const handleRefinementChange = (newRefinements: any) => {
     setRefinements(newRefinements);
+    localStorage.setItem('userRefinements', JSON.stringify(newRefinements));
     
     // Recalculate PM-Fit score based on refinements
     if (metadata?.scoreBreakdown) {

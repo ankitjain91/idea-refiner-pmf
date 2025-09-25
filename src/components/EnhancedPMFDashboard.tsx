@@ -58,8 +58,14 @@ export default function EnhancedPMFDashboard({
   onScoreUpdate 
 }: EnhancedPMFDashboardProps) {
   const [pmfScore, setPmfScore] = useState(0);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  const [insights, setInsights] = useState<Record<string, any>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+    const saved = sessionStorage.getItem('expandedSections');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [insights, setInsights] = useState<Record<string, any>>(() => {
+    const saved = sessionStorage.getItem('insights');
+    return saved ? JSON.parse(saved) : {};
+  });
   const [loadingInsights, setLoadingInsights] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   
@@ -102,7 +108,11 @@ export default function EnhancedPMFDashboard({
       if (error) throw error;
       
       if (data?.success && data?.insights) {
-        setInsights(prev => ({ ...prev, [category]: data.insights }));
+        setInsights(prev => {
+          const newInsights = { ...prev, [category]: data.insights };
+          sessionStorage.setItem('insights', JSON.stringify(newInsights));
+          return newInsights;
+        });
       }
     } catch (error) {
       console.error(`Failed to fetch ${category} insights:`, error);
@@ -118,7 +128,11 @@ export default function EnhancedPMFDashboard({
 
   const toggleSection = (sectionId: string) => {
     const newState = !expandedSections[sectionId];
-    setExpandedSections(prev => ({ ...prev, [sectionId]: newState }));
+    setExpandedSections(prev => {
+      const newSections = { ...prev, [sectionId]: newState };
+      sessionStorage.setItem('expandedSections', JSON.stringify(newSections));
+      return newSections;
+    });
     
     // Fetch insights when section is expanded
     if (newState && !insights[sectionId]) {
