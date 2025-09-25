@@ -10,15 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { authSchema } from "@/lib/validation";
 import { z } from "zod";
 
-// Custom Microsoft icon component
-const MicrosoftIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
-    <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
-    <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
-    <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
-  </svg>
-);
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -106,7 +97,7 @@ export default function Auth() {
     setLoading(false);
   };
 
-  const handleSocialSignIn = async (provider: 'google' | 'azure' | 'twitter' | 'facebook') => {
+  const handleSocialSignIn = async (provider: 'google' | 'twitter' | 'facebook') => {
     setSocialLoading(provider);
     
     const { error } = await supabase.auth.signInWithOAuth({
@@ -184,7 +175,7 @@ export default function Auth() {
                   </div>
                 </div>
 
-                <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="mt-6 grid grid-cols-3 gap-3">
                   <Button
                     type="button"
                     variant="outline"
@@ -198,23 +189,6 @@ export default function Auth() {
                       <>
                         <Chrome className="w-4 h-4 mr-2" />
                         Google
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSocialSignIn('azure')}
-                    disabled={socialLoading !== null}
-                    className="relative"
-                  >
-                    {socialLoading === 'azure' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <MicrosoftIcon />
-                        <span className="ml-2">Microsoft</span>
                       </>
                     )}
                   </Button>
@@ -299,7 +273,7 @@ export default function Auth() {
                   </div>
                 </div>
 
-                <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="mt-6 grid grid-cols-3 gap-3">
                   <Button
                     type="button"
                     variant="outline"
@@ -313,23 +287,6 @@ export default function Auth() {
                       <>
                         <Chrome className="w-4 h-4 mr-2" />
                         Google
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSocialSignIn('azure')}
-                    disabled={socialLoading !== null}
-                    className="relative"
-                  >
-                    {socialLoading === 'azure' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <MicrosoftIcon />
-                        <span className="ml-2">Microsoft</span>
                       </>
                     )}
                   </Button>
