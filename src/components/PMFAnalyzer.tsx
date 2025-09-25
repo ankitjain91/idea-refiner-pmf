@@ -55,8 +55,6 @@ export default function PMFAnalyzer() {
   const [chatCollapsed, setChatCollapsed] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
-  const [hasAnalyzed, setHasAnalyzed] = useState(false);
-  const [isChatMinimized, setIsChatMinimized] = useState(false);
   
   // Handle scroll to detect when user scrolls down
   useEffect(() => {
@@ -410,8 +408,6 @@ export default function PMFAnalyzer() {
       premium: false,
       niche: true
     });
-    setHasAnalyzed(true); // Mark that analysis is complete
-    setIsChatMinimized(true); // Minimize to bubble after analysis
     
     // Store data
     localStorage.setItem('userIdea', idea);
@@ -485,8 +481,6 @@ export default function PMFAnalyzer() {
     });
     setMetadata(null);
     setChatCollapsed(false);
-    setHasAnalyzed(false); // Reset analysis state
-    setIsChatMinimized(false); // Show full chat again
     
     // Clear localStorage
     localStorage.removeItem('userIdea');
@@ -503,86 +497,58 @@ export default function PMFAnalyzer() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
-      {/* Dynamic Island Style Chat Bubble - Shows after first analysis */}
-      {hasAnalyzed && isChatMinimized && (
-        <div className="fixed bottom-6 right-6 z-50 animate-scale-in">
-          <Button
-            onClick={() => setIsChatMinimized(false)}
-            className="rounded-full h-14 w-14 shadow-2xl bg-primary hover:bg-primary/90 transition-all hover:scale-110"
-          >
-            <MessageCircle className="h-6 w-6" />
-          </Button>
-          {messages.length > 0 && (
-            <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center">
-              {messages.length}
-            </Badge>
-          )}
-        </div>
-      )}
 
-      {/* Main Chat Interface - Shows initially or when bubble is clicked */}
-      {!isChatMinimized && (
-        <div className={cn(
-          "sticky top-0 z-40 transition-all duration-300",
-          hasAnalyzed ? "fixed inset-0 bg-background/98 backdrop-blur-xl overflow-auto" : "",
-          isScrolled && !hasAnalyzed
-            ? "bg-background/98 backdrop-blur-xl border-b shadow-lg py-2" 
-            : "bg-background/95 backdrop-blur-lg border-b shadow-sm py-4"
-        )}>
-          <div className="container mx-auto px-4 max-w-7xl">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className={cn(
-                "font-semibold gradient-text flex items-center gap-2 transition-all duration-300",
-                isScrolled && !hasAnalyzed ? "text-base" : "text-lg"
-              )}>
-                <Zap className={cn(
-                  "text-primary transition-all duration-300",
-                  isScrolled && !hasAnalyzed ? "h-4 w-4" : "h-5 w-5"
-                )} />
-                {hasAnalyzed ? "Continue Your Analysis" : "Start Your PMF Journey"}
-              </h2>
-              <div className="flex items-center gap-2">
-                {hasAnalyzed && (
-                  <>
-                    <Badge variant="outline" className="text-xs">
-                      Session Active
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsChatMinimized(true)}
-                      className="transition-transform hover:scale-105"
-                    >
-                      <Minimize2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-                {!hasAnalyzed && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setChatCollapsed(!chatCollapsed)}
-                    className="transition-transform hover:scale-105"
-                  >
-                    {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className={cn(
-              "transition-all duration-300 ease-in-out",
-              chatCollapsed && !hasAnalyzed ? "h-0 overflow-hidden opacity-0" : "h-auto opacity-100"
+      {/* Main Chat Interface */}
+      <div className={cn(
+        "sticky top-0 z-40 transition-all duration-300",
+        isScrolled 
+          ? "bg-background/98 backdrop-blur-xl border-b shadow-lg py-2" 
+          : "bg-background/95 backdrop-blur-lg border-b shadow-sm py-4"
+      )}>
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className={cn(
+              "font-semibold gradient-text flex items-center gap-2 transition-all duration-300",
+              isScrolled ? "text-base" : "text-lg"
             )}>
-              <div className={cn(
-                "overflow-y-auto transition-all duration-300",
-                hasAnalyzed ? "max-h-[70vh]" : isScrolled ? "max-h-[30vh]" : "max-h-[40vh]"
-              )}>
-                <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
-              </div>
+              <Zap className={cn(
+                "text-primary transition-all duration-300",
+                isScrolled ? "h-4 w-4" : "h-5 w-5"
+              )} />
+              {isScrolled ? "Refine Your Idea" : "Start Your PMF Journey"}
+            </h2>
+            <div className="flex items-center gap-2">
+              {isScrolled && (
+                <Badge 
+                  variant="outline" 
+                  className="animate-fade-in text-xs"
+                >
+                  {messages.length} iterations
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setChatCollapsed(!chatCollapsed)}
+                className="transition-transform hover:scale-105"
+              >
+                {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
+              </Button>
+            </div>
+          </div>
+          <div className={cn(
+            "transition-all duration-300 ease-in-out",
+            chatCollapsed ? "h-0 overflow-hidden opacity-0" : "h-auto opacity-100"
+          )}>
+            <div className={cn(
+              "overflow-y-auto transition-all duration-300",
+              isScrolled ? "max-h-[30vh]" : "max-h-[40vh]"
+            )}>
+              <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Main Content - Only show when we have analyzed data */}
       {showDashboard && (

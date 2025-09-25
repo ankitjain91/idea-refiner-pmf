@@ -588,9 +588,10 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady, re
             </Badge>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={resetChat}
               title="Start new analysis"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
