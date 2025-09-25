@@ -32,21 +32,27 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Return ONLY valid JSON, no explanations. Search Reddit for discussions.
-            
-            Return this exact JSON structure:
+            content: `Return ONLY valid JSON for Reddit analysis. Structure:
             {
-              "painDensity": <number 0-100>,
-              "sentiment": <number -100 to 100>,
-              "topPainPhrases": ["string"],
-              "threads": [{"title": "string", "score": number, "comments": number, "sentiment": "string", "url": "string"}],
-              "userNeeds": ["string"],
-              "sources": ["url string"]
+              "painDensity": 68,
+              "sentiment": 25,
+              "topPainPhrases": ["too expensive", "hard to use", "lacks integration"],
+              "threads": [
+                {"title": "Looking for better alternatives", "score": 125, "comments": 43, "sentiment": "frustrated", "url": "https://reddit.com/r/example"},
+                {"title": "Why is this so difficult?", "score": 89, "comments": 27, "sentiment": "negative", "url": "https://reddit.com/r/example2"}
+              ],
+              "userNeeds": ["better pricing", "easier onboarding", "more integrations"],
+              "demographics": {
+                "subreddits": ["r/productivity", "r/startups", "r/SaaS"],
+                "userTypes": ["developers", "managers", "freelancers"],
+                "commonComplaints": ["pricing", "complexity", "support"]
+              },
+              "sources": ["https://reddit.com"]
             }`
           },
           {
             role: 'user',
-            content: `${query}`
+            content: `Analyze Reddit discussions about: ${query}`
           }
         ],
         max_tokens: 1200,

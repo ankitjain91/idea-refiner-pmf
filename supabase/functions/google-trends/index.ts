@@ -32,16 +32,20 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Return ONLY valid JSON, no explanations. Search web for trends about the keyword.
-            
-            Return this exact JSON structure:
+            content: `Return ONLY valid JSON for trends analysis. Structure:
             {
-              "interestScore": <number 0-100>,
-              "velocity": <number -100 to 100>,
-              "interestOverTime": [{"date": "YYYY-MM-DD", "value": number}],
-              "regions": [{"region": "string", "interest": number}],
-              "relatedTopics": ["string"],
-              "sources": ["url string"]
+              "interestScore": 72,
+              "velocity": 25,
+              "trendDirection": "rising",
+              "interestOverTime": [{"date": "2024-01-01", "value": 65}],
+              "regions": [{"region": "United States", "interest": 85}],
+              "relatedTopics": ["AI productivity", "remote work tools"],
+              "breakoutTerms": ["AI assistant", "workflow automation"],
+              "demographics": {
+                "ageGroups": ["25-34: 42%", "35-44: 28%", "18-24: 20%"],
+                "interests": ["Technology", "Business", "Productivity"]
+              },
+              "sources": ["https://trends.google.com"]
             }`
           },
           {

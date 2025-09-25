@@ -14,6 +14,7 @@ import RealTimeRefinementChart from './RealTimeRefinementChart';
 import PMFImprovements from './PMFImprovements';
 import RealDataPMFAnalyzer from './RealDataPMFAnalyzer';
 import StreamlinedPMFChat from './StreamlinedPMFChat';
+import LiveDataCards from './LiveDataCards';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -651,6 +652,9 @@ export default function PMFAnalyzer() {
                   });
                 }}
               />
+              
+              {/* Live Platform Data Cards */}
+              <LiveDataCards idea={messages[0]?.content || initialIdea || idea || "AI-powered productivity tool"} />
               
               {/* Real Data PM-Fit Analyzer */}
               <RealDataPMFAnalyzer 

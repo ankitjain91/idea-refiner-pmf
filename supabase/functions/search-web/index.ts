@@ -32,24 +32,37 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a web search API. Return ONLY valid JSON, no explanations or markdown.
+            content: `You are a market research API that performs comprehensive web searches. Return ONLY valid JSON.
             
-            Search the web for current information about the given query.
-            
-            Return this exact JSON structure:
+            CRITICAL: Return this exact structure with real data:
             {
-              "competitorStrength": <number 0-100>,
-              "differentiationSignals": <number 0-100>,
-              "topCompetitors": [{"name": "string", "strength": number, "marketShare": number}],
-              "relatedQueries": ["string"],
-              "marketSize": number,
-              "growthRate": number,
-              "sources": ["url strings"]
+              "competitorStrength": 75,
+              "differentiationSignals": 68,
+              "topCompetitors": [
+                {"name": "Notion", "strength": 85, "marketShare": 22, "pricing": "$8-20/user", "funding": "$343M"},
+                {"name": "Monday.com", "strength": 78, "marketShare": 18, "pricing": "$10-24/user", "funding": "$574M"}
+              ],
+              "marketSize": 4500000000,
+              "growthRate": 24.5,
+              "demographics": {
+                "primaryAge": "25-44",
+                "industries": ["Tech", "Finance", "Healthcare"],
+                "companySize": ["10-50", "50-200"],
+                "geographic": ["North America 45%", "Europe 30%", "Asia 25%"]
+              },
+              "pricing": {
+                "averagePrice": 15,
+                "priceRange": {"min": 5, "max": 50},
+                "model": "SaaS subscription",
+                "trends": "Moving towards usage-based pricing"
+              },
+              "relatedQueries": ["productivity tools", "team collaboration"],
+              "sources": ["https://example.com"]
             }`
           },
           {
             role: 'user',
-            content: `${query}`
+            content: `Search and analyze: ${query}. Find real competitors, market size, demographics, and pricing data.`
           }
         ],
         max_tokens: 1200,
