@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, TrendingUp, Users, DollarSign, Target, Zap, ChevronRight } from 'lucide-react';
+import { Loader2, Send, TrendingUp, Users, DollarSign, Target, Zap, ChevronRight, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import PMFDashboard from './PMFDashboard';
@@ -238,7 +238,7 @@ export default function PMFAnalyzer() {
               
               <CardContent className="flex-1 overflow-auto p-4 space-y-4">
                 {messages.length === 0 && (
-                  <div className="text-center py-12 space-y-4">
+                  <div className="text-center py-8 space-y-6">
                     <div className="flex justify-center">
                       <div className="relative">
                         <div className="absolute inset-0 blur-xl bg-gradient-to-r from-primary/30 to-purple-600/30 rounded-full" />
@@ -249,6 +249,92 @@ export default function PMFAnalyzer() {
                     <p className="text-muted-foreground max-w-md mx-auto">
                       Describe your startup or product idea, and I'll help analyze its product-market fit potential.
                     </p>
+                    
+                    {/* Idea Suggestions */}
+                    <div className="space-y-3 max-w-2xl mx-auto">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Try these examples</p>
+                      
+                      <div className="grid gap-2">
+                        {/* Active suggestions */}
+                        {[
+                          {
+                            title: "AI Resume Coach",
+                            description: "An AI that reviews resumes in real-time and suggests improvements based on job descriptions",
+                            emoji: "📝"
+                          },
+                          {
+                            title: "LocalFirst Social",
+                            description: "A neighborhood social network for sharing local events, recommendations, and safety alerts",
+                            emoji: "🏘️"
+                          },
+                          {
+                            title: "Pet Health Tracker",
+                            description: "Wearable device that monitors pet vitals and sends alerts to owners and vets",
+                            emoji: "🐕"
+                          },
+                        ].map((example, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setIdea(example.description)}
+                            className="group relative overflow-hidden rounded-xl border bg-card/50 p-4 text-left transition-all hover:bg-card/80 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative flex items-start gap-3">
+                              <span className="text-2xl">{example.emoji}</span>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-sm mb-1">{example.title}</h4>
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {example.description}
+                                </p>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </button>
+                        ))}
+                        
+                        {/* Greyed out premium examples */}
+                        {[
+                          {
+                            title: "Carbon Credit Marketplace",
+                            description: "B2B platform for trading verified carbon credits with blockchain verification",
+                            emoji: "🌱",
+                            tag: "Enterprise"
+                          },
+                          {
+                            title: "AI Legal Assistant",
+                            description: "Document analysis and contract review powered by specialized legal LLMs",
+                            emoji: "⚖️",
+                            tag: "Professional"
+                          },
+                        ].map((example, idx) => (
+                          <div
+                            key={idx}
+                            className="relative overflow-hidden rounded-xl border border-dashed opacity-60 bg-muted/20 p-4"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl grayscale">{example.emoji}</span>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-medium text-sm">{example.title}</h4>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {example.tag}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {example.description}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent flex items-end justify-center pb-2">
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Crown className="h-3 w-3" />
+                                Premium Analysis
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
                 
