@@ -31,25 +31,23 @@ serve(async (req) => {
     const userPrompt = `
 Startup Idea: "${ideaDescription || 'Not provided yet'}"
 
-Previous context from conversation:
+Previous conversation context (Q: A):
 ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`).join('\n') : 'None'}
 
 Current Question: "${question}"
 
-Generate exactly 4 specific, realistic answer suggestions for this question that are:
-1. Directly relevant to the startup idea: "${ideaDescription}"
-2. Concrete and specific (not generic)
-3. Diverse to cover different strategic approaches
-4. Actionable and clear (2-15 words each)
+Instructions:
+- Generate exactly 4 sample answers tailored to the startup idea above
+- Each suggestion must be highly specific and contextual
+- Each suggestion must be exactly 5 words
+- Make the 4 suggestions diverse (different strategies/angles)
+- Return ONLY a JSON array of 4 strings; no code fences, no additional text
 
-For example, if the idea is "Cash flow tracking for freelancers" and the question is "Who is your target audience?", good suggestions would be:
-- "Freelance designers and developers earning $50K-150K annually"
-- "Solo consultants struggling with irregular income"
-- "Creative professionals transitioning from full-time employment"
-- "Digital nomads managing multiple client projects"
-
-Return a JSON array of exactly 4 strings:
-["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`;
+Good example format (not to copy):
+["Busy parents needing simpler budgeting",
+ "Freelancers managing irregular monthly income",
+ "Creators juggling multi-platform client invoices",
+ "Digital nomads handling cross-border payments"]`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -78,57 +76,92 @@ Return a JSON array of exactly 4 strings:
     const data = await response.json();
     console.log('[GENERATE-SUGGESTIONS] OpenAI response:', JSON.stringify(data, null, 2));
     
-    let suggestions = [];
+    let suggestions: string[] = [];
     try {
-      // Parse the content as JSON
-      const content = data.choices[0].message.content;
-      
-      // Handle empty content
+      const content = data.choices?.[0]?.message?.content || '';
+
       if (!content || content.trim() === '') {
         throw new Error('Empty response from OpenAI');
       }
-      
-      // Try to parse as JSON array directly
-      suggestions = JSON.parse(content);
-      
-      // Validate it's an array
-      if (!Array.isArray(suggestions)) {
-        throw new Error('Response is not an array');
+
+      // Remove code fences and try to extract JSON
+      let text = content.trim();
+      if (text.startsWith('```')) {
+        const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+        if (fenceMatch) {
+          text = fenceMatch[1].trim();
+        }
       }
-      
-      // Take only the first 4 suggestions
-      suggestions = suggestions.slice(0, 4);
-      
+
+      // Try parsing JSON directly; if it fails, extract first JSON array
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const arrayMatch = text.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+          parsed = JSON.parse(arrayMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      }
+
+      if (Array.isArray(parsed)) {
+        suggestions = parsed as string[];
+      } else if (parsed && Array.isArray(parsed.suggestions)) {
+        suggestions = parsed.suggestions as string[];
+      } else {
+        throw new Error('Parsed response is not an array');
+      }
+
+      // Normalize suggestions: strings only, exactly 5 words, top 4
+      suggestions = (suggestions || [])
+        .filter((s: any) => typeof s === 'string')
+        .map((s: string) => s.replace(/\s+/g, ' ').trim())
+        .map((s: string) => {
+          const words = s.split(' ').filter(Boolean);
+          return words.length >= 5 ? words.slice(0, 5).join(' ') : s;
+        })
+        .slice(0, 4);
+
+      if (suggestions.length < 4) throw new Error('Insufficient suggestions after normalization');
     } catch (parseError) {
       console.error('[GENERATE-SUGGESTIONS] Failed to parse suggestions:', parseError);
-      // Return context-aware fallback suggestions based on the question
-      if (question.toLowerCase().includes('target audience')) {
+      const lowerQ = (question || '').toLowerCase();
+      if (lowerQ.includes('target audience')) {
         suggestions = [
-          "Tech-savvy millennials in urban areas",
-          "Small business owners seeking efficiency",
-          "Parents looking for family solutions",
-          "Students and young professionals"
+          'Tech-savvy millennials in urban areas',
+          'Small business owners seeking efficiency',
+          'Parents looking for family solutions',
+          'Students and young professionals nationwide',
         ];
-      } else if (question.toLowerCase().includes('problem')) {
+      } else if (lowerQ.includes('problem')) {
         suggestions = [
-          "Saves time on repetitive tasks",
-          "Reduces costs and overhead",
-          "Improves team collaboration",
-          "Provides better data insights"
+          'Saves time on repetitive tasks',
+          'Reduces costs and operational overhead',
+          'Improves cross-functional team collaboration',
+          'Provides actionable real-time data insights',
+        ];
+      } else if (lowerQ.includes('value proposition') || lowerQ.includes('unique value')) {
+        suggestions = [
+          'Faster, simpler workflow than competitors',
+          'Automated insights reducing manual effort',
+          'Seamless integrations with existing tools',
+          'Personalized recommendations improving outcomes',
         ];
       } else {
         suggestions = [
-          "Please provide more details",
-          "I need to think about this",
-          "Let me research this further",
-          "This requires more analysis"
+          'Need more context to generate ideas',
+          'Researching best approach for this',
+          'Requires deeper analysis and specifics',
+          'Share details to tailor suggestions',
         ];
       }
     }
-    
-    // Ensure we have exactly 4 suggestions (take top 4)
-    suggestions = suggestions.slice(0, 4);
-    
+
+    // Ensure we have exactly 4 suggestions
+    suggestions = (suggestions || []).slice(0, 4);
+
     console.log('[GENERATE-SUGGESTIONS] Final suggestions:', suggestions);
 
     return new Response(
@@ -144,10 +177,10 @@ Return a JSON array of exactly 4 strings:
     return new Response(
       JSON.stringify({ 
         suggestions: [
-          "Please provide more details",
-          "I need to think about this", 
-          "Let me research this further",
-          "This requires more analysis"
+          'Need more context to generate ideas',
+          'Researching best approach for this', 
+          'Requires deeper analysis and specifics',
+          'Share details to tailor suggestions'
         ],
         error: (error as Error).message 
       }),
