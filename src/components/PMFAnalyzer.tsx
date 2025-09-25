@@ -48,16 +48,96 @@ export default function PMFAnalyzer() {
   const { toast } = useToast();
 
   const sampleQuestions = [
-    "What problem does your product solve?",
-    "Who is your target audience?",
-    "What's your unique value proposition?",
-    "What's your planned business model?",
-    "What's your budget range for customer acquisition?",
-    "Which regions are you targeting initially?",
-    "What is your go-to-market strategy?",
-    "How will you measure early success?",
-    "What are the top 3 risks you foresee?",
-    "What is your pricing strategy?"
+    {
+      question: "What problem does your product solve?",
+      options: [
+        "Saves time and increases productivity",
+        "Reduces costs and improves efficiency",
+        "Enhances communication and collaboration",
+        "Provides entertainment or lifestyle improvement"
+      ]
+    },
+    {
+      question: "Who is your target audience?",
+      options: [
+        "B2B - Small to medium businesses",
+        "B2B - Enterprise companies",
+        "B2C - Young adults (18-35)",
+        "B2C - Families and parents"
+      ]
+    },
+    {
+      question: "What's your unique value proposition?",
+      options: [
+        "Lower cost than competitors",
+        "Better features and functionality",
+        "Superior user experience",
+        "First to market with this solution"
+      ]
+    },
+    {
+      question: "What's your planned business model?",
+      options: [
+        "SaaS subscription model",
+        "Marketplace with transaction fees",
+        "Freemium with paid upgrades",
+        "One-time purchase or licensing"
+      ]
+    },
+    {
+      question: "What's your budget range for customer acquisition?",
+      options: [
+        "Bootstrap - Under $10K",
+        "Seed - $10K to $100K",
+        "Funded - $100K to $1M",
+        "Well-funded - Over $1M"
+      ]
+    },
+    {
+      question: "Which regions are you targeting initially?",
+      options: [
+        "North America only",
+        "Europe and UK",
+        "Asia-Pacific",
+        "Global from day one"
+      ]
+    },
+    {
+      question: "What is your go-to-market strategy?",
+      options: [
+        "Content marketing and SEO",
+        "Paid advertising (Google, Facebook)",
+        "Direct sales and partnerships",
+        "Product-led growth and virality"
+      ]
+    },
+    {
+      question: "How will you measure early success?",
+      options: [
+        "User acquisition and growth rate",
+        "Revenue and profitability",
+        "User engagement and retention",
+        "Market share and competitive position"
+      ]
+    },
+    {
+      question: "What are the top 3 risks you foresee?",
+      options: [
+        "Competition and market saturation",
+        "Technical challenges and scalability",
+        "Customer acquisition costs",
+        "Regulatory and compliance issues"
+      ]
+    },
+    {
+      question: "What is your pricing strategy?",
+      options: [
+        "Premium pricing - High value",
+        "Competitive pricing - Market average",
+        "Penetration pricing - Below market",
+        "Dynamic pricing - Usage-based"
+      ]
+    }
   ];
 
   const fetchSignals = useCallback(async (ideaDescription: string) => {
@@ -159,7 +239,7 @@ export default function PMFAnalyzer() {
       const assistantMessage: Message = {
         role: 'assistant',
         content: currentQuestion < maxQuestions 
-          ? sampleQuestions[currentQuestion - 1]
+          ? sampleQuestions[currentQuestion].question
           : "Great! I've analyzed your idea. Let me show you the PM-Fit dashboard...",
         timestamp: new Date()
       };
@@ -389,26 +469,62 @@ export default function PMFAnalyzer() {
                 )}
                 
                 {messages.map((message, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "flex gap-3 animate-in slide-in-from-bottom-2",
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    )}
-                  >
+                  <div key={idx}>
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted/50 border'
+                        "flex gap-3 animate-in slide-in-from-bottom-2",
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
                       )}
                     >
-                      <p className="text-sm">{message.content}</p>
-                      <span className="text-xs opacity-70 mt-1 block">
-                        {message.timestamp.toLocaleTimeString()}
-                      </span>
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
+                          message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted/50 border'
+                        )}
+                      >
+                        <p className="text-sm">{message.content}</p>
+                        <span className="text-xs opacity-70 mt-1 block">
+                          {message.timestamp.toLocaleTimeString()}
+                        </span>
+                      </div>
                     </div>
+                    
+                    {/* Show answer options for the last assistant message */}
+                    {message.role === 'assistant' && 
+                     idx === messages.length - 1 && 
+                     !isLoading && 
+                     currentQuestion <= maxQuestions && (
+                      <div className="mt-4 space-y-2 max-w-[80%] ml-3">
+                        <p className="text-xs text-muted-foreground mb-2">Quick answer options:</p>
+                        {sampleQuestions[currentQuestion - 2]?.options?.map((option, optionIdx) => (
+                          <button
+                            key={optionIdx}
+                            onClick={async () => {
+                              // Set the answer in the input field
+                              setIdea(option);
+                              // Wait a moment for state to update, then submit
+                              setTimeout(() => {
+                                const event = new Event('submit', { bubbles: true });
+                                document.querySelector('form')?.dispatchEvent(event);
+                              }, 100);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 hover:border-primary/50 transition-all hover:scale-[1.02] transition-transform"
+                          >
+                            {option}
+                          </button>
+                        ))}
+                        <div className="relative my-3">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-border/50"></div>
+                          </div>
+                          <div className="relative flex justify-center text-xs">
+                            <span className="bg-background px-2 text-muted-foreground">or type your own answer</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 
