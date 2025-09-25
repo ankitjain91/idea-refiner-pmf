@@ -31,7 +31,7 @@ export default function PMFAnalyzer() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [maxQuestions] = useState(6);
+  const [maxQuestions] = useState(10);
   const [signals, setSignals] = useState<SignalStatus[]>([]);
   const [showDashboard, setShowDashboard] = useState(false);
   const [pmfScore, setPmfScore] = useState(0);
@@ -53,7 +53,11 @@ export default function PMFAnalyzer() {
     "What's your unique value proposition?",
     "What's your planned business model?",
     "What's your budget range for customer acquisition?",
-    "Which regions are you targeting initially?"
+    "Which regions are you targeting initially?",
+    "What is your go-to-market strategy?",
+    "How will you measure early success?",
+    "What are the top 3 risks you foresee?",
+    "What is your pricing strategy?"
   ];
 
   const fetchSignals = useCallback(async (ideaDescription: string) => {
@@ -132,12 +136,16 @@ export default function PMFAnalyzer() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!idea.trim()) return;
+    const ideaToSend = idea.trim();
+    if (!ideaToSend) return;
 
+    // Clear input immediately for better UX
+    setIdea('');
     setIsLoading(true);
+
     const userMessage: Message = {
       role: 'user',
-      content: idea,
+      content: ideaToSend,
       timestamp: new Date()
     };
 
@@ -145,7 +153,7 @@ export default function PMFAnalyzer() {
 
     try {
       // Start fetching signals
-      const metadata = await fetchSignals(idea);
+      const metadata = await fetchSignals(ideaToSend);
 
       // Simulate AI response
       const assistantMessage: Message = {
@@ -170,7 +178,6 @@ export default function PMFAnalyzer() {
       }
 
       setCurrentQuestion(prev => Math.min(prev + 1, maxQuestions));
-      setIdea('');
     } catch (error) {
       toast({
         title: "Error",
