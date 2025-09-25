@@ -35,6 +35,7 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Session {
   id: string;
@@ -271,22 +272,24 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                     sessions.map((session) => (
                       <SidebarMenuItem key={session.id}>
                         <div
-                          className={`group flex items-center justify-between px-2 py-2 rounded-md cursor-pointer transition-all hover:bg-muted/50 ${
+                          className={cn(
+                            "group flex items-center justify-between px-2 py-2.5 rounded-lg cursor-pointer transition-all duration-200",
+                            "hover:bg-muted/60 hover:shadow-sm",
                             currentSessionId === session.id
-                              ? 'bg-primary/10 border-l-2 border-primary'
+                              ? 'bg-primary/10 border-l-2 border-primary shadow-sm'
                               : ''
-                          }`}
+                          )}
                         >
                           <div 
-                            className="flex-1 min-w-0"
+                            className="flex-1 min-w-0 pr-2"
                             onClick={() => loadSession(session.id)}
                           >
                             <p className="text-sm font-medium truncate">
                               {session.session_name}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="secondary" className="text-xs">
-                                {session.pmf_score}%
+                              <Badge variant="secondary" className="text-xs h-5 px-2">
+                                {session.pmf_score}% PMF
                               </Badge>
                               <span className="text-xs text-muted-foreground">
                                 {format(new Date(session.last_accessed), 'MMM d, h:mm a')}
@@ -296,14 +299,14 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 opacity-50 hover:opacity-100 transition-opacity duration-200"
+                            className="h-7 w-7 opacity-70 hover:opacity-100 hover:bg-destructive/10 transition-all duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
                             }}
                             title="Delete session"
                           >
-                            <Trash2 className="h-3 w-3 text-destructive" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </SidebarMenuItem>

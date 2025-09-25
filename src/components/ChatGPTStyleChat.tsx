@@ -97,6 +97,35 @@ export default function ChatGPTStyleChat({
     }
   }, [sessionId, messages, analysisAnswers]);
 
+  const generateRandomSuggestions = () => {
+    const allSuggestions = [
+      "AI-powered personal finance assistant for millennials",
+      "Sustainable fashion marketplace for Gen Z",
+      "Mental health support platform with AI coaching",
+      "Blockchain-based supply chain for small businesses",
+      "EdTech platform for personalized learning",
+      "Smart home automation for elderly care",
+      "Virtual fitness trainer with real-time feedback",
+      "Carbon footprint tracker for conscious consumers",
+      "Remote team collaboration tool for startups",
+      "Plant-based meal planning app with nutrition AI",
+      "Freelancer marketplace with escrow payments",
+      "Language learning app using VR technology",
+      "Pet care platform connecting vets and owners",
+      "Travel planning AI for budget backpackers",
+      "Digital wellness app for screen time management",
+      "Food waste reduction app for restaurants",
+      "Cryptocurrency portfolio manager for beginners",
+      "3D printing marketplace for custom products",
+      "Virtual interior design assistant",
+      "Skill-sharing platform for retirees"
+    ];
+    
+    // Shuffle and pick 4 random suggestions
+    const shuffled = [...allSuggestions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 4);
+  };
+
   const createNewSession = async () => {
     if (!user) return;
     
@@ -119,19 +148,13 @@ export default function ChatGPTStyleChat({
       if (error) throw error;
       setSessionId(data.id);
       
-      // Add welcome message with suggestions
+      // Add welcome message with random suggestions
       const welcomeMessage: Message = {
         id: `msg-welcome-${Date.now()}`,
         type: 'system',
         content: "👋 Welcome! I'm your PM-Fit Analyzer. Tell me about your product idea and I'll help you analyze its market fit potential.",
         timestamp: new Date(),
-        suggestions: [
-          "AI-powered productivity tool for remote teams",
-          "Sustainable fashion marketplace for Gen Z",
-          "Mental health support platform with AI coaching",
-          "Blockchain-based supply chain for small businesses",
-          "EdTech platform for personalized learning"
-        ]
+        suggestions: generateRandomSuggestions()
       };
       setMessages([welcomeMessage]);
     } catch (error) {
@@ -522,30 +545,55 @@ export default function ChatGPTStyleChat({
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="mb-8"
             >
-              <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <Bot className="h-12 w-12 text-primary mx-auto mb-3" />
-                    <h2 className="text-xl font-semibold mb-2">Get Started with Your Idea</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Choose an example or type your own product idea
-                    </p>
+              <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-primary/5 via-background to-accent/5 shadow-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+                <div className="relative p-8 space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
+                        <Bot className="h-8 w-8 text-primary-foreground" />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        Welcome to PM-Fit Analyzer
+                      </h2>
+                      <p className="text-muted-foreground mt-2">
+                        {messages[0].content}
+                      </p>
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">Quick Start Ideas:</p>
-                    <div className="grid gap-2">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <Sparkles className="h-4 w-4 text-yellow-500 animate-pulse" />
+                        <Sparkles className="h-3 w-3 text-yellow-400 animate-pulse delay-100" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">Popular startup ideas - Click to try:</p>
+                    </div>
+                    <div className="grid gap-3">
                       {messages[0].suggestions?.map((suggestion, idx) => (
                         <Button
                           key={idx}
                           onClick={() => handleSuggestionClick(suggestion)}
                           variant="outline"
-                          className="justify-start text-left h-auto py-3 px-4 hover:bg-primary/5 hover:border-primary/30 transition-all"
+                          className="relative justify-start text-left h-auto py-4 px-5 bg-card/50 backdrop-blur-sm hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
                         >
-                          <Sparkles className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
-                          <span className="text-sm">{suggestion}</span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          <div className="relative flex items-center gap-3 w-full">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/20 transition-colors">
+                              <span className="text-sm font-bold text-primary">{idx + 1}</span>
+                            </div>
+                            <span className="text-sm flex-1 text-foreground/90 group-hover:text-foreground transition-colors">{suggestion}</span>
+                            <ArrowRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+                          </div>
                         </Button>
                       ))}
                     </div>
@@ -573,23 +621,28 @@ export default function ChatGPTStyleChat({
               ) : (
                 <>
                   {msg.type === 'bot' && (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-5 w-5 text-primary" />
+                    <div className="relative">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <Bot className="h-5 w-5 text-primary" />
+                      </div>
+                      {isLoading && msg === messages[messages.length - 1] && (
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse" />
+                      )}
                     </div>
                   )}
                   <div className={cn(
-                    "max-w-[75%]",
+                    "max-w-[75%] space-y-2",
                     msg.type === 'user' ? 'items-end' : 'items-start'
                   )}>
                     <div
                       className={cn(
-                        "rounded-lg px-4 py-3",
+                        "rounded-2xl px-5 py-3.5 shadow-md transition-all duration-200",
                         msg.type === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'
+                          ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground ml-auto' 
+                          : 'bg-card border border-border/50 hover:shadow-lg'
                       )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                     </div>
                     
                     {msg.suggestions && msg.suggestions.length > 0 && (
