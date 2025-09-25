@@ -40,6 +40,7 @@ export default function LandingPage() {
   const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
+    // Check initial auth state
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -47,6 +48,15 @@ export default function LandingPage() {
       }
     };
     checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate('/dashboard');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSocialSignIn = async (provider: 'google') => {
@@ -129,15 +139,28 @@ export default function LandingPage() {
     try {
       authSchema.parse({ email, password });
       
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting sign in with:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
 
-      navigate('/dashboard');
+      console.log('Sign in successful:', data);
+      
+      toast({
+        title: "Welcome back!",
+        description: "Successfully signed in.",
+      });
+      
+      // Navigation will be handled by the auth state listener
     } catch (error: any) {
+      console.error('Sign in failed:', error);
       if (error instanceof z.ZodError) {
         toast({
           title: "Validation Error",
