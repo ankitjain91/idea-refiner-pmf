@@ -8,7 +8,7 @@ import { Loader2, Send, TrendingUp, Users, DollarSign, Target, Zap, ChevronRight
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import PMFDashboard from './PMFDashboard';
+import PMFDashboardTabs from './PMFDashboardTabs';
 import RefinementControlsAdvanced from './RefinementControlsAdvanced';
 import RealTimeRefinementChart from './RealTimeRefinementChart';
 import PMFImprovements from './PMFImprovements';

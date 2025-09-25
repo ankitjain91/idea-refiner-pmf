@@ -7,6 +7,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Pricing from "./pages/Pricing";
 import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -40,7 +41,7 @@ const App = () => (
               {/* Protected routes - require authentication */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  <Index />
+                  <Dashboard />
                 </ProtectedRoute>
               } />
               <Route path="/subscription-success" element={
