@@ -34,7 +34,7 @@ interface CompactChatBoxProps {
 }
 
 export default function CompactChatBox({ onAnalysisReady, className }: CompactChatBoxProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
