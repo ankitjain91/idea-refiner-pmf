@@ -273,17 +273,15 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                       <SidebarMenuItem key={session.id}>
                         <div
                           className={cn(
-                            "group flex items-center justify-between px-2 py-2.5 rounded-lg cursor-pointer transition-all duration-200",
+                            "group relative flex items-center px-2 py-2.5 rounded-lg cursor-pointer transition-all duration-200",
                             "hover:bg-muted/60 hover:shadow-sm",
                             currentSessionId === session.id
                               ? 'bg-primary/10 border-l-2 border-primary shadow-sm'
                               : ''
                           )}
+                          onClick={() => loadSession(session.id)}
                         >
-                          <div 
-                            className="flex-1 min-w-0 pr-2"
-                            onClick={() => loadSession(session.id)}
-                          >
+                          <div className="flex-1 min-w-0 pr-8">
                             <p className="text-sm font-medium truncate">
                               {session.session_name}
                             </p>
@@ -296,17 +294,18 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                               </span>
                             </div>
                           </div>
+                          {/* Delete button - always visible as overlay */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 opacity-70 hover:opacity-100 hover:bg-destructive/10 transition-all duration-200"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:bg-destructive/20 hover:border-destructive/50 transition-all duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
                             }}
                             title="Delete session"
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
                           </Button>
                         </div>
                       </SidebarMenuItem>

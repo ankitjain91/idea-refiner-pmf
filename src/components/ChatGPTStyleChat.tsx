@@ -194,14 +194,21 @@ export default function ChatGPTStyleChat({
     }
   };
 
-  const startAnalysis = async () => {
-    if (!currentIdea) {
+  const startAnalysis = async (ideaToAnalyze?: string) => {
+    const ideaToUse = ideaToAnalyze || currentIdea;
+    
+    if (!ideaToUse) {
       toast({
         title: "No idea provided",
         description: "Please share your product idea first",
         variant: "destructive"
       });
       return;
+    }
+    
+    // If we're starting with a new idea, set it as current
+    if (ideaToAnalyze && !currentIdea) {
+      setCurrentIdea(ideaToAnalyze);
     }
 
     setIsAnalyzing(true);
@@ -215,7 +222,7 @@ export default function ChatGPTStyleChat({
       const { data, error } = await supabase.functions.invoke('idea-chat', {
         body: { 
           message: `Help me answer: ${firstQuestion}`,
-          idea: currentIdea,
+          idea: ideaToUse,
           currentQuestion: firstQuestion,
           questionNumber: 0,
           analysisContext: {}
@@ -226,7 +233,7 @@ export default function ChatGPTStyleChat({
         const analysisMessage: Message = {
           id: `msg-analysis-${Date.now()}`,
           type: 'bot',
-          content: `Great! Let's analyze "${currentIdea}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
+          content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
           timestamp: new Date(),
           suggestions: data.suggestions
         };
@@ -236,7 +243,7 @@ export default function ChatGPTStyleChat({
         const analysisMessage: Message = {
           id: `msg-analysis-${Date.now()}`,
           type: 'bot',
-          content: `Great! Let's analyze "${currentIdea}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
+          content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
           timestamp: new Date()
         };
         
@@ -476,7 +483,10 @@ export default function ChatGPTStyleChat({
       // First message - set as idea and start analysis
       setCurrentIdea(suggestion);
       setInput('');
-      startAnalysis();
+      // Wait a moment for state to update before starting analysis
+      setTimeout(() => {
+        startAnalysis(suggestion);
+      }, 100);
     } else if (isAnalyzing) {
       // During analysis - save answer and continue
       const updatedAnswers = { ...analysisAnswers, [currentQuestionIndex]: suggestion };
@@ -705,7 +715,7 @@ export default function ChatGPTStyleChat({
           {currentIdea && !isAnalyzing && !showDashboard && (
             <div className="flex items-center gap-2 mb-3">
               <Button
-                onClick={startAnalysis}
+                onClick={() => startAnalysis()}
                 className="gap-2"
                 variant="default"
               >
