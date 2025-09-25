@@ -124,12 +124,19 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       if (error) throw error;
 
       if (data) {
-        // Restore session data
+        // Restore all session data including insights and chat history
         localStorage.setItem('currentSessionId', sessionId);
         localStorage.setItem('userIdea', data.idea);
         localStorage.setItem('userAnswers', JSON.stringify(data.user_answers || {}));
         localStorage.setItem('userRefinements', JSON.stringify(data.refinements || {}));
         localStorage.setItem('ideaMetadata', JSON.stringify(data.metadata || {}));
+        
+        // Restore insights and chat history if present
+        if (data.insights && typeof data.insights === 'object' && !Array.isArray(data.insights)) {
+          const insights = data.insights as any;
+          localStorage.setItem('chatHistory', JSON.stringify(insights.chatHistory || []));
+          localStorage.setItem('analysisCompleted', insights.analysisCompleted ? 'true' : 'false');
+        }
         
         // Update last accessed
         await supabase
@@ -138,7 +145,9 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
           .eq('id', sessionId);
 
         setCurrentSessionId(sessionId);
-        navigate('/dashboard');
+        
+        // Force reload the dashboard to refresh chat component
+        window.location.href = '/dashboard';
         
         toast({
           title: "Session Loaded",

@@ -39,7 +39,7 @@ const Dashboard = () => {
   useEffect(() => {
     // Redirect to auth if not logged in and not loading
     if (!loading && !user) {
-      navigate('/');
+      navigate('/auth');
     }
   }, [user, loading, navigate]);
 
