@@ -222,7 +222,6 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
-      setInput(''); // Clear input after sending
     }
   };
 
@@ -638,7 +637,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
               disabled={isTyping}
             />
             <Button 
-              onClick={() => sendMessage()}
+              onClick={() => {
+                if (input.trim() && !isTyping) {
+                  sendMessage();
+                }
+              }}
               disabled={!input.trim() || isTyping}
               size="sm"
               className="absolute bottom-2 right-2 h-8 w-8 p-0 rounded-full bg-primary hover:bg-primary/90 transition-all duration-200"
