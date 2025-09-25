@@ -42,18 +42,24 @@ export default function LandingPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   useEffect(() => {
-    // Check initial auth state but don't force redirect
+    // Check initial auth state and redirect if authenticated
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
+      
+      // If already authenticated and no specific redirect path, go to dashboard
+      if (session && !redirectPath) {
+        navigate('/dashboard');
+      }
     };
     checkAuth();
 
-    // Listen for auth state changes - only redirect when coming from a protected route
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
-      if (event === 'SIGNED_IN' && session && redirectPath) {
-        navigate(redirectPath);
+      if (event === 'SIGNED_IN' && session) {
+        // Navigate to redirect path or dashboard
+        navigate(redirectPath || '/dashboard');
       }
     });
 
@@ -378,13 +384,6 @@ export default function LandingPage() {
                 {isSignUp ? "By signing up, you agree to our Terms of Service and Privacy Policy" : ""}
               </p>
             </form>
-            {isAuthenticated && (
-              <div className="mt-3">
-                <Button className="w-full" onClick={() => navigate('/dashboard')}>
-                  Start Analysis
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
