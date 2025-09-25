@@ -9,11 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 interface PMFDashboardProps {
   idea: string;
-  refinements: {
-    budget: string;
-    market: string;
-    timeline: string;
-  };
+  refinements: any;
   metadata?: any; // ChatGPT analysis data
   onScoreUpdate: (score: number) => void;
 }

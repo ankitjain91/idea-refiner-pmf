@@ -22,11 +22,7 @@ interface MetricData {
 interface RealTimeRefinementChartProps {
   idea: string;
   pmfScore: number;
-  refinements: {
-    budget: string;
-    market: string;
-    timeline: string;
-  };
+  refinements: any;
   metadata?: any; // ChatGPT analysis data
   onRefinementSuggestion?: (suggestion: string) => void;
 }
