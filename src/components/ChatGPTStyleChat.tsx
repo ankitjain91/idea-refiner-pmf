@@ -171,7 +171,7 @@ export default function ChatGPTStyleChat({
     }
   };
 
-  const startAnalysis = () => {
+  const startAnalysis = async () => {
     if (!currentIdea) {
       toast({
         title: "No idea provided",
@@ -185,14 +185,51 @@ export default function ChatGPTStyleChat({
     setCurrentQuestionIndex(0);
     setAnalysisProgress(0);
     
-    const analysisMessage: Message = {
-      id: `msg-analysis-${Date.now()}`,
-      type: 'bot',
-      content: `Great! Let's analyze "${currentIdea}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${ANALYSIS_QUESTIONS[0]}`,
-      timestamp: new Date()
-    };
+    // Get AI-suggested answer for the first question
+    const firstQuestion = ANALYSIS_QUESTIONS[0];
     
-    setMessages(prev => [...prev, analysisMessage]);
+    try {
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: { 
+          message: `Help me answer: ${firstQuestion}`,
+          idea: currentIdea,
+          currentQuestion: firstQuestion,
+          questionNumber: 0,
+          analysisContext: {}
+        }
+      });
+
+      if (!error && data?.suggestions) {
+        const analysisMessage: Message = {
+          id: `msg-analysis-${Date.now()}`,
+          type: 'bot',
+          content: `Great! Let's analyze "${currentIdea}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
+          timestamp: new Date(),
+          suggestions: data.suggestions
+        };
+        
+        setMessages(prev => [...prev, analysisMessage]);
+      } else {
+        const analysisMessage: Message = {
+          id: `msg-analysis-${Date.now()}`,
+          type: 'bot',
+          content: `Great! Let's analyze "${currentIdea}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, analysisMessage]);
+      }
+    } catch (error) {
+      console.error('Error getting AI suggestions:', error);
+      const analysisMessage: Message = {
+        id: `msg-analysis-${Date.now()}`,
+        type: 'bot',
+        content: `Great! Let's analyze "${currentIdea}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, analysisMessage]);
+    }
   };
 
   const handleSend = async () => {
@@ -217,7 +254,13 @@ export default function ChatGPTStyleChat({
         id: `msg-confirm-${Date.now()}`,
         type: 'bot',
         content: `I understand you want to analyze: "${input}"\n\nI can help you evaluate this idea's product-market fit through a comprehensive analysis. Click the "Start Analysis" button below to begin, or continue chatting if you'd like to refine your idea first.`,
-        timestamp: new Date()
+        timestamp: new Date(),
+        suggestions: [
+          `How does ${input} work?`,
+          `What makes ${input} unique?`,
+          `${input} target market`,
+          `${input} revenue model`
+        ]
       };
       
       setMessages(prev => [...prev, confirmMessage]);
@@ -236,18 +279,46 @@ export default function ChatGPTStyleChat({
       setAnalysisProgress(newProgress);
       
       if (currentQuestionIndex + 1 < ANALYSIS_QUESTIONS.length) {
-        // Ask next question
+        // Ask next question with AI suggestions
         setCurrentQuestionIndex(prev => prev + 1);
         const nextQuestion = ANALYSIS_QUESTIONS[currentQuestionIndex + 1];
         
-        const questionMessage: Message = {
-          id: `msg-question-${Date.now()}`,
-          type: 'bot',
-          content: nextQuestion,
-          timestamp: new Date()
-        };
+        setInput('');
+        setIsLoading(true);
         
-        setMessages(prev => [...prev, questionMessage]);
+        try {
+          const { data, error } = await supabase.functions.invoke('idea-chat', {
+            body: { 
+              message: `Help me answer: ${nextQuestion}`,
+              idea: currentIdea,
+              currentQuestion: nextQuestion,
+              questionNumber: currentQuestionIndex + 1,
+              analysisContext: analysisAnswers
+            }
+          });
+
+          const questionMessage: Message = {
+            id: `msg-question-${Date.now()}`,
+            type: 'bot',
+            content: nextQuestion,
+            timestamp: new Date(),
+            suggestions: data?.suggestions || []
+          };
+          
+          setMessages(prev => [...prev, questionMessage]);
+        } catch (error) {
+          console.error('Error getting suggestions:', error);
+          const questionMessage: Message = {
+            id: `msg-question-${Date.now()}`,
+            type: 'bot',
+            content: nextQuestion,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, questionMessage]);
+        } finally {
+          setIsLoading(false);
+        }
       } else {
         // Analysis complete
         completeAnalysis();

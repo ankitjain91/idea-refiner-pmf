@@ -14,44 +14,140 @@ serve(async (req) => {
   }
 
   try {
-    const { message, conversationHistory = [], generatePMFAnalysis = false } = await req.json();
+    const { 
+      message, 
+      conversationHistory = [], 
+      idea = null,
+      analysisContext = null,
+      currentQuestion = null,
+      questionNumber = null
+    } = await req.json();
     
     console.log('Incoming message:', message);
-    console.log('Generate PMF Analysis:', generatePMFAnalysis);
+    console.log('Current idea:', idea);
+    console.log('Current question:', currentQuestion);
+    console.log('Question number:', questionNumber);
 
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
+    // Build context-aware system message
+    let systemPrompt = `You are an expert PM-Fit advisor helping analyze product ideas.`;
+    
+    if (idea) {
+      systemPrompt += `\n\nThe user's product idea is: "${idea}"`;
+    }
+    
+    if (analysisContext) {
+      systemPrompt += `\n\nPrevious analysis answers:\n${JSON.stringify(analysisContext, null, 2)}`;
+    }
+    
+    if (currentQuestion) {
+      systemPrompt += `\n\nThe user is currently answering: "${currentQuestion}"`;
+      systemPrompt += `\n\nProvide intelligent suggestions based on their idea and context.`;
+      
+      // Question-specific guidance
+      if (currentQuestion.includes('problem')) {
+        systemPrompt += `\n\nSuggest specific problems their product solves. Be concrete and relate to their target market.`;
+      } else if (currentQuestion.includes('audience')) {
+        systemPrompt += `\n\nSuggest specific target demographics, psychographics, and market segments that would benefit most from their product.`;
+      } else if (currentQuestion.includes('value proposition')) {
+        systemPrompt += `\n\nSuggest unique differentiators and competitive advantages specific to their product idea.`;
+      } else if (currentQuestion.includes('monetization')) {
+        systemPrompt += `\n\nSuggest pricing models, revenue streams, and monetization strategies that fit their product type.`;
+      } else if (currentQuestion.includes('competitors')) {
+        systemPrompt += `\n\nIdentify real competitors in their space and suggest how they could differentiate.`;
+      }
+    }
+
     const messages = [
       {
         role: 'system',
-        content: `You are a PMF advisor with REAL web search capabilities.
-        
-        CRITICAL: Search the actual internet for REAL data about business ideas.
-        
-        ALWAYS SEARCH FOR:
-        - Real companies (names, funding, valuations)
-        - Actual market size from reports (with sources)
-        - Current pricing from competitors
-        - Real customer complaints from Reddit/forums
-        - Actual search volume and trends
-        - Recent news and industry reports
-        
-        When analyzing, return ONLY VERIFIED DATA from web searches.
-        Include specific company names, exact statistics, and source URLs.
-        
-        For PMF Analysis, return JSON with type: 'pmf_analysis' containing real market data.
-        
-        NEVER make up data. ONLY use information found from web searches.`
+        content: systemPrompt
       },
       ...conversationHistory,
       {
         role: 'user',
-        content: `${message}. Search the web for real data about this. Include actual companies, market statistics, and sources.`
+        content: message
       }
     ];
 
+    // If this is an analysis question, provide suggested answers
+    if (currentQuestion && questionNumber !== null) {
+      const suggestionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `Based on the product idea "${idea}", suggest 4 specific, actionable answers to this question: "${currentQuestion}". 
+              Make each suggestion concise (max 10 words) and directly relevant to their specific product.
+              Return ONLY a JSON array of 4 strings.`
+            }
+          ],
+          max_tokens: 200,
+          temperature: 0.7
+        }),
+      });
+
+      let suggestedAnswers = [];
+      if (suggestionResponse.ok) {
+        const suggestionData = await suggestionResponse.json();
+        try {
+          suggestedAnswers = JSON.parse(suggestionData.choices[0].message.content);
+        } catch (e) {
+          console.log('Could not parse suggestions');
+        }
+      }
+
+      // Get main response
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages,
+          max_tokens: 800,
+          temperature: 0.5
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0].message.content;
+
+      return new Response(
+        JSON.stringify({ 
+          response: aiResponse,
+          suggestions: suggestedAnswers.length > 0 ? suggestedAnswers : [
+            `${idea} solves time inefficiency`,
+            `Reduces costs by 40-60%`,
+            `Improves user experience significantly`,
+            `Automates manual processes`
+          ],
+          metadata: {
+            questionContext: currentQuestion,
+            ideaContext: idea,
+            questionNumber
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Regular chat response
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -62,7 +158,7 @@ serve(async (req) => {
         model: 'gpt-4o-mini',
         messages,
         max_tokens: 1200,
-        temperature: 0.3 // Lower for factual data
+        temperature: 0.6
       }),
     });
 
@@ -75,51 +171,36 @@ serve(async (req) => {
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
     
-    // Try to parse as JSON for PMF analysis
-    let isPMFAnalysis = false;
-    let pmfData = null;
-    
-    try {
-      const parsed = JSON.parse(aiResponse);
-      if (parsed.type === 'pmf_analysis') {
-        isPMFAnalysis = true;
-        pmfData = parsed;
-      }
-    } catch (e) {
-      // Not JSON, regular response
-    }
-    
-    if (isPMFAnalysis && pmfData) {
-      return new Response(
-        JSON.stringify({ 
-          response: pmfData.summary || "Analysis complete with real market data!",
-          pmfAnalysis: pmfData,
-          suggestions: ["Review competitor analysis", "Validate market size", "Test pricing strategy", "Build MVP"]
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Extract suggestions if present
+    // Generate contextual suggestions based on the idea
     let suggestions = [];
-    if (aiResponse.includes('SUGGESTIONS:')) {
-      const parts = aiResponse.split('SUGGESTIONS:');
-      const suggestionText = parts[1].trim();
-      suggestions = suggestionText.split('\n')
-        .filter((s: string) => s.trim())
-        .map((s: string) => s.replace(/^\d+\.\s*/, '').trim())
-        .slice(0, 4);
+    if (idea) {
+      const contextSuggestions = [
+        `Tell me about ${idea}'s target market`,
+        `What problem does ${idea} solve?`,
+        `How will ${idea} make money?`,
+        `Who competes with ${idea}?`,
+        `What's unique about ${idea}?`,
+        `${idea} pricing strategy`,
+        `${idea} go-to-market plan`
+      ];
+      suggestions = contextSuggestions.slice(0, 4);
+    } else {
+      suggestions = [
+        "AI productivity tool for remote teams",
+        "Sustainable fashion marketplace",
+        "Mental health support platform",
+        "Blockchain supply chain solution"
+      ];
     }
     
     return new Response(
       JSON.stringify({ 
         response: aiResponse,
-        suggestions: suggestions.length > 0 ? suggestions : [
-          "Tell me more about your target market",
-          "What's your pricing strategy?",
-          "Who are your main competitors?",
-          "What's your unique value proposition?"
-        ]
+        suggestions,
+        metadata: {
+          hasIdea: !!idea,
+          ideaContext: idea
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
