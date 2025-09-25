@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { 
@@ -37,6 +37,7 @@ export default function LandingPage() {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -247,170 +248,100 @@ export default function LandingPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Get Started</CardTitle>
+            <CardTitle className="text-2xl text-center">
+              {isSignUp ? "Create an account" : "Welcome back"}
+            </CardTitle>
             <CardDescription className="text-center">
-              Create your free account to start validating
+              {isSignUp ? "Enter your email below to create your account" : "Enter your email to sign in to your account"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="m@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading || socialLoading !== null}
-                  >
-                    {isLoading ? "Signing in..." : "Sign In with Email"}
-                  </Button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleSocialSignIn('google')}
-                    disabled={socialLoading !== null || isLoading}
-                  >
-                    {socialLoading === 'google' ? (
-                      "Connecting..."
-                    ) : (
-                      <>
-                        <Chrome className="mr-2 h-4 w-4" />
-                        Google
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="m@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Must be at least 6 characters
-                    </p>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading || socialLoading !== null}
-                  >
-                    {isLoading ? "Creating account..." : "Sign Up with Email"}
-                  </Button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleSocialSignIn('google')}
-                    disabled={socialLoading !== null || isLoading}
-                  >
-                    {socialLoading === 'google' ? (
-                      "Connecting..."
-                    ) : (
-                      <>
-                        <Chrome className="mr-2 h-4 w-4" />
-                        Google
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground">
-                    By signing up, you agree to our Terms of Service and Privacy Policy
+            <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading || socialLoading !== null}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading || socialLoading !== null}
+                />
+                {isSignUp && (
+                  <p className="text-xs text-muted-foreground">
+                    Must be at least 6 characters
                   </p>
-                </form>
-              </TabsContent>
-            </Tabs>
-
-            {/* Mobile - Show condensed features */}
-            <div className="mt-6 pt-6 border-t lg:hidden">
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary shrink-0" />
-                  <span>AI-powered market validation</span>
+                )}
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || socialLoading !== null}
+              >
+                {isLoading ? (isSignUp ? "Creating account..." : "Signing in...") : (isSignUp ? "Sign Up" : "Sign In")}
+              </Button>
+              
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-sm text-primary hover:underline"
+                  disabled={isLoading || socialLoading !== null}
+                >
+                  {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up here"}
+                </button>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary shrink-0" />
-                  <span>Real-time competitor analysis</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary shrink-0" />
-                  <span>60-second comprehensive results</span>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
                 </div>
               </div>
-            </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => handleSocialSignIn('google')}
+                disabled={socialLoading !== null || isLoading}
+              >
+                {socialLoading === 'google' ? (
+                  "Connecting..."
+                ) : (
+                  <>
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Google
+                  </>
+                )}
+              </Button>
+              
+              {isSignUp && (
+                <p className="text-xs text-center text-muted-foreground">
+                  By signing up, you agree to our Terms of Service and Privacy Policy
+                </p>
+              )}
+            </form>
           </CardContent>
         </Card>
+
       </div>
     </div>
   );
