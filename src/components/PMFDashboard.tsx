@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Target, AlertCircle, ChevronUp, ChevronDown, CheckCircle, XCircle, BarChart, PieChart, Activity, MessageSquare, GitBranch, CircleDollarSign, Sparkles, Lock, Crown } from "lucide-react";
-import PaywallOverlay from "./PaywallOverlay";
+
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -100,8 +100,7 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
   const metrics = generateMetrics();
 
   return (
-    <PaywallOverlay feature="Advanced PMF Analytics" requiredTier="pro">
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* PMF Score Card */}
         <div>
           <Card className="overflow-hidden">
@@ -307,7 +306,6 @@ export default function PMFDashboard({ idea, refinements, metadata, onScoreUpdat
             </CardContent>
           </Card>
         </div>
-      </div>
-    </PaywallOverlay>
+    </div>
   );
 }
