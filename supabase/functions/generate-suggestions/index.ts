@@ -129,6 +129,16 @@ Good example format (not to copy):
       if (suggestions.length < 4) throw new Error('Insufficient suggestions after normalization');
     } catch (parseError) {
       console.error('[GENERATE-SUGGESTIONS] Failed to parse suggestions:', parseError);
+      // Check if API key is missing first
+      if (!openAIApiKey) {
+        console.error('[GENERATE-SUGGESTIONS] No OpenAI API key configured');
+        suggestions = [
+          'API key not configured properly',
+          'Please check OpenAI settings',
+          'Contact support for assistance',
+          'Using fallback suggestions only'
+        ];
+      } else {
       const lowerQ = (question || '').toLowerCase();
       if (lowerQ.includes('target audience')) {
         suggestions = [
@@ -172,6 +182,7 @@ Good example format (not to copy):
           'Requires deeper analysis and specifics',
           'Share details to tailor suggestions',
         ];
+      }
       }
     }
 

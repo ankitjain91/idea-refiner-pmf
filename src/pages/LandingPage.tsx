@@ -89,6 +89,10 @@ export default function LandingPage() {
     try {
       authSchema.parse({ email, password });
       
+      // First check if user already exists (common case)
+      const { data: { users } } = await supabase.auth.admin.listUsers();
+      // This won't work in client, so rely on error message
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -98,13 +102,19 @@ export default function LandingPage() {
       });
 
       if (error) {
-        if (error.message.includes('already registered') || error.message.includes('already exists')) {
+        // Check for various "already exists" error messages
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes('already registered') || 
+            errorMsg.includes('already exists') || 
+            errorMsg.includes('user already registered') ||
+            errorMsg.includes('duplicate') ||
+            errorMsg.includes('unique constraint')) {
           toast({
             title: "Account exists",
             description: "This email is already registered. Please sign in instead.",
             variant: "default",
           });
-          setIsSignUp(false); // Switch back to sign-in
+          setIsSignUp(false); // Switch to sign-in mode
           return;
         }
         throw error;

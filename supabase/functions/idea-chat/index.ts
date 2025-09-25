@@ -137,10 +137,10 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini-2025-08-07', // Using GPT-5 mini for faster, more intelligent responses
+        model: 'gpt-4o-mini', // Using stable legacy model for reliability
         messages,
         temperature: 0.8,
-        max_completion_tokens: 1200, // GPT-5 uses max_completion_tokens instead of max_tokens
+        max_tokens: 1200, // Legacy models use max_tokens
       }),
     });
 
