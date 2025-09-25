@@ -119,12 +119,19 @@ export default function ChatGPTStyleChat({
       if (error) throw error;
       setSessionId(data.id);
       
-      // Add welcome message
+      // Add welcome message with suggestions
       const welcomeMessage: Message = {
         id: `msg-welcome-${Date.now()}`,
         type: 'system',
         content: "👋 Welcome! I'm your PM-Fit Analyzer. Tell me about your product idea and I'll help you analyze its market fit potential.",
-        timestamp: new Date()
+        timestamp: new Date(),
+        suggestions: [
+          "AI-powered productivity tool for remote teams",
+          "Sustainable fashion marketplace for Gen Z",
+          "Mental health support platform with AI coaching",
+          "Blockchain-based supply chain for small businesses",
+          "EdTech platform for personalized learning"
+        ]
       };
       setMessages([welcomeMessage]);
     } catch (error) {
@@ -365,6 +372,44 @@ export default function ChatGPTStyleChat({
       {/* Main Chat Area */}
       <ScrollArea className="flex-1 p-4">
         <div className="max-w-3xl mx-auto space-y-4 pb-32">
+          {/* Welcome Card with Suggestions */}
+          {messages.length === 1 && messages[0].type === 'system' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <Bot className="h-12 w-12 text-primary mx-auto mb-3" />
+                    <h2 className="text-xl font-semibold mb-2">Get Started with Your Idea</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Choose an example or type your own product idea
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Quick Start Ideas:</p>
+                    <div className="grid gap-2">
+                      {messages[0].suggestions?.map((suggestion, idx) => (
+                        <Button
+                          key={idx}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          variant="outline"
+                          className="justify-start text-left h-auto py-3 px-4 hover:bg-primary/5 hover:border-primary/30 transition-all"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+                          <span className="text-sm">{suggestion}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
           {messages.map((msg) => (
             <motion.div
               key={msg.id}

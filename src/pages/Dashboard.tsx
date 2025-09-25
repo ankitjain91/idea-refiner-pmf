@@ -5,7 +5,7 @@ import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
-import { Loader2, BarChart, Sparkles } from "lucide-react";
+import { Loader2, BarChart, Sparkles, CheckCircle } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -109,17 +109,15 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {showAnalysisDashboard && (
-              <Button
-                onClick={() => setShowAnalysisDashboard(!showAnalysisDashboard)}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <BarChart className="h-4 w-4" />
-                {showAnalysisDashboard ? 'Hide' : 'Show'} Dashboard
-              </Button>
-            )}
+            <Button
+              onClick={() => setShowAnalysisDashboard(!showAnalysisDashboard)}
+              variant={showAnalysisDashboard ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+            >
+              <BarChart className="h-4 w-4" />
+              {showAnalysisDashboard ? 'Hide' : 'Show'} Dashboard
+            </Button>
             <UserMenu />
           </div>
         </div>
@@ -144,7 +142,7 @@ const Dashboard = () => {
 
           {/* Analysis Dashboard - Side Panel */}
           <AnimatePresence>
-            {showAnalysisDashboard && analysisData && (
+            {showAnalysisDashboard && (
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: "50%", opacity: 1 }}
@@ -157,17 +155,50 @@ const Dashboard = () => {
                     <div>
                       <h2 className="text-lg font-semibold">Analysis Dashboard</h2>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Detailed insights for: {analysisData.idea}
+                        {analysisData 
+                          ? `Detailed insights for: ${analysisData.idea}`
+                          : 'Start a chat and analysis to see insights'}
                       </p>
                     </div>
-                    <Badge variant="default" className="gap-1">
+                    <Badge variant={analysisData ? "default" : "secondary"} className="gap-1">
                       <Sparkles className="h-3 w-3" />
-                      Live Analysis
+                      {analysisData ? 'Live Analysis' : 'Awaiting Data'}
                     </Badge>
                   </div>
                 </div>
                 <div className="flex-1 overflow-auto">
-                  <PMFAnalyzer key={`analysis-${chatKey}`} />
+                  {analysisData ? (
+                    <PMFAnalyzer key={`analysis-${chatKey}`} />
+                  ) : (
+                    <div className="flex items-center justify-center h-full p-8">
+                      <div className="text-center space-y-4 max-w-md">
+                        <BarChart className="h-16 w-16 text-muted-foreground/30 mx-auto" />
+                        <h3 className="text-lg font-medium">No Analysis Yet</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Start by entering your product idea in the chat, then click "Start PM-Fit Analysis" 
+                          to generate comprehensive market insights and recommendations.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                          <div className="p-2 bg-muted/50 rounded">
+                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
+                            Market Analysis
+                          </div>
+                          <div className="p-2 bg-muted/50 rounded">
+                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
+                            Competitor Research
+                          </div>
+                          <div className="p-2 bg-muted/50 rounded">
+                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
+                            User Demographics
+                          </div>
+                          <div className="p-2 bg-muted/50 rounded">
+                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
+                            PM-Fit Score
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
