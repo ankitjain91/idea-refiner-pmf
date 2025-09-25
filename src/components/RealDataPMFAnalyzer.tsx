@@ -35,7 +35,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Share2
+  Network
 } from 'lucide-react';
 import { RealDataFetcher } from '@/lib/real-data-fetcher';
 import { computeRealDataScores, recommendRealDataImprovements } from '@/lib/real-data-scoring';
@@ -549,7 +549,7 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
             Trends
           </TabsTrigger>
           <TabsTrigger value="channels" className="data-[state=active]:bg-background">
-            <Share2 className="w-4 h-4 mr-2" />
+            <Network className="w-4 h-4 mr-2" />
             Channels
           </TabsTrigger>
           <TabsTrigger value="metrics" className="data-[state=active]:bg-background">

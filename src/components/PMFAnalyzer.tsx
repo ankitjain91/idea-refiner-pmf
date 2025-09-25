@@ -11,6 +11,7 @@ import PMFDashboard from './PMFDashboard';
 import RefinementControlsAdvanced from './RefinementControlsAdvanced';
 import RealTimeRefinementChart from './RealTimeRefinementChart';
 import PMFImprovements from './PMFImprovements';
+import RealDataPMFAnalyzer from './RealDataPMFAnalyzer';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -489,35 +490,11 @@ export default function PMFAnalyzer() {
               }}
             />
             
-            {/* Main Dashboard Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              <div className="xl:col-span-3 space-y-6">
-                <PMFDashboard 
-                  idea={messages[0]?.content || ''}
-                  refinements={refinements}
-                  metadata={metadata}
-                  onScoreUpdate={setPmfScore}
-                />
-                <RealTimeRefinementChart
-                  idea={messages[0]?.content || ''}
-                  pmfScore={pmfScore}
-                  refinements={refinements}
-                  metadata={metadata}
-                  onRefinementSuggestion={(suggestion) => {
-                    toast({
-                      title: "Refinement Suggestion",
-                      description: suggestion,
-                    });
-                  }}
-                />
-              </div>
-              <div className="xl:col-span-1">
-                <RefinementControlsAdvanced
-                  refinements={refinements}
-                  onChange={handleRefinementChange}
-                />
-              </div>
-            </div>
+            {/* Real Data PM-Fit Analyzer */}
+            <RealDataPMFAnalyzer 
+              idea={messages[0]?.content || idea}
+              assumptions={refinements}
+            />
           </div>
         )}
       </div>

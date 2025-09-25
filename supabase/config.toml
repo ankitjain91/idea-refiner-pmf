@@ -14,3 +14,24 @@ major_version = 15
 
 [functions.idea-chat]
 verify_jwt = true
+
+[functions.search-web]
+verify_jwt = false
+
+[functions.google-trends]
+verify_jwt = false
+
+[functions.reddit-search]
+verify_jwt = false
+
+[functions.youtube-search]
+verify_jwt = false
+
+[functions.twitter-search]
+verify_jwt = false
+
+[functions.tiktok-trends]
+verify_jwt = false
+
+[functions.amazon-public]
+verify_jwt = false
