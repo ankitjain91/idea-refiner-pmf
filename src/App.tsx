@@ -22,14 +22,18 @@ const App = () => (
             <Toaster />
             <Sonner />
             <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/pricing" element={<Pricing />} />
+              {/* Auth route - always accessible */}
+              <Route path="/auth" element={<AuthPage />} />
               
-              {/* Auth route - redirects to dashboard if already logged in */}
-              <Route path="/auth" element={
-                <ProtectedRoute requireAuth={false}>
-                  <AuthPage />
+              {/* Public routes that become protected when accessed directly */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              } />
+              <Route path="/pricing" element={
+                <ProtectedRoute>
+                  <Pricing />
                 </ProtectedRoute>
               } />
               

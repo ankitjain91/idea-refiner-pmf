@@ -26,10 +26,5 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // If user is authenticated and trying to access auth page, redirect to dashboard
-  if (!requireAuth && user && location.pathname === '/auth') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return <>{children}</>;
 };

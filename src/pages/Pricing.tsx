@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,49 +7,42 @@ import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionCont
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserMenu } from "@/components/UserMenu";
 
 export default function PricingPage() {
   const { subscription, checkSubscription } = useSubscription();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Check current auth status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleSubscribe = async (priceId: string, tierName: string) => {
     setLoadingPlan(tierName);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!user) {
         toast({
           title: "Authentication required",
-          description: "Please sign in to subscribe",
+          description: "Please sign in to subscribe. Redirecting to login...",
           variant: "destructive",
         });
+        setLoadingPlan(null);
+        // Redirect to auth with return path
+        setTimeout(() => {
+          navigate('/auth', { state: { from: { pathname: '/pricing' } } });
+        }, 1500);
         return;
       }
 
+      // Get fresh session for the API call
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { price_id: priceId },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
       });
 
@@ -257,6 +250,11 @@ export default function PricingPage() {
             Refresh Status
           </Button>
         </div>
+      </div>
+      
+      {/* User menu in top right */}
+      <div className="absolute top-4 right-4 z-50">
+        <UserMenu />
       </div>
     </div>
   );

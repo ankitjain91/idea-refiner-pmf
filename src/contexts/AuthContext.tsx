@@ -44,13 +44,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Handle different auth events
         if (event === 'SIGNED_IN') {
-          // Redirect to dashboard after successful sign in
-          if (location.pathname === '/auth') {
-            navigate('/dashboard');
-          }
+          // Redirect to dashboard or saved location after successful sign in
+          const from = location.state?.from?.pathname || '/dashboard';
+          navigate(from);
         } else if (event === 'SIGNED_OUT') {
-          // Redirect to home after sign out
-          navigate('/');
+          // Clear state and redirect to auth
+          setSession(null);
+          setUser(null);
+          navigate('/auth');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed successfully');
         } else if (event === 'USER_UPDATED') {
