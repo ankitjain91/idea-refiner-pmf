@@ -67,37 +67,37 @@ const factorConfig = {
   demand: {
     label: 'Demand',
     icon: TrendingUp,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200'
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20'
   },
   painIntensity: {
     label: 'Pain Intensity',
     icon: Target,
-    color: 'text-red-600',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200'
+    color: 'text-destructive',
+    bgColor: 'bg-destructive/10',
+    borderColor: 'border-destructive/20'
   },
   competitionGap: {
     label: 'Competition Gap',
     icon: GitBranch,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200'
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20'
   },
   differentiation: {
     label: 'Differentiation',
     icon: Sparkles,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-200'
+    color: 'text-accent-foreground',
+    bgColor: 'bg-accent',
+    borderColor: 'border-accent'
   },
   distribution: {
     label: 'Distribution',
     icon: Users,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200'
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/20'
   }
 };
 
@@ -291,9 +291,9 @@ export default function PMFImprovements({
 
   const getConfidenceBadge = (confidence: Improvement['confidence']) => {
     const variants = {
-      low: 'bg-gray-100 text-gray-700',
-      med: 'bg-blue-100 text-blue-700',
-      high: 'bg-green-100 text-green-700'
+      low: 'bg-muted text-muted-foreground',
+      med: 'bg-primary/10 text-primary',
+      high: 'bg-primary/20 text-primary'
     };
     return variants[confidence];
   };
@@ -302,7 +302,7 @@ export default function PMFImprovements({
     return (
       <div className="flex items-center gap-0.5">
         {[...Array(cost.length)].map((_, i) => (
-          <DollarSign key={i} className="h-3 w-3 text-green-600" />
+          <DollarSign key={i} className="h-3 w-3 text-primary" />
         ))}
       </div>
     );
@@ -364,9 +364,9 @@ export default function PMFImprovements({
             </ol>
           </div>
 
-          <div className="rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-4 space-y-3">
+          <div className="rounded-lg bg-muted/50 p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <Beaker className="h-4 w-4 text-blue-600" />
+              <Beaker className="h-4 w-4 text-primary" />
               <p className="text-sm font-semibold">Experiment Design</p>
             </div>
             
@@ -389,7 +389,7 @@ export default function PMFImprovements({
             <div className="space-y-1">
               {improvement.experiment.design.map((step, idx) => (
                 <div key={idx} className="flex items-start gap-2 text-xs">
-                  <CheckCircle2 className="h-3 w-3 text-green-600 mt-0.5" />
+                  <CheckCircle2 className="h-3 w-3 text-primary mt-0.5" />
                   <span>{step}</span>
                 </div>
               ))}
@@ -397,7 +397,7 @@ export default function PMFImprovements({
           </div>
 
           {improvement.dependencies && improvement.dependencies.length > 0 && (
-            <div className="flex items-center gap-2 text-xs text-orange-600">
+            <div className="flex items-center gap-2 text-xs text-destructive">
               <AlertCircle className="h-3 w-3" />
               <span>Requires: {improvement.dependencies.join(', ')}</span>
             </div>
@@ -430,11 +430,11 @@ export default function PMFImprovements({
     <div className="space-y-6">
       {/* Quick Wins Section */}
       {quickWins.length > 0 && (
-        <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-green-600" />
+                <Zap className="h-5 w-5 text-primary" />
                 <CardTitle>Quick Wins Available</CardTitle>
               </div>
               <Button
@@ -485,7 +485,7 @@ export default function PMFImprovements({
                           <Badge variant="secondary" className="text-xs">
                             {factorImprovements.length} actions
                           </Badge>
-                          <span className="text-xs text-green-600 font-semibold">
+                          <span className="text-xs text-primary font-semibold">
                             +{totalLift} pts
                           </span>
                         </div>
@@ -519,7 +519,7 @@ export default function PMFImprovements({
                     <Card>
                       <CardContent className="pt-6">
                         <div className="text-center space-y-2">
-                          <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
+                          <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
                           <p className="font-medium">This factor is performing well!</p>
                           <p className="text-sm text-muted-foreground">
                             No immediate improvements needed. Focus on other areas.
