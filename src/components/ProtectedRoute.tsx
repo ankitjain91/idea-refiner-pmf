@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,8 +9,29 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, session, loading, refreshSession } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    // Check token validity on mount and route changes
+    const checkToken = async () => {
+      if (session && !loading) {
+        const expiresAt = session.expires_at;
+        if (expiresAt) {
+          const now = Math.floor(Date.now() / 1000);
+          const expiryTime = typeof expiresAt === 'string' ? parseInt(expiresAt) : expiresAt;
+          
+          // If token is expired or expiring soon (within 5 minutes)
+          if (now >= expiryTime || now >= (expiryTime - 300)) {
+            console.log("Token expired or expiring soon in ProtectedRoute, refreshing...");
+            await refreshSession();
+          }
+        }
+      }
+    };
+    
+    checkToken();
+  }, [session, loading, refreshSession, location.pathname]);
 
   // Show loading spinner while checking auth status
   if (loading) {
