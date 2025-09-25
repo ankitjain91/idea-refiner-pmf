@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, TrendingUp, Users, DollarSign, Target, Zap, ChevronRight, Crown, Sparkles } from 'lucide-react';
+import { Loader2, Send, TrendingUp, Users, DollarSign, Target, Zap, ChevronRight, Crown, Sparkles, MessageCircle, X, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,6 +55,8 @@ export default function PMFAnalyzer() {
   const [chatCollapsed, setChatCollapsed] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [isChatMinimized, setIsChatMinimized] = useState(false);
   
   // Handle scroll to detect when user scrolls down
   useEffect(() => {
@@ -408,6 +410,8 @@ export default function PMFAnalyzer() {
       premium: false,
       niche: true
     });
+    setHasAnalyzed(true); // Mark that analysis is complete
+    setIsChatMinimized(true); // Minimize to bubble after analysis
     
     // Store data
     localStorage.setItem('userIdea', idea);
@@ -481,6 +485,8 @@ export default function PMFAnalyzer() {
     });
     setMetadata(null);
     setChatCollapsed(false);
+    setHasAnalyzed(false); // Reset analysis state
+    setIsChatMinimized(false); // Show full chat again
     
     // Clear localStorage
     localStorage.removeItem('userIdea');
@@ -497,334 +503,95 @@ export default function PMFAnalyzer() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
-      {/* Sticky Chat Header - Transforms on Scroll */}
-      <div className={cn(
-        "sticky top-0 z-40 transition-all duration-300",
-        isScrolled 
-          ? "bg-background/98 backdrop-blur-xl border-b shadow-lg py-2" 
-          : "bg-background/95 backdrop-blur-lg border-b shadow-sm py-4"
-      )}>
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className={cn(
-              "font-semibold gradient-text flex items-center gap-2 transition-all duration-300",
-              isScrolled ? "text-base" : "text-lg"
-            )}>
-              <Zap className={cn(
-                "text-primary transition-all duration-300",
-                isScrolled ? "h-4 w-4" : "h-5 w-5"
-              )} />
-              {isScrolled ? "Refine Your Idea" : "Start Your PMF Journey"}
-            </h2>
-            <div className="flex items-center gap-2">
-              {isScrolled && (
-                <Badge 
-                  variant="outline" 
-                  className="animate-fade-in text-xs"
-                >
-                  {messages.length} iterations
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setChatCollapsed(!chatCollapsed)}
-                className="transition-transform hover:scale-105"
-              >
-                {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
-              </Button>
+      {/* Dynamic Island Style Chat Bubble - Shows after first analysis */}
+      {hasAnalyzed && isChatMinimized && (
+        <div className="fixed bottom-6 right-6 z-50 animate-scale-in">
+          <Button
+            onClick={() => setIsChatMinimized(false)}
+            className="rounded-full h-14 w-14 shadow-2xl bg-primary hover:bg-primary/90 transition-all hover:scale-110"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </Button>
+          {messages.length > 0 && (
+            <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center">
+              {messages.length}
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* Main Chat Interface - Shows initially or when bubble is clicked */}
+      {!isChatMinimized && (
+        <div className={cn(
+          "sticky top-0 z-40 transition-all duration-300",
+          hasAnalyzed ? "fixed inset-0 bg-background/98 backdrop-blur-xl overflow-auto" : "",
+          isScrolled && !hasAnalyzed
+            ? "bg-background/98 backdrop-blur-xl border-b shadow-lg py-2" 
+            : "bg-background/95 backdrop-blur-lg border-b shadow-sm py-4"
+        )}>
+          <div className="container mx-auto px-4 max-w-7xl">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className={cn(
+                "font-semibold gradient-text flex items-center gap-2 transition-all duration-300",
+                isScrolled && !hasAnalyzed ? "text-base" : "text-lg"
+              )}>
+                <Zap className={cn(
+                  "text-primary transition-all duration-300",
+                  isScrolled && !hasAnalyzed ? "h-4 w-4" : "h-5 w-5"
+                )} />
+                {hasAnalyzed ? "Continue Your Analysis" : "Start Your PMF Journey"}
+              </h2>
+              <div className="flex items-center gap-2">
+                {hasAnalyzed && (
+                  <>
+                    <Badge variant="outline" className="text-xs">
+                      Session Active
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsChatMinimized(true)}
+                      className="transition-transform hover:scale-105"
+                    >
+                      <Minimize2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {!hasAnalyzed && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setChatCollapsed(!chatCollapsed)}
+                    className="transition-transform hover:scale-105"
+                  >
+                    {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-          <div className={cn(
-            "transition-all duration-300 ease-in-out",
-            chatCollapsed ? "h-0 overflow-hidden opacity-0" : "h-auto opacity-100"
-          )}>
             <div className={cn(
-              "overflow-y-auto transition-all duration-300",
-              isScrolled ? "max-h-[30vh]" : "max-h-[40vh]"
+              "transition-all duration-300 ease-in-out",
+              chatCollapsed && !hasAnalyzed ? "h-0 overflow-hidden opacity-0" : "h-auto opacity-100"
             )}>
-              <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
+              <div className={cn(
+                "overflow-y-auto transition-all duration-300",
+                hasAnalyzed ? "max-h-[70vh]" : isScrolled ? "max-h-[30vh]" : "max-h-[40vh]"
+              )}>
+                <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Main Content */}
-      <div className={cn(
-        "flex-1 container mx-auto p-6 max-w-7xl transition-all duration-500",
-        isScrolled ? "animate-fade-in" : ""
-      )}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">{/* Chat Interface - Now shows the old chat interface for backward compatibility */}
-          <div className="lg:col-span-2">
-            <Card className="h-[600px] flex flex-col shadow-xl border-0 bg-card/95 backdrop-blur">
-              <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-primary" />
-                    PM-Fit Analyzer
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Question {currentQuestion}/{maxQuestions}
-                    </span>
-                    <Progress value={(currentQuestion / maxQuestions) * 100} className="w-20" />
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="flex-1 overflow-auto p-4 space-y-4">
-                {messages.length === 0 && (
-                  <div className="text-center py-8 space-y-6">
-                    <div className="flex justify-center">
-                      <div className="relative">
-                        <div className="absolute inset-0 blur-xl bg-gradient-to-r from-primary/30 to-purple-600/30 rounded-full" />
-                        <Target className="h-16 w-16 text-primary relative" />
-                      </div>
-                    </div>
-                    <h3 className="text-xl font-semibold">Start with your idea</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                      Describe your startup or product idea, and I'll help analyze its product-market fit potential.
-                    </p>
-                    
-                    {/* Idea Suggestions */}
-                    <div className="space-y-3 max-w-2xl mx-auto">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Try these examples</p>
-                      
-                      <div className="grid gap-2">
-                        {/* Active suggestions */}
-                        {(() => {
-                          const pool = [
-                            {
-                              title: "AI Resume Coach",
-                              description: "An AI that reviews resumes in real-time and suggests improvements based on job descriptions",
-                              emoji: "📝"
-                            },
-                            {
-                              title: "LocalFirst Social",
-                              description: "A neighborhood social network for sharing local events, recommendations, and safety alerts",
-                              emoji: "🏘️"
-                            },
-                            {
-                              title: "Pet Health Tracker",
-                              description: "Wearable device that monitors pet vitals and sends alerts to owners and vets",
-                              emoji: "🐕"
-                            },
-                            {
-                              title: "Travel Buddy AI",
-                              description: "Personalized trip planning with real-time itinerary updates and budget tracking",
-                              emoji: "🧳"
-                            },
-                            {
-                              title: "Home Energy Saver",
-                              description: "Smart recommendations to cut household energy costs with device-level insights",
-                              emoji: "⚡"
-                            },
-                            {
-                              title: "Smart Grocery Planner",
-                              description: "Auto-generated shopping lists based on pantry scanning and recipe suggestions",
-                              emoji: "🛒"
-                            },
-                            {
-                              title: "Freelancer Finance",
-                              description: "Cash flow tracking, tax estimates, and invoice automation for freelancers",
-                              emoji: "📊"
-                            },
-                            {
-                              title: "Language Tutor Bot",
-                              description: "Conversational language practice with instant grammar feedback and spaced repetition",
-                              emoji: "🗣️"
-                            },
-                            {
-                              title: "Remote Work Wellness",
-                              description: "Micro-break coaching and posture tracking to reduce burnout in remote teams",
-                              emoji: "🧘"
-                            }
-                          ];
-                          // Fisher–Yates shuffle
-                          for (let i = pool.length - 1; i > 0; i--) {
-                            const j = Math.floor(Math.random() * (i + 1));
-                            [pool[i], pool[j]] = [pool[j], pool[i]];
-                          }
-                          return pool.slice(0, 3).map((example, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => setIdea(example.description)}
-                              className="group relative overflow-hidden rounded-xl border bg-card/50 p-4 text-left transition-all hover:bg-card/80 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              <div className="relative flex items-start gap-3">
-                                <span className="text-2xl">{example.emoji}</span>
-                                <div className="flex-1">
-                                  <h4 className="font-medium text-sm mb-1">{example.title}</h4>
-                                  <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {example.description}
-                                  </p>
-                                </div>
-                                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </div>
-                            </button>
-                          ));
-                        })()}
-                        
-                        {/* Greyed out premium examples */}
-                        
-                        {/* Greyed out premium examples */}
-                        {[
-                          {
-                            title: "Carbon Credit Marketplace",
-                            description: "B2B platform for trading verified carbon credits with blockchain verification",
-                            emoji: "🌱",
-                            tag: "Enterprise"
-                          },
-                          {
-                            title: "AI Legal Assistant",
-                            description: "Document analysis and contract review powered by specialized legal LLMs",
-                            emoji: "⚖️",
-                            tag: "Professional"
-                          },
-                        ].map((example, idx) => (
-                          <div
-                            key={idx}
-                            className="relative overflow-hidden rounded-xl border border-dashed opacity-60 bg-muted/20 p-4"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="text-2xl grayscale">{example.emoji}</span>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-medium text-sm">{example.title}</h4>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {example.tag}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground line-clamp-2">
-                                  {example.description}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent flex items-end justify-center pb-2">
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Crown className="h-3 w-3" />
-                                Premium Analysis
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {messages.map((message, idx) => (
-                  <div key={idx}>
-                    <div
-                      className={cn(
-                        "flex gap-3 animate-in slide-in-from-bottom-2",
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted/50 border'
-                        )}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <span className="text-xs opacity-70 mt-1 block">
-                          {message.timestamp.toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Show AI-generated suggestions for the last assistant message */}
-                    {message.role === 'assistant' && 
-                     idx === messages.length - 1 && 
-                     !isLoading && 
-                     currentQuestion <= maxQuestions && 
-                     message.suggestions && message.suggestions.length > 0 && (
-                      <div className="mt-4 space-y-2 max-w-[80%] ml-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Sparkles className="h-3 w-3 text-primary" />
-                          <p className="text-xs text-muted-foreground">AI-suggested answers:</p>
-                        </div>
-                        {loadingSuggestions ? (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Generating personalized suggestions...
-                          </div>
-                        ) : (
-                          message.suggestions.map((suggestion, optionIdx) => (
-                            <button
-                              key={optionIdx}
-                              onClick={async () => {
-                                // Set the answer in the input field
-                                setIdea(suggestion);
-                                // Wait a moment for state to update, then submit
-                                setTimeout(() => {
-                                  const event = new Event('submit', { bubbles: true });
-                                  document.querySelector('form')?.dispatchEvent(event);
-                                }, 100);
-                              }}
-                              className="w-full text-left px-3 py-2 text-sm rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 hover:border-primary/50 transition-all hover:scale-[1.02] transition-transform flex items-center gap-2 group"
-                            >
-                              <span className="text-primary/60 group-hover:text-primary">
-                                {optionIdx + 1}.
-                              </span>
-                              <span className="flex-1">{suggestion}</span>
-                              <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {isLoading && (
-                  <div className="flex gap-3">
-                    <div className="bg-muted/50 rounded-2xl px-4 py-3 flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Analyzing...</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-              
-              <div className="p-4 border-t">
-                <div className="flex gap-2">
-                  <Textarea
-                    value={idea}
-                    onChange={(e) => setIdea(e.target.value)}
-                    placeholder="Describe your idea..."
-                    className="resize-none"
-                    rows={2}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit();
-                      }
-                    }}
-                  />
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!idea.trim() || isLoading}
-                    size="icon"
-                    className="h-auto px-3"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Signals Queue */}
-          <div className="space-y-4">
+      {/* Main Content - Only show when we have analyzed data */}
+      {showDashboard && (
+        <div className={cn(
+          "flex-1 container mx-auto p-6 max-w-7xl transition-all duration-500",
+          "animate-fade-in"
+        )}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* PM-Fit Score Card */}
             <Card className="shadow-xl border-0 bg-card/95 backdrop-blur">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
