@@ -20,7 +20,10 @@ import {
   Shield,
   Zap,
   MessageSquare,
-  Brain
+  Brain,
+  Lightbulb,
+  Star,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -66,7 +69,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
       const welcomeMessage: Message = {
         id: 'welcome',
         type: 'bot',
-        content: "👋 Hi! I'm your AI-powered PMF advisor. I'll help you refine your startup idea through an intelligent conversation. Tell me about your idea, and I'll guide you to product-market fit!",
+        content: "✨ Welcome to your AI-powered PMF advisor! I'm here to transform your startup idea into a validated business concept through intelligent conversation. Share your vision with me!",
         timestamp: new Date(),
         suggestions: [
           "AI tool for content creators",
@@ -185,9 +188,25 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
   const renderMessage = (message: Message) => {
     if (message.isTyping) {
       return (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm">AI is thinking...</span>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1">
+            <motion.div
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
+              className="w-2 h-2 bg-primary rounded-full"
+            />
+            <motion.div
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+              className="w-2 h-2 bg-primary rounded-full"
+            />
+            <motion.div
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
+              className="w-2 h-2 bg-primary rounded-full"
+            />
+          </div>
+          <span className="text-sm text-muted-foreground">Analyzing your idea...</span>
         </div>
       );
     }
@@ -199,12 +218,12 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
     // Format message content with better structure
     const lines = message.content.split('\n');
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         {lines.map((line, idx) => {
           // Handle emoji headers
-          if (line.match(/^[💡📊🎯🚀📈💰🛡️⚡]/)) {
+          if (line.match(/^[💡📊🎯🚀📈💰🛡️⚡✨]/)) {
             return (
-              <p key={idx} className="text-sm leading-relaxed">
+              <p key={idx} className="text-sm leading-relaxed font-medium">
                 {line}
               </p>
             );
@@ -212,15 +231,21 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
           // Handle bullet points
           if (line.startsWith('- ') || line.startsWith('• ')) {
             return (
-              <div key={idx} className="flex items-start gap-2 ml-4">
-                <span className="text-primary mt-1">•</span>
-                <span className="text-sm">{line.substring(2)}</span>
-              </div>
+              <motion.div 
+                key={idx} 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="flex items-start gap-2 ml-4"
+              >
+                <ChevronRight className="h-3 w-3 text-primary mt-1 flex-shrink-0" />
+                <span className="text-sm text-muted-foreground">{line.substring(2)}</span>
+              </motion.div>
             );
           }
           // Regular text
           return line ? (
-            <p key={idx} className="text-sm leading-relaxed">
+            <p key={idx} className="text-sm leading-relaxed text-muted-foreground">
               {line}
             </p>
           ) : null;
@@ -237,73 +262,162 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
         className="space-y-4"
       >
         {/* Score Display */}
-        <Card className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
-          <div className="text-center space-y-2">
-            <div className="text-5xl font-bold text-primary">
-              {analysis.pmfScore || 75}/100
-            </div>
-            <p className="text-muted-foreground">Product-Market Fit Score</p>
-          </div>
-          
-          {/* Score Breakdown */}
-          {analysis.breakdown && (
-            <div className="mt-6 space-y-3">
-              {Object.entries(analysis.breakdown).map(([key, value]: [string, any]) => (
-                <div key={key} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <span className="font-medium">{value}/100</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${value}%` }}
-                    />
-                  </div>
+        <Card className="relative overflow-hidden p-8 border-2">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5" />
+          <div className="relative">
+            <motion.div 
+              className="text-center space-y-3"
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              <div className="relative inline-block">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-primary/40 blur-xl"
+                />
+                <div className="relative text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  {analysis.pmfScore || 75}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Star className="h-4 w-4 text-primary fill-primary" />
+                <p className="text-sm font-medium text-muted-foreground">Product-Market Fit Score</p>
+                <Star className="h-4 w-4 text-primary fill-primary" />
+              </div>
+            </motion.div>
+            
+            {/* Score Breakdown */}
+            {analysis.breakdown && (
+              <div className="mt-8 space-y-4">
+                {Object.entries(analysis.breakdown).map(([key, value]: [string, any], idx) => (
+                  <motion.div 
+                    key={key} 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex justify-between text-sm">
+                      <span className="capitalize font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <span className="font-bold text-primary">{value}%</span>
+                    </div>
+                    <div className="h-3 bg-muted/50 rounded-full overflow-hidden backdrop-blur">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${value}%` }}
+                        transition={{ duration: 1, delay: 0.5 + idx * 0.1 }}
+                        className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full relative"
+                      >
+                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Insights Grid */}
         {analysis.insights && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-                <h4 className="font-medium">Strengths</h4>
-              </div>
-              <ul className="space-y-1">
-                {analysis.insights.strengths?.map((strength: string, idx: number) => (
-                  <li key={idx} className="text-sm text-muted-foreground">• {strength}</li>
-                ))}
-              </ul>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="relative p-5 h-full overflow-hidden group hover:shadow-lg transition-all duration-300 border-green-500/20">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent" />
+                <div className="relative space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                    </div>
+                    <h4 className="font-semibold">Strengths</h4>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.insights.strengths?.map((strength: string, idx: number) => (
+                      <motion.li 
+                        key={idx} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + idx * 0.05 }}
+                        className="text-sm text-muted-foreground flex items-start gap-2"
+                      >
+                        <Sparkles className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>{strength}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
+            </motion.div>
             
-            <Card className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="h-4 w-4 text-yellow-600" />
-                <h4 className="font-medium">Risks</h4>
-              </div>
-              <ul className="space-y-1">
-                {analysis.insights.risks?.map((risk: string, idx: number) => (
-                  <li key={idx} className="text-sm text-muted-foreground">• {risk}</li>
-                ))}
-              </ul>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="relative p-5 h-full overflow-hidden group hover:shadow-lg transition-all duration-300 border-yellow-500/20">
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent" />
+                <div className="relative space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-yellow-500/10">
+                      <Shield className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <h4 className="font-semibold">Risks</h4>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.insights.risks?.map((risk: string, idx: number) => (
+                      <motion.li 
+                        key={idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + idx * 0.05 }}
+                        className="text-sm text-muted-foreground flex items-start gap-2"
+                      >
+                        <Zap className="h-3 w-3 text-yellow-500 mt-0.5 flex-shrink-0" />
+                        <span>{risk}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
+            </motion.div>
             
-            <Card className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Rocket className="h-4 w-4 text-blue-600" />
-                <h4 className="font-medium">Opportunities</h4>
-              </div>
-              <ul className="space-y-1">
-                {analysis.insights.opportunities?.map((opp: string, idx: number) => (
-                  <li key={idx} className="text-sm text-muted-foreground">• {opp}</li>
-                ))}
-              </ul>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="relative p-5 h-full overflow-hidden group hover:shadow-lg transition-all duration-300 border-blue-500/20">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
+                <div className="relative space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Rocket className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <h4 className="font-semibold">Opportunities</h4>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.insights.opportunities?.map((opp: string, idx: number) => (
+                      <motion.li 
+                        key={idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + idx * 0.05 }}
+                        className="text-sm text-muted-foreground flex items-start gap-2"
+                      >
+                        <Lightbulb className="h-3 w-3 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <span>{opp}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
+            </motion.div>
           </div>
         )}
 
@@ -338,15 +452,26 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
   };
 
   return (
-    <Card className="h-full flex flex-col bg-gradient-to-br from-background to-muted/20">
+    <Card className="h-full flex flex-col relative overflow-hidden border-2">
+      {/* Animated background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-50" />
+      
       {/* Header */}
-      <div className="p-4 border-b bg-card/50 backdrop-blur">
+      <div className="relative p-5 border-b backdrop-blur-sm bg-card/80">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">AI PMF Advisor</h3>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+              <div className="relative p-2 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                <Brain className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">AI PMF Advisor</h3>
+              <p className="text-xs text-muted-foreground">Your intelligent startup companion</p>
+            </div>
           </div>
-          <Badge variant="secondary" className="gap-1">
+          <Badge className="gap-1.5 bg-gradient-to-r from-primary to-primary/60 text-primary-foreground border-0">
             <Sparkles className="h-3 w-3" />
             GPT-5 Powered
           </Badge>
@@ -354,66 +479,102 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4 max-w-3xl mx-auto">
+      <ScrollArea className="relative flex-1 p-6">
+        <div className="space-y-6 max-w-4xl mx-auto">
           <AnimatePresence>
-            {messages.map((message) => (
+            {messages.map((message, messageIdx) => (
               <motion.div
                 key={message.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 className={cn(
-                  "flex gap-3",
+                  "flex gap-4",
                   message.type === 'user' ? 'justify-end' : 'justify-start'
                 )}
               >
                 {message.type === 'bot' && (
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-primary" />
+                  <motion.div 
+                    className="flex-shrink-0"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, delay: 0.1 }}
+                  >
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full animate-pulse" />
+                      <div className="relative h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+                        <Bot className="h-5 w-5 text-primary" />
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
                 
                 <div className={cn(
-                  "max-w-[80%] space-y-2",
+                  "max-w-[75%] space-y-3",
                   message.type === 'user' ? 'items-end' : 'items-start'
                 )}>
-                  <Card className={cn(
-                    "p-4",
-                    message.type === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-card'
-                  )}>
-                    {renderMessage(message)}
-                  </Card>
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    <Card className={cn(
+                      "p-5 relative overflow-hidden transition-all duration-300",
+                      message.type === 'user' 
+                        ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-primary/20 shadow-lg shadow-primary/10' 
+                        : 'bg-card/90 backdrop-blur border-2 hover:shadow-lg'
+                    )}>
+                      {message.type === 'user' && (
+                        <div className="absolute inset-0 bg-white/5 opacity-50" />
+                      )}
+                      <div className="relative">
+                        {renderMessage(message)}
+                      </div>
+                    </Card>
+                  </motion.div>
                   
                   {/* Suggestions */}
                   {message.suggestions && message.suggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex flex-wrap gap-2"
+                    >
                       {message.suggestions.map((suggestion, idx) => (
-                        <Button
+                        <motion.div
                           key={idx}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => sendMessage(suggestion)}
-                          className="text-xs"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.3 + idx * 0.05 }}
                         >
-                          {suggestion}
-                          <ChevronRight className="h-3 w-3 ml-1" />
-                        </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => sendMessage(suggestion)}
+                            className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group"
+                          >
+                            <Lightbulb className="h-3 w-3 mr-1 text-primary" />
+                            {suggestion}
+                            <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                          </Button>
+                        </motion.div>
                       ))}
-                    </div>
+                    </motion.div>
                   )}
                 </div>
 
                 {message.type === 'user' && (
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-4 w-4" />
+                  <motion.div 
+                    className="flex-shrink-0"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, delay: 0.1 }}
+                  >
+                    <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center border-2">
+                      <User className="h-5 w-5" />
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </motion.div>
             ))}
@@ -423,60 +584,79 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-4 border-t bg-card/50 backdrop-blur">
-        <div className="flex gap-2 max-w-3xl mx-auto">
-          <Textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Describe your startup idea or ask for analysis..."
-            className="min-h-[60px] resize-none"
-            disabled={isTyping}
-          />
-          <Button 
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || isTyping}
-            size="lg"
-            className="px-6"
+      <div className="relative p-5 border-t backdrop-blur-sm bg-card/80">
+        <div className="flex gap-3 max-w-4xl mx-auto">
+          <div className="flex-1 relative">
+            <Textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="✨ Describe your startup idea or ask for guidance..."
+              className="min-h-[80px] resize-none pr-4 bg-background/50 border-2 focus:border-primary/50 transition-all duration-200"
+              disabled={isTyping}
+            />
+            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+              Press Enter to send
+            </div>
+          </div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {isTyping ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
+            <Button 
+              onClick={() => sendMessage()}
+              disabled={!input.trim() || isTyping}
+              size="lg"
+              className="h-[80px] px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 transition-all duration-200"
+            >
+              {isTyping ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Send className="h-5 w-5 mr-2" />
+                  Send
+                </>
+              )}
+            </Button>
+          </motion.div>
         </div>
         
         {/* Quick Actions */}
-        <div className="flex gap-2 mt-2 max-w-3xl mx-auto">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => sendMessage("Analyze my idea and give me a PMF score")}
-            className="text-xs"
-          >
-            <BarChart3 className="h-3 w-3 mr-1" />
-            Get PMF Analysis
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => sendMessage("What are the main risks?")}
-            className="text-xs"
-          >
-            <Shield className="h-3 w-3 mr-1" />
-            Risk Assessment
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => sendMessage("How should I monetize this?")}
-            className="text-xs"
-          >
-            <DollarSign className="h-3 w-3 mr-1" />
-            Monetization
-          </Button>
+        <div className="flex gap-2 mt-3 max-w-4xl mx-auto">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => sendMessage("Analyze my idea and give me a PMF score")}
+              className="text-xs hover:bg-primary/10 hover:border-primary/50 group"
+            >
+              <BarChart3 className="h-3 w-3 mr-1.5 text-primary group-hover:scale-110 transition-transform" />
+              Get PMF Analysis
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => sendMessage("What are the main risks?")}
+              className="text-xs hover:bg-yellow-500/10 hover:border-yellow-500/50 group"
+            >
+              <Shield className="h-3 w-3 mr-1.5 text-yellow-500 group-hover:scale-110 transition-transform" />
+              Risk Assessment
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => sendMessage("How should I monetize this?")}
+              className="text-xs hover:bg-green-500/10 hover:border-green-500/50 group"
+            >
+              <DollarSign className="h-3 w-3 mr-1.5 text-green-500 group-hover:scale-110 transition-transform" />
+              Monetization
+            </Button>
+          </motion.div>
         </div>
       </div>
     </Card>
