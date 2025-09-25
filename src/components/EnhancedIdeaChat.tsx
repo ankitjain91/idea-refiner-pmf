@@ -30,6 +30,46 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Pool of example suggestions
+const suggestionPool = [
+  "AI tool for content creators",
+  "Marketplace for local services",
+  "Health tracking for seniors",
+  "Educational platform for kids",
+  "Sustainable fashion marketplace",
+  "Remote team collaboration tool",
+  "Personal finance assistant",
+  "Mental wellness app for teens",
+  "Language learning with VR",
+  "Smart home automation platform",
+  "Eco-friendly delivery service",
+  "Freelancer project management",
+  "Recipe sharing community",
+  "Virtual event planning tool",
+  "Pet care marketplace",
+  "Carbon footprint tracker",
+  "Skill-sharing platform",
+  "Digital nomad community app",
+  "Elderly care coordination",
+  "Fitness accountability app",
+  "B2B procurement platform",
+  "Social learning network",
+  "Renewable energy marketplace",
+  "Food waste reduction app",
+  "AI resume builder",
+  "Virtual interior design tool",
+  "Community gardening platform",
+  "Subscription box curator",
+  "Voice-based productivity app",
+  "Micro-investment platform"
+];
+
+// Function to get random suggestions
+const getRandomSuggestions = (count: number = 4): string[] => {
+  const shuffled = [...suggestionPool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
+
 interface Message {
   id: string;
   type: 'user' | 'bot';
@@ -64,19 +104,14 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
   }, [messages]);
 
   useEffect(() => {
-    // Add welcome message on mount
+    // Add welcome message on mount with random suggestions
     if (!conversationStarted) {
       const welcomeMessage: Message = {
         id: 'welcome',
         type: 'bot',
         content: "✨ Welcome to your AI-powered PMF advisor! I'm here to transform your startup idea into a validated business concept through intelligent conversation. Share your vision with me!",
         timestamp: new Date(),
-        suggestions: [
-          "AI tool for content creators",
-          "Marketplace for local services",
-          "Health tracking for seniors",
-          "Educational platform for kids"
-        ]
+        suggestions: getRandomSuggestions(4)
       };
       setMessages([welcomeMessage]);
     }
