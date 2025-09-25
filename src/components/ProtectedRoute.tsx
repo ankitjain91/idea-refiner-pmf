@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,6 +11,12 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) => {
   const { user, session, loading, refreshSession } = useAuth();
   const location = useLocation();
+  const [bootstrapDone, setBootstrapDone] = useState(false);
+  
+  useEffect(() => {
+    const t = setTimeout(() => setBootstrapDone(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     // Check token validity on mount and route changes
@@ -33,8 +39,8 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
     checkToken();
   }, [session, loading, refreshSession, location.pathname]);
 
-  // Show loading spinner while checking auth status
-  if (loading) {
+  // Show loading spinner briefly while bootstrapping
+  if (loading && !bootstrapDone) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
