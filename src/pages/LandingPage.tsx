@@ -38,18 +38,16 @@ export default function LandingPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   useEffect(() => {
-    // Check initial auth state
+    // Check initial auth state but don't force redirect
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/dashboard');
-      }
+      setIsAuthenticated(!!session);
     };
     checkAuth();
 
-    // Listen for auth state changes
+    // Listen for auth state changes - redirect only on new sign in
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         navigate('/dashboard');
