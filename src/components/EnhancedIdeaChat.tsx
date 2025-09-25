@@ -222,6 +222,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+      setInput(''); // Clear input after sending
     }
   };
 
@@ -640,26 +641,18 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
               Press Enter to send
             </div>
           </div>
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <Button 
+            onClick={() => sendMessage()}
+            disabled={!input.trim() || isTyping}
+            size="icon"
+            className="h-[80px] w-[80px] bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 transition-all duration-200"
           >
-            <Button 
-              onClick={() => sendMessage()}
-              disabled={!input.trim() || isTyping}
-              size="lg"
-              className="h-[80px] px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 transition-all duration-200"
-            >
-              {isTyping ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  <Send className="h-5 w-5 mr-2" />
-                  Send
-                </>
-              )}
-            </Button>
-          </motion.div>
+            {isTyping ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </Button>
         </div>
         
         {/* Quick Actions */}
