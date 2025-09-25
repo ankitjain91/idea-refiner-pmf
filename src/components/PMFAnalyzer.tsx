@@ -644,10 +644,8 @@ export default function PMFAnalyzer() {
               </Card>
             )}
           </div>
-        </div>
-
-        {/* Dashboard and Controls */}
-        {showDashboard && (
+          
+          {/* Dashboard and Controls */}
           <div className="mt-8 space-y-6">
             {/* PM-Fit Improvements Section */}
             <PMFImprovements
@@ -680,8 +678,8 @@ export default function PMFAnalyzer() {
               assumptions={refinements}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
