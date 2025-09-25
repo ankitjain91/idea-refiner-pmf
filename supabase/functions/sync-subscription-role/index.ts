@@ -66,17 +66,23 @@ serve(async (req) => {
         const subscription = subscriptions.data[0];
         subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
         
-        // Determine role based on price/product
-        // You'll need to map your actual Stripe product IDs here
+        // Determine role based on Stripe product ID
         const productId = subscription.items.data[0].price.product as string;
         
-        // Example mapping - adjust based on your Stripe products
-        if (productId.includes('enterprise') || subscription.items.data[0].price.unit_amount! >= 100000) {
-          role = 'enterprise';
-        } else if (productId.includes('pro') || subscription.items.data[0].price.unit_amount! >= 30000) {
-          role = 'pro';
-        } else {
-          role = 'pro'; // Default to pro for any paid subscription
+        // Map Stripe product IDs to roles
+        switch (productId) {
+          case 'prod_T7CsCuGP8R6RrO': // Enterprise Plan
+            role = 'enterprise';
+            break;
+          case 'prod_T7CsnetIz8NE1N': // Pro Plan
+            role = 'pro';
+            break;
+          case 'prod_T7Cs2e5UUZ0eov': // Basic Plan
+            role = 'pro'; // Basic plan also gets pro role (no free tier for paid users)
+            break;
+          default:
+            logStep("Unknown product ID, defaulting to pro", { productId });
+            role = 'pro'; // Default to pro for any paid subscription
         }
         
         logStep("Subscription found", { role, subscriptionEnd });
