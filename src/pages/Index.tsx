@@ -38,20 +38,25 @@ const Index = () => {
   const { subscription, canAccess, getRemainingIdeas, incrementIdeaCount } = useSubscription();
 
   useEffect(() => {
-    // Check current auth status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // Listen for auth changes
+    // Listen for auth changes FIRST (proper order)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      
+      // If user just logged in from auth page, ensure we're on the right route
+      if (session?.user && window.location.pathname === '/auth') {
+        navigate('/');
+      }
+    });
+
+    // THEN check current auth status
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     // Load existing ideas when user logs in
@@ -325,6 +330,24 @@ const Index = () => {
                     </Button>
                   </>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                  className="glass-button hover:animate-glow"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/pricing')}
+                  className="glass-button hover:animate-glow flex items-center gap-1"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span className="hidden sm:inline">Pricing</span>
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

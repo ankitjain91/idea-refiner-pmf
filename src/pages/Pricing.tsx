@@ -1,16 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, Crown, Zap, Building2, Loader2, RefreshCw, ArrowRight, Sparkles, Star, Target, Rocket } from "lucide-react";
+import { Check, X, Crown, Zap, Building2, Loader2, RefreshCw, ArrowRight, ArrowLeft, Sparkles, Star, Target, Rocket } from "lucide-react";
 import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 
 export default function PricingPage() {
   const { subscription, checkSubscription } = useSubscription();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check current auth status
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSubscribe = async (priceId: string, tierName: string) => {
     setLoadingPlan(tierName);
