@@ -32,21 +32,31 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing TikTok trends for hashtags: ${hashtags.join(', ')}. Provide realistic trend metrics in JSON format with:
-            - volume: number 0-100 (content volume)
-            - viralPotential: number 0-100 (likelihood to go viral)
-            - engagement: average engagement rate
-            - trendingContent: array of {type, views, likes, shares}
-            - demographics: {ageGroups, interests}
-            - growthRate: weekly growth percentage`
+            content: `You are a TikTok analyst with web search capabilities. SEARCH THE WEB for real TikTok trends for hashtags: ${hashtags.join(', ')}.
+            
+            IMPORTANT: Search for ACTUAL TikTok data:
+            - Real TikTok videos and their view counts
+            - Actual viral content and engagement rates
+            - Real trending sounds and challenges
+            - Current demographic data from TikTok analytics
+            - Actual growth rates and viral patterns
+            
+            Provide ONLY real TikTok data in JSON format with:
+            - volume: number 0-100 (actual content volume)
+            - viralPotential: number 0-100 (based on real viral patterns)
+            - engagement: real average engagement rate
+            - trendingContent: array of REAL content {type, views, likes, shares, creator, url}
+            - demographics: ACTUAL demographics {ageGroups, interests} from TikTok
+            - growthRate: real weekly growth percentage
+            - sources: array of TikTok URLs or analytics sources`
           },
           {
             role: 'user',
-            content: `Analyze TikTok trends for these hashtags: ${hashtags.join(', ')}`
+            content: `Search the web for real TikTok trends and analytics for these hashtags: ${hashtags.join(', ')}. Find actual viral content, engagement metrics, and demographic data. Include sources.`
           }
         ],
-        max_tokens: 800,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.3
       }),
     });
 

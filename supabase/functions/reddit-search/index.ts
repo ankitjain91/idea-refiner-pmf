@@ -32,20 +32,30 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing Reddit discussions about: "${query}". Provide realistic community insights in JSON format with:
-            - painDensity: number 0-100 (how much pain/frustration is expressed)
-            - sentiment: overall sentiment (-100 to 100)
-            - topPainPhrases: array of common pain points mentioned
-            - threads: array of {title, score, comments, sentiment}
-            - userNeeds: array of specific needs expressed by users`
+            content: `You are a Reddit analyst with web search capabilities. SEARCH THE WEB for real Reddit discussions about: "${query}".
+            
+            IMPORTANT: Search for ACTUAL Reddit posts and comments about this topic:
+            - Real Reddit threads with actual titles, scores, and comment counts
+            - Actual user complaints and pain points from Reddit discussions
+            - Real sentiment from Reddit communities
+            - Specific subreddit discussions if available
+            - Actual quotes from Reddit users
+            
+            Provide ONLY real data from Reddit in JSON format with:
+            - painDensity: number 0-100 based on actual complaints found
+            - sentiment: overall sentiment (-100 to 100) from real posts
+            - topPainPhrases: array of ACTUAL pain points mentioned by users
+            - threads: array of REAL Reddit threads {title, score, comments, sentiment, url}
+            - userNeeds: array of specific needs expressed by REAL users
+            - sources: array of Reddit thread URLs`
           },
           {
             role: 'user',
-            content: `Analyze Reddit discussions about "${query}" in subreddits: ${subreddits.join(', ') || 'general'}`
+            content: `Search Reddit for real discussions about "${query}" in subreddits: ${subreddits.join(', ') || 'all relevant subreddits'}. Find actual posts, user complaints, and community sentiment. Include Reddit URLs.`
           }
         ],
-        max_tokens: 800,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.3
       }),
     });
 

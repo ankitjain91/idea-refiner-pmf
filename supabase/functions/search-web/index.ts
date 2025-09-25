@@ -32,21 +32,30 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing market data for: "${query}". Provide realistic market insights in JSON format with these fields:
-            - competitorStrength: number 0-100 (how strong are existing competitors)
-            - differentiationSignals: number 0-100 (how unique is this idea)
-            - topCompetitors: array of {name, strength, marketShare}
-            - relatedQueries: array of related search terms
-            - marketSize: estimated market size
-            - growthRate: estimated annual growth rate`
+            content: `You are a market research assistant with web search capabilities. SEARCH THE WEB for real, current information about: "${query}". 
+            
+            IMPORTANT: You must search the actual internet for:
+            - Real competitor companies and their actual market share
+            - Current market size data from credible sources
+            - Actual pricing information from real companies
+            - Recent news and developments
+            
+            Provide ONLY real data you find from web searches in JSON format with these fields:
+            - competitorStrength: number 0-100 based on actual competitors found
+            - differentiationSignals: number 0-100 based on market gaps you discover
+            - topCompetitors: array of REAL companies with actual data {name, strength, marketShare}
+            - relatedQueries: actual search terms people use
+            - marketSize: real market size from credible sources with year
+            - growthRate: actual CAGR from industry reports
+            - sources: array of URLs where you found this information`
           },
           {
             role: 'user',
-            content: `Analyze the market for: ${query}. Consider recent trends within ${recencyDays} days.`
+            content: `Search the web for real market data about: ${query}. Look for actual companies, real market reports, current pricing, and verified statistics from the last ${recencyDays} days. Include source URLs.`
           }
         ],
-        max_tokens: 800,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.3 // Lower temperature for factual data
       }),
     });
 

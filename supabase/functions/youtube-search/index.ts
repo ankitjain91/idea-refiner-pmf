@@ -32,20 +32,30 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing YouTube content about: "${q}". Provide realistic metrics in JSON format with:
-            - volume: number 0-100 (content volume/activity)
-            - engagement: average engagement rate
-            - topVideos: array of {title, views, likes, channel}
-            - trendingTopics: array of related trending topics
-            - creatorSentiment: overall creator sentiment about this topic`
+            content: `You are a YouTube analyst with web search capabilities. SEARCH THE WEB for real YouTube content about: "${q}".
+            
+            IMPORTANT: Search for ACTUAL YouTube videos and statistics:
+            - Real YouTube videos with actual titles, view counts, likes
+            - Actual channel names and subscriber counts
+            - Real engagement metrics from YouTube
+            - Current trending videos on this topic
+            - Actual creator sentiment and video descriptions
+            
+            Provide ONLY real YouTube data in JSON format with:
+            - volume: number 0-100 (actual content volume/activity)
+            - engagement: real average engagement rate
+            - topVideos: array of REAL videos {title, views, likes, channel, url}
+            - trendingTopics: array of actually trending topics on YouTube
+            - creatorSentiment: real creator sentiment about this topic
+            - sources: array of YouTube video URLs`
           },
           {
             role: 'user',
-            content: `Analyze YouTube content for "${q}" in the last ${timeframe}.`
+            content: `Search YouTube for real videos about "${q}" from the last ${timeframe}. Find actual video statistics, trending content, and engagement metrics. Include YouTube URLs.`
           }
         ],
-        max_tokens: 800,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.3
       }),
     });
 

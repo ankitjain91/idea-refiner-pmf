@@ -32,21 +32,32 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing Amazon marketplace for: "${query}". Provide realistic market data in JSON format with:
-            - marketSaturation: number 0-100 (how saturated is the market)
-            - avgPrice: average price point
-            - priceRange: {min, max}
-            - topListings: array of {title, price, rating, reviews}
-            - customerComplaints: array of common complaints
-            - opportunities: array of market opportunities`
+            content: `You are an Amazon marketplace analyst with web search capabilities. SEARCH THE WEB for real Amazon marketplace data about: "${query}".
+            
+            IMPORTANT: Search for ACTUAL Amazon data:
+            - Real products currently listed on Amazon
+            - Actual prices, ratings, and review counts
+            - Real best sellers and their rankings
+            - Current customer complaints from reviews
+            - Actual market saturation data
+            - Real opportunities based on customer feedback
+            
+            Provide ONLY real Amazon marketplace data in JSON format with:
+            - marketSaturation: number 0-100 (based on actual number of listings)
+            - avgPrice: real average price from actual listings
+            - priceRange: {min, max} from actual products
+            - topListings: array of REAL products {title, price, rating, reviews, asin, url}
+            - customerComplaints: array of ACTUAL complaints from reviews
+            - opportunities: array of real market gaps from customer feedback
+            - sources: array of Amazon product URLs`
           },
           {
             role: 'user',
-            content: `Analyze Amazon marketplace for "${query}" in category: ${category}`
+            content: `Search Amazon marketplace for real products related to "${query}" in category: ${category}. Find actual listings, prices, customer reviews, and market gaps. Include Amazon product URLs.`
           }
         ],
-        max_tokens: 800,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.3
       }),
     });
 

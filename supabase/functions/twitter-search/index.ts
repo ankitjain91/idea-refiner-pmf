@@ -32,21 +32,31 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing Twitter/X conversations about: "${q}". Provide realistic social metrics in JSON format with:
-            - volume: number 0-100 (tweet volume)
-            - sentiment: overall sentiment (-100 to 100)
-            - influencerInterest: number 0-100 (influencer engagement)
-            - topTweets: array of {text, likes, retweets, replies}
-            - trendingHashtags: array of related hashtags
-            - keyOpinions: array of key opinions/themes`
+            content: `You are a Twitter/X analyst with web search capabilities. SEARCH THE WEB for real Twitter/X posts about: "${q}".
+            
+            IMPORTANT: Search for ACTUAL Twitter/X posts and metrics:
+            - Real tweets with actual engagement numbers
+            - Actual trending hashtags on Twitter/X
+            - Real influencer posts and their reach
+            - Current sentiment from actual tweets
+            - Real user opinions and discussions
+            
+            Provide ONLY real Twitter/X data in JSON format with:
+            - volume: number 0-100 (actual tweet volume)
+            - sentiment: real overall sentiment (-100 to 100) from actual tweets
+            - influencerInterest: number 0-100 (actual influencer engagement)
+            - topTweets: array of REAL tweets {text, likes, retweets, replies, author, url}
+            - trendingHashtags: array of ACTUALLY trending hashtags
+            - keyOpinions: array of real opinions/themes from users
+            - sources: array of Twitter/X URLs`
           },
           {
             role: 'user',
-            content: `Analyze Twitter/X discussions about "${q}" in ${lang} from the last ${since}.`
+            content: `Search Twitter/X for real posts about "${q}" in ${lang} from the last ${since}. Find actual tweets, trending discussions, and influencer engagement. Include tweet URLs.`
           }
         ],
-        max_tokens: 800,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.3
       }),
     });
 
