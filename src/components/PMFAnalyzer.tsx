@@ -483,21 +483,21 @@ export default function PMFAnalyzer() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-background via-background to-muted/20">
       {/* Main Container */}
-      <div className="container mx-auto px-4 max-w-7xl py-6">
+      <div className="container-fluid py-4 sm:py-6 lg:py-8">
         {/* Chat Section */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <StreamlinedPMFChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
         </div>
 
         {/* Dashboard Content - Only show when we have analyzed data */}
         {showDashboard && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 lg:gap-8">
               {/* PM-Fit Score Card */}
-              <Card className="shadow-xl border-0 bg-card/95 backdrop-blur">
-                <CardHeader>
+              <Card className="w-full shadow-xl border-0 bg-card/95 backdrop-blur">
+                <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-primary" />
                     Live Signals
@@ -550,7 +550,7 @@ export default function PMFAnalyzer() {
             </div>
             
             {/* Dashboard and Controls */}
-            <div className="mt-8 space-y-6">
+            <div className="mt-6 sm:mt-8 space-y-6">
               {/* PM-Fit Improvements Section */}
               <PMFImprovements
                 idea={messages[0]?.content || ''}
@@ -582,7 +582,7 @@ export default function PMFAnalyzer() {
                 assumptions={refinements}
               />
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

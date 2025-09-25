@@ -7,8 +7,16 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+      },
       screens: {
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1280px",
         "2xl": "1400px",
       },
     },
@@ -79,6 +87,25 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontSize: {
+        'xs': ['clamp(0.75rem, 1.5vw, 0.875rem)', '1.4'],
+        'sm': ['clamp(0.875rem, 2vw, 1rem)', '1.5'],
+        'base': ['clamp(1rem, 2.5vw, 1.125rem)', '1.6'],
+        'lg': ['clamp(1.125rem, 3vw, 1.25rem)', '1.6'],
+        'xl': ['clamp(1.25rem, 3.5vw, 1.5rem)', '1.5'],
+        '2xl': ['clamp(1.5rem, 4vw, 2rem)', '1.4'],
+        '3xl': ['clamp(2rem, 5vw, 3rem)', '1.3'],
+        '4xl': ['clamp(2.5rem, 6vw, 4rem)', '1.2'],
+      },
+      spacing: {
+        'xs': 'clamp(0.25rem, 1vw, 0.5rem)',
+        'sm': 'clamp(0.5rem, 2vw, 1rem)',
+        'md': 'clamp(1rem, 3vw, 1.5rem)',
+        'lg': 'clamp(1.5rem, 4vw, 2rem)',
+        'xl': 'clamp(2rem, 5vw, 3rem)',
+        '2xl': 'clamp(3rem, 6vw, 4rem)',
+        '3xl': 'clamp(4rem, 8vw, 6rem)',
       },
       keyframes: {
         "accordion-down": {

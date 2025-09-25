@@ -351,7 +351,7 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Step Indicator */}
       <ChatStepIndicator
         currentStep={currentStep}
@@ -361,8 +361,8 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
       />
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 px-4 py-4">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <ScrollArea className="flex-1 px-4 sm:px-6 py-4">
+        <div className="max-w-full sm:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
           <AnimatePresence mode="popLayout">
             {messages.map((message) => (
               <motion.div
@@ -388,10 +388,10 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
                   message.type === 'user' && "flex flex-col items-end"
                 )}>
                   <Card className={cn(
-                    "px-4 py-3",
+                    "px-3 sm:px-4 py-2 sm:py-3",
                     message.type === 'user' && "bg-primary/5"
                   )}>
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</p>
                     
                     {message.suggestions && message.type === 'bot' && (
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -401,10 +401,10 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
                             variant="outline"
                             size="sm"
                             onClick={() => handleSuggestionClick(suggestion)}
-                            className="text-xs h-8"
+                            className="text-xs h-7 sm:h-8 px-2 sm:px-3"
                           >
                             <Sparkles className="mr-1 h-3 w-3" />
-                            {suggestion}
+                            <span className="truncate max-w-[200px] sm:max-w-none">{suggestion}</span>
                           </Button>
                         ))}
                       </div>
@@ -463,9 +463,9 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="border-t bg-background/95 backdrop-blur p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex gap-2 items-end">
+      <div className="border-t bg-background/95 backdrop-blur p-3 sm:p-4">
+        <div className="max-w-full sm:max-w-3xl lg:max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
             <div className="flex-1">
               <Textarea
                 ref={inputRef}
@@ -478,18 +478,19 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
                   }
                 }}
                 placeholder={conversationSteps[currentStep]?.placeholder || "Type your answer..."}
-                className="min-h-[80px] resize-none"
+                className="min-h-[60px] sm:min-h-[80px] resize-none text-sm"
                 disabled={isAnalyzing}
               />
-              <div className="flex items-center justify-between mt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleSkipStep}
                     disabled={isAnalyzing || currentStep >= conversationSteps.length - 1}
+                    className="text-xs sm:text-sm"
                   >
-                    <SkipForward className="mr-1 h-4 w-4" />
+                    <SkipForward className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                     Skip
                   </Button>
                   <Button
@@ -497,21 +498,24 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
                     size="sm"
                     onClick={resetChat}
                     disabled={isAnalyzing}
+                    className="text-xs sm:text-sm"
                   >
-                    <RotateCcw className="mr-1 h-4 w-4" />
+                    <RotateCcw className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                     Start Over
                   </Button>
                 </div>
                 <Button
                   onClick={() => handleStepAnswer(input, editingStep ?? currentStep)}
                   disabled={!input.trim() || isAnalyzing}
+                  size="sm"
+                  className="w-full sm:w-auto"
                 >
                   {isAnalyzing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                   ) : editingStep !== null ? (
-                    <Check className="mr-2 h-4 w-4" />
+                    <Check className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   ) : (
-                    <Send className="mr-2 h-4 w-4" />
+                    <Send className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   )}
                   {isAnalyzing ? "Analyzing..." : editingStep !== null ? "Update" : "Send"}
                 </Button>
