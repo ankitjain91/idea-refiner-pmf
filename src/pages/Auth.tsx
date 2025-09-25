@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogIn, UserPlus, Chrome, Twitter, Facebook, ArrowLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Session } from "@supabase/supabase-js";
 
 // Custom Microsoft icon component
 const MicrosoftIcon = () => (
@@ -25,35 +24,9 @@ export default function AuthPage() {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        
-        // Auto-redirect on successful auth
-        if (session?.user) {
-          navigate('/');
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      
-      // If already logged in, redirect to home
-      if (session?.user) {
-        navigate('/');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  const location = useLocation();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +53,9 @@ export default function AuthPage() {
         title: "Success",
         description: "Check your email for the confirmation link!",
       });
+      // Clear form
+      setEmail("");
+      setPassword("");
     }
     setLoading(false);
   };
@@ -104,7 +80,9 @@ export default function AuthPage() {
         title: "Welcome back!",
         description: "Successfully signed in.",
       });
-      // Navigation will happen automatically via onAuthStateChange
+      // Navigate to the page they were trying to access or dashboard
+      const from = (location.state as any)?.from?.pathname || '/dashboard';
+      navigate(from);
     }
     setLoading(false);
   };
