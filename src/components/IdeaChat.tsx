@@ -123,7 +123,11 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
 
     // Prefer AI-provided refinements if available
     if (pmf?.refinements && Array.isArray(pmf.refinements)) {
-      out.push(...pmf.refinements);
+      // Extract titles from refinement objects
+      const refinementTitles = pmf.refinements.map((r: any) => 
+        typeof r === 'string' ? r : r.title || r.description || 'Refinement suggestion'
+      );
+      out.push(...refinementTitles);
     }
 
     // Domain-specific suggestion sets
