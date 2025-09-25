@@ -422,10 +422,10 @@ export default function PMFAnalyzer() {
             </Button>
           </div>
           <div className={cn(
-            "transition-all duration-300 overflow-hidden",
-            chatCollapsed ? "max-h-0" : "max-h-[40vh]"
+            "transition-all duration-300",
+            chatCollapsed ? "h-0 overflow-hidden" : "h-auto"
           )}>
-            <div className="overflow-y-auto">
+            <div className="max-h-[40vh] overflow-y-auto">
               <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} />
             </div>
           </div>

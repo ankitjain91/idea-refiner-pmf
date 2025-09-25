@@ -23,7 +23,8 @@ import {
   Brain,
   Lightbulb,
   Star,
-  ArrowRight
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -113,6 +114,23 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  
+  // Reset function to start new analysis
+  const resetChat = () => {
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      type: 'bot',
+      content: "✨ Welcome to your AI-powered PMF advisor! I'm here to transform your startup idea into a validated business concept through intelligent conversation. Share your vision with me!",
+      timestamp: new Date(),
+      suggestions: getRandomSuggestions(4)
+    };
+    setMessages([welcomeMessage]);
+    setInput('');
+    setIsTyping(false);
+    setConversationStarted(false);
+    setPMFData(null);
+    setShowPMFAnalysis(false);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -533,13 +551,23 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
             </div>
             <div>
               <h3 className="font-bold text-lg">AI PMF Advisor</h3>
-              <p className="text-xs text-muted-foreground">Your intelligent startup companion</p>
+              <p className="text-xs text-muted-foreground">Devil's advocate mode active</p>
             </div>
           </div>
-          <Badge className="gap-1.5 bg-gradient-to-r from-primary to-primary/60 text-primary-foreground border-0">
-            <Sparkles className="h-3 w-3" />
-            GPT-5 Powered
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className="gap-1.5 bg-gradient-to-r from-primary to-primary/60 text-primary-foreground border-0">
+              <Sparkles className="h-3 w-3" />
+              GPT-5 Powered
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetChat}
+              title="Start new analysis"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

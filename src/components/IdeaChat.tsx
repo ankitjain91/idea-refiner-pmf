@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Sparkles, Bot, User, Target, TrendingUp, Users, Lightbulb, Rocket } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Send, Sparkles, Bot, User, Target, TrendingUp, Users, Lightbulb, Rocket, RotateCcw, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -98,7 +99,7 @@ const IdeaSuggestions: React.FC<{ onSelect: (idea: string) => void }> = ({ onSel
 };
 
 const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
-  const [hasStarted, setHasStarted] = useState(false);
+  const [hasStarted, setHasStarted] = useState(true); // Always start immediately
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [initialIdea, setInitialIdea] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -116,6 +117,24 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   const [conversationStage, setConversationStage] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Reset function to start new analysis
+  const resetChat = () => {
+    setMessages([]);
+    setInitialIdea('');
+    setIdeaData({
+      problem: '',
+      solution: '',
+      targetUsers: '',
+      uniqueness: '',
+      demographics: '',
+      monetization: '',
+      competition: ''
+    });
+    setConversationStage(0);
+    setInput('');
+    setIsTyping(false);
+  };
 
   // Build contextual, idea-specific suggestions (max 4)
   const buildContextualSuggestions = (ideaText: string, lastInput?: string, pmf?: any): string[] => {
@@ -651,7 +670,8 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
   };
 
   // Initial idea input interface with morph animation
-  if (!hasStarted) {
+  // Always show chat interface - removed initial idea input screen
+  if (false) { // Disabled to always show chat
     return (
       <div className="w-full max-w-xl mx-auto px-4">
         <div className={cn(
@@ -736,9 +756,18 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
               <Bot className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm truncate">PMF Advisor</h3>
-              <p className="text-xs text-muted-foreground hidden sm:block">Refining your idea for maximum profitability</p>
+              <h3 className="font-semibold text-sm truncate">PMF Advisor (Devil's Advocate Mode)</h3>
+              <p className="text-xs text-muted-foreground hidden sm:block">Challenging assumptions to strengthen your idea</p>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetChat}
+              className="ml-auto"
+              title="Start new analysis"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
