@@ -397,9 +397,83 @@ export default function ChatGPTStyleChat({
     await saveSession();
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setInput(suggestion);
-    inputRef.current?.focus();
+  const askNextQuestion = async (questionIndex: number) => {
+    const nextQuestion = ANALYSIS_QUESTIONS[questionIndex];
+    
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: { 
+          message: `Help me answer: ${nextQuestion}`,
+          idea: currentIdea,
+          currentQuestion: nextQuestion,
+          questionNumber: questionIndex,
+          analysisContext: analysisAnswers
+        }
+      });
+
+      const questionMessage: Message = {
+        id: `msg-question-${Date.now()}`,
+        type: 'bot',
+        content: nextQuestion,
+        timestamp: new Date(),
+        suggestions: data?.suggestions || []
+      };
+      
+      setMessages(prev => [...prev, questionMessage]);
+    } catch (error) {
+      console.error('Error getting suggestions:', error);
+      const questionMessage: Message = {
+        id: `msg-question-${Date.now()}`,
+        type: 'bot',
+        content: nextQuestion,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, questionMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSuggestionClick = async (suggestion: string) => {
+    // Create user message for the suggestion
+    const userMessage: Message = {
+      id: `msg-${Date.now()}`,
+      type: 'user',
+      content: suggestion,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Handle based on current state
+    if (!currentIdea && !isAnalyzing) {
+      // First message - set as idea and start analysis
+      setCurrentIdea(suggestion);
+      setInput('');
+      startAnalysis();
+    } else if (isAnalyzing) {
+      // During analysis - save answer and continue
+      const updatedAnswers = { ...analysisAnswers, [currentQuestionIndex]: suggestion };
+      setAnalysisAnswers(updatedAnswers);
+      
+      // Save session with updated answers
+      await saveSession();
+      
+      // Move to next question or complete
+      if (currentQuestionIndex < ANALYSIS_QUESTIONS.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setAnalysisProgress(((currentQuestionIndex + 2) / ANALYSIS_QUESTIONS.length) * 100);
+        await askNextQuestion(currentQuestionIndex + 1);
+      } else {
+        // Complete analysis
+        completeAnalysis();
+      }
+    }
+    
+    setInput('');
   };
 
   return (
@@ -519,18 +593,22 @@ export default function ChatGPTStyleChat({
                     </div>
                     
                     {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {msg.suggestions.map((suggestion, idx) => (
-                          <Button
-                            key={idx}
-                            onClick={() => handleSuggestionClick(suggestion)}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs h-7"
-                          >
-                            {suggestion}
-                          </Button>
-                        ))}
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-muted-foreground font-medium">AI-Powered Suggestions:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {msg.suggestions.map((suggestion, idx) => (
+                            <Button
+                              key={idx}
+                              onClick={() => handleSuggestionClick(suggestion)}
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group"
+                            >
+                              <Sparkles className="h-3 w-3 mr-1 text-primary group-hover:animate-pulse" />
+                              {suggestion}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
