@@ -118,9 +118,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUserProfile(profileData);
           }
         }
+      } else if (error) {
+        console.error("Failed to sync user role:", error);
       }
     } catch (error) {
-      console.error('Failed to sync user role:', error);
+      console.error("Error syncing user role:", error);
     }
   };
 
@@ -200,13 +202,58 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return false;
   };
 
+  // Initialize auth state
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.email);
+    let mounted = true;
+
+    const initialize = async () => {
+      try {
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
         
-        // Clear any existing refresh intervals
+        if (!mounted) return;
+        
+        if (initialSession) {
+          setSession(initialSession);
+          setUser(initialSession.user);
+          
+          // Fetch profile
+          const profile = await fetchUserProfile(initialSession.user.id);
+          if (mounted && profile) {
+            setUserProfile(profile);
+          }
+          
+          // Sync role after a delay
+          setTimeout(() => {
+            if (mounted) syncUserRole();
+          }, 1000);
+          
+          // Set up intervals
+          refreshIntervalRef.current = setInterval(() => {
+            checkTokenExpiry(initialSession);
+          }, 4 * 60 * 1000);
+          
+          roleRefreshIntervalRef.current = setInterval(() => {
+            syncUserRole();
+          }, 60 * 1000);
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log("Auth state changed:", event, newSession?.user?.email);
+        
+        if (!mounted) return;
+        
+        // Clear intervals
         if (refreshIntervalRef.current) {
           clearInterval(refreshIntervalRef.current);
           refreshIntervalRef.current = null;
@@ -216,112 +263,58 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           roleRefreshIntervalRef.current = null;
         }
         
-        setSession(session);
-        setUser(session?.user ?? null);
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
         
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Fetch user profile
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile) {
+        if (newSession?.user) {
+          // Fetch profile
+          const profile = await fetchUserProfile(newSession.user.id);
+          if (mounted && profile) {
             setUserProfile(profile);
           }
           
-          // Sync with Stripe
-          setTimeout(() => {
-            syncUserRole();
-          }, 1000);
+          // Set up intervals for active session
+          if (newSession) {
+            refreshIntervalRef.current = setInterval(() => {
+              checkTokenExpiry(newSession);
+            }, 4 * 60 * 1000);
+            
+            roleRefreshIntervalRef.current = setInterval(() => {
+              syncUserRole();
+            }, 60 * 1000);
+          }
           
-          // Set up token refresh interval (every 4 minutes)
-          refreshIntervalRef.current = setInterval(() => {
-            checkTokenExpiry(session);
-          }, 4 * 60 * 1000);
-          
-          // Set up role refresh interval (every 1 minute)
-          roleRefreshIntervalRef.current = setInterval(() => {
-            syncUserRole();
-          }, 60 * 1000);
-          
-          // Redirect to dashboard or saved location
-          const from = location.state?.from?.pathname || '/dashboard';
-          navigate(from);
-        } else if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
+          // Handle sign in redirect
+          if (event === 'SIGNED_IN') {
+            setTimeout(() => {
+              if (mounted) syncUserRole();
+            }, 1000);
+            
+            const from = location.state?.from?.pathname || '/dashboard';
+            navigate(from);
+          }
+        } else {
           setUserProfile(null);
-          navigate('/auth');
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully');
-        } else if (event === 'USER_UPDATED' && session?.user) {
-          // Refresh profile on user update
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile) {
-            setUserProfile(profile);
+          
+          if (event === 'SIGNED_OUT') {
+            localStorage.clear();
+            navigate('/auth');
           }
         }
         
-        setLoading(false);
+        // Ensure loading is false after auth state changes
+        if (mounted) {
+          setLoading(false);
+        }
       }
     );
 
-    // Check for existing session and verify token
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error getting session:", error);
-          setLoading(false);
-          return;
-        }
-        
-        if (session) {
-          const isExpired = checkTokenExpiry(session);
-          
-          if (isExpired) {
-            await refreshSession();
-          } else {
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
-            
-            if (userError || !user) {
-              console.error("Token verification failed:", userError);
-              await refreshSession();
-            } else {
-              setSession(session);
-              setUser(user);
-              
-              // Fetch user profile
-              const profile = await fetchUserProfile(user.id);
-              if (profile) {
-                setUserProfile(profile);
-              }
-              
-              // Sync with Stripe
-              setTimeout(() => {
-                syncUserRole();
-              }, 1000);
-              
-              // Set up refresh intervals
-              refreshIntervalRef.current = setInterval(() => {
-                checkTokenExpiry(session);
-              }, 4 * 60 * 1000);
-              
-              roleRefreshIntervalRef.current = setInterval(() => {
-                syncUserRole();
-              }, 60 * 1000);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    initializeAuth();
+    // Initialize auth
+    initialize();
 
-    // Cleanup on unmount
+    // Cleanup
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
@@ -330,11 +323,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         clearInterval(roleRefreshIntervalRef.current);
       }
     };
-  }, [navigate, location, toast]);
+  }, []); // Remove dependencies to prevent re-initialization
 
+  // Sign out
   const signOut = async () => {
     try {
-      // Clear refresh intervals
+      setLoading(true);
+      
+      // Clear intervals
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
         refreshIntervalRef.current = null;
@@ -344,27 +340,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         roleRefreshIntervalRef.current = null;
       }
       
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear local state
       setUser(null);
       setSession(null);
       setUserProfile(null);
-      navigate('/');
+      localStorage.clear();
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account.",
+      });
+      
+      navigate('/auth');
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Sign out error:", error);
+      toast({
+        title: "Sign out failed",
+        description: "There was an error signing out. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const value = {
-    user,
-    session,
-    userProfile,
-    loading,
-    signOut,
-    refreshSession,
-    syncUserRole,
-    hasRole,
-    canAccessFeature,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        userProfile,
+        loading,
+        signOut,
+        refreshSession,
+        syncUserRole,
+        hasRole,
+        canAccessFeature,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
