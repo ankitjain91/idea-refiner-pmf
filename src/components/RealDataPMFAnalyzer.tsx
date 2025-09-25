@@ -71,15 +71,16 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
   const fetcher = new RealDataFetcher();
 
   useEffect(() => {
-    if (idea) {
-      fetchAllData();
-    }
+    // Always fetch data, even with a default idea if none provided
+    const ideaToAnalyze = idea || "AI-powered productivity tool for remote teams";
+    fetchAllData(ideaToAnalyze);
   }, [idea]);
 
-  const fetchAllData = async () => {
+  const fetchAllData = async (ideaToFetch?: string) => {
+    const targetIdea = ideaToFetch || idea || "AI-powered productivity tool for remote teams";
     setLoading(true);
     try {
-      const sources = await fetcher.orchestrateDataCollection(idea, assumptions);
+      const sources = await fetcher.orchestrateDataCollection(targetIdea, assumptions);
       
       // Extract citations
       const citations: Record<string, SourceRef[]> = {
@@ -462,7 +463,7 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
               </p>
             </div>
             <Button 
-              onClick={fetchAllData} 
+              onClick={() => fetchAllData()} 
               disabled={loading}
               size="lg"
               className="shadow-lg"

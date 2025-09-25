@@ -106,8 +106,8 @@ serve(async (req) => {
       const parts = aiResponse.split('SUGGESTIONS:');
       const suggestionText = parts[1].trim();
       suggestions = suggestionText.split('\n')
-        .filter(s => s.trim())
-        .map(s => s.replace(/^\d+\.\s*/, '').trim())
+        .filter((s: string) => s.trim())
+        .map((s: string) => s.replace(/^\d+\.\s*/, '').trim())
         .slice(0, 4);
     }
     

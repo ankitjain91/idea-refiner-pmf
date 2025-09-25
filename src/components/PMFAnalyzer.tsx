@@ -36,7 +36,7 @@ export default function PMFAnalyzer() {
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [maxQuestions] = useState(10);
   const [signals, setSignals] = useState<SignalStatus[]>([]);
-  const [showDashboard, setShowDashboard] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(true); // Show dashboard immediately
   const [pmfScore, setPmfScore] = useState(0);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -53,6 +53,73 @@ export default function PMFAnalyzer() {
   const [metadata, setMetadata] = useState<any>(null);
   const { toast } = useToast();
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [autoAnalyzing, setAutoAnalyzing] = useState(false);
+
+  // Auto-fetch real market data on component mount
+  useEffect(() => {
+    const autoAnalyzeIdea = async () => {
+      if (!autoAnalyzing && !metadata) {
+        setAutoAnalyzing(true);
+        
+        // Example ideas to auto-analyze with real market data
+        const sampleIdeas = [
+          "AI-powered meal planning app for busy professionals",
+          "Sustainable fashion marketplace for Gen Z",
+          "Remote team collaboration tool with AI assistance",
+          "Mental health support platform for students",
+          "Crypto portfolio management for beginners"
+        ];
+        
+        const randomIdea = sampleIdeas[Math.floor(Math.random() * sampleIdeas.length)];
+        
+        try {
+          toast({
+            title: "Fetching Real Market Data",
+            description: `Analyzing: "${randomIdea}"`,
+          });
+          
+          setInitialIdea(randomIdea);
+          localStorage.setItem('userIdea', randomIdea);
+          
+          // Fetch real market signals
+          const fetchedMetadata = await fetchSignals(randomIdea);
+          setMetadata(fetchedMetadata);
+          
+          // Calculate PM-Fit score
+          const score = calculatePMFScore(fetchedMetadata.scoreBreakdown);
+          setPmfScore(score);
+          
+          // Set some sample answers for demonstration
+          const demoAnswers = {
+            'Initial Idea': randomIdea,
+            'What problem does your product solve?': 'Saves time and increases productivity',
+            'Who is your target audience?': 'B2C - Young adults (18-35)',
+            'What\'s your unique value proposition?': 'Superior user experience with AI integration'
+          };
+          setUserAnswers(demoAnswers);
+          localStorage.setItem('userAnswers', JSON.stringify(demoAnswers));
+          localStorage.setItem('ideaMetadata', JSON.stringify(fetchedMetadata));
+          
+          toast({
+            title: "Real Data Loaded",
+            description: `PM-Fit Score: ${score}/100 based on actual market data`,
+          });
+        } catch (error) {
+          console.error('Auto-analysis error:', error);
+          toast({
+            title: "Data Fetch Error",
+            description: "Failed to fetch market data. You can still enter your own idea.",
+            variant: "destructive"
+          });
+        } finally {
+          setAutoAnalyzing(false);
+        }
+      }
+    };
+    
+    // Run auto-analysis on mount
+    autoAnalyzeIdea();
+  }, []);
 
   const sampleQuestions = [
     {
@@ -587,7 +654,7 @@ export default function PMFAnalyzer() {
               
               {/* Real Data PM-Fit Analyzer */}
               <RealDataPMFAnalyzer 
-                idea={messages[0]?.content || idea}
+                idea={messages[0]?.content || initialIdea || idea || "AI-powered productivity tool for remote teams"}
                 assumptions={refinements}
               />
             </div>
