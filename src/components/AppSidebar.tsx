@@ -221,73 +221,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Recent Sessions */}
-        {isOpen && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center justify-between">
-              <span>Recent Sessions</span>
-              <Clock className="h-3 w-3" />
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <ScrollArea className="h-[300px]">
-                <SidebarMenu>
-                  {loadingSessions ? (
-                    <div className="px-2 py-4 text-sm text-muted-foreground">
-                      Loading sessions...
-                    </div>
-                  ) : sessions.length === 0 ? (
-                    <div className="px-2 py-4 text-sm text-muted-foreground">
-                      No sessions yet
-                    </div>
-                  ) : (
-                    sessions.map((session) => (
-                      <SidebarMenuItem key={session.id}>
-                        <div
-                          className={`group flex items-center justify-between px-2 py-2 rounded-md cursor-pointer transition-colors ${
-                            currentSessionId === session.id
-                              ? 'bg-primary/10 text-primary'
-                              : 'hover:bg-muted/50'
-                          }`}
-                          onClick={() => loadSession(session.id)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1">
-                              {currentSessionId === session.id && (
-                                <Star className="h-3 w-3 text-primary" />
-                              )}
-                              <p className="text-sm font-medium truncate">
-                                {session.session_name}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">
-                                Score: {session.pmf_score}%
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(session.last_accessed), 'MMM d')}
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteSession(session.id);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </SidebarMenuItem>
-                    ))
-                  )}
-                </SidebarMenu>
-              </ScrollArea>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {/* Removed Recent Sessions section */}
 
         {/* Help & Settings */}
         <SidebarGroup className="mt-auto">
