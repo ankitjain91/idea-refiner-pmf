@@ -270,8 +270,11 @@ export default function PMFAnalyzer() {
 
     setMessages(prev => [...prev, userMessage]);
     
-    // Store the answer
-    if (currentQuestion > 1 && currentQuestion <= maxQuestions) {
+    // Store the answer - always map to the correct question
+    if (currentQuestion === 1) {
+      // First message is the idea itself
+      setUserAnswers(prev => ({ ...prev, 'Initial Idea': ideaToSend }));
+    } else if (currentQuestion > 1 && currentQuestion <= maxQuestions) {
       const questionKey = sampleQuestions[currentQuestion - 2].question;
       setUserAnswers(prev => ({ ...prev, [questionKey]: ideaToSend }));
     }
@@ -290,6 +293,14 @@ export default function PMFAnalyzer() {
       let suggestions: string[] = [];
       if (nextQuestion) {
         const ideaContext = initialIdea || ideaToSend; // Use initial idea if available
+        
+        // Pass all context to the suggestions API
+        console.log('[PMF] Fetching suggestions with context:', {
+          question: nextQuestion,
+          idea: ideaContext,
+          previousAnswers: userAnswers
+        });
+        
         suggestions = await fetchSuggestions(nextQuestion, ideaContext);
       }
 

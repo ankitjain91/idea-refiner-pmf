@@ -29,27 +29,27 @@ serve(async (req) => {
     const systemPrompt = `You are an expert startup advisor helping entrepreneurs validate their ideas through Product-Market Fit analysis. Generate specific, contextual answer suggestions based on the user's startup idea.`;
     
     const userPrompt = `
-    Startup Idea: "${ideaDescription || 'Not provided yet'}"
-    
-    Previous context from conversation:
-    ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`).join('\n') : 'None'}
-    
-    Current Question: "${question}"
-    
-    Generate exactly 4 specific, realistic answer suggestions for this question that are:
-    1. Directly relevant to the startup idea described
-    2. Concrete and specific (not generic)
-    3. Diverse to cover different strategic approaches
-    4. Actionable and clear (2-15 words each)
-    
-    For example, if the idea is "AI-powered fitness app" and the question is "Who is your target audience?", good suggestions would be:
-    - "Busy professionals aged 25-40 seeking quick home workouts"
-    - "Fitness beginners intimidated by traditional gyms"
-    - "Parents wanting family-friendly exercise routines"
-    - "Senior citizens needing low-impact personalized training"
-    
-    Return ONLY a JSON array of 4 strings, no other text:
-    ["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`;
+Startup Idea: "${ideaDescription || 'Not provided yet'}"
+
+Previous context from conversation:
+${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`).join('\n') : 'None'}
+
+Current Question: "${question}"
+
+Generate exactly 4 specific, realistic answer suggestions for this question that are:
+1. Directly relevant to the startup idea: "${ideaDescription}"
+2. Concrete and specific (not generic)
+3. Diverse to cover different strategic approaches
+4. Actionable and clear (2-15 words each)
+
+For example, if the idea is "Cash flow tracking for freelancers" and the question is "Who is your target audience?", good suggestions would be:
+- "Freelance designers and developers earning $50K-150K annually"
+- "Solo consultants struggling with irregular income"
+- "Creative professionals transitioning from full-time employment"
+- "Digital nomads managing multiple client projects"
+
+Return a JSON array of exactly 4 strings:
+["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -58,23 +58,25 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini-2025-08-07',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 200
+        max_tokens: 300,
+        temperature: 0.7
       }),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('[GENERATE-SUGGESTIONS] OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[GENERATE-SUGGESTIONS] OpenAI API error:', errorText);
+      console.error('[GENERATE-SUGGESTIONS] Status:', response.status);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('[GENERATE-SUGGESTIONS] Raw OpenAI response:', data);
+    console.log('[GENERATE-SUGGESTIONS] OpenAI response:', JSON.stringify(data, null, 2));
     
     let suggestions = [];
     try {
