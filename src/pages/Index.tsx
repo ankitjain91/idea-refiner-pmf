@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import IdeaChat from "@/components/IdeaChat";
+import SimilarUsersExplorer from "@/components/SimilarUsersExplorer";
 import RefinementControls from "@/components/RefinementControls";
 import PMFDashboard from "@/components/PMFDashboard";
 import DemographicsAnalysis from "@/components/DemographicsAnalysis";
@@ -488,6 +489,13 @@ const Index = () => {
 
               {/* Features & Collaboration */}
               <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-1 xl:col-span-1 lg:col-span-2 xl:col-span-1">
+                <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
+                  <SimilarUsersExplorer 
+                    currentCategory={refinements.market}
+                    currentKeywords={[]}
+                    currentUserId={user.id}
+                  />
+                </div>
                 <div className="glass-card p-4 sm:p-5 md:p-6 card-hover">
                   <FeatureChecklist idea={idea} budget={refinements.budget} metadata={ideaMetadata} />
                 </div>
