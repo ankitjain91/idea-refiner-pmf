@@ -86,7 +86,18 @@ export default function LandingPage() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('already registered') || error.message.includes('already exists')) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "default",
+          });
+          setIsSignUp(false); // Switch back to sign-in
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: "Success!",
@@ -279,11 +290,9 @@ export default function LandingPage() {
                   required
                   disabled={isLoading || socialLoading !== null}
                 />
-                {isSignUp && (
-                  <p className="text-xs text-muted-foreground">
-                    Must be at least 6 characters
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground h-4">
+                  {isSignUp ? "Must be at least 6 characters" : ""}
+                </p>
               </div>
               
               <Button 
@@ -333,11 +342,9 @@ export default function LandingPage() {
                 )}
               </Button>
               
-              {isSignUp && (
-                <p className="text-xs text-center text-muted-foreground">
-                  By signing up, you agree to our Terms of Service and Privacy Policy
-                </p>
-              )}
+              <p className="text-xs text-center text-muted-foreground h-5">
+                {isSignUp ? "By signing up, you agree to our Terms of Service and Privacy Policy" : ""}
+              </p>
             </form>
           </CardContent>
         </Card>
