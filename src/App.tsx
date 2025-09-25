@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Pricing from "./pages/Pricing";
 import AuthPage from "./pages/Auth";
+import Logout from "./pages/Logout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,9 @@ const App = () => (
                 {/* Both root and auth routes show the landing page with integrated auth */}
                 <Route path="/" element={<AuthPage />} />
                 <Route path="/auth" element={<AuthPage />} />
+                
+                {/* Logout route */}
+                <Route path="/logout" element={<Logout />} />
                 
                 {/* Public route */}
                 <Route path="/pricing" element={<Pricing />} />
