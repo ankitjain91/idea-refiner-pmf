@@ -294,8 +294,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               if (mounted) syncUserRole();
             }, 1000);
             
-            const from = location.state?.from?.pathname || '/dashboard';
-            navigate(from);
+            const from = location.state?.from?.pathname;
+            if (from) navigate(from);
           }
         } else {
           setUserProfile(null);

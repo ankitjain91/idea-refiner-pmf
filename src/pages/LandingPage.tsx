@@ -89,9 +89,7 @@ export default function LandingPage() {
     try {
       authSchema.parse({ email, password });
       
-      // First check if user already exists (common case)
-      const { data: { users } } = await supabase.auth.admin.listUsers();
-      // This won't work in client, so rely on error message
+      // We rely on Supabase auth returning an error if the email is already registered
       
       const { error } = await supabase.auth.signUp({
         email,
