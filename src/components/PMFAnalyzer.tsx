@@ -30,9 +30,7 @@ interface SignalStatus {
 
 export default function PMFAnalyzer() {
   const [idea, setIdea] = useState('');
-  const [initialIdea, setInitialIdea] = useState(() => {
-    return localStorage.getItem('userIdea') || '';
-  }); // Store the initial startup idea
+  const [initialIdea, setInitialIdea] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(1);
@@ -42,28 +40,30 @@ export default function PMFAnalyzer() {
   const [pmfScore, setPmfScore] = useState(0);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [userAnswers, setUserAnswers] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem('userAnswers');
-    return saved ? JSON.parse(saved) : {};
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const [refinements, setRefinements] = useState({
+    ageRange: [18, 45],
+    regionFocus: 'global',
+    pricePoint: 50,
+    channelWeights: { tiktok: 0.3, instagram: 0.2, reddit: 0.2, youtube: 0.15, linkedin: 0.15 },
+    b2b: false,
+    premium: false,
+    niche: true
   });
-  const [refinements, setRefinements] = useState(() => {
-    const saved = localStorage.getItem('userRefinements');
-    return saved ? JSON.parse(saved) : {
-      ageRange: [18, 45],
-      regionFocus: 'global',
-      pricePoint: 50,
-      channelWeights: { tiktok: 0.3, instagram: 0.2, reddit: 0.2, youtube: 0.15, linkedin: 0.15 },
-      b2b: false,
-      premium: false,
-      niche: true
-    };
-  });
-  const [metadata, setMetadata] = useState<any>(() => {
-    const saved = localStorage.getItem('ideaMetadata');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [metadata, setMetadata] = useState<any>(null);
   const { toast } = useToast();
   const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Handle scroll to detect when user scrolls down
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const sampleQuestions = [
     {
@@ -391,41 +391,79 @@ export default function PMFAnalyzer() {
   };
 
   const handleIdeaChatAnalysis = (idea: string, metadata: any) => {
-    // Handle the analysis from the enhanced chat
+    // Reset everything for fresh analysis
     setInitialIdea(idea);
     setMetadata(metadata);
     setShowDashboard(true);
     setPmfScore(metadata?.pmfScore || 75);
+    setMessages([]); // Clear old messages
+    setUserAnswers({}); // Clear old answers
+    setRefinements({ // Reset refinements
+      ageRange: [18, 45],
+      regionFocus: 'global',
+      pricePoint: 50,
+      channelWeights: { tiktok: 0.3, instagram: 0.2, reddit: 0.2, youtube: 0.15, linkedin: 0.15 },
+      b2b: false,
+      premium: false,
+      niche: true
+    });
     
     // Store data
     localStorage.setItem('userIdea', idea);
     localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
+    localStorage.removeItem('userAnswers'); // Clear old data
+    localStorage.removeItem('userRefinements');
   };
 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
-      {/* Sticky Chat Header - Always Visible */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b shadow-sm">
-        <div className="container mx-auto p-4 max-w-7xl">
+      {/* Sticky Chat Header - Transforms on Scroll */}
+      <div className={cn(
+        "sticky top-0 z-40 transition-all duration-300",
+        isScrolled 
+          ? "bg-background/98 backdrop-blur-xl border-b shadow-lg py-2" 
+          : "bg-background/95 backdrop-blur-lg border-b shadow-sm py-4"
+      )}>
+        <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold gradient-text flex items-center gap-2">
-              <Zap className="h-5 w-5 text-primary" />
-              Refine Your Idea (Devil's Advocate Mode Active)
+            <h2 className={cn(
+              "font-semibold gradient-text flex items-center gap-2 transition-all duration-300",
+              isScrolled ? "text-base" : "text-lg"
+            )}>
+              <Zap className={cn(
+                "text-primary transition-all duration-300",
+                isScrolled ? "h-4 w-4" : "h-5 w-5"
+              )} />
+              {isScrolled ? "Refine Your Idea" : "Start Your PMF Journey (Devil's Advocate Mode Active)"}
             </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setChatCollapsed(!chatCollapsed)}
-            >
-              {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {isScrolled && (
+                <Badge 
+                  variant="outline" 
+                  className="animate-fade-in text-xs"
+                >
+                  {messages.length} iterations
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setChatCollapsed(!chatCollapsed)}
+                className="transition-transform hover:scale-105"
+              >
+                {chatCollapsed ? 'Show Chat' : 'Hide Chat'}
+              </Button>
+            </div>
           </div>
           <div className={cn(
-            "transition-all duration-300",
-            chatCollapsed ? "h-0 overflow-hidden" : "h-auto"
+            "transition-all duration-300 ease-in-out",
+            chatCollapsed ? "h-0 overflow-hidden opacity-0" : "h-auto opacity-100"
           )}>
-            <div className="max-h-[40vh] overflow-y-auto">
+            <div className={cn(
+              "overflow-y-auto transition-all duration-300",
+              isScrolled ? "max-h-[30vh]" : "max-h-[40vh]"
+            )}>
               <EnhancedIdeaChat onAnalysisReady={handleIdeaChatAnalysis} />
             </div>
           </div>
@@ -433,7 +471,10 @@ export default function PMFAnalyzer() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 container mx-auto p-6 max-w-7xl">
+      <div className={cn(
+        "flex-1 container mx-auto p-6 max-w-7xl transition-all duration-500",
+        isScrolled ? "animate-fade-in" : ""
+      )}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">{/* Chat Interface - Now shows the old chat interface for backward compatibility */}
           <div className="lg:col-span-2">
             <Card className="h-[600px] flex flex-col shadow-xl border-0 bg-card/95 backdrop-blur">
