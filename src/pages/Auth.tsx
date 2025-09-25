@@ -80,8 +80,8 @@ export default function AuthPage() {
         title: "Welcome back!",
         description: "Successfully signed in.",
       });
-      // Navigate to the page they were trying to access or dashboard
-      const from = (location.state as any)?.from?.pathname || '/dashboard';
+      // Navigate to the page they were trying to access or home (chat) page
+      const from = (location.state as any)?.from?.pathname || '/';
       navigate(from);
     }
     setLoading(false);

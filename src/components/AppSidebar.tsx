@@ -287,7 +287,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
