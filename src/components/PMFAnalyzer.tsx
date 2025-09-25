@@ -15,7 +15,6 @@ import RealTimeRefinementChart from './RealTimeRefinementChart';
 import PMFImprovements from './PMFImprovements';
 import RealDataPMFAnalyzer from './RealDataPMFAnalyzer';
 import StreamlinedPMFChat from './StreamlinedPMFChat';
-import CompactChatBox from './CompactChatBox';
 import LiveDataCards from './LiveDataCards';
 
 interface Message {
@@ -563,11 +562,6 @@ export default function PMFAnalyzer() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Compact Chat Box */}
-      <CompactChatBox 
-        onAnalysisReady={handleIdeaChatAnalysis}
-        className="z-50"
-      />
       
       {/* Main Container */}
       <div className="container-fluid py-4 sm:py-6 lg:py-8">

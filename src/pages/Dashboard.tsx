@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PMFAnalyzer from "@/components/PMFAnalyzer";
+import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [chatKey, setChatKey] = useState(0);
+  const [showAnalysisDashboard, setShowAnalysisDashboard] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
   
   useEffect(() => {
     // Clear all chat-related storage on mount (new login session)
@@ -35,6 +39,22 @@ const Dashboard = () => {
       navigate('/');
     }
   }, [user, loading, navigate]);
+
+  const handleAnalysisReady = (idea: string, metadata: any) => {
+    setAnalysisData({ idea, metadata });
+    setShowAnalysisDashboard(true);
+  };
+
+  const handleNewChat = () => {
+    localStorage.removeItem('currentSessionId');
+    localStorage.removeItem('userIdea');
+    localStorage.removeItem('userAnswers');
+    localStorage.removeItem('userRefinements');
+    localStorage.removeItem('ideaMetadata');
+    setChatKey((k) => k + 1);
+    setShowAnalysisDashboard(false);
+    setAnalysisData(null);
+  };
   
   // Show loading while checking auth
   if (loading) {
@@ -59,37 +79,53 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen flex w-full bg-gradient-to-br from-primary/5 via-accent/5 to-background">
-      <AppSidebar onNewChat={() => {
-        localStorage.removeItem('currentSessionId');
-        localStorage.removeItem('userIdea');
-        localStorage.removeItem('userAnswers');
-        localStorage.removeItem('userRefinements');
-        localStorage.removeItem('ideaMetadata');
-        setChatKey((k) => k + 1);
-      }} />
-      <div className="flex-1 relative">
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-4 right-4 z-50"
-        >
+      <AppSidebar onNewChat={handleNewChat} />
+      
+      <div className="flex-1 flex flex-col">
+        {/* Header with User Menu */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger />
+            <h1 className="text-xl font-semibold">PM-Fit Analyzer</h1>
+          </div>
           <UserMenu />
-        </motion.div>
-        <motion.div 
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="absolute top-4 left-4 z-50"
-        >
-          <SidebarTrigger />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="w-full h-full"
-        >
-          <PMFAnalyzer key={chatKey} />
-        </motion.div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* ChatGPT-style Chat - Primary Feature */}
+          <ChatGPTStyleChat 
+            key={chatKey} 
+            onAnalysisReady={handleAnalysisReady}
+          />
+
+          {/* Analysis Dashboard - Shows when ready */}
+          <AnimatePresence>
+            {showAnalysisDashboard && analysisData && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: '400px', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="border-t bg-background overflow-hidden"
+              >
+                <div className="h-full overflow-auto p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Market Analysis Dashboard</h2>
+                    <Button
+                      onClick={() => setShowAnalysisDashboard(false)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Hide Dashboard
+                    </Button>
+                  </div>
+                  <PMFAnalyzer key={`analysis-${chatKey}`} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
