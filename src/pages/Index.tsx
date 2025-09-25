@@ -82,6 +82,22 @@ const Index = () => {
       setIdea(data.original_idea || "");
       setIdeaId(data.id);
       setPmfScore(data.pmf_score || 0);
+      
+      // Load metadata if it exists
+      if (data.refined_idea || data.category || data.keywords) {
+        setIdeaMetadata({
+          refined_idea: data.refined_idea,
+          category: data.category,
+          keywords: data.keywords,
+          target_age: data.target_age,
+          income_range: data.income_range,
+          interests: data.interests,
+          trends: data.trends,
+          market_size: data.market_size,
+          competition: data.competition
+        });
+      }
+      
       // Load refinements if they exist
       if (data.market_size) {
         setRefinements({
@@ -90,8 +106,9 @@ const Index = () => {
           timeline: "mvp", // This isn't stored in DB yet
         });
       }
-      // If we have a saved idea, show the analysis
-      if (data.original_idea) {
+      
+      // If we have a saved idea with metadata, show the analysis
+      if (data.original_idea && (data.refined_idea || data.pmf_score > 0)) {
         setShowAnalysis(true);
       }
     }

@@ -800,13 +800,31 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           {!messages.some(m => m.showPMF) && (
             <div className="mt-3 flex justify-center">
               <Button
-                onClick={() => {
-                  const analyzeMessage = "Calculate my PMF score and provide detailed analysis";
-                  setInput(analyzeMessage);
-                  setTimeout(() => handleSend(), 100);
+                onClick={async () => {
+                  // Directly trigger PMF analysis
+                  setIsTyping(true);
+                  
+                  const botResponse = await generateBotResponse("Calculate my PMF score and provide detailed analysis");
+                  setIsTyping(false);
+                  
+                  if (botResponse.pmfAnalysis) {
+                    // Directly call the parent callback without updating chat
+                    onAnalysisReady(initialIdea, botResponse.pmfAnalysis);
+                  } else {
+                    // Fallback: add message to chat if no PMF analysis returned
+                    const botMessage: Message = {
+                      id: String(Date.now() + 1),
+                      type: 'bot',
+                      content: botResponse.message,
+                      timestamp: new Date(),
+                      suggestions: botResponse.suggestions
+                    };
+                    setMessages(prev => [...prev, botMessage]);
+                  }
                 }}
                 className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                 size="sm"
+                disabled={isTyping}
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Analyze PMF Score
