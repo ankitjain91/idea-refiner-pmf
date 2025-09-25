@@ -25,15 +25,11 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Routes>
-                {/* Auth route - shows landing page with integrated auth */}
+                {/* Both root and auth routes show the landing page with integrated auth */}
+                <Route path="/" element={<AuthPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 
-                {/* Public routes that become protected when accessed directly */}
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } />
+                {/* Public route */}
                 <Route path="/pricing" element={<Pricing />} />
                 
                 {/* Protected routes - require authentication */}
