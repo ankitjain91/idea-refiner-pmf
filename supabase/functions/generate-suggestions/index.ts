@@ -142,6 +142,20 @@ Good example format (not to copy):
           'Improves cross-functional team collaboration',
           'Provides actionable real-time data insights',
         ];
+      } else if (
+        lowerQ.includes('budget') ||
+        lowerQ.includes('pricing') ||
+        lowerQ.includes('price point') ||
+        lowerQ.includes('price') ||
+        lowerQ.includes('customer acquisition') ||
+        lowerQ.includes('cac')
+      ) {
+        suggestions = [
+          'Target CAC $5–$15 per signup',
+          'Early tests $2–$6 per lead',
+          'Paid social $8–$20 per signup',
+          'Content SEO $1–$4 per signup',
+        ];
       } else if (lowerQ.includes('value proposition') || lowerQ.includes('unique value')) {
         suggestions = [
           'Faster, simpler workflow than competitors',

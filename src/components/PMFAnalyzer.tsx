@@ -222,14 +222,14 @@ export default function PMFAnalyzer() {
   }, []);
 
   // Fetch AI-generated suggestions for the current question
-  const fetchSuggestions = async (question: string, ideaDesc: string) => {
+  const fetchSuggestions = async (question: string, ideaDesc: string, prevAnswers?: Record<string, string>) => {
     setLoadingSuggestions(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-suggestions', {
         body: {
           question,
           ideaDescription: ideaDesc,
-          previousAnswers: userAnswers
+          previousAnswers: prevAnswers ?? userAnswers
         }
       });
 
@@ -271,13 +271,15 @@ export default function PMFAnalyzer() {
     setMessages(prev => [...prev, userMessage]);
     
     // Store the answer - always map to the correct question
+    let updatedAnswers = { ...userAnswers };
     if (currentQuestion === 1) {
       // First message is the idea itself
-      setUserAnswers(prev => ({ ...prev, 'Initial Idea': ideaToSend }));
+      updatedAnswers['Initial Idea'] = ideaToSend;
     } else if (currentQuestion > 1 && currentQuestion <= maxQuestions) {
       const questionKey = sampleQuestions[currentQuestion - 2].question;
-      setUserAnswers(prev => ({ ...prev, [questionKey]: ideaToSend }));
+      updatedAnswers[questionKey] = ideaToSend;
     }
+    setUserAnswers(updatedAnswers);
 
     try {
       // Start fetching signals
@@ -298,10 +300,10 @@ export default function PMFAnalyzer() {
         console.log('[PMF] Fetching suggestions with context:', {
           question: nextQuestion,
           idea: ideaContext,
-          previousAnswers: userAnswers
+          previousAnswers: updatedAnswers
         });
         
-        suggestions = await fetchSuggestions(nextQuestion, ideaContext);
+        suggestions = await fetchSuggestions(nextQuestion, ideaContext, updatedAnswers);
       }
 
       // Simulate AI response
