@@ -10,6 +10,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
@@ -122,13 +123,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Main Content - Split View */}
-        <div className="flex-1 flex overflow-hidden">
+        {/* Main Content - Vertical Stack */}
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Chat Section */}
           <motion.div 
             className={cn(
-              "flex-1 flex flex-col overflow-hidden transition-all duration-300",
-              showAnalysisDashboard && "lg:max-w-[50%]"
+              "flex flex-col overflow-hidden transition-all duration-300",
+              showAnalysisDashboard ? "flex-1" : "h-full"
             )}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -140,62 +141,121 @@ const Dashboard = () => {
             />
           </motion.div>
 
-          {/* Analysis Dashboard - Side Panel */}
+          {/* Analysis Dashboard - Bottom Panel */}
           <AnimatePresence>
             {showAnalysisDashboard && (
               <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: "50%", opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "50%", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="border-l bg-muted/5 overflow-hidden flex flex-col"
+                className="border-t bg-background overflow-hidden flex flex-col"
               >
-                <div className="p-4 border-b bg-background/50">
+                <div className="p-4 border-b bg-background/95 backdrop-blur">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">Analysis Dashboard</h2>
                       <p className="text-xs text-muted-foreground mt-1">
                         {analysisData 
-                          ? `Detailed insights for: ${analysisData.idea}`
-                          : 'Start a chat and analysis to see insights'}
+                          ? `Real-time insights for: ${analysisData.idea}`
+                          : 'Complete the analysis to see insights'}
                       </p>
                     </div>
-                    <Badge variant={analysisData ? "default" : "secondary"} className="gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      {analysisData ? 'Live Analysis' : 'Awaiting Data'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={analysisData ? "default" : "secondary"} className="gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        {analysisData ? 'Live Analysis' : 'Awaiting Data'}
+                      </Badge>
+                      <Button
+                        onClick={() => setShowAnalysisDashboard(false)}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        Hide Dashboard
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto">
+                
+                <div className="flex-1 overflow-auto p-4">
                   {analysisData ? (
-                    <PMFAnalyzer key={`analysis-${chatKey}`} />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {/* Key Metrics from Chat Context */}
+                      <Card className="p-4">
+                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <BarChart className="h-4 w-4 text-primary" />
+                          Market Analysis
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Idea:</span>
+                            <p className="font-medium">{analysisData.idea}</p>
+                          </div>
+                          {analysisData.metadata?.answers && (
+                            <>
+                              <div>
+                                <span className="text-muted-foreground">Problem Solved:</span>
+                                <p className="text-xs">{analysisData.metadata.answers["What problem does your product solve?"] || "Analyzing..."}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Target Audience:</span>
+                                <p className="text-xs">{analysisData.metadata.answers["Who is your target audience?"] || "Analyzing..."}</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* Value Proposition from Chat */}
+                      <Card className="p-4">
+                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          Unique Value
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          {analysisData.metadata?.answers?.["What's your unique value proposition?"] ? (
+                            <p className="text-xs">{analysisData.metadata.answers["What's your unique value proposition?"]}</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Complete analysis to see value proposition</p>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* Competition & Monetization */}
+                      <Card className="p-4">
+                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                          Strategy Insights
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          {analysisData.metadata?.answers?.["What's your monetization strategy?"] && (
+                            <div>
+                              <span className="text-muted-foreground text-xs">Revenue Model:</span>
+                              <p className="text-xs">{analysisData.metadata.answers["What's your monetization strategy?"]}</p>
+                            </div>
+                          )}
+                          {analysisData.metadata?.answers?.["Who are your main competitors?"] && (
+                            <div>
+                              <span className="text-muted-foreground text-xs">Competition:</span>
+                              <p className="text-xs">{analysisData.metadata.answers["Who are your main competitors?"]}</p>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* Full Analysis View */}
+                      <div className="col-span-full">
+                        <PMFAnalyzer key={`analysis-${chatKey}`} />
+                      </div>
+                    </div>
                   ) : (
-                    <div className="flex items-center justify-center h-full p-8">
+                    <div className="flex items-center justify-center h-full">
                       <div className="text-center space-y-4 max-w-md">
                         <BarChart className="h-16 w-16 text-muted-foreground/30 mx-auto" />
-                        <h3 className="text-lg font-medium">No Analysis Yet</h3>
+                        <h3 className="text-lg font-medium">Complete Analysis to See Dashboard</h3>
                         <p className="text-sm text-muted-foreground">
-                          Start by entering your product idea in the chat, then click "Start PM-Fit Analysis" 
-                          to generate comprehensive market insights and recommendations.
+                          Enter your product idea and complete the 5-question analysis to generate comprehensive insights with real market data and sources.
                         </p>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                          <div className="p-2 bg-muted/50 rounded">
-                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
-                            Market Analysis
-                          </div>
-                          <div className="p-2 bg-muted/50 rounded">
-                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
-                            Competitor Research
-                          </div>
-                          <div className="p-2 bg-muted/50 rounded">
-                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
-                            User Demographics
-                          </div>
-                          <div className="p-2 bg-muted/50 rounded">
-                            <CheckCircle className="h-4 w-4 mx-auto mb-1" />
-                            PM-Fit Score
-                          </div>
-                        </div>
                       </div>
                     </div>
                   )}
