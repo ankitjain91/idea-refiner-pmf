@@ -64,15 +64,19 @@ const suggestionPool = [
   "Micro-investment platform"
 ];
 
-// Function to get random suggestions with better randomization
+// Fisher-Yates shuffle for true randomization
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Function to get random suggestions
 const getRandomSuggestions = (count: number = 4): string[] => {
-  // Use timestamp to ensure different results
-  const seed = Date.now();
-  const shuffled = [...suggestionPool].sort(() => {
-    const random = Math.sin(seed * Math.random()) * 10000;
-    return random - Math.floor(random);
-  });
-  return shuffled.slice(0, count);
+  return shuffleArray(suggestionPool).slice(0, count);
 };
 
 interface Message {
@@ -90,9 +94,17 @@ interface EnhancedIdeaChatProps {
 }
 
 const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) => {
-  // Generate initial suggestions once when component mounts
-  const [initialSuggestions] = useState(() => getRandomSuggestions(4));
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Force new suggestions on every render by not memoizing
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      type: 'bot',
+      content: "✨ Welcome to your AI-powered PMF advisor! I'm here to transform your startup idea into a validated business concept through intelligent conversation. Share your vision with me!",
+      timestamp: new Date(),
+      suggestions: getRandomSuggestions(4)
+    };
+    return [welcomeMessage];
+  });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationStarted, setConversationStarted] = useState(false);
@@ -109,20 +121,6 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  useEffect(() => {
-    // Add welcome message on mount with the pre-generated random suggestions
-    if (!conversationStarted) {
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        type: 'bot',
-        content: "✨ Welcome to your AI-powered PMF advisor! I'm here to transform your startup idea into a validated business concept through intelligent conversation. Share your vision with me!",
-        timestamp: new Date(),
-        suggestions: initialSuggestions
-      };
-      setMessages([welcomeMessage]);
-    }
-  }, []); // Empty dependency array ensures this only runs once per mount
 
   const sendMessage = async (messageText?: string) => {
     const textToSend = messageText || input.trim();
