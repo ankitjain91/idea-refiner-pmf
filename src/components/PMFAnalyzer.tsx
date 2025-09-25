@@ -259,41 +259,81 @@ export default function PMFAnalyzer() {
                       
                       <div className="grid gap-2">
                         {/* Active suggestions */}
-                        {[
-                          {
-                            title: "AI Resume Coach",
-                            description: "An AI that reviews resumes in real-time and suggests improvements based on job descriptions",
-                            emoji: "📝"
-                          },
-                          {
-                            title: "LocalFirst Social",
-                            description: "A neighborhood social network for sharing local events, recommendations, and safety alerts",
-                            emoji: "🏘️"
-                          },
-                          {
-                            title: "Pet Health Tracker",
-                            description: "Wearable device that monitors pet vitals and sends alerts to owners and vets",
-                            emoji: "🐕"
-                          },
-                        ].map((example, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setIdea(example.description)}
-                            className="group relative overflow-hidden rounded-xl border bg-card/50 p-4 text-left transition-all hover:bg-card/80 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50"
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="relative flex items-start gap-3">
-                              <span className="text-2xl">{example.emoji}</span>
-                              <div className="flex-1">
-                                <h4 className="font-medium text-sm mb-1">{example.title}</h4>
-                                <p className="text-xs text-muted-foreground line-clamp-2">
-                                  {example.description}
-                                </p>
+                        {(() => {
+                          const pool = [
+                            {
+                              title: "AI Resume Coach",
+                              description: "An AI that reviews resumes in real-time and suggests improvements based on job descriptions",
+                              emoji: "📝"
+                            },
+                            {
+                              title: "LocalFirst Social",
+                              description: "A neighborhood social network for sharing local events, recommendations, and safety alerts",
+                              emoji: "🏘️"
+                            },
+                            {
+                              title: "Pet Health Tracker",
+                              description: "Wearable device that monitors pet vitals and sends alerts to owners and vets",
+                              emoji: "🐕"
+                            },
+                            {
+                              title: "Travel Buddy AI",
+                              description: "Personalized trip planning with real-time itinerary updates and budget tracking",
+                              emoji: "🧳"
+                            },
+                            {
+                              title: "Home Energy Saver",
+                              description: "Smart recommendations to cut household energy costs with device-level insights",
+                              emoji: "⚡"
+                            },
+                            {
+                              title: "Smart Grocery Planner",
+                              description: "Auto-generated shopping lists based on pantry scanning and recipe suggestions",
+                              emoji: "🛒"
+                            },
+                            {
+                              title: "Freelancer Finance",
+                              description: "Cash flow tracking, tax estimates, and invoice automation for freelancers",
+                              emoji: "📊"
+                            },
+                            {
+                              title: "Language Tutor Bot",
+                              description: "Conversational language practice with instant grammar feedback and spaced repetition",
+                              emoji: "🗣️"
+                            },
+                            {
+                              title: "Remote Work Wellness",
+                              description: "Micro-break coaching and posture tracking to reduce burnout in remote teams",
+                              emoji: "🧘"
+                            }
+                          ];
+                          // Fisher–Yates shuffle
+                          for (let i = pool.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [pool[i], pool[j]] = [pool[j], pool[i]];
+                          }
+                          return pool.slice(0, 3).map((example, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setIdea(example.description)}
+                              className="group relative overflow-hidden rounded-xl border bg-card/50 p-4 text-left transition-all hover:bg-card/80 hover:shadow-lg hover:scale-[1.02] hover:border-primary/50"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="relative flex items-start gap-3">
+                                <span className="text-2xl">{example.emoji}</span>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-sm mb-1">{example.title}</h4>
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {example.description}
+                                  </p>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
-                          </button>
-                        ))}
+                            </button>
+                          ));
+                        })()}
+                        
+                        {/* Greyed out premium examples */}
                         
                         {/* Greyed out premium examples */}
                         {[
