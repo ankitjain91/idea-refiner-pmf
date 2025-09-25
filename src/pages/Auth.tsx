@@ -1,5 +1,5 @@
-import EnterpriseAuth from "@/components/EnterpriseAuth";
+import Auth from "@/components/Auth";
 
 export default function AuthPage() {
-  return <EnterpriseAuth />;
+  return <Auth />;
 }
