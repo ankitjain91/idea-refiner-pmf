@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import PaywallOverlay from "@/components/PaywallOverlay";
 import { 
   Target, 
   TrendingUp, 
@@ -32,6 +33,7 @@ import {
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface EnhancedPMFDashboardProps {
   idea: string;
@@ -222,146 +224,148 @@ export default function EnhancedPMFDashboard({
         </CardContent>
       </Card>
 
-      {/* Market Intelligence Section */}
-      <Collapsible open={expandedSections.market} onOpenChange={() => toggleSection('market')}>
-        <Card>
-          <CollapsibleTrigger className="w-full">
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Market Intelligence</CardTitle>
+      {/* Market Intelligence Section - Premium */}
+      <PaywallOverlay feature="marketAnalysis">
+        <Collapsible open={expandedSections.market} onOpenChange={() => toggleSection('market')}>
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-lg">Market Intelligence</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {loadingInsights.market && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {expandedSections.market ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {loadingInsights.market && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {expandedSections.market ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                </div>
-              </div>
-              <CardDescription>
-                Market size, growth trends, and competitive landscape
-              </CardDescription>
-            </CardHeader>
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent>
-            <CardContent className="space-y-4 pt-0">
-              {insights.market ? (
-                <>
-                  {/* Market Size & Growth */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-primary/5 rounded-lg">
-                      <h4 className="font-semibold mb-2 flex items-center gap-2">
-                        <DollarSign className="w-4 h-4" />
-                        Market Opportunity
-                      </h4>
-                      <div className="space-y-1 text-sm">
-                        <p><strong>Global Size:</strong> {insights.market.marketSize?.global || 'Loading...'}</p>
-                        <p><strong>Growth Rate:</strong> {insights.market.marketSize?.growth || 'Loading...'}</p>
-                        <div className="mt-2">
-                          <p className="font-medium mb-1">Top Regions:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {insights.market.marketSize?.topRegions?.map((region: string, idx: number) => (
-                              <Badge key={idx} variant="secondary">{region}</Badge>
-                            ))}
+                <CardDescription>
+                  Market size, growth trends, and competitive landscape
+                </CardDescription>
+              </CardHeader>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <CardContent className="space-y-4 pt-0">
+                {insights.market ? (
+                  <>
+                    {/* Market Size & Growth */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-primary/5 rounded-lg">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" />
+                          Market Opportunity
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Global Size:</strong> {insights.market.marketSize?.global || 'Loading...'}</p>
+                          <p><strong>Growth Rate:</strong> {insights.market.marketSize?.growth || 'Loading...'}</p>
+                          <div className="mt-2">
+                            <p className="font-medium mb-1">Top Regions:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {insights.market.marketSize?.topRegions?.map((region: string, idx: number) => (
+                                <Badge key={idx} variant="secondary">{region}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-success/5 rounded-lg">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Search className="w-4 h-4" />
+                          Search Demand
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Monthly Searches:</strong> {insights.market.searchData?.monthlySearches || 'Loading...'}</p>
+                          <p><strong>Trend:</strong> <Badge variant={insights.market.searchData?.trendDirection === 'rising' ? 'default' : 'secondary'}>{insights.market.searchData?.trendDirection || 'Loading...'}</Badge></p>
+                          <div className="mt-2">
+                            <p className="font-medium mb-1">Top Keywords:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {insights.market.searchData?.topKeywords?.map((keyword: string, idx: number) => (
+                                <Badge key={idx} variant="outline">{keyword}</Badge>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="p-4 bg-success/5 rounded-lg">
-                      <h4 className="font-semibold mb-2 flex items-center gap-2">
-                        <Search className="w-4 h-4" />
-                        Search Demand
+                    {/* Competitors */}
+                    <div className="space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Trophy className="w-4 h-4" />
+                        Competitive Analysis
                       </h4>
-                      <div className="space-y-1 text-sm">
-                        <p><strong>Monthly Searches:</strong> {insights.market.searchData?.monthlySearches || 'Loading...'}</p>
-                        <p><strong>Trend:</strong> <Badge variant={insights.market.searchData?.trendDirection === 'rising' ? 'default' : 'secondary'}>{insights.market.searchData?.trendDirection || 'Loading...'}</Badge></p>
-                        <div className="mt-2">
-                          <p className="font-medium mb-1">Top Keywords:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {insights.market.searchData?.topKeywords?.map((keyword: string, idx: number) => (
-                              <Badge key={idx} variant="outline">{keyword}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Competitors */}
-                  <div className="space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <Trophy className="w-4 h-4" />
-                      Competitive Analysis
-                    </h4>
-                    {insights.market.competitors?.map((competitor: any, idx: number) => (
-                      <div key={idx} className="p-3 border rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-medium">{competitor.name}</span>
-                          <Badge>{competitor.marketShare}</Badge>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <p className="text-success font-medium">Strengths:</p>
-                            <ul className="list-disc list-inside text-muted-foreground">
-                              {competitor.strengths?.map((s: string, i: number) => (
-                                <li key={i}>{s}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <p className="text-destructive font-medium">Weaknesses:</p>
-                            <ul className="list-disc list-inside text-muted-foreground">
-                              {competitor.weaknesses?.map((w: string, i: number) => (
-                                <li key={i}>{w}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                        <p className="text-sm mt-2"><strong>Pricing:</strong> {competitor.pricing}</p>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Opportunities */}
-                  <div className="space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <Zap className="w-4 h-4" />
-                      Market Opportunities
-                    </h4>
-                    <div className="grid gap-2">
-                      {insights.market.opportunities?.map((opp: any, idx: number) => (
+                      {insights.market.competitors?.map((competitor: any, idx: number) => (
                         <div key={idx} className="p-3 border rounded-lg">
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-medium">{opp.title}</span>
-                            <div className="flex gap-1">
-                              <Badge variant={opp.difficulty === 'easy' ? 'default' : opp.difficulty === 'medium' ? 'secondary' : 'destructive'}>
-                                {opp.difficulty}
-                              </Badge>
-                              <Badge variant="outline">{opp.timeframe}</Badge>
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-medium">{competitor.name}</span>
+                            <Badge>{competitor.marketShare}</Badge>
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-success font-medium">Strengths:</p>
+                              <ul className="list-disc list-inside text-muted-foreground">
+                                {competitor.strengths?.map((s: string, i: number) => (
+                                  <li key={i}>{s}</li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <p className="text-destructive font-medium">Weaknesses:</p>
+                              <ul className="list-disc list-inside text-muted-foreground">
+                                {competitor.weaknesses?.map((w: string, i: number) => (
+                                  <li key={i}>{w}</li>
+                                ))}
+                              </ul>
                             </div>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">{opp.description}</p>
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="font-medium">Impact:</span>
-                            <Badge variant={opp.expectedImpact === 'high' ? 'default' : 'secondary'}>
-                              {opp.expectedImpact}
-                            </Badge>
-                          </div>
+                          <p className="text-sm mt-2"><strong>Pricing:</strong> {competitor.pricing}</p>
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Opportunities */}
+                    <div className="space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Market Opportunities
+                      </h4>
+                      <div className="grid gap-2">
+                        {insights.market.opportunities?.map((opp: any, idx: number) => (
+                          <div key={idx} className="p-3 border rounded-lg">
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-medium">{opp.title}</span>
+                              <div className="flex gap-1">
+                                <Badge variant={opp.difficulty === 'easy' ? 'default' : opp.difficulty === 'medium' ? 'secondary' : 'destructive'}>
+                                  {opp.difficulty}
+                                </Badge>
+                                <Badge variant="outline">{opp.timeframe}</Badge>
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">{opp.description}</p>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-medium">Impact:</span>
+                              <Badge variant={opp.expectedImpact === 'high' ? 'default' : 'secondary'}>
+                                {opp.expectedImpact}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Click to load detailed market insights...
                   </div>
-                </>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Click to load detailed market insights...
-                </div>
-              )}
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      </PaywallOverlay>
 
       {/* Social Media Intelligence */}
       <Collapsible open={expandedSections.social} onOpenChange={() => toggleSection('social')}>
