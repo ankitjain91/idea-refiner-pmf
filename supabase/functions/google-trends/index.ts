@@ -32,26 +32,21 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a trends analyst with web search capabilities. SEARCH THE WEB for real, current Google Trends data and search trends about: "${keyword}".
+            content: `Return ONLY valid JSON, no explanations. Search web for trends about the keyword.
             
-            IMPORTANT: Search for ACTUAL data from:
-            - Google Trends website data
-            - Recent search volume statistics
-            - Real trending topics and related searches
-            - Actual geographic interest data
-            - Real-time trend velocity and growth patterns
-            
-            Provide ONLY real data you find from web searches in JSON format with:
-            - interestScore: number 0-100 (actual current interest level from Google Trends)
-            - velocity: number -100 to 100 (real growth trend)
-            - interestOverTime: array of {date, value} with REAL data points
-            - regions: array of {region, interest} with ACTUAL regional data
-            - relatedTopics: array of REAL trending related topics
-            - sources: array of URLs where you found this data`
+            Return this exact JSON structure:
+            {
+              "interestScore": <number 0-100>,
+              "velocity": <number -100 to 100>,
+              "interestOverTime": [{"date": "YYYY-MM-DD", "value": number}],
+              "regions": [{"region": "string", "interest": number}],
+              "relatedTopics": ["string"],
+              "sources": ["url string"]
+            }`
           },
           {
             role: 'user',
-            content: `Search the web for real Google Trends data and search statistics for "${keyword}" in ${geo} for ${timeframe}. Find actual search volumes, trending patterns, and regional interest. Include source URLs.`
+            content: `${keyword}`
           }
         ],
         max_tokens: 1200,

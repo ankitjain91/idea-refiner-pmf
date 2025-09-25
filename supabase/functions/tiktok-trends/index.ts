@@ -32,27 +32,22 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a TikTok analyst with web search capabilities. SEARCH THE WEB for real TikTok trends for hashtags: ${hashtags.join(', ')}.
+            content: `Return ONLY valid JSON, no explanations. Search TikTok for trends.
             
-            IMPORTANT: Search for ACTUAL TikTok data:
-            - Real TikTok videos and their view counts
-            - Actual viral content and engagement rates
-            - Real trending sounds and challenges
-            - Current demographic data from TikTok analytics
-            - Actual growth rates and viral patterns
-            
-            Provide ONLY real TikTok data in JSON format with:
-            - volume: number 0-100 (actual content volume)
-            - viralPotential: number 0-100 (based on real viral patterns)
-            - engagement: real average engagement rate
-            - trendingContent: array of REAL content {type, views, likes, shares, creator, url}
-            - demographics: ACTUAL demographics {ageGroups, interests} from TikTok
-            - growthRate: real weekly growth percentage
-            - sources: array of TikTok URLs or analytics sources`
+            Return this exact JSON structure:
+            {
+              "volume": <number 0-100>,
+              "viralPotential": <number 0-100>,
+              "engagement": <number>,
+              "trendingContent": [{"type": "string", "views": number, "likes": number, "shares": number, "creator": "string", "url": "string"}],
+              "demographics": {"ageGroups": ["string"], "interests": ["string"]},
+              "growthRate": <number>,
+              "sources": ["url string"]
+            }`
           },
           {
             role: 'user',
-            content: `Search the web for real TikTok trends and analytics for these hashtags: ${hashtags.join(', ')}. Find actual viral content, engagement metrics, and demographic data. Include sources.`
+            content: `${hashtags.join(', ')}`
           }
         ],
         max_tokens: 1200,

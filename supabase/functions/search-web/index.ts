@@ -32,26 +32,24 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a market research assistant with web search capabilities. SEARCH THE WEB for real, current information about: "${query}". 
+            content: `You are a web search API. Return ONLY valid JSON, no explanations or markdown.
             
-            IMPORTANT: You must search the actual internet for:
-            - Real competitor companies and their actual market share
-            - Current market size data from credible sources
-            - Actual pricing information from real companies
-            - Recent news and developments
+            Search the web for current information about the given query.
             
-            Provide ONLY real data you find from web searches in JSON format with these fields:
-            - competitorStrength: number 0-100 based on actual competitors found
-            - differentiationSignals: number 0-100 based on market gaps you discover
-            - topCompetitors: array of REAL companies with actual data {name, strength, marketShare}
-            - relatedQueries: actual search terms people use
-            - marketSize: real market size from credible sources with year
-            - growthRate: actual CAGR from industry reports
-            - sources: array of URLs where you found this information`
+            Return this exact JSON structure:
+            {
+              "competitorStrength": <number 0-100>,
+              "differentiationSignals": <number 0-100>,
+              "topCompetitors": [{"name": "string", "strength": number, "marketShare": number}],
+              "relatedQueries": ["string"],
+              "marketSize": number,
+              "growthRate": number,
+              "sources": ["url strings"]
+            }`
           },
           {
             role: 'user',
-            content: `Search the web for real market data about: ${query}. Look for actual companies, real market reports, current pricing, and verified statistics from the last ${recencyDays} days. Include source URLs.`
+            content: `${query}`
           }
         ],
         max_tokens: 1200,

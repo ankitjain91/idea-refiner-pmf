@@ -32,26 +32,21 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a YouTube analyst with web search capabilities. SEARCH THE WEB for real YouTube content about: "${q}".
+            content: `Return ONLY valid JSON, no explanations. Search YouTube for videos.
             
-            IMPORTANT: Search for ACTUAL YouTube videos and statistics:
-            - Real YouTube videos with actual titles, view counts, likes
-            - Actual channel names and subscriber counts
-            - Real engagement metrics from YouTube
-            - Current trending videos on this topic
-            - Actual creator sentiment and video descriptions
-            
-            Provide ONLY real YouTube data in JSON format with:
-            - volume: number 0-100 (actual content volume/activity)
-            - engagement: real average engagement rate
-            - topVideos: array of REAL videos {title, views, likes, channel, url}
-            - trendingTopics: array of actually trending topics on YouTube
-            - creatorSentiment: real creator sentiment about this topic
-            - sources: array of YouTube video URLs`
+            Return this exact JSON structure:
+            {
+              "volume": <number 0-100>,
+              "engagement": <number>,
+              "topVideos": [{"title": "string", "views": number, "likes": number, "channel": "string", "url": "string"}],
+              "trendingTopics": ["string"],
+              "creatorSentiment": "string",
+              "sources": ["url string"]
+            }`
           },
           {
             role: 'user',
-            content: `Search YouTube for real videos about "${q}" from the last ${timeframe}. Find actual video statistics, trending content, and engagement metrics. Include YouTube URLs.`
+            content: `${q}`
           }
         ],
         max_tokens: 1200,
