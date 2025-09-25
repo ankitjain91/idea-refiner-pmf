@@ -15,6 +15,7 @@ import RealTimeRefinementChart from './RealTimeRefinementChart';
 import PMFImprovements from './PMFImprovements';
 import RealDataPMFAnalyzer from './RealDataPMFAnalyzer';
 import StreamlinedPMFChat from './StreamlinedPMFChat';
+import CompactChatBox from './CompactChatBox';
 import LiveDataCards from './LiveDataCards';
 
 interface Message {
@@ -562,15 +563,35 @@ export default function PMFAnalyzer() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Compact Chat Box */}
+      <CompactChatBox 
+        onAnalysisReady={handleIdeaChatAnalysis}
+        className="z-50"
+      />
+      
       {/* Main Container */}
       <div className="container-fluid py-4 sm:py-6 lg:py-8">
-        {/* Chat Section */}
-        <div className="mb-6 sm:mb-8 animate-fade-in">
-          <StreamlinedPMFChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
-        </div>
 
-        {/* Dashboard Content - Only show when we have analyzed data */}
-        {showDashboard && (
+        {/* Auto-load dashboard for initial data */}
+        {!showDashboard && metadata && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12"
+          >
+            <h2 className="text-2xl font-bold mb-4">Welcome to PM-Fit Analyzer</h2>
+            <p className="text-muted-foreground mb-6">
+              Click the chat button in the bottom right to start analyzing your idea
+            </p>
+            <Badge variant="outline" className="animate-pulse">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Real-time market data ready
+            </Badge>
+          </motion.div>
+        )}
+
+        {/* Dashboard Content - Show immediately with data */}
+        {(showDashboard || metadata) && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
