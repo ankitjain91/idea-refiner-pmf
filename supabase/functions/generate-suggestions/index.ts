@@ -24,6 +24,8 @@ serve(async (req) => {
     const { question, ideaDescription, previousAnswers } = await req.json();
     
     console.log('[GENERATE-SUGGESTIONS] Generating suggestions for:', question);
+    console.log('[GENERATE-SUGGESTIONS] Idea context:', ideaDescription);
+    console.log('[GENERATE-SUGGESTIONS] Previous answers:', previousAnswers);
 
     // Create a context-aware prompt
     const systemPrompt = `You are an expert startup advisor helping entrepreneurs validate their ideas through Product-Market Fit analysis. Generate specific, contextual answer suggestions based on the user's startup idea.`;

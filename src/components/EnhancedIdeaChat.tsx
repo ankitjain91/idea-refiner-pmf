@@ -195,6 +195,31 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({ onAnalysisReady }) 
         // Extract suggestions if they're in the response
         let suggestions = data.suggestions || [];
         
+        // Generate AI-powered suggestions based on context
+        try {
+          const { data: suggestionData } = await supabase.functions.invoke('generate-suggestions', {
+            body: { 
+              question: formattedContent,
+              ideaDescription: messages.find(m => m.type === 'user')?.content || textToSend,
+              previousAnswers: messages.reduce((acc, msg, idx) => {
+                if (msg.type === 'user' && idx > 0) {
+                  const prevBot = messages[idx - 1];
+                  if (prevBot && prevBot.type === 'bot') {
+                    const key = `answer_${idx}`;
+                    acc[key] = msg.content;
+                  }
+                }
+                return acc;
+              }, {} as Record<string, string>)
+            }
+          });
+          if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
+            suggestions = suggestionData.suggestions;
+          }
+        } catch (error) {
+          console.error('Error getting AI suggestions:', error);
+        }
+        
         const botMessage: Message = {
           id: Date.now().toString(),
           type: 'bot',

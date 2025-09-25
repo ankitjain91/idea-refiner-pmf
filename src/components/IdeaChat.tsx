@@ -264,7 +264,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       setIdeaData(prev => ({ ...prev, problem: initialIdea }));
 
       // Add bot response after a delay with context-aware suggestions
-      setTimeout(() => {
+      setTimeout(async () => {
         // Generate contextual suggestions based on the idea
         const ideaLower = initialIdea.toLowerCase();
         let contextualSuggestions: string[] = [];
@@ -314,12 +314,32 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           ];
         }
         
+        // Generate AI-powered suggestions for the first question
+        const firstQuestion = `👋 Great idea! I'm your PMF advisor and I'll help you refine this to maximize product-market fit. Let me ask you a few questions to better understand your vision. First, who specifically would benefit most from ${initialIdea.includes('volunteer') ? 'this volunteer assistance platform' : 'your solution'}?`;
+        
+        // Get AI suggestions for the first question
+        let aiSuggestions = contextualSuggestions;
+        try {
+          const { data: suggestionData } = await supabase.functions.invoke('generate-suggestions', {
+            body: { 
+              question: "Who is your target audience?",
+              ideaDescription: initialIdea,
+              previousAnswers: {}
+            }
+          });
+          if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
+            aiSuggestions = suggestionData.suggestions;
+          }
+        } catch (error) {
+          console.error('Error getting initial AI suggestions:', error);
+        }
+        
         const botMessage: Message = {
           id: '2',
           type: 'bot',
-          content: `👋 Great idea! I'm your PMF advisor and I'll help you refine this to maximize product-market fit. Let me ask you a few questions to better understand your vision. First, who specifically would benefit most from ${initialIdea.includes('volunteer') ? 'this volunteer assistance platform' : 'your solution'}?`,
+          content: firstQuestion,
           timestamp: new Date(),
-          suggestions: contextualSuggestions
+          suggestions: aiSuggestions
         };
         setMessages(prev => [...prev, botMessage]);
       }, 800);
@@ -360,9 +380,25 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
         };
       }
 
+      // Generate AI-powered suggestions based on context
+      let contextualSuggestions = [];
+      try {
+        const { data: suggestionData } = await supabase.functions.invoke('generate-suggestions', {
+          body: { 
+            question: data.response || "I'm here to help refine your idea. Could you tell me more?",
+            ideaDescription: messages[0]?.content || initialIdea || userMessage,
+            previousAnswers: ideaData
+          }
+        });
+        contextualSuggestions = suggestionData?.suggestions || buildContextualSuggestions(messages[0]?.content || initialIdea || userMessage, userMessage);
+      } catch (error) {
+        console.error('Error getting AI suggestions:', error);
+        contextualSuggestions = buildContextualSuggestions(messages[0]?.content || initialIdea || userMessage, userMessage);
+      }
+      
       return {
         message: data.response || "I'm here to help refine your idea. Could you tell me more?",
-        suggestions: buildContextualSuggestions(messages[0]?.content || initialIdea || userMessage, userMessage)
+        suggestions: contextualSuggestions
       };
     } catch (error) {
       console.error('Error getting AI response:', error);
@@ -575,12 +611,29 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       
       setIdeaData(updatedData);
       
+      // Generate AI suggestions for the next question
+      let aiSuggestions = response.suggestions;
+      try {
+        const { data: suggestionData } = await supabase.functions.invoke('generate-suggestions', {
+          body: { 
+            question: response.message,
+            ideaDescription: messages[0]?.content || initialIdea,
+            previousAnswers: updatedData
+          }
+        });
+        if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
+          aiSuggestions = suggestionData.suggestions;
+        }
+      } catch (error) {
+        console.error('Error getting AI suggestions:', error);
+      }
+      
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
         content: response.message,
         timestamp: new Date(),
-        suggestions: response.suggestions
+        suggestions: aiSuggestions
       };
 
       setMessages(prev => [...prev, botMessage]);
