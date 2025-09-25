@@ -358,7 +358,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: "You have been logged out of your account.",
       });
       
-      navigate('/auth');
+      navigate('/');
     } catch (error) {
       console.error("Sign out error:", error);
       toast({

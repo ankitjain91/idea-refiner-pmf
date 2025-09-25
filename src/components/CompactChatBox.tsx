@@ -194,12 +194,11 @@ export default function CompactChatBox({ onAnalysisReady, className }: CompactCh
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 0.2 }}
           className={cn(
-            "fixed bottom-6 right-6 z-50",
-            isMinimized ? "w-80" : "w-96",
+            "fixed bottom-6 right-6 z-50 w-96",
             className
           )}
         >
-          <Card className="shadow-2xl border-2">
+          <Card className="shadow-2xl border-2 h-[500px] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-primary/10 to-primary/5">
               <div className="flex items-center gap-2">
@@ -232,9 +231,9 @@ export default function CompactChatBox({ onAnalysisReady, className }: CompactCh
             </div>
 
             {!isMinimized && (
-              <>
+              <div className="flex flex-col flex-1 overflow-hidden">
                 {/* Messages */}
-                <ScrollArea className="h-96 p-4">
+                <ScrollArea className="flex-1 p-4">
                   <div className="space-y-3">
                     {messages.length === 0 && (
                       <div className="text-center py-8">
@@ -359,7 +358,7 @@ export default function CompactChatBox({ onAnalysisReady, className }: CompactCh
                     </Button>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </Card>
         </motion.div>
