@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -564,13 +565,18 @@ export default function PMFAnalyzer() {
       {/* Main Container */}
       <div className="container-fluid py-4 sm:py-6 lg:py-8">
         {/* Chat Section */}
-        <div className="mb-6 sm:mb-8">
+        <div className="mb-6 sm:mb-8 animate-fade-in">
           <StreamlinedPMFChat onAnalysisReady={handleIdeaChatAnalysis} resetTrigger={resetTrigger} />
         </div>
 
         {/* Dashboard Content - Only show when we have analyzed data */}
         {showDashboard && (
-          <div className="space-y-6">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-6"
+          >
             <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 lg:gap-8">
               {/* PM-Fit Score Card */}
               <Card className="w-full shadow-xl border-0 bg-card/95 backdrop-blur">
@@ -662,7 +668,7 @@ export default function PMFAnalyzer() {
                 assumptions={refinements}
               />
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

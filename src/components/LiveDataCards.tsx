@@ -1,8 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import {
   TrendingUp,
   TrendingDown,
@@ -21,10 +28,14 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Loader2
+  Loader2,
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import { RealDataFetcher } from '@/lib/real-data-fetcher';
 import { motion, AnimatePresence } from 'framer-motion';
+import AITooltip from './AITooltip';
+import { cn } from '@/lib/utils';
 
 interface LiveDataCardsProps {
   idea: string;
@@ -39,7 +50,7 @@ interface PlatformData {
 }
 
 export default function LiveDataCards({ idea }: LiveDataCardsProps) {
-  const [platforms, setPlatforms] = useState<PlatformData[]>([
+  const [platforms, setPlatforms] = useState<PlatformData[]>(() => [
     { name: 'Web Search', icon: <Globe className="w-5 h-5" />, status: 'loading', data: null, color: 'bg-blue-500' },
     { name: 'Google Trends', icon: <TrendingUp className="w-5 h-5" />, status: 'loading', data: null, color: 'bg-green-500' },
     { name: 'Reddit', icon: <MessageSquare className="w-5 h-5" />, status: 'loading', data: null, color: 'bg-orange-500' },
@@ -49,15 +60,17 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
     { name: 'Amazon', icon: <ShoppingCart className="w-5 h-5" />, status: 'loading', data: null, color: 'bg-yellow-500' }
   ]);
 
-  const fetcher = new RealDataFetcher();
+  const fetcher = useMemo(() => new RealDataFetcher(), []);
 
-  useEffect(() => {
-    if (idea) {
-      fetchAllPlatformData();
-    }
-  }, [idea]);
+  const updatePlatform = useCallback((name: string, result: any) => {
+    setPlatforms(prev => prev.map(p => 
+      p.name === name 
+        ? { ...p, status: result.status === 'ok' ? 'success' : 'error', data: result }
+        : p
+    ));
+  }, []);
 
-  const fetchAllPlatformData = async () => {
+  const fetchAllPlatformData = useCallback(async () => {
     // Fetch Web Search
     fetcher.searchWeb(idea).then(result => {
       updatePlatform('Web Search', result);
@@ -92,35 +105,67 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
     fetcher.amazonPublic(idea).then(result => {
       updatePlatform('Amazon', result);
     });
+  }, [idea, fetcher, updatePlatform]);
+
+  useEffect(() => {
+    if (idea) {
+      fetchAllPlatformData();
+    }
+  }, [idea, fetchAllPlatformData]);
+
+  const renderDataSources = (sources: any[]) => {
+    if (!sources || sources.length === 0) return null;
+    
+    return (
+      <div className="mt-3 pt-3 border-t">
+        <div className="flex items-center gap-2 mb-2">
+          <ExternalLink className="w-3 h-3 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">Data Sources</span>
+        </div>
+        <div className="space-y-1">
+          {sources.slice(0, 3).map((source: any, i: number) => (
+            <a
+              key={i}
+              href={source.url || source}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline block truncate"
+            >
+              {source.source || source.url || source}
+            </a>
+          ))}
+        </div>
+      </div>
+    );
   };
 
-  const updatePlatform = (name: string, result: any) => {
-    setPlatforms(prev => prev.map(p => 
-      p.name === name 
-        ? { ...p, status: result.status === 'ok' ? 'success' : 'error', data: result }
-        : p
-    ));
-  };
-
-  const renderWebSearchCard = (data: any) => {
+  const renderWebSearchCard = useCallback((data: any) => {
     if (!data?.raw) return null;
+    
+    const marketSizeValue = data.raw.marketSize || 0;
+    const isLargeMarket = marketSizeValue > 10000000000;
     
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Market Size</p>
-            <p className="text-2xl font-bold">
-              ${(data.raw.marketSize / 1000000000).toFixed(1)}B
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Growth Rate</p>
-            <p className="text-2xl font-bold flex items-center gap-1">
-              {data.raw.growthRate}%
-              <TrendingUp className="w-4 h-4 text-green-500" />
-            </p>
-          </div>
+          <AITooltip content={isLargeMarket ? 'high' : 'low'} context="marketSize">
+            <div>
+              <p className="text-sm text-muted-foreground">Market Size</p>
+              <p className="text-2xl font-bold">
+                ${(marketSizeValue / 1000000000).toFixed(1)}B
+              </p>
+            </div>
+          </AITooltip>
+          
+          <AITooltip content={data.raw.growthRate > 20 ? 'high' : 'low'} context="growthRate">
+            <div>
+              <p className="text-sm text-muted-foreground">Growth Rate</p>
+              <p className="text-2xl font-bold flex items-center gap-1">
+                {data.raw.growthRate}%
+                <TrendingUp className="w-4 h-4 text-green-500" />
+              </p>
+            </div>
+          </AITooltip>
         </div>
 
         {data.raw.demographics && (
@@ -184,20 +229,24 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
             </ScrollArea>
           </div>
         )}
+        
+        {renderDataSources(data.raw.sources || data.citations)}
       </div>
     );
-  };
+  }, []);
 
-  const renderTrendsCard = (data: any) => {
+  const renderTrendsCard = useCallback((data: any) => {
     if (!data?.raw) return null;
     
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Interest Score</p>
-            <p className="text-2xl font-bold">{data.raw.interestScore || 0}/100</p>
-          </div>
+          <AITooltip content="default" context="marketSize">
+            <div>
+              <p className="text-sm text-muted-foreground">Interest Score</p>
+              <p className="text-2xl font-bold">{data.raw.interestScore || 0}/100</p>
+            </div>
+          </AITooltip>
           <Badge 
             variant={data.raw.trendDirection === 'rising' ? 'default' : 'secondary'}
             className="flex items-center gap-1"
@@ -244,29 +293,36 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
             ))}
           </div>
         )}
+        
+        {renderDataSources(data.raw.sources || data.citations)}
       </div>
     );
-  };
+  }, []);
 
-  const renderRedditCard = (data: any) => {
+  const renderRedditCard = useCallback((data: any) => {
     if (!data?.raw) return null;
     
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Pain Density</p>
-            <div className="flex items-center gap-2">
-              <p className="text-2xl font-bold">{data.normalized?.painDensity || 0}%</p>
-              <AlertCircle className="w-4 h-4 text-yellow-500" />
+          <AITooltip content={data.normalized?.painDensity > 60 ? 'high' : 'low'} context="painDensity">
+            <div>
+              <p className="text-sm text-muted-foreground">Pain Density</p>
+              <div className="flex items-center gap-2">
+                <p className="text-2xl font-bold">{data.normalized?.painDensity || 0}%</p>
+                <AlertCircle className="w-4 h-4 text-yellow-500" />
+              </div>
             </div>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Sentiment</p>
-            <p className="text-2xl font-bold">
-              {data.normalized?.sentiment > 0 ? '+' : ''}{data.normalized?.sentiment || 0}
-            </p>
-          </div>
+          </AITooltip>
+          
+          <AITooltip content={data.normalized?.sentiment > 0 ? 'positive' : 'negative'} context="sentiment">
+            <div>
+              <p className="text-sm text-muted-foreground">Sentiment</p>
+              <p className="text-2xl font-bold">
+                {data.normalized?.sentiment > 0 ? '+' : ''}{data.normalized?.sentiment || 0}
+              </p>
+            </div>
+          </AITooltip>
         </div>
 
         {data.raw.demographics && (
@@ -309,9 +365,11 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
             </div>
           </div>
         )}
+        
+        {renderDataSources(data.raw.sources || data.citations)}
       </div>
     );
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
