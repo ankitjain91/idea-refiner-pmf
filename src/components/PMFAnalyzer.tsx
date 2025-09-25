@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useImperativeHandle } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,7 +28,7 @@ interface SignalStatus {
   message?: string;
 }
 
-const PMFAnalyzer = React.forwardRef((props, ref) => {
+export default function PMFAnalyzer() {
   const [idea, setIdea] = useState('');
   const [initialIdea, setInitialIdea] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -493,10 +493,6 @@ const PMFAnalyzer = React.forwardRef((props, ref) => {
     setResetTrigger(Date.now());
   };
 
-  // Expose reset method via ref
-  useImperativeHandle(ref, () => ({
-    resetAnalyzer
-  }));
 
 
   return (
@@ -921,8 +917,4 @@ const PMFAnalyzer = React.forwardRef((props, ref) => {
       </div>
     </div>
   );
-});
-
-PMFAnalyzer.displayName = 'PMFAnalyzer';
-
-export default PMFAnalyzer;
+}

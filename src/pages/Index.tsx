@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PMFAnalyzer from "@/components/PMFAnalyzer";
 import { UserMenu } from "@/components/UserMenu";
@@ -10,7 +10,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const analyzerRef = useRef<any>(null);
+  const [chatKey, setChatKey] = useState(0);
   
   useEffect(() => {
     // Redirect to auth if not logged in and not loading
@@ -35,7 +35,14 @@ const Index = () => {
   
   return (
     <div className="min-h-screen flex w-full">
-      <AppSidebar onNewChat={() => analyzerRef.current?.resetAnalyzer?.()} />
+      <AppSidebar onNewChat={() => {
+        localStorage.removeItem('currentSessionId');
+        localStorage.removeItem('userIdea');
+        localStorage.removeItem('userAnswers');
+        localStorage.removeItem('userRefinements');
+        localStorage.removeItem('ideaMetadata');
+        setChatKey((k) => k + 1);
+      }} />
       <div className="flex-1 relative">
         <div className="absolute top-4 right-4 z-50">
           <UserMenu />
@@ -43,7 +50,7 @@ const Index = () => {
         <div className="absolute top-4 left-4 z-50">
           <SidebarTrigger />
         </div>
-        <PMFAnalyzer ref={analyzerRef} />
+        <PMFAnalyzer key={chatKey} />
       </div>
     </div>
   );
