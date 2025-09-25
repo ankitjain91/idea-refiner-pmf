@@ -1,9 +1,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
+const allowedOrigins = [
+  'https://lovableproject.com',
+  'https://*.lovableproject.com',
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': '*', // Will be overridden dynamically
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {

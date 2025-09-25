@@ -16,8 +16,7 @@ interface SimilarIdea {
   keywords: string[];
   user_id: string;
   profiles?: {
-    email: string;
-    display_name: string;
+    display_name: string | null;
   };
 }
 
@@ -106,7 +105,7 @@ export default function CollaborationHub({
         data.map(async (idea) => {
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('email, display_name')
+            .select('display_name')
             .eq('user_id', idea.user_id)
             .maybeSingle();
           
@@ -196,11 +195,11 @@ export default function CollaborationHub({
                     <div className="flex items-center gap-2">
                       <Avatar className="w-6 h-6">
                         <AvatarFallback className="text-xs">
-                          {idea.profiles?.email?.[0]?.toUpperCase() || 'U'}
+                          {idea.profiles?.display_name?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-sm text-muted-foreground">
-                        {idea.profiles?.display_name || idea.profiles?.email?.split('@')[0] || 'Anonymous'}
+                        {idea.profiles?.display_name || 'Anonymous'}
                       </span>
                       <Badge variant="outline" className="text-xs">
                         PMF: {idea.pmf_score}%

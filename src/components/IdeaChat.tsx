@@ -7,6 +7,7 @@ import { Send, Sparkles, Bot, User, Target, TrendingUp, Users, Lightbulb, Rocket
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { chatMessageSchema } from '@/lib/validation';
 
 interface Message {
   id: string;
