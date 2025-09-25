@@ -235,9 +235,13 @@ export default function PMFAnalyzer() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to fetch suggestions:', error);
+        // Return fallback suggestions
+        return ['Tell me more about this', 'I need help with this', 'Skip this question', 'Not sure yet'];
+      }
       
-      const suggestions = data?.suggestions || [];
+      const suggestions = data?.suggestions || ['Tell me more', 'Need clarification', 'Skip', 'Help me'];
       setCurrentSuggestions(suggestions);
       return suggestions;
     } catch (error) {

@@ -139,8 +139,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini', // Using stable legacy model for reliability
         messages,
-        temperature: 0.8,
         max_tokens: 1200, // Legacy models use max_tokens
+        temperature: 0.8
       }),
     });
 
