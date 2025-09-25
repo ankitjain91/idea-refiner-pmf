@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EnhancedPMFDashboard from "@/components/EnhancedPMFDashboard";
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { Loader2, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useNavigate } from "react-router-dom";
 
 // Hook to check authentication status and refresh token when needed
