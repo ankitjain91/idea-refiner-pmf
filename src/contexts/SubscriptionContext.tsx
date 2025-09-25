@@ -97,20 +97,16 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] = useState({
-    subscribed: true,
-    tier: 'pro' as SubscriptionTier,
-    product_id: 'prod_T7CsnetIz8NE1N' as string | null,
-    subscription_end: '2025-12-31T23:59:59Z' as string | null,
+    subscribed: false,
+    tier: 'free' as SubscriptionTier,
+    product_id: null as string | null,
+    subscription_end: null as string | null,
   });
   const [loading, setLoading] = useState(true);
   const [ideaCount, setIdeaCount] = useState(0);
   const { toast } = useToast();
 
   const checkSubscription = async () => {
-    // Skip subscription check for demo/creator account
-    if (subscription.tier === 'pro' || subscription.tier === 'enterprise') {
-      return; // Keep the hardcoded Pro/Enterprise status
-    }
     
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
