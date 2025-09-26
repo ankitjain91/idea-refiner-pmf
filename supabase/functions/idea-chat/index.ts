@@ -89,9 +89,19 @@ Format as JSON array of strings only.`;
     if (response.ok) {
       const data = await response.json();
       const content = data.choices[0].message.content;
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      
+      try {
+        // Try to extract JSON array from the response
+        const jsonMatch = content.match(/\[[\s\S]*?\]/);
+        if (jsonMatch) {
+          const suggestions = JSON.parse(jsonMatch[0]);
+          // Ensure we have an array of strings
+          if (Array.isArray(suggestions)) {
+            return suggestions.slice(0, 4); // Return max 4 suggestions
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing suggestions JSON:', e);
       }
     }
   } catch (error) {
@@ -207,13 +217,32 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
         const content = analysisData.choices[0].message.content;
         
         try {
+          // Clean the content to extract JSON
+          let cleanContent = content;
+          
+          // Try to find JSON object in the response
           const jsonMatch = content.match(/\{[\s\S]*\}/);
-          const pmfAnalysis = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+          if (jsonMatch) {
+            cleanContent = jsonMatch[0];
+          }
+          
+          // Parse the JSON
+          const pmfAnalysis = JSON.parse(cleanContent);
+          
+          // Ensure required fields exist with defaults
+          const validatedAnalysis = {
+            pmfScore: pmfAnalysis.pmfScore || 0,
+            audience: pmfAnalysis.audience || {},
+            scoreBreakdown: pmfAnalysis.scoreBreakdown || {},
+            competitors: pmfAnalysis.competitors || [],
+            marketSize: pmfAnalysis.marketSize || {},
+            refinements: pmfAnalysis.refinements || []
+          };
           
           return new Response(
             JSON.stringify({ 
-              response: `I've completed a comprehensive analysis of "${message}". The PM-Fit score is ${pmfAnalysis.pmfScore}/100.`,
-              pmfAnalysis,
+              response: `I've completed a comprehensive analysis of "${message}". The PM-Fit score is ${validatedAnalysis.pmfScore}/100.`,
+              pmfAnalysis: validatedAnalysis,
               suggestions: [
                 `View detailed market analysis`,
                 `Explore competitor insights`,
@@ -225,6 +254,21 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
           );
         } catch (parseError) {
           console.error('Error parsing PMF analysis:', parseError);
+          console.error('Raw content:', content);
+          
+          // Return a basic response if parsing fails
+          return new Response(
+            JSON.stringify({ 
+              response: `I've analyzed "${message}". Let me help you refine your idea further.`,
+              suggestions: [
+                `Tell me more about your target audience`,
+                `What problem does this solve?`,
+                `How will you monetize this?`,
+                `Who are your main competitors?`
+              ]
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
       }
     }

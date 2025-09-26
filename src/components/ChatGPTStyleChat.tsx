@@ -376,14 +376,25 @@ export default function ChatGPTStyleChat({
           let responseContent = '';
           let responseSuggestions = [];
           
-          if (typeof data === 'string') {
-            responseContent = data;
-          } else if (data.response) {
-            responseContent = data.response;
-            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-          } else if (data.message) {
-            responseContent = data.message;
-            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          try {
+            if (typeof data === 'string') {
+              // If data is a string, try to parse it as JSON first
+              try {
+                const parsed = JSON.parse(data);
+                responseContent = parsed.response || parsed.message || data;
+                responseSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+              } catch {
+                // If parsing fails, use the string as is
+                responseContent = data;
+              }
+            } else if (typeof data === 'object') {
+              // Handle object response
+              responseContent = data.response || data.message || '';
+              responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+            }
+          } catch (parseError) {
+            console.error('Error parsing response:', parseError);
+            responseContent = 'I understand. Let me help you with that.';
           }
           
           if (responseContent) {
@@ -624,14 +635,25 @@ export default function ChatGPTStyleChat({
         let responseContent = '';
         let responseSuggestions = [];
         
-        if (typeof data === 'string') {
-          responseContent = data;
-        } else if (data.response) {
-          responseContent = data.response;
-          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-        } else if (data.message) {
-          responseContent = data.message;
-          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        try {
+          if (typeof data === 'string') {
+            // If data is a string, try to parse it as JSON first
+            try {
+              const parsed = JSON.parse(data);
+              responseContent = parsed.response || parsed.message || data;
+              responseSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+            } catch {
+              // If parsing fails, use the string as is
+              responseContent = data;
+            }
+          } else if (typeof data === 'object') {
+            // Handle object response
+            responseContent = data.response || data.message || '';
+            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          }
+        } catch (parseError) {
+          console.error('Error parsing refinement response:', parseError);
+          responseContent = `Great idea! Let me help you explore "${idea}". What specific aspects would you like to refine or discuss?`;
         }
         
         const botMessage: Message = {
@@ -764,18 +786,29 @@ export default function ChatGPTStyleChat({
         setMessages(prev => prev.filter(msg => !msg.isTyping));
 
         if (!error && data) {
-          // Handle both string and object responses
+          // Handle both string and object responses with better error handling
           let responseContent = '';
           let responseSuggestions = [];
           
-          if (typeof data === 'string') {
-            responseContent = data;
-          } else if (data.response) {
-            responseContent = data.response;
-            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-          } else if (data.message) {
-            responseContent = data.message;
-            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          try {
+            if (typeof data === 'string') {
+              // If data is a string, try to parse it as JSON first
+              try {
+                const parsed = JSON.parse(data);
+                responseContent = parsed.response || parsed.message || data;
+                responseSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+              } catch {
+                // If parsing fails, use the string as is
+                responseContent = data;
+              }
+            } else if (typeof data === 'object') {
+              // Handle object response
+              responseContent = data.response || data.message || '';
+              responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+            }
+          } catch (parseError) {
+            console.error('Error parsing suggestion response:', parseError);
+            responseContent = 'I understand. Let me help you explore that further.';
           }
           
           if (responseContent) {
