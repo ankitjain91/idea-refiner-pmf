@@ -70,15 +70,15 @@ All colors MUST be HSL.
     --shadow-hover: 0 8px 32px hsl(280 85% 65% / 0.2);
     --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.15);
     
-    /* Responsive Font Sizes */
-    --text-xs: clamp(0.75rem, 1.5vw, 0.875rem);
-    --text-sm: clamp(0.875rem, 2vw, 1rem);
-    --text-base: clamp(1rem, 2.5vw, 1.125rem);
-    --text-lg: clamp(1.125rem, 3vw, 1.25rem);
-    --text-xl: clamp(1.25rem, 3.5vw, 1.5rem);
-    --text-2xl: clamp(1.5rem, 4vw, 2rem);
-    --text-3xl: clamp(2rem, 5vw, 3rem);
-    --text-4xl: clamp(2.5rem, 6vw, 4rem);
+    /* Responsive Font Sizes - More fluid scaling */
+    --text-xs: clamp(0.65rem, 0.5rem + 0.5vw, 0.75rem);
+    --text-sm: clamp(0.75rem, 0.6rem + 0.6vw, 0.875rem);
+    --text-base: clamp(0.875rem, 0.7rem + 0.8vw, 1rem);
+    --text-lg: clamp(1rem, 0.8rem + 1vw, 1.125rem);
+    --text-xl: clamp(1.125rem, 0.9rem + 1.2vw, 1.25rem);
+    --text-2xl: clamp(1.25rem, 1rem + 1.5vw, 1.75rem);
+    --text-3xl: clamp(1.5rem, 1.2rem + 2vw, 2.5rem);
+    --text-4xl: clamp(1.875rem, 1.5rem + 2.5vw, 3rem);
     
     /* Responsive Spacing Scale */
     --spacing-xs: clamp(0.25rem, 1vw, 0.5rem);
