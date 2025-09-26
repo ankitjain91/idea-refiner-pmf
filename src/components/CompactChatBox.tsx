@@ -279,15 +279,21 @@ export default function CompactChatBox({ onAnalysisReady, className }: CompactCh
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     {msg.suggestions && msg.suggestions.length > 0 && (
                       <div className="mt-2 space-y-1">
-                        {msg.suggestions.map((suggestion, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleSuggestionClick(suggestion)}
-                            className="block w-full text-left text-xs px-2 py-1 rounded bg-background/50 hover:bg-background transition-colors"
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
+                        {msg.suggestions.map((suggestion, idx) => {
+                          const emojis = ['🌟', '💫', '✨', '🎯'];
+                          const emoji = emojis[idx % emojis.length];
+                          
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => handleSuggestionClick(suggestion)}
+                              className="block w-full text-left text-xs px-2 py-1 rounded bg-background/50 hover:bg-background transition-colors flex items-center gap-1"
+                            >
+                              <span>{emoji}</span>
+                              <span>{suggestion}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -323,17 +329,23 @@ export default function CompactChatBox({ onAnalysisReady, className }: CompactCh
             <div className="px-3 pb-2">
               <p className="text-xs text-muted-foreground mb-2">Quick ideas:</p>
               <div className="flex flex-wrap gap-1">
-                {getContextualSuggestions().slice(0, 2).map((suggestion, idx) => (
-                  <Button
-                    key={idx}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7"
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
+                {getContextualSuggestions().slice(0, 2).map((suggestion, idx) => {
+                  const quickEmojis = ['💡', '🚀'];
+                  const emoji = quickEmojis[idx % quickEmojis.length];
+                  
+                  return (
+                    <Button
+                      key={idx}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7 hover:scale-105 transition-transform duration-200"
+                    >
+                      <span className="mr-1">{emoji}</span>
+                      {suggestion}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           )}

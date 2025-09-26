@@ -984,23 +984,29 @@ export default function ChatGPTStyleChat({
                       <p className="text-sm font-semibold text-foreground">Popular startup ideas - Click to try:</p>
                     </div>
                     <div className="grid gap-3">
-                      {messages[0].suggestions?.map((suggestion, idx) => (
-                        <Button
-                          key={idx}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          variant="outline"
-                          className="relative justify-start text-left h-auto py-4 px-5 bg-card/50 backdrop-blur-sm hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <div className="relative flex items-center gap-3 w-full">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/20 transition-colors">
-                              <span className="text-sm font-bold text-primary">{idx + 1}</span>
+                      {messages[0].suggestions?.map((suggestion, idx) => {
+                        // Beautiful emoji collection for suggestions
+                        const suggestionEmojis = ['✨', '🚀', '💡', '🎯', '⚡', '🌟', '🔥', '💎'];
+                        const emoji = suggestionEmojis[idx % suggestionEmojis.length];
+                        
+                        return (
+                          <Button
+                            key={idx}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            variant="outline"
+                            className="relative justify-start text-left h-auto py-4 px-5 bg-card/50 backdrop-blur-sm hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group overflow-hidden"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="relative flex items-center gap-3 w-full">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/20 transition-all duration-200 group-hover:scale-110">
+                                <span className="text-lg animate-fade-in">{emoji}</span>
+                              </div>
+                              <span className="text-sm flex-1 text-foreground/90 group-hover:text-foreground transition-colors">{suggestion}</span>
+                              <ArrowRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
                             </div>
-                            <span className="text-sm flex-1 text-foreground/90 group-hover:text-foreground transition-colors">{suggestion}</span>
-                            <ArrowRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
-                          </div>
-                        </Button>
-                      ))}
+                          </Button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1055,20 +1061,29 @@ export default function ChatGPTStyleChat({
                     
                     {msg.suggestions && msg.suggestions.length > 0 && (
                       <div className="mt-3 space-y-2">
-                        <p className="text-xs text-muted-foreground font-medium">AI-Powered Suggestions:</p>
+                        <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                          AI-Powered Suggestions:
+                        </p>
                         <div className="flex flex-wrap gap-2">
-                          {msg.suggestions.map((suggestion, idx) => (
-                            <Button
-                              key={idx}
-                              onClick={() => handleSuggestionClick(suggestion)}
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group"
-                            >
-                              <Sparkles className="h-3 w-3 mr-1 text-primary" />
-                              {suggestion}
-                            </Button>
-                          ))}
+                          {msg.suggestions.map((suggestion, idx) => {
+                            // Beautiful emoji collection for inline suggestions
+                            const inlineEmojis = ['💫', '🎨', '🔮', '🌈', '⭐', '🪄', '🌺', '🦋'];
+                            const emoji = inlineEmojis[idx % inlineEmojis.length];
+                            
+                            return (
+                              <Button
+                                key={idx}
+                                onClick={() => handleSuggestionClick(suggestion)}
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group hover:scale-105 duration-200"
+                              >
+                                <span className="mr-1 group-hover:animate-bounce">{emoji}</span>
+                                {suggestion}
+                              </Button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
