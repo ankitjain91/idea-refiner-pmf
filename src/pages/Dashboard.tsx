@@ -371,11 +371,8 @@ const Dashboard = () => {
                         </p>
                       </div>
                     </div>
-        )}
-      </div>
-      
-      {/* Help & Support Chat */}
-      <HelpSupport />
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
