@@ -246,26 +246,30 @@ export default function ChatGPTStyleChat({
       // Remove loading message
       setMessages(prev => prev.filter(msg => !msg.isTyping));
 
-      if (!error && data?.suggestions) {
-        const analysisMessage: Message = {
-          id: `msg-analysis-${Date.now()}`,
-          type: 'bot',
-          content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
-          timestamp: new Date(),
-          suggestions: data.suggestions
-        };
-        
-        setMessages(prev => [...prev, analysisMessage]);
-      } else {
-        const analysisMessage: Message = {
-          id: `msg-analysis-${Date.now()}`,
-          type: 'bot',
-          content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, analysisMessage]);
+      // Parse suggestions safely
+      let suggestions = [];
+      if (data) {
+        if (typeof data === 'string') {
+          try {
+            const parsed = JSON.parse(data);
+            suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+          } catch {
+            suggestions = [];
+          }
+        } else if (typeof data === 'object') {
+          suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        }
       }
+      
+      const analysisMessage: Message = {
+        id: `msg-analysis-${Date.now()}`,
+        type: 'bot',
+        content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
+        timestamp: new Date(),
+        suggestions: suggestions.length > 0 ? suggestions : undefined
+      };
+      
+      setMessages(prev => [...prev, analysisMessage]);
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
       // Remove loading message
@@ -376,41 +380,43 @@ export default function ChatGPTStyleChat({
           let responseContent = '';
           let responseSuggestions = [];
           
-          try {
-            if (typeof data === 'string') {
-              // If data is a string, try to parse it as JSON first
-              try {
-                const parsed = JSON.parse(data);
-                responseContent = parsed.response || parsed.message || data;
-                responseSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
-              } catch {
-                // If parsing fails, use the string as is
-                responseContent = data;
-              }
-            } else if (typeof data === 'object') {
-              // Handle object response
-              responseContent = data.response || data.message || '';
-              responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-            }
-          } catch (parseError) {
-            console.error('Error parsing response:', parseError);
-            responseContent = 'I understand. Let me help you with that.';
+          if (!data) {
+            throw new Error('No data received from server');
           }
           
-          if (responseContent) {
-            const botMessage: Message = {
-              id: `msg-${Date.now()}-bot`,
-              type: 'bot',
-              content: responseContent,
-              timestamp: new Date(),
-              suggestions: responseSuggestions
-            };
-            
-            setMessages(prev => [...prev, botMessage]);
-          } else {
-            console.error('Invalid response structure:', data);
-            throw new Error('Invalid response format');
+          // Parse the response data
+          if (typeof data === 'string') {
+            // If data is a string, try to parse it as JSON
+            try {
+              const parsed = JSON.parse(data);
+              responseContent = parsed.response || parsed.message || '';
+              responseSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+            } catch {
+              // If parsing fails, use the string as is
+              responseContent = data;
+              responseSuggestions = [];
+            }
+          } else if (typeof data === 'object') {
+            // Handle object response
+            responseContent = data.response || data.message || '';
+            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
           }
+          
+          // Validate we have content
+          if (!responseContent || responseContent.trim() === '') {
+            console.error('Empty response content:', data);
+            responseContent = "I understand. Let me help you refine your idea further.";
+          }
+          
+          const botMessage: Message = {
+            id: `msg-${Date.now()}-bot`,
+            type: 'bot',
+            content: responseContent,
+            timestamp: new Date(),
+            suggestions: responseSuggestions.length > 0 ? responseSuggestions : undefined
+          };
+          
+          setMessages(prev => [...prev, botMessage]);
         } else {
           throw new Error('No data received');
         }
@@ -511,15 +517,44 @@ export default function ChatGPTStyleChat({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      // Parse response with robust error handling
+      let responseContent = '';
+      let suggestions = [];
+      let metadata = {};
+      
+      if (data) {
+        if (typeof data === 'string') {
+          try {
+            const parsed = JSON.parse(data);
+            responseContent = parsed.response || parsed.message || '';
+            suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+            metadata = parsed.metadata || {};
+          } catch {
+            responseContent = data;
+          }
+        } else if (typeof data === 'object') {
+          responseContent = data.response || data.message || '';
+          suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          metadata = data.metadata || {};
+        }
+      }
+      
+      if (!responseContent) {
+        responseContent = "Let me help you with that...";
+      }
 
       const botMessage: Message = {
         id: `msg-${Date.now()}-bot`,
         type: 'bot',
-        content: data.response || "Let me help you with that...",
+        content: responseContent,
         timestamp: new Date(),
-        suggestions: data.suggestions,
-        metadata: data.metadata
+        suggestions: suggestions.length > 0 ? suggestions : undefined,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined
       };
 
       setMessages(prev => [...prev, botMessage]);
@@ -580,12 +615,27 @@ export default function ChatGPTStyleChat({
         }
       });
 
+      // Parse suggestions safely
+      let suggestions = [];
+      if (data && !error) {
+        if (typeof data === 'string') {
+          try {
+            const parsed = JSON.parse(data);
+            suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+          } catch {
+            suggestions = [];
+          }
+        } else if (typeof data === 'object') {
+          suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        }
+      }
+
       const questionMessage: Message = {
         id: `msg-question-${Date.now()}`,
         type: 'bot',
         content: nextQuestion,
         timestamp: new Date(),
-        suggestions: data?.suggestions || []
+        suggestions: suggestions.length > 0 ? suggestions : undefined
       };
       
       setMessages(prev => [...prev, questionMessage]);
