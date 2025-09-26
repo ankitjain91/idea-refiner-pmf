@@ -725,20 +725,6 @@ export default function ChatGPTStyleChat({
       setCurrentIdea(suggestion);
       setShowStartAnalysisButton(true);
       setInput('');
-      setIsLoading(true);
-      
-      // Add loading animation message
-      const loadingMessage: Message = {
-        id: `msg-loading-${Date.now()}`,
-        type: 'bot',
-        content: '',
-        timestamp: new Date(),
-        isTyping: true
-      };
-      setMessages(prev => [...prev, loadingMessage]);
-      
-      // Simulate natural typing delay
-      await new Promise(resolve => setTimeout(resolve, 800));
       
       // Get AI response about the idea for refinement
       await handleSuggestionRefinement(suggestion);
