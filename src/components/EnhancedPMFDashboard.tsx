@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,7 @@ interface EnhancedPMFDashboardProps {
 export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFDashboardProps) {
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -24,9 +26,19 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
   const fetchDashboardInsights = async () => {
     try {
       setLoading(true);
+      setProgress(10);
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 10, 90));
+      }, 500);
+
       const { data, error } = await supabase.functions.invoke('dashboard-insights', {
         body: { idea, userAnswers }
       });
+
+      clearInterval(progressInterval);
+      setProgress(100);
 
       if (error) throw error;
       if (data?.insights) {
@@ -36,21 +48,26 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
       console.error('Error fetching insights:', err);
       toast({
         title: 'Error',
-        description: 'Failed to fetch insights from ChatGPT',
+        description: 'Failed to fetch real-time market data. Please try again.',
         variant: 'destructive'
       });
     } finally {
       setLoading(false);
+      setProgress(0);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 max-w-md">
           <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-          <h3 className="text-lg font-semibold">Fetching Real Data from ChatGPT</h3>
-          <p className="text-sm text-muted-foreground">Analyzing market, competitors, and improvements...</p>
+          <h3 className="text-lg font-semibold">Fetching Real-Time Data</h3>
+          <p className="text-sm text-muted-foreground">
+            Analyzing market trends, competitors, and generating actionable insights...
+          </p>
+          <Progress value={progress} className="w-64 mx-auto" />
+          <p className="text-xs text-muted-foreground">{progress}% Complete</p>
         </div>
       </div>
     );
