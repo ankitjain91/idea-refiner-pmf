@@ -66,7 +66,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     if (user) {
       loadSessions();
       // Check if there's a loaded session in localStorage
-      const savedSessionId = localStorage.getItem('loadedSessionId');
+      const savedSessionId = localStorage.getItem('loadedSessionId') || localStorage.getItem('currentSessionId');
       if (savedSessionId) {
         setLoadedSessionId(savedSessionId);
       }
@@ -96,6 +96,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   const createNewSession = async () => {
     // Clear current session data
     localStorage.removeItem('loadedSessionId');
+    localStorage.removeItem('currentSessionId');
     localStorage.removeItem('userIdea');
     localStorage.removeItem('userAnswers');
     localStorage.removeItem('userRefinements');
@@ -134,6 +135,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       
       // Restore all session data including insights and chat history
       localStorage.setItem('loadedSessionId', sessionId);
+      localStorage.setItem('currentSessionId', sessionId); // backward compatibility
       localStorage.setItem('userIdea', data.idea);
       localStorage.setItem('userAnswers', JSON.stringify(data.user_answers || {}));
       localStorage.setItem('userRefinements', JSON.stringify(data.refinements || {}));
@@ -296,7 +298,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           )}
                           onClick={() => loadSession(session.id)}
                         >
-                          <div className="flex-1 min-w-0 pr-8">
+                          <div className="flex-1 min-w-0 pr-24">
                             {/* Session name with fade effect */}
                             <div className="relative overflow-hidden">
                               <p className="text-sm font-medium truncate">
@@ -314,19 +316,32 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                               </span>
                             </div>
                           </div>
-                          {/* Always visible delete button */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1 h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-destructive/20 transition-opacity duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteSession(session.id);
-                            }}
-                            title="Delete session"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                          {/* Hover actions: Load & Delete */}
+                          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                loadSession(session.id);
+                              }}
+                              title="Load session"
+                            >
+                              Load
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-destructive/20"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteSession(session.id);
+                              }}
+                              title="Delete session"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       </SidebarMenuItem>
                     ))
