@@ -61,9 +61,12 @@ export default function Settings() {
   const [managingSubscription, setManagingSubscription] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    // Don't navigate if still loading
+    if (authLoading) return;
+    
+    if (!user) {
       navigate("/auth", { state: { from: { pathname: "/settings" } } });
-    } else if (user) {
+    } else {
       loadProfile();
     }
   }, [user, authLoading, navigate]);

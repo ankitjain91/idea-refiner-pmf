@@ -14,7 +14,8 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
   const [bootstrapDone, setBootstrapDone] = useState(false);
   
   useEffect(() => {
-    const t = setTimeout(() => setBootstrapDone(true), 2500);
+    // Reduce bootstrap delay to 500ms instead of 2500ms
+    const t = setTimeout(() => setBootstrapDone(true), 500);
     return () => clearTimeout(t);
   }, []);
 
