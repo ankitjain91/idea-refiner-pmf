@@ -970,7 +970,7 @@ export default function ChatGPTStyleChat({
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
+              transition={{ duration: 0.3 }}
               className="mb-8"
             >
               <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-primary/5 via-background to-accent/5 shadow-xl">
@@ -998,8 +998,8 @@ export default function ChatGPTStyleChat({
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
-                        <Sparkles className="h-4 w-4 text-yellow-500 animate-pulse" />
-                        <Sparkles className="h-3 w-3 text-yellow-400 animate-pulse delay-100" />
+                        <Sparkles className="h-4 w-4 text-yellow-500" />
+                        <Sparkles className="h-3 w-3 text-yellow-400" />
                       </div>
                       <p className="text-sm font-semibold text-foreground">Popular startup ideas - Click to try:</p>
                     </div>
@@ -1031,14 +1031,9 @@ export default function ChatGPTStyleChat({
           {messages.map((msg, index) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ 
-                duration: 0.4,
-                delay: index * 0.05,
-                ease: [0.4, 0, 0.2, 1]
-              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
               className={cn(
                 "flex gap-3",
                 msg.type === 'user' && 'justify-end',
@@ -1056,9 +1051,6 @@ export default function ChatGPTStyleChat({
                       <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 shadow-sm">
                         <Bot className="h-5 w-5 text-primary" />
                       </div>
-                      {isLoading && msg === messages[messages.length - 1] && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse" />
-                      )}
                     </div>
                   )}
                   <div className={cn(
@@ -1074,12 +1066,7 @@ export default function ChatGPTStyleChat({
                       )}
                     >
                       {msg.isTyping ? (
-                        <motion.div 
-                          className="flex items-center gap-1.5"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.3 }}
-                        >
+                        <div className="flex items-center gap-1.5">
                           <motion.div 
                             className="w-2 h-2 bg-primary/60 rounded-full"
                             animate={{ y: [0, -5, 0] }}
@@ -1095,57 +1082,30 @@ export default function ChatGPTStyleChat({
                             animate={{ y: [0, -5, 0] }}
                             transition={{ duration: 0.5, repeat: Infinity, delay: 0.2 }}
                           />
-                        </motion.div>
+                        </div>
                       ) : (
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                       )}
                     </div>
                     
                     {msg.suggestions && msg.suggestions.length > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.4 }}
-                        className="mt-3 space-y-2"
-                      >
+                      <div className="mt-3 space-y-2">
                         <p className="text-xs text-muted-foreground font-medium">AI-Powered Suggestions:</p>
-                        <motion.div 
-                          className="flex flex-wrap gap-2"
-                          initial="hidden"
-                          animate="visible"
-                          variants={{
-                            hidden: { opacity: 0 },
-                            visible: {
-                              opacity: 1,
-                              transition: {
-                                staggerChildren: 0.1
-                              }
-                            }
-                          }}
-                        >
+                        <div className="flex flex-wrap gap-2">
                           {msg.suggestions.map((suggestion, idx) => (
-                            <motion.div
+                            <Button
                               key={idx}
-                              variants={{
-                                hidden: { opacity: 0, scale: 0.8, y: 10 },
-                                visible: { opacity: 1, scale: 1, y: 0 }
-                              }}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleSuggestionClick(suggestion)}
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group"
                             >
-                              <Button
-                                onClick={() => handleSuggestionClick(suggestion)}
-                                variant="outline"
-                                size="sm"
-                                className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group animate-fade-in"
-                              >
-                                <Sparkles className="h-3 w-3 mr-1 text-primary group-hover:animate-pulse" />
-                                {suggestion}
-                              </Button>
-                            </motion.div>
+                              <Sparkles className="h-3 w-3 mr-1 text-primary" />
+                              {suggestion}
+                            </Button>
                           ))}
-                        </motion.div>
-                      </motion.div>
+                        </div>
+                      </div>
                     )}
                   </div>
                   {msg.type === 'user' && (
@@ -1159,48 +1119,18 @@ export default function ChatGPTStyleChat({
           ))}
 
           {isLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -5, scale: 0.95 }}
-              transition={{ 
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }}
-              className="flex gap-3"
-            >
-              <motion.div 
-                className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              >
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="h-5 w-5 text-primary" />
-              </motion.div>
-              <motion.div 
-                className="bg-muted rounded-lg px-4 py-3"
-                initial={{ width: 60 }}
-                animate={{ width: [60, 80, 60] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
+              </div>
+              <div className="bg-muted rounded-lg px-4 py-3">
                 <div className="flex gap-1">
-                  <motion.span 
-                    className="w-2 h-2 bg-primary/60 rounded-full"
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                  />
-                  <motion.span 
-                    className="w-2 h-2 bg-primary/60 rounded-full"
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }}
-                  />
-                  <motion.span 
-                    className="w-2 h-2 bg-primary/60 rounded-full"
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
-                  />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse delay-100" />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse delay-200" />
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           )}
 
           <div ref={messagesEndRef} />
