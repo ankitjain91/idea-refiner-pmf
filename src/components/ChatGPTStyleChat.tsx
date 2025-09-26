@@ -663,7 +663,7 @@ export default function ChatGPTStyleChat({
     // Prevent duplicate processing
     if (isLoading) return;
     
-    // Create user message for the suggestion
+    // Always create user message with consistent animation
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
       type: 'user',
@@ -673,17 +673,58 @@ export default function ChatGPTStyleChat({
 
     setMessages(prev => [...prev, userMessage]);
     
+    // Add small delay to show user message animation before bot response
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
     // Handle based on current state
     if (!currentIdea && !isAnalyzing) {
-      // First message - set as idea for refinement
+      // First message - validate and set as idea
+      const looksLikeIdea = suggestion.length > 10;
+      
+      if (!looksLikeIdea) {
+        const funnyResponses = [
+          "🎭 Nice try, but that's not an idea! That's like calling a potato a spaceship. Give me a real product idea!",
+          "🤔 Hmm, that doesn't smell like an idea... it smells like... *sniff sniff*... procrastination! Come on, hit me with your best shot!",
+          "🎪 Ladies and gentlemen, we have a trickster in the house! But I'm not falling for it. Give me a REAL idea, not whatever that was!"
+        ];
+        
+        const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
+        
+        // Add loading animation
+        const loadingMessage: Message = {
+          id: `msg-loading-${Date.now()}`,
+          type: 'bot',
+          content: '',
+          timestamp: new Date(),
+          isTyping: true
+        };
+        setMessages(prev => [...prev, loadingMessage]);
+        
+        // Simulate typing delay
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        
+        // Remove loading and add response
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        const validationMessage: Message = {
+          id: `msg-validation-${Date.now()}`,
+          type: 'bot',
+          content: randomResponse,
+          timestamp: new Date(),
+          suggestions: [
+            "AI-powered personal finance assistant",
+            "Sustainable fashion marketplace",
+            "Mental health support platform",
+            "Smart home automation for elderly"
+          ]
+        };
+        
+        setMessages(prev => [...prev, validationMessage]);
+        return;
+      }
+      
       setCurrentIdea(suggestion);
       setShowStartAnalysisButton(true);
-      setInput('');
-      
-      // Get AI response about the idea for refinement
-      await handleSuggestionRefinement(suggestion);
-    } else if (isRefinementMode && !isAnalyzing) {
-      // During refinement - use the suggestion as input
       setInput('');
       setIsLoading(true);
       
@@ -696,6 +737,29 @@ export default function ChatGPTStyleChat({
         isTyping: true
       };
       setMessages(prev => [...prev, loadingMessage]);
+      
+      // Simulate natural typing delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Get AI response about the idea for refinement
+      await handleSuggestionRefinement(suggestion);
+    } else if (isRefinementMode && !isAnalyzing) {
+      // During refinement - process as regular message with consistent animation
+      setInput('');
+      setIsLoading(true);
+      
+      // Add loading animation message
+      const loadingMessage: Message = {
+        id: `msg-loading-${Date.now()}`,
+        type: 'bot',
+        content: '',
+        timestamp: new Date(),
+        isTyping: true
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+      
+      // Add slight delay for natural feel
+      await new Promise(resolve => setTimeout(resolve, 600));
       
       try {
         // Get AI response for refinement
@@ -763,7 +827,7 @@ export default function ChatGPTStyleChat({
         setIsLoading(false);
       }
     } else if (isAnalyzing) {
-      // During analysis - use the suggestion as the answer
+      // During analysis - use the suggestion as the answer with consistent animation
       const question = ANALYSIS_QUESTIONS[currentQuestionIndex];
       setAnalysisAnswers(prev => ({
         ...prev,
@@ -790,6 +854,9 @@ export default function ChatGPTStyleChat({
           isTyping: true
         };
         setMessages(prev => [...prev, loadingMessage]);
+        
+        // Add natural typing delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         try {
           const { data, error } = await supabase.functions.invoke('idea-chat', {
@@ -831,8 +898,26 @@ export default function ChatGPTStyleChat({
           setIsLoading(false);
         }
       } else {
-        // Analysis complete
+        // Analysis complete with animation
+        setIsLoading(true);
+        
+        // Add completion loading animation
+        const loadingMessage: Message = {
+          id: `msg-loading-complete-${Date.now()}`,
+          type: 'bot',
+          content: '',
+          timestamp: new Date(),
+          isTyping: true
+        };
+        setMessages(prev => [...prev, loadingMessage]);
+        
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Remove loading message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
         completeAnalysis();
+        setIsLoading(false);
       }
     }
     
