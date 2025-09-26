@@ -4,12 +4,13 @@ import PMFAnalyzer from "@/components/PMFAnalyzer";
 import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
+import HelpSupport from "@/components/HelpSupport";
 
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SessionContext";
 import { useAutoSaveSession } from "@/hooks/useAutoSaveSession";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, BarChart, Sparkles, CheckCircle } from "lucide-react";
+import { Loader2, BarChart, Sparkles, CheckCircle, HelpCircle } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [dashboardHeight, setDashboardHeight] = useState("50%");
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const [showHelpSupport, setShowHelpSupport] = useState(false);
   const sessionCreatedRef = useRef(false);
   
   // Use auto-save hook
@@ -378,6 +380,47 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Floating Help & Support Chat Bubble */}
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="fixed bottom-6 right-6 z-50"
+      >
+        <Button
+          onClick={() => setShowHelpSupport(!showHelpSupport)}
+          size="lg"
+          className="rounded-full w-14 h-14 p-0 bg-gradient-primary hover:scale-110 transition-transform shadow-lg"
+          aria-label="Help & Support"
+        >
+          <HelpCircle className="w-6 h-6" />
+        </Button>
+      </motion.div>
+
+      {/* Help & Support Chat Window */}
+      {showHelpSupport && (
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          className="fixed bottom-24 right-6 z-50 w-96 h-[500px] bg-background/95 backdrop-blur-xl border border-border/50 rounded-lg shadow-2xl"
+        >
+          <div className="p-4 border-b border-border/50 flex justify-between items-center">
+            <h3 className="font-semibold">Help & Support</h3>
+            <Button
+              onClick={() => setShowHelpSupport(false)}
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0"
+            >
+              ×
+            </Button>
+          </div>
+          <div className="h-[calc(100%-4rem)]">
+            <HelpSupport />
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };
