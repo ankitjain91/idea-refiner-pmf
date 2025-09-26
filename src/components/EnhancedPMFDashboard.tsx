@@ -20,40 +20,40 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchDashboardInsights();
+    fetchDashboardInsights(0);
   }, [idea, userAnswers]);
 
-  const fetchDashboardInsights = async () => {
-    try {
-      setLoading(true);
-      setProgress(10);
-      
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
+  const fetchDashboardInsights = async (retry = 0) => {
+    setLoading(true);
+    setProgress(10);
 
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => Math.min(prev + 10, 90));
+    }, 500);
+
+    try {
       const { data, error } = await supabase.functions.invoke('dashboard-insights', {
-        body: { idea, userAnswers }
+        body: { idea, userAnswers },
       });
 
       clearInterval(progressInterval);
       setProgress(100);
 
       if (error) throw error;
-      if (data?.insights) {
-        setInsights(data.insights);
-      }
-    } catch (err) {
-      console.error('Error fetching insights:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch real-time market data. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
+      if (!data?.insights) throw new Error('No insights returned');
+
+      setInsights(data.insights);
       setLoading(false);
+      // Let progress briefly reach 100% before resetting
+      setTimeout(() => setProgress(0), 300);
+    } catch (err) {
+      clearInterval(progressInterval);
+      console.error('Error fetching insights (retrying)...', err);
+      // Exponential backoff retries, no fallback data
+      const delay = Math.min(8000, 1000 * Math.pow(2, retry));
       setProgress(0);
+      setTimeout(() => fetchDashboardInsights(retry + 1), delay);
     }
   };
 
@@ -80,9 +80,9 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">PM-Fit Score: {insights.pmfScore}%</h2>
-          <p className="text-sm text-muted-foreground">Real-time analysis from ChatGPT</p>
+          <p className="text-sm text-muted-foreground">Real-time analysis</p>
         </div>
-        <button onClick={fetchDashboardInsights} className="p-2">
+        <button onClick={() => fetchDashboardInsights(0)} className="p-2">
           <RefreshCw className="w-5 h-5" />
         </button>
       </div>
