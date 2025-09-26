@@ -34,17 +34,28 @@ export default function Auth() {
       if (checkError) {
         toast({
           title: "Error",
-          description: "Failed to verify email availability",
+          description: "Could not verify email availability. Please try again.",
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
       
-      if (emailExists) {
+      if (emailExists === true) {
         toast({
           title: "Account already exists",
           description: "This email is already registered. Please sign in instead.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      if (emailExists !== false) {
+        // Unknown response (null/undefined) — do not proceed to avoid sending any emails
+        toast({
+          title: "Unable to verify",
+          description: "We couldn't verify this email. Please try signing in or try again later.",
           variant: "destructive",
         });
         setLoading(false);
@@ -192,26 +203,24 @@ export default function Auth() {
                     <Separator className="w-full" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="px-2 text-muted-foreground">Or continue with</span>
+                    <span className="px-2 text-muted-foreground bg-transparent">Or continue with</span>
                   </div>
                 </div>
 
                 <div className="mt-6 grid grid-cols-3 gap-3">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="default"
                     onClick={() => handleSocialSignIn('google')}
                     disabled={socialLoading !== null}
-                    className="relative group hover:border-primary/50 transition-all"
+                    className="relative bg-gradient-primary text-primary-foreground hover:opacity-90 border-0 group shadow-md"
                   >
                     {socialLoading === 'google' ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
                         <Chrome className="w-4 h-4 mr-2" />
-                        <span className="bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 to-red-500 bg-clip-text text-transparent font-semibold">
-                          Google
-                        </span>
+                        <span>Google</span>
                       </>
                     )}
                   </Button>
