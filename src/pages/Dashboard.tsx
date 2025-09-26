@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PMFAnalyzer from "@/components/PMFAnalyzer";
 import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
@@ -19,6 +19,9 @@ const Dashboard = () => {
   const [chatKey, setChatKey] = useState(0);
   const [showAnalysisDashboard, setShowAnalysisDashboard] = useState(false);
   const [analysisData, setAnalysisData] = useState<any>(null);
+  const [dashboardHeight, setDashboardHeight] = useState("50%");
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
   
   useEffect(() => {
     // Clear all chat-related storage on mount (new login session)
@@ -42,6 +45,37 @@ const Dashboard = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Handle scroll behavior for dashboard expansion
+  useEffect(() => {
+    if (!showAnalysisDashboard) return;
+
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLDivElement;
+      const scrollTop = target.scrollTop;
+      const scrollDiff = scrollTop - lastScrollY.current;
+      
+      // Scrolling down - expand dashboard
+      if (scrollDiff > 0 && scrollTop > 50) {
+        setDashboardHeight("85%");
+      } 
+      // Scrolling up - reduce dashboard
+      else if (scrollDiff < 0 && scrollTop < 50) {
+        setDashboardHeight("50%");
+      }
+      
+      lastScrollY.current = scrollTop;
+    };
+
+    const dashboardElement = dashboardRef.current;
+    if (dashboardElement) {
+      const scrollableDiv = dashboardElement.querySelector('.overflow-auto');
+      if (scrollableDiv) {
+        scrollableDiv.addEventListener('scroll', handleScroll);
+        return () => scrollableDiv.removeEventListener('scroll', handleScroll);
+      }
+    }
+  }, [showAnalysisDashboard]);
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
     setAnalysisData({ idea, metadata });
@@ -70,6 +104,7 @@ const Dashboard = () => {
     setChatKey((k) => k + 1);
     setShowAnalysisDashboard(false);
     setAnalysisData(null);
+    setDashboardHeight("50%");
   };
   
   // Show loading while checking auth
@@ -111,7 +146,10 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => setShowAnalysisDashboard(!showAnalysisDashboard)}
+              onClick={() => {
+                setShowAnalysisDashboard(!showAnalysisDashboard);
+                setDashboardHeight("50%");
+              }}
               variant={showAnalysisDashboard ? "default" : "outline"}
               size="sm"
               className="gap-2"
@@ -125,14 +163,15 @@ const Dashboard = () => {
 
         {/* Main Content - Vertical Stack */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Chat Section */}
+          {/* Chat Section - Shrinks when dashboard expands */}
           <motion.div 
-            className={cn(
-              "flex flex-col overflow-hidden transition-all duration-300",
-              showAnalysisDashboard ? "flex-1" : "h-full"
-            )}
+            className="flex flex-col overflow-hidden"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ 
+              opacity: 1,
+              height: showAnalysisDashboard ? `calc(100% - ${dashboardHeight})` : "100%"
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <ChatGPTStyleChat 
               key={chatKey} 
@@ -145,13 +184,17 @@ const Dashboard = () => {
           <AnimatePresence>
             {showAnalysisDashboard && (
               <motion.div
+                ref={dashboardRef}
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "50%", opacity: 1 }}
+                animate={{ 
+                  height: dashboardHeight, 
+                  opacity: 1 
+                }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="border-t bg-background overflow-hidden flex flex-col"
               >
-                <div className="p-4 border-b bg-background/95 backdrop-blur">
+                <div className="p-4 border-b bg-background/95 backdrop-blur sticky top-0 z-10">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">Analysis Dashboard</h2>
@@ -166,8 +209,20 @@ const Dashboard = () => {
                         <Sparkles className="h-3 w-3" />
                         {analysisData ? 'Live Analysis' : 'Awaiting Data'}
                       </Badge>
+                      {dashboardHeight === "85%" && (
+                        <Button
+                          onClick={() => setDashboardHeight("50%")}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Minimize
+                        </Button>
+                      )}
                       <Button
-                        onClick={() => setShowAnalysisDashboard(false)}
+                        onClick={() => {
+                          setShowAnalysisDashboard(false);
+                          setDashboardHeight("50%");
+                        }}
                         size="sm"
                         variant="ghost"
                       >
