@@ -26,7 +26,8 @@ import {
   Settings,
   HelpCircle,
   Archive,
-  Star
+  Star,
+  LayoutDashboard
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -57,16 +58,20 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     localStorage.removeItem('analysisData');
     localStorage.removeItem('pmfScore');
     
-    // Always navigate to dashboard for new analysis
-    navigate('/dashboard');
-    // Also trigger reset callback if provided
+    // Trigger reset callback if provided
     onNewChat?.();
+    
+    // Stay on dashboard - the chat component will reset
   };
 
   const mainNav = [
-    { title: "New Analysis", url: "/dashboard", icon: Plus, action: createNewSession },
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
+  ];
+
+  const actionItems = [
+    { title: "New Analysis", icon: Plus, action: createNewSession },
   ];
 
   const getNavClass = ({ isActive }: { isActive: boolean }) =>
@@ -86,6 +91,29 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Action Buttons */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Actions</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {actionItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={item.action}
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {isOpen && <span>{item.title}</span>}
+                    </Button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -94,21 +122,10 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
               {mainNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    {item.action ? (
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={item.action}
-                      >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {isOpen && <span>{item.title}</span>}
-                      </Button>
-                    ) : (
-                      <NavLink to={item.url} end className={getNavClass}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {isOpen && <span>{item.title}</span>}
-                      </NavLink>
-                    )}
+                    <NavLink to={item.url} end className={getNavClass}>
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {isOpen && <span>{item.title}</span>}
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

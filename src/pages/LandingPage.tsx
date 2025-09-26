@@ -42,14 +42,14 @@ export default function LandingPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   useEffect(() => {
-    // Check initial auth state and redirect if authenticated
+    // Check initial auth state
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
       
-      // If already authenticated and no specific redirect path, go to dashboard
-      if (session && !redirectPath) {
-        navigate('/dashboard');
+      // If already authenticated, redirect to dashboard
+      if (session) {
+        navigate(redirectPath || '/dashboard', { replace: true });
       }
     };
     checkAuth();
@@ -59,7 +59,7 @@ export default function LandingPage() {
       setIsAuthenticated(!!session);
       if (event === 'SIGNED_IN' && session) {
         // Navigate to redirect path or dashboard
-        navigate(redirectPath || '/dashboard');
+        navigate(redirectPath || '/dashboard', { replace: true });
       }
     });
 

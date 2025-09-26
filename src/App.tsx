@@ -27,14 +27,16 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Routes>
-                {/* Both root and auth routes show the landing page with integrated auth */}
-                <Route path="/" element={<AuthPage />} />
+                {/* Root route - redirects based on auth status */}
+                <Route path="/" element={<Index />} />
+                
+                {/* Authentication route */}
                 <Route path="/auth" element={<AuthPage />} />
                 
                 {/* Logout route */}
                 <Route path="/logout" element={<Logout />} />
                 
-                {/* Public route */}
+                {/* Public route - accessible by anyone */}
                 <Route path="/pricing" element={<Pricing />} />
                 
                 {/* Protected routes - require authentication */}
@@ -54,7 +56,7 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                {/* 404 fallback - must be last */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>
