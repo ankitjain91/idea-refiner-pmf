@@ -168,10 +168,6 @@ export default function LandingPage() {
 
       console.log('Sign in successful:', data);
       
-      toast({
-        title: "Welcome back!",
-        description: "Successfully signed in.",
-      });
       
       // Navigation will be handled by the auth state listener
     } catch (error: any) {

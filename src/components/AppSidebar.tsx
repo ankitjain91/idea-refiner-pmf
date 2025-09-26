@@ -294,18 +294,18 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                               </span>
                             </div>
                           </div>
-                          {/* Delete button - always visible as overlay */}
+                          {/* Delete button - always visible */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm hover:bg-destructive/20 hover:border-destructive/50 transition-all duration-200"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 hover:bg-destructive/10 transition-all duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
                             }}
                             title="Delete session"
                           >
-                            <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />
+                            <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>
                         </div>
                       </SidebarMenuItem>

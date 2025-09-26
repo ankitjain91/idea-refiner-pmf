@@ -79,11 +79,6 @@ export default function Auth() {
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "Successfully signed in.",
-        });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {

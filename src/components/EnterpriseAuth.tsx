@@ -142,11 +142,6 @@ export default function EnterpriseAuth() {
         console.error('Failed to sync subscription role:', syncError);
       }
 
-      toast({
-        title: "Welcome back! 👋",
-        description: "Successfully signed in to your account.",
-        className: "bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20",
-      });
       
         // Navigate to dashboard after successful login
         const from = '/dashboard';
