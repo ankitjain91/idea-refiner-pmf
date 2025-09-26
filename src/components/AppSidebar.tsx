@@ -36,6 +36,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SessionContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppSidebarProps {
   onNewChat?: () => void;
@@ -49,6 +50,51 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   const { sessions, currentSession, createSession, loadSession, deleteSession } = useSession();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [liveSessions, setLiveSessions] = useState(sessions);
+  
+  // Update live sessions when sessions change
+  useEffect(() => {
+    setLiveSessions(sessions);
+  }, [sessions]);
+  
+  // Set up real-time updates for sessions
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('sidebar-sessions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'brainstorming_sessions',
+          filter: `user_id=eq.${user.id}`
+        },
+        async (payload) => {
+          console.log('Session update in sidebar:', payload);
+          // Reload sessions from context
+          const { data } = await supabase
+            .from('brainstorming_sessions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('last_accessed', { ascending: false });
+          
+          if (data) {
+            setLiveSessions(data.map((session: any) => ({
+              ...session,
+              state: session.state || {},
+              activity_log: Array.isArray(session.activity_log) ? session.activity_log : []
+            })));
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const createNewSession = async () => {
     // Clear current session data
@@ -116,7 +162,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
           <SidebarGroupContent>
             <ScrollArea className="h-[250px]">
               <SidebarMenu>
-                {sessions.map((session) => (
+                {liveSessions.map((session) => (
                   <SidebarMenuItem key={session.id}>
                     <div className="flex items-center justify-between w-full group">
                       <SidebarMenuButton

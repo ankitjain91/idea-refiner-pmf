@@ -5,6 +5,9 @@ import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
+import { useSession } from "@/contexts/SessionContext";
+import { useAutoSaveSession } from "@/hooks/useAutoSaveSession";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2, BarChart, Sparkles, CheckCircle } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,67 +19,88 @@ import { cn } from "@/lib/utils";
 const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { currentSession, createSession, sessions } = useSession();
   const [chatKey, setChatKey] = useState(0);
   const [showAnalysisDashboard, setShowAnalysisDashboard] = useState(false);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [dashboardHeight, setDashboardHeight] = useState("50%");
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const sessionCreatedRef = useRef(false);
   
-  // Watch for session changes in localStorage
+  // Use auto-save hook
+  const { saveState, restoreState } = useAutoSaveSession(currentSession?.id || null);
+  
+  
+  // Auto-create session when user starts interacting
   useEffect(() => {
-    const checkSessionData = () => {
-      const sessionId = localStorage.getItem('currentSessionId');
-      const idea = localStorage.getItem('userIdea');
-      const answers = localStorage.getItem('userAnswers');
-      const metadata = localStorage.getItem('ideaMetadata');
-      const analysisCompleted = localStorage.getItem('analysisCompleted');
+    const handleFirstInteraction = async () => {
+      if (!user || sessionCreatedRef.current || currentSession) return;
       
-      if (sessionId && sessionId !== currentSessionId) {
-        setCurrentSessionId(sessionId);
-        
-        // If we have analysis data, show the dashboard
-        if (idea && analysisCompleted === 'true') {
-          const parsedAnswers = answers ? JSON.parse(answers) : {};
-          const parsedMetadata = metadata ? JSON.parse(metadata) : {};
-          
-          setAnalysisData({ 
-            idea, 
-            metadata: { 
-              ...parsedMetadata, 
-              answers: parsedAnswers 
-            } 
-          });
-          setShowAnalysisDashboard(true);
-        } else {
-          setShowAnalysisDashboard(false);
+      const idea = localStorage.getItem('userIdea');
+      // Create session if user starts typing an idea
+      if (idea && idea.length > 5) {
+        sessionCreatedRef.current = true;
+        await createSession('New idea exploration');
+      }
+    };
+
+    // Listen for idea changes
+    const interval = setInterval(handleFirstInteraction, 1000);
+    
+    return () => clearInterval(interval);
+  }, [user, currentSession, createSession]);
+
+  // Set up real-time session updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('session-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'brainstorming_sessions',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Session update:', payload);
+          // Session list will auto-update via context
         }
-        
-        // Force reload chat with new session data
-        setChatKey(prev => prev + 1);
-      }
-    };
-    
-    // Check immediately
-    checkSessionData();
-    
-    // Listen for storage changes (session loads)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'currentSessionId' || e.key === 'userIdea') {
-        checkSessionData();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Check periodically for same-window updates
-    const interval = setInterval(checkSessionData, 500);
-    
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
+      supabase.removeChannel(channel);
     };
-  }, [currentSessionId]);
+  }, [user]);
+  
+  // Restore session state when session changes
+  useEffect(() => {
+    if (currentSession && currentSession.id !== currentSessionId) {
+      setCurrentSessionId(currentSession.id);
+      restoreState(currentSession);
+      
+      // Check if we have analysis data to show
+      const analysisCompleted = localStorage.getItem('analysisCompleted');
+      if (analysisCompleted === 'true') {
+        const idea = localStorage.getItem('userIdea');
+        const answers = localStorage.getItem('userAnswers');
+        const metadata = localStorage.getItem('ideaMetadata');
+        
+        setAnalysisData({ 
+          idea: idea || '', 
+          metadata: { 
+            ...JSON.parse(metadata || '{}'), 
+            answers: JSON.parse(answers || '{}') 
+          } 
+        });
+        setShowAnalysisDashboard(true);
+      }
+    }
+  }, [currentSession, currentSessionId, restoreState]);
   
   useEffect(() => {
     // Redirect to auth if not logged in and not loading
@@ -94,6 +118,11 @@ const Dashboard = () => {
     localStorage.setItem('userAnswers', JSON.stringify(metadata.answers || {}));
     localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
     localStorage.setItem('analysisCompleted', 'true');
+    
+    // Trigger auto-save
+    if (currentSession) {
+      saveState(true);
+    }
   };
 
   const handleNewChat = () => {

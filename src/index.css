@@ -103,7 +103,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-size: var(--text-base);
+    font-size: clamp(14px, 1.5vw, 16px);
     line-height: 1.6;
   }
   
