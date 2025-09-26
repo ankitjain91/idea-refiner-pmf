@@ -17,27 +17,41 @@ export const useStateRestoration = () => {
 
   // Restore path on initial load
   useEffect(() => {
-    if (!loading) {
+    // Only run restoration once on mount
+    const hasRestored = sessionStorage.getItem('hasRestored');
+    
+    if (!loading && !hasRestored) {
+      sessionStorage.setItem('hasRestored', 'true');
+      
       const lastPath = sessionStorage.getItem('lastPath');
       const lastSearch = sessionStorage.getItem('lastSearch') || '';
       const lastHash = sessionStorage.getItem('lastHash') || '';
       
-      // Only restore if we're on the root path and have a saved path
-      if (location.pathname === '/' && lastPath && lastPath !== '/') {
+      // Only restore if we're on the root path and have a saved path that's not root
+      if (location.pathname === '/' && lastPath && lastPath !== '/' && lastPath !== '/auth') {
         // Check if the path requires authentication
         const protectedPaths = ['/dashboard', '/settings', '/subscription-success'];
         const isProtectedPath = protectedPaths.some(path => lastPath.startsWith(path));
         
         if (isProtectedPath && !user) {
-          // If it's a protected path and user is not authenticated, go to auth
-          navigate('/auth', { replace: true });
-        } else {
-          // Otherwise restore the last path
+          // If it's a protected path and user is not authenticated, clear the restoration
+          sessionStorage.removeItem('lastPath');
+          sessionStorage.removeItem('lastSearch');
+          sessionStorage.removeItem('lastHash');
+        } else if (user || !isProtectedPath) {
+          // Only navigate if user is authenticated for protected paths, or it's a public path
           navigate(`${lastPath}${lastSearch}${lastHash}`, { replace: true });
         }
       }
     }
-  }, [loading, user, location.pathname, navigate]);
+  }, [loading, user, navigate]);
+  
+  // Clear restoration flag on unmount
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem('hasRestored');
+    };
+  }, []);
 
   // Save form data and UI state
   useEffect(() => {
