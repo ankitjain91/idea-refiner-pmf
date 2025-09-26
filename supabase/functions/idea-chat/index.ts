@@ -111,12 +111,12 @@ Return ONLY a JSON array of 4 strings.`;
         messages: [
           { 
             role: 'system', 
-            content: 'You must return exactly 4 suggestions as a JSON array. No markdown, no code blocks, just the JSON array.' 
+            content: 'Return exactly 4 suggestions as a JSON array.' 
           },
           { role: 'user', content: systemPrompt }
         ],
-        max_tokens: 200,
-        temperature: 0.8
+        max_tokens: 100,
+        temperature: 0.7
       }),
     });
 
@@ -273,16 +273,17 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o',  // Using GPT-4o for faster detailed analysis
+          model: 'gpt-4o-mini',  // Using faster model for quick analysis
           messages: [
             {
               role: 'system',
-              content: 'You are a venture capital analyst providing data-driven PMF analysis. Use real market data and return only valid JSON.'
+              content: 'Return only valid JSON for PMF analysis.'
             },
             { role: 'user', content: analysisPrompt }
           ],
-          max_tokens: 2000,
-          temperature: 0.4
+          response_format: { type: "json_object" },
+          max_tokens: 1000,
+          temperature: 0.3
         }),
       });
 
@@ -377,13 +378,13 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o',  // Using GPT-4o for faster responses
+          model: 'gpt-4o-mini',  // Using faster model
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message }
           ],
-          max_tokens: 800,
-          temperature: 0.5
+          max_tokens: 400,
+          temperature: 0.4
         }),
       });
 
@@ -444,17 +445,17 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',  // Using GPT-4o for better quality responses
+        model: 'gpt-4o-mini',  // Using faster model for quick responses
         messages: [
           {
             role: 'system',
             content: systemPrompt
           },
-          ...conversationHistory,
+          ...conversationHistory.slice(-4),  // Keep only last 4 messages for speed
           { role: 'user', content: message }
         ],
-        max_tokens: 800,
-        temperature: 0.6
+        max_tokens: 400,
+        temperature: 0.5
       }),
     });
 
@@ -490,12 +491,12 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
           messages: [
             {
               role: 'system',
-              content: 'You generate contextual follow-up questions. Return only a JSON array of 4 strings.'
+              content: 'Return 4 follow-up questions as JSON array.'
             },
-            { role: 'user', content: suggestionPrompt }
+            { role: 'user', content: suggestionPrompt.slice(0, 500) }  // Limit prompt size
           ],
-          max_tokens: 200,
-          temperature: 0.7
+          max_tokens: 100,
+          temperature: 0.6
         }),
       });
       
