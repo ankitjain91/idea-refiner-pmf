@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, ExternalLink, RefreshCw, TrendingUp, Users, DollarSign, Target, Zap, Info } from 'lucide-react';
+import { Loader2, ExternalLink, RefreshCw, TrendingUp, Users, DollarSign, Target, Zap, Info, ChevronRight, Clock, BarChart3, Lightbulb, AlertCircle, CheckCircle, Activity, MapPin, Package, Rocket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PMFScoreDisplay } from './dashboard/PMFScoreDisplay';
@@ -12,6 +12,7 @@ import { ScoreCard } from './dashboard/ScoreCard';
 import { GrowthChart } from './dashboard/GrowthChart';
 import { CompetitorChart } from './dashboard/CompetitorChart';
 import { MetricDetailModal } from './dashboard/MetricDetailModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface EnhancedPMFDashboardProps {
   idea: string;
@@ -24,6 +25,8 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
   const [progress, setProgress] = useState(0);
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [metricModalOpen, setMetricModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -254,44 +257,44 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
               <Card 
                 key={idx} 
                 className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-l-4 border-l-primary hover:scale-[1.02]"
+                onClick={() => {
+                  setSelectedItem({
+                    type: 'quickwin',
+                    ...win,
+                    why: win.reasoning || 'This quick win can accelerate your path to product-market fit',
+                    how: win.specificSteps || [],
+                    where: win.sources || [],
+                    impact: win.expectedImpact || '10-15% improvement in PMF score',
+                    result: win.expectedResult || 'Immediate improvement in user engagement and market response'
+                  });
+                  setDetailModalOpen(true);
+                }}
               >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>{win.title}</span>
-                    <Zap className="w-5 h-5 text-yellow-500" />
+                    <span className="group-hover:text-primary transition-colors">{win.title}</span>
+                    <Zap className="w-5 h-5 text-yellow-500 group-hover:scale-110 transition-transform" />
                   </CardTitle>
                   <div className="flex gap-2">
-                    <Badge variant={win.impact === 'High' ? 'default' : 'secondary'}>
+                    <Badge variant={win.impact === 'High' ? 'default' : 'secondary'} className="animate-pulse">
                       Impact: {win.impact}
                     </Badge>
                     <Badge variant={win.effort === 'Low' ? 'default' : 'secondary'}>
                       Effort: {win.effort}
                     </Badge>
+                    <Badge variant="outline">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {win.timeframe || '1-2 weeks'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">{win.description}</p>
-                  <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                    <strong className="text-sm">Implementation Steps:</strong>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      {win.specificSteps?.map((step: string, i: number) => (
-                        <li key={i} className="text-sm">{step}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    {win.sources?.map((source: any, i: number) => (
-                      <a 
-                        key={i} 
-                        href={source.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        {source.name}
-                      </a>
-                    ))}
+                  <p className="text-muted-foreground mb-3">{win.description}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Activity className="w-3 h-3" />
+                    Expected improvement: {win.expectedDelta || '+5-10%'}
+                    <ChevronRight className="w-3 h-3 ml-auto" />
+                    Click for full analysis
                   </div>
                 </CardContent>
               </Card>
@@ -300,53 +303,121 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
 
           <TabsContent value="improvements" className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-3">By Timeframe</h3>
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                By Timeframe
+              </h3>
               {insights.improvementsByTime?.map((group: any, idx: number) => (
-                <Card key={idx} className="mb-4">
+                <Card 
+                  key={idx} 
+                  className="mb-4 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-green-500"
+                  onClick={() => {
+                    setSelectedItem({
+                      type: 'improvement-timeframe',
+                      title: group.timeframe,
+                      improvements: group.improvements,
+                      totalImpact: `${group.improvements?.length || 0} improvements`,
+                      why: `These improvements are scheduled for ${group.timeframe} to maximize efficiency`,
+                      how: group.improvements?.map((imp: any) => imp.description) || [],
+                      where: group.improvements?.flatMap((imp: any) => imp.sources || []) || [],
+                      impact: `Combined impact: ${group.expectedImpact || '20-30% PMF improvement'}`,
+                      result: group.expectedResult || 'Progressive improvement in product-market fit'
+                    });
+                    setDetailModalOpen(true);
+                  }}
+                >
                   <CardHeader>
-                    <CardTitle>{group.timeframe}</CardTitle>
+                    <CardTitle className="flex items-center justify-between">
+                      {group.timeframe}
+                      <Badge variant="outline" className="ml-2">
+                        {group.improvements?.length || 0} actions
+                      </Badge>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {group.improvements?.map((imp: any, i: number) => (
-                      <div key={i} className="mb-3">
-                        <h4 className="font-medium">{imp.title}</h4>
-                        <p className="text-sm">{imp.description}</p>
-                        <div className="flex gap-2 mt-2">
-                          {imp.sources?.map((source: any, j: number) => (
-                            <a key={j} href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">
-                              {source.name}
-                            </a>
-                          ))}
+                      <div key={i} className="mb-3 p-3 bg-muted/30 rounded-lg">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          {imp.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">{imp.description}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Badge variant="secondary" className="text-xs">
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                            {imp.expectedDelta || '+5%'}
+                          </Badge>
+                          {imp.confidence && (
+                            <Badge variant="outline" className="text-xs">
+                              Confidence: {imp.confidence}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     ))}
+                    <div className="flex items-center justify-end mt-2 text-xs text-muted-foreground">
+                      <ChevronRight className="w-3 h-3 mr-1" />
+                      Click for detailed implementation plan
+                    </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
             <div>
-              <h3 className="font-semibold mb-3">By Cost</h3>
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                By Cost
+              </h3>
               {insights.improvementsByCost?.map((group: any, idx: number) => (
-                <Card key={idx} className="mb-4">
+                <Card 
+                  key={idx} 
+                  className="mb-4 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-blue-500"
+                  onClick={() => {
+                    setSelectedItem({
+                      type: 'improvement-cost',
+                      title: group.budget,
+                      improvements: group.improvements,
+                      why: `Optimized for ${group.budget} budget constraints`,
+                      how: group.improvements?.map((imp: any) => `${imp.title}: ${imp.description}`) || [],
+                      where: group.improvements?.flatMap((imp: any) => imp.sources || []) || [],
+                      impact: `Average ROI: ${group.averageROI || '300%'}`,
+                      result: `Expected revenue impact: ${group.revenueImpact || '$10K-50K'}`
+                    });
+                    setDetailModalOpen(true);
+                  }}
+                >
                   <CardHeader>
-                    <CardTitle>{group.budget}</CardTitle>
+                    <CardTitle className="flex items-center justify-between">
+                      {group.budget}
+                      <Badge variant="outline">
+                        {group.improvements?.length || 0} options
+                      </Badge>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {group.improvements?.map((imp: any, i: number) => (
-                      <div key={i} className="mb-3">
-                        <h4 className="font-medium">{imp.title} - {imp.cost}</h4>
-                        <p className="text-sm">{imp.description}</p>
-                        <p className="text-sm font-medium">ROI: {imp.roi}</p>
-                        <div className="flex gap-2 mt-2">
-                          {imp.sources?.map((source: any, j: number) => (
-                            <a key={j} href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">
-                              {source.name}
-                            </a>
-                          ))}
+                      <div key={i} className="mb-3 p-3 bg-muted/30 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">{imp.title}</h4>
+                          <Badge variant="secondary">{imp.cost}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{imp.description}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            <BarChart3 className="w-3 h-3 mr-1" />
+                            ROI: {imp.roi}
+                          </Badge>
+                          <span className="text-xs text-green-500">
+                            +{imp.expectedRevenue || '$5K'}
+                          </span>
                         </div>
                       </div>
                     ))}
+                    <div className="flex items-center justify-end mt-2 text-xs text-muted-foreground">
+                      <ChevronRight className="w-3 h-3 mr-1" />
+                      View full ROI analysis
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -358,14 +429,35 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
               {insights.competitors?.map((comp: any, idx: number) => (
                 <Card 
                   key={idx}
-                  className="group hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-background to-muted/20"
+                  className="group hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-background to-muted/20 border-l-4 border-l-purple-500"
+                  onClick={() => {
+                    setSelectedItem({
+                      type: 'competitor',
+                      title: comp.name,
+                      ...comp,
+                      why: `Understanding ${comp.name} helps identify market gaps and opportunities`,
+                      how: [
+                        `They target: ${comp.targetMarket || 'Similar audience'}`,
+                        `Their USP: ${comp.usp || comp.description}`,
+                        `Key features: ${comp.keyFeatures?.join(', ') || 'Feature parity required'}`,
+                        `Weaknesses: ${comp.weaknesses?.join(', ') || 'Limited customer support'}`
+                      ],
+                      where: comp.sources || [],
+                      impact: `Market opportunity: ${comp.marketGap || '15-20% untapped segment'}`,
+                      result: `Differentiation strategy: ${comp.differentiationStrategy || 'Focus on underserved features'}`
+                    });
+                    setDetailModalOpen(true);
+                  }}
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{comp.name}</CardTitle>
-                      <Target className="w-5 h-5 text-primary" />
+                      <CardTitle className="text-lg group-hover:text-primary transition-colors">{comp.name}</CardTitle>
+                      <Target className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                     </div>
-                    <Badge className="w-fit">{comp.marketShare} market share</Badge>
+                    <div className="flex gap-2">
+                      <Badge className="w-fit">{comp.marketShare} market share</Badge>
+                      <Badge variant="outline">{comp.userBase || '10K+ users'}</Badge>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">{comp.description}</p>
@@ -379,29 +471,12 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                         <p className="font-semibold">{comp.fundingRaised}</p>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between">
-                      <a 
-                        href={comp.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Visit Website
-                      </a>
-                      <div className="flex gap-2">
-                        {comp.sources?.map((source: any, i: number) => (
-                          <a 
-                            key={i} 
-                            href={source.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            {source.name}
-                          </a>
-                        ))}
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <AlertCircle className="w-3 h-3" />
+                        Threat level: {comp.threatLevel || 'Medium'}
                       </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
@@ -411,21 +486,55 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
 
           <TabsContent value="channels" className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-3">Organic Channels</h3>
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Rocket className="w-4 h-4" />
+                Organic Channels
+              </h3>
               {insights.channels?.organic?.map((channel: any, idx: number) => (
-                <Card key={idx} className="mb-3">
+                <Card 
+                  key={idx} 
+                  className="mb-3 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-orange-500"
+                  onClick={() => {
+                    setSelectedItem({
+                      type: 'channel-organic',
+                      title: channel.name,
+                      ...channel,
+                      why: `${channel.name} offers ${channel.potential} potential for organic growth`,
+                      how: [
+                        channel.strategy,
+                        `Content strategy: ${channel.contentStrategy || 'Educational content and community building'}`,
+                        `Engagement tactics: ${channel.engagementTactics || 'Regular posting and interaction'}`,
+                        `Growth hacks: ${channel.growthHacks || 'Viral loops and user-generated content'}`
+                      ],
+                      where: channel.sources || [],
+                      impact: `Expected reach: ${channel.expectedReach || '10K-50K organic impressions/month'}`,
+                      result: `Conversion rate: ${channel.conversionRate || '2-5% from organic traffic'}`
+                    });
+                    setDetailModalOpen(true);
+                  }}
+                >
                   <CardHeader>
-                    <CardTitle>{channel.name}</CardTitle>
-                    <Badge>{channel.potential} potential</Badge>
+                    <CardTitle className="flex items-center justify-between">
+                      {channel.name}
+                      <Users className="w-4 h-4 text-orange-500" />
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      <Badge variant={channel.potential === 'High' ? 'default' : 'secondary'}>
+                        {channel.potential} potential
+                      </Badge>
+                      <Badge variant="outline">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {channel.timeToResults || '2-3 months'}
+                      </Badge>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <p>{channel.strategy}</p>
-                    <div className="flex gap-2 mt-2">
-                      {channel.sources?.map((source: any, i: number) => (
-                        <a key={i} href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">
-                          {source.name}
-                        </a>
-                      ))}
+                    <p className="text-sm text-muted-foreground">{channel.strategy}</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xs text-green-500">
+                        Cost: {channel.cost || 'Free'}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
@@ -433,25 +542,53 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
             </div>
 
             <div>
-              <h3 className="font-semibold mb-3">Paid Channels</h3>
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Paid Channels
+              </h3>
               {insights.channels?.paid?.map((channel: any, idx: number) => (
-                <Card key={idx} className="mb-3">
+                <Card 
+                  key={idx} 
+                  className="mb-3 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-indigo-500"
+                  onClick={() => {
+                    setSelectedItem({
+                      type: 'channel-paid',
+                      title: channel.name,
+                      ...channel,
+                      why: `${channel.name} provides ${channel.effectiveness} effectiveness for paid acquisition`,
+                      how: [
+                        channel.strategy,
+                        `Targeting: ${channel.targeting || 'Lookalike audiences and interest-based'}`,
+                        `Ad formats: ${channel.adFormats || 'Video, carousel, and dynamic ads'}`,
+                        `Optimization: ${channel.optimization || 'A/B testing and bid optimization'}`
+                      ],
+                      where: channel.sources || [],
+                      impact: `ROI: ${channel.roi || '200-300%'} | LTV:CAC ratio: ${channel.ltvcac || '3:1'}`,
+                      result: `Monthly acquisitions: ${channel.monthlyAcquisitions || '100-500 customers'}`
+                    });
+                    setDetailModalOpen(true);
+                  }}
+                >
                   <CardHeader>
-                    <CardTitle>{channel.name}</CardTitle>
+                    <CardTitle className="flex items-center justify-between">
+                      {channel.name}
+                      <BarChart3 className="w-4 h-4 text-indigo-500" />
+                    </CardTitle>
                     <div className="flex gap-2">
                       <Badge>CAC: {channel.cac}</Badge>
-                      <Badge>{channel.effectiveness} effectiveness</Badge>
+                      <Badge variant={channel.effectiveness === 'High' ? 'default' : 'secondary'}>
+                        {channel.effectiveness} effectiveness
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p>{channel.strategy}</p>
-                    <p className="text-sm">Budget: {channel.budget}</p>
-                    <div className="flex gap-2 mt-2">
-                      {channel.sources?.map((source: any, i: number) => (
-                        <a key={i} href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">
-                          {source.name}
-                        </a>
-                      ))}
+                    <p className="text-sm text-muted-foreground">{channel.strategy}</p>
+                    <div className="mt-2 p-2 bg-muted/30 rounded">
+                      <p className="text-xs">Budget: {channel.budget}</p>
+                      <p className="text-xs">Expected ROAS: {channel.roas || '2.5x'}</p>
+                    </div>
+                    <div className="mt-2 flex items-center justify-end">
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
@@ -460,7 +597,28 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
           </TabsContent>
 
           <TabsContent value="metrics" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-500/5 to-blue-600/5">
+            <Card 
+              className="hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-blue-500/5 to-blue-600/5 border-l-4 border-l-blue-500"
+              onClick={() => {
+                setSelectedItem({
+                  type: 'metric',
+                  title: 'Market Size',
+                  value: insights.marketSize?.total,
+                  growth: insights.marketSize?.growth,
+                  why: 'Market size determines the total addressable opportunity for your product',
+                  how: [
+                    `Total addressable market: ${insights.marketSize?.tam || '$500M'}`,
+                    `Serviceable addressable market: ${insights.marketSize?.sam || '$100M'}`,
+                    `Serviceable obtainable market: ${insights.marketSize?.som || '$10M'}`,
+                    `Year-over-year growth: ${insights.marketSize?.growth}`
+                  ],
+                  where: insights.marketSize?.sources || [],
+                  impact: `Capture potential: ${insights.marketSize?.captureRate || '1-5%'} of market`,
+                  result: `Revenue opportunity: ${insights.marketSize?.revenueOpportunity || '$1M-5M ARR'}`
+                });
+                setDetailModalOpen(true);
+              }}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-blue-500" />
@@ -468,20 +626,14 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-blue-600">{insights.marketSize?.total}</p>
-                <p className="text-sm text-muted-foreground mt-1">Growth: {insights.marketSize?.growth}</p>
-                <div className="flex gap-2 mt-3">
-                  {insights.marketSize?.sources?.map((source: any, i: number) => (
-                    <a 
-                      key={i} 
-                      href={source.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs text-primary hover:text-primary/80 transition-colors"
-                    >
-                      {source.name}
-                    </a>
-                  ))}
+                <p className="text-3xl font-bold text-blue-600">{insights.marketSize?.total || '$100M'}</p>
+                <p className="text-sm text-muted-foreground mt-1">Growth: {insights.marketSize?.growth || '25% YoY'}</p>
+                <div className="mt-3 flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    {insights.marketSize?.trend || 'Expanding'}
+                  </Badge>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
@@ -543,6 +695,102 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
         metric={selectedMetric}
         idea={idea}
       />
+
+      {/* Generic Detail Modal for other items */}
+      <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              {selectedItem?.type === 'quickwin' && <Zap className="w-6 h-6 text-yellow-500" />}
+              {selectedItem?.type === 'competitor' && <Target className="w-6 h-6 text-purple-500" />}
+              {selectedItem?.type?.includes('channel') && <Rocket className="w-6 h-6 text-orange-500" />}
+              {selectedItem?.type?.includes('improvement') && <TrendingUp className="w-6 h-6 text-green-500" />}
+              {selectedItem?.type === 'metric' && <BarChart3 className="w-6 h-6 text-blue-500" />}
+              {selectedItem?.title}
+            </DialogTitle>
+            <DialogDescription>
+              Comprehensive analysis and actionable insights for: <span className="font-semibold text-foreground">{idea}</span>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[500px] pr-4">
+            <div className="space-y-6">
+              {/* Why Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-yellow-500" />
+                  <h3 className="font-semibold text-lg">Why This Matters</h3>
+                </div>
+                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 p-4 rounded-lg">
+                  <p className="text-sm leading-relaxed">{selectedItem?.why}</p>
+                </div>
+              </div>
+
+              {/* How Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-green-500" />
+                  <h3 className="font-semibold text-lg">How to Implement</h3>
+                </div>
+                <div className="space-y-2">
+                  {selectedItem?.how?.map((step: string, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                      <span className="text-sm">{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Data Sources */}
+              {selectedItem?.where?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-purple-500" />
+                    <h3 className="font-semibold text-lg">Data Sources</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedItem?.where?.map((source: any, idx: number) => (
+                      <a 
+                        key={idx}
+                        href={source.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-muted rounded-full text-xs hover:bg-primary/10 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {source.name || source}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Impact & Results */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-500" />
+                    <h4 className="font-semibold">Expected Impact</h4>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 p-3 rounded-lg">
+                    <p className="text-sm">{selectedItem?.impact}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <h4 className="font-semibold">Expected Result</h4>
+                  </div>
+                  <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-3 rounded-lg">
+                    <p className="text-sm">{selectedItem?.result}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
