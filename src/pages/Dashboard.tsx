@@ -5,6 +5,7 @@ import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
 import HelpSupport from "@/components/HelpSupport";
+import EnhancedPMFDashboard from "@/components/EnhancedPMFDashboard";
 
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SessionContext";
@@ -294,75 +295,10 @@ const Dashboard = () => {
                 
                 <div className="flex-1 overflow-auto p-4">
                   {analysisData ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      {/* Key Metrics from Chat Context */}
-                      <Card className="p-4">
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <BarChart className="h-4 w-4 text-primary" />
-                          Market Analysis
-                        </h3>
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Idea:</span>
-                            <p className="font-medium">{analysisData.idea}</p>
-                          </div>
-                          {analysisData.metadata?.answers && (
-                            <>
-                              <div>
-                                <span className="text-muted-foreground">Problem Solved:</span>
-                                <p className="text-xs">{analysisData.metadata.answers["What problem does your product solve?"] || "Analyzing..."}</p>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Target Audience:</span>
-                                <p className="text-xs">{analysisData.metadata.answers["Who is your target audience?"] || "Analyzing..."}</p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </Card>
-
-                      {/* Value Proposition from Chat */}
-                      <Card className="p-4">
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          Unique Value
-                        </h3>
-                        <div className="space-y-2 text-sm">
-                          {analysisData.metadata?.answers?.["What's your unique value proposition?"] ? (
-                            <p className="text-xs">{analysisData.metadata.answers["What's your unique value proposition?"]}</p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">Complete analysis to see value proposition</p>
-                          )}
-                        </div>
-                      </Card>
-
-                      {/* Competition & Monetization */}
-                      <Card className="p-4">
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-primary" />
-                          Strategy Insights
-                        </h3>
-                        <div className="space-y-2 text-sm">
-                          {analysisData.metadata?.answers?.["What's your monetization strategy?"] && (
-                            <div>
-                              <span className="text-muted-foreground text-xs">Revenue Model:</span>
-                              <p className="text-xs">{analysisData.metadata.answers["What's your monetization strategy?"]}</p>
-                            </div>
-                          )}
-                          {analysisData.metadata?.answers?.["Who are your main competitors?"] && (
-                            <div>
-                              <span className="text-muted-foreground text-xs">Competition:</span>
-                              <p className="text-xs">{analysisData.metadata.answers["Who are your main competitors?"]}</p>
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-
-                      {/* Full Analysis View */}
-                      <div className="col-span-full">
-                        <PMFAnalyzer key={`analysis-${chatKey}`} />
-                      </div>
-                    </div>
+                    <EnhancedPMFDashboard 
+                      idea={analysisData.idea}
+                      userAnswers={analysisData.metadata?.answers || {}}
+                    />
                   ) : (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center space-y-4 max-w-md">

@@ -14,329 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { idea, category } = await req.json();
-    
-    console.log('[DASHBOARD-INSIGHTS] Fetching insights for:', idea, 'Category:', category);
+    const { idea, userAnswers } = await req.json();
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!idea) {
+      throw new Error('Idea is required');
     }
 
-    let prompt = '';
-    
-    switch(category) {
-      case 'market_analysis':
-        prompt = `Analyze the market for "${idea}". Provide REAL, SPECIFIC data in JSON format:
-{
-  "marketSize": {
-    "total": "[specific $ amount with year]",
-    "growth": "[specific CAGR %]",
-    "segments": [
-      {
-        "name": "[segment name]",
-        "size": "[$ amount]",
-        "growth": "[%]",
-        "characteristics": "[key traits]"
-      }
-    ]
-  },
-  "competitors": [
-    {
-      "name": "[real company name]",
-      "marketShare": "[%]",
-      "valuation": "[$ amount]",
-      "strengths": ["specific strength 1", "strength 2"],
-      "weaknesses": ["specific weakness 1", "weakness 2"],
-      "recentNews": "[latest development]"
-    }
-  ],
-  "trends": [
-    {
-      "trend": "[specific trend]",
-      "impact": "high/medium/low",
-      "timeline": "[when it will peak]",
-      "opportunity": "[how to leverage]"
-    }
-  ],
-  "barriers": [
-    {
-      "barrier": "[specific barrier]",
-      "difficulty": "high/medium/low",
-      "solution": "[how to overcome]"
-    }
-  ],
-  "regulations": [
-    {
-      "regulation": "[specific law/requirement]",
-      "region": "[where it applies]",
-      "impact": "[how it affects the business]"
-    }
-  ]
-}`;
-        break;
-
-      case 'customer_insights':
-        prompt = `Analyze the target customers for "${idea}". Provide REAL, SPECIFIC data in JSON format:
-{
-  "segments": [
-    {
-      "name": "[segment name]",
-      "size": "[specific number of people]",
-      "demographics": {
-        "age": "[specific range]",
-        "income": "[specific range]",
-        "location": "[specific regions/cities]",
-        "occupation": "[common jobs]"
-      },
-      "psychographics": {
-        "values": ["value 1", "value 2"],
-        "painPoints": ["specific pain 1", "pain 2", "pain 3"],
-        "goals": ["goal 1", "goal 2"],
-        "frustrations": ["frustration 1", "frustration 2"]
-      },
-      "behavior": {
-        "buyingProcess": "[how they make decisions]",
-        "priceWillingness": "[$ range they'll pay]",
-        "channels": ["where they hang out online"],
-        "influencers": ["who influences them"]
-      }
-    }
-  ],
-  "personas": [
-    {
-      "name": "[persona name]",
-      "age": "[specific age]",
-      "job": "[specific role]",
-      "story": "[day in their life related to the problem]",
-      "quote": "[what they'd say about their problem]",
-      "techSavvy": "[1-10 scale]",
-      "budget": "[$ amount]"
-    }
-  ],
-  "insights": [
-    {
-      "insight": "[specific discovery]",
-      "source": "[where this came from]",
-      "confidence": "high/medium/low",
-      "actionable": "[what to do with this]"
-    }
-  ]
-}`;
-        break;
-
-      case 'pain_points':
-        prompt = `Analyze the real pain points that "${idea}" solves. Provide SPECIFIC, DETAILED data in JSON format:
-{
-  "painPoints": [
-    {
-      "problem": "[specific problem statement]",
-      "severity": "[1-10 scale]",
-      "frequency": "[how often it occurs]",
-      "currentSolutions": [
-        {
-          "solution": "[what people use now]",
-          "satisfaction": "[1-10 scale]",
-          "cost": "[$ amount]",
-          "limitations": ["limitation 1", "limitation 2"]
-        }
-      ],
-      "consequences": [
-        {
-          "consequence": "[what happens if not solved]",
-          "cost": "[$ or time impact]",
-          "likelihood": "high/medium/low"
-        }
-      ],
-      "quotes": [
-        "[actual quote someone might say about this problem]"
-      ]
-    }
-  ],
-  "rootCauses": [
-    {
-      "cause": "[underlying reason]",
-      "explanation": "[why this happens]",
-      "solvability": "easy/medium/hard",
-      "approach": "[how to address it]"
-    }
-  ],
-  "validationData": {
-    "surveysNeeded": ["question to ask users"],
-    "metricsToTrack": ["metric 1", "metric 2"],
-    "successIndicators": ["indicator 1", "indicator 2"]
-  }
-}`;
-        break;
-
-      case 'monetization':
-        prompt = `Analyze monetization strategies for "${idea}". Provide REAL, SPECIFIC data in JSON format:
-{
-  "pricingModels": [
-    {
-      "model": "[subscription/freemium/one-time/usage-based]",
-      "price": "[specific $ amount]",
-      "justification": "[why this price]",
-      "competitors": [
-        {
-          "name": "[company]",
-          "price": "[their price]",
-          "features": ["what they offer"]
-        }
-      ],
-      "projectedRevenue": {
-        "month1": "[$ amount]",
-        "month6": "[$ amount]",
-        "year1": "[$ amount]"
-      }
-    }
-  ],
-  "revenueStreams": [
-    {
-      "stream": "[revenue source]",
-      "percentage": "[% of total revenue]",
-      "growth": "[growth potential]",
-      "implementation": "[how to set it up]"
-    }
-  ],
-  "unitEconomics": {
-    "cac": "[$ customer acquisition cost]",
-    "ltv": "[$ lifetime value]",
-    "paybackPeriod": "[months]",
-    "grossMargin": "[%]",
-    "breakeven": "[number of customers needed]"
-  },
-  "financialProjections": {
-    "year1": {
-      "revenue": "[$ amount]",
-      "costs": "[$ amount]",
-      "profit": "[$ amount]",
-      "customers": "[number]"
-    },
-    "year2": {
-      "revenue": "[$ amount]",
-      "costs": "[$ amount]",
-      "profit": "[$ amount]",
-      "customers": "[number]"
-    }
-  }
-}`;
-        break;
-
-      case 'competitive_analysis':
-        prompt = `Provide a detailed competitive analysis for "${idea}". Include REAL companies and data in JSON format:
-{
-  "directCompetitors": [
-    {
-      "name": "[real company name]",
-      "website": "[actual URL]",
-      "founded": "[year]",
-      "funding": "[$ amount raised]",
-      "employees": "[number]",
-      "revenue": "[$ amount or range]",
-      "users": "[number of users]",
-      "features": {
-        "core": ["feature 1", "feature 2"],
-        "unique": ["their differentiator"],
-        "missing": ["what they lack"]
-      },
-      "pricing": {
-        "model": "[their pricing model]",
-        "tiers": [
-          {
-            "name": "[tier name]",
-            "price": "[$ amount]",
-            "features": ["included features"]
-          }
-        ]
-      },
-      "strategy": "[their go-to-market strategy]",
-      "weaknesses": ["weakness 1", "weakness 2"]
-    }
-  ],
-  "indirectCompetitors": [
-    {
-      "name": "[company/solution]",
-      "type": "[type of solution]",
-      "threat": "high/medium/low",
-      "explanation": "[why they're a threat]"
-    }
-  ],
-  "competitiveAdvantages": [
-    {
-      "advantage": "[your unique advantage]",
-      "sustainability": "high/medium/low",
-      "implementation": "[how to build this]",
-      "defense": "[how to protect it]"
-    }
-  ],
-  "marketPositioning": {
-    "strategy": "[how to position]",
-    "messaging": "[key messages]",
-    "differentiation": "[what makes you unique]",
-    "targetNiche": "[specific niche to dominate first]"
-  }
-}`;
-        break;
-
-      case 'growth_strategy':
-        prompt = `Create a detailed growth strategy for "${idea}". Provide ACTIONABLE, SPECIFIC tactics in JSON format:
-{
-  "acquisitionChannels": [
-    {
-      "channel": "[specific channel]",
-      "cost": "[$ per acquisition]",
-      "scalability": "high/medium/low",
-      "timeline": "[when to start]",
-      "tactics": [
-        {
-          "tactic": "[specific action]",
-          "budget": "[$ needed]",
-          "expectedResults": "[metrics]",
-          "tools": ["tool 1", "tool 2"]
-        }
-      ]
-    }
-  ],
-  "growthHacks": [
-    {
-      "hack": "[specific growth hack]",
-      "difficulty": "easy/medium/hard",
-      "impact": "high/medium/low",
-      "implementation": "[step-by-step how to do it]",
-      "examples": ["company that did this successfully"]
-    }
-  ],
-  "viralFeatures": [
-    {
-      "feature": "[viral mechanism]",
-      "viralCoefficient": "[expected K-factor]",
-      "implementation": "[how to build it]",
-      "triggers": ["what makes people share"]
-    }
-  ],
-  "retentionStrategy": [
-    {
-      "tactic": "[retention tactic]",
-      "impact": "[% improvement expected]",
-      "implementation": "[how to do it]",
-      "measurement": "[how to track success]"
-    }
-  ],
-  "milestones": [
-    {
-      "milestone": "[specific goal]",
-      "metric": "[number to hit]",
-      "timeline": "[by when]",
-      "requirements": ["what's needed to achieve"]
-    }
-  ]
-}`;
-        break;
-
-      default:
-        prompt = `Provide key insights about "${idea}" in JSON format with specific, actionable data.`;
-    }
-
+    // Call OpenAI to get comprehensive dashboard insights with real data
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -344,55 +28,266 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5-2025-08-07',
+        max_completion_tokens: 4000,
         messages: [
           {
             role: 'system',
-            content: 'You are a venture capital analyst and market researcher. Provide REAL, SPECIFIC, ACTIONABLE data based on actual market conditions, real companies, and factual information. Never use placeholder data. Include numbers, percentages, company names, and specific details. Return ONLY valid JSON.'
+            content: `You are a product-market fit analysis expert. Analyze the given idea and user answers to provide comprehensive, data-driven insights. 
+            
+            IMPORTANT: All data must be real, specific, and actionable. No generic or placeholder information.
+            Research and provide actual market data, real competitors, specific improvements, and genuine metrics.
+            Include source URLs for all data points.`
           },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 2000,
-        temperature: 0.3 // Lower temperature for more factual responses
-      }),
+          {
+            role: 'user',
+            content: `Analyze this product idea and provide comprehensive dashboard data:
+
+Idea: ${idea}
+
+User Answers:
+${JSON.stringify(userAnswers, null, 2)}
+
+Provide a comprehensive JSON response with the following structure:
+{
+  "pmfScore": number (0-100, calculated based on real market factors),
+  "marketSize": {
+    "total": string (e.g., "$5.2B"),
+    "growth": string (e.g., "22% CAGR"),
+    "sources": [{ "name": string, "url": string }]
+  },
+  "competitors": [
+    {
+      "name": string,
+      "description": string,
+      "marketShare": string,
+      "strengths": [string],
+      "weaknesses": [string],
+      "pricing": string,
+      "fundingRaised": string,
+      "website": string,
+      "sources": [{ "name": string, "url": string }]
+    }
+  ],
+  "targetAudience": {
+    "segments": [
+      {
+        "name": string,
+        "size": string,
+        "characteristics": [string],
+        "painPoints": [string],
+        "willingness": string
+      }
+    ],
+    "sources": [{ "name": string, "url": string }]
+  },
+  "quickWins": [
+    {
+      "title": string,
+      "description": string,
+      "impact": "high" | "medium" | "low",
+      "effort": "high" | "medium" | "low",
+      "timeframe": string,
+      "specificSteps": [string],
+      "expectedOutcome": string,
+      "metrics": string,
+      "sources": [{ "name": string, "url": string }]
+    }
+  ],
+  "improvementsByTime": [
+    {
+      "timeframe": "1 week" | "2 weeks" | "1 month" | "3 months",
+      "improvements": [
+        {
+          "title": string,
+          "description": string,
+          "steps": [string],
+          "expectedImpact": string,
+          "sources": [{ "name": string, "url": string }]
+        }
+      ]
+    }
+  ],
+  "improvementsByCost": [
+    {
+      "budget": "$0-100" | "$100-500" | "$500-2000" | "$2000+",
+      "improvements": [
+        {
+          "title": string,
+          "cost": string,
+          "description": string,
+          "roi": string,
+          "implementation": [string],
+          "sources": [{ "name": string, "url": string }]
+        }
+      ]
+    }
+  ],
+  "channels": {
+    "organic": [
+      {
+        "name": string,
+        "potential": "high" | "medium" | "low",
+        "strategy": string,
+        "examples": [string],
+        "sources": [{ "name": string, "url": string }]
+      }
+    ],
+    "paid": [
+      {
+        "name": string,
+        "cac": string,
+        "effectiveness": "high" | "medium" | "low",
+        "budget": string,
+        "strategy": string,
+        "sources": [{ "name": string, "url": string }]
+      }
+    ]
+  },
+  "features": {
+    "mvp": [
+      {
+        "name": string,
+        "description": string,
+        "priority": "critical" | "high" | "medium",
+        "effort": string,
+        "rationale": string
+      }
+    ],
+    "future": [
+      {
+        "name": string,
+        "description": string,
+        "timeline": string,
+        "dependency": string
+      }
+    ]
+  },
+  "monetization": {
+    "models": [
+      {
+        "type": string,
+        "pricing": string,
+        "projection": string,
+        "benchmarks": string,
+        "sources": [{ "name": string, "url": string }]
+      }
+    ],
+    "revenue": {
+      "month1": string,
+      "month6": string,
+      "year1": string,
+      "assumptions": [string]
+    }
+  },
+  "risks": [
+    {
+      "type": string,
+      "description": string,
+      "likelihood": "high" | "medium" | "low",
+      "impact": "high" | "medium" | "low",
+      "mitigation": string,
+      "sources": [{ "name": string, "url": string }]
+    }
+  ],
+  "realTimeMetrics": {
+    "searchVolume": {
+      "monthly": number,
+      "trend": "rising" | "stable" | "declining",
+      "relatedQueries": [string],
+      "sources": [{ "name": string, "url": string }]
+    },
+    "socialSignals": {
+      "mentions": number,
+      "sentiment": "positive" | "neutral" | "negative",
+      "platforms": [
+        {
+          "name": string,
+          "engagement": string,
+          "trending": boolean
+        }
+      ],
+      "sources": [{ "name": string, "url": string }]
+    }
+  },
+  "actionPlan": {
+    "immediate": [
+      {
+        "action": string,
+        "outcome": string,
+        "deadline": string
+      }
+    ],
+    "shortTerm": [
+      {
+        "action": string,
+        "outcome": string,
+        "deadline": string
+      }
+    ],
+    "longTerm": [
+      {
+        "action": string,
+        "outcome": string,
+        "deadline": string
+      }
+    ]
+  }
+}
+
+CRITICAL: 
+- All competitors must be real companies with actual data
+- All market sizes must be based on real research
+- All improvements must be specific and actionable
+- Include real source URLs that users can verify
+- Calculate PM-Fit score based on actual market signals
+- Provide specific metrics and KPIs, not generic advice`
+          }
+        ]
+      })
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error('[DASHBOARD-INSIGHTS] OpenAI API error:', error);
-      throw new Error(error.error?.message || 'Failed to get insights');
+      throw new Error(`OpenAI API error: ${response.statusText}`);
     }
 
     const data = await response.json();
     const content = data.choices[0].message.content;
     
-    // Parse JSON from response
+    // Parse the JSON response
     let insights;
     try {
+      // Clean the response if needed
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       insights = JSON.parse(jsonMatch ? jsonMatch[0] : content);
     } catch (parseError) {
-      console.error('[DASHBOARD-INSIGHTS] Failed to parse insights:', parseError);
-      insights = { error: 'Failed to parse insights', raw: content };
+      console.error('Failed to parse OpenAI response:', parseError);
+      throw new Error('Failed to parse AI insights');
     }
 
-    console.log('[DASHBOARD-INSIGHTS] Successfully generated insights for category:', category);
+    console.log('[DASHBOARD-INSIGHTS] Generated comprehensive insights:', {
+      pmfScore: insights.pmfScore,
+      competitorsCount: insights.competitors?.length,
+      quickWinsCount: insights.quickWins?.length,
+      hasRealData: !!insights.marketSize?.sources?.length
+    });
 
     return new Response(
       JSON.stringify({ 
+        success: true, 
         insights,
-        category,
-        idea,
         timestamp: new Date().toISOString()
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   } catch (error) {
-    console.error('[DASHBOARD-INSIGHTS] Error:', error);
+    console.error('Error in dashboard-insights function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        insights: null
+        success: false, 
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
       }),
       { 
         status: 500,
