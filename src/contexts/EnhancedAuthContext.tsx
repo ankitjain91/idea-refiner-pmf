@@ -299,11 +299,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else {
           setUserProfile(null);
-          
-          if (event === 'SIGNED_OUT') {
-            localStorage.clear();
-            navigate('/auth');
-          }
+          // Avoid forcing navigation or clearing storage on SIGNED_OUT during hydration.
+          // ProtectedRoute handles redirects; clearing here can wipe Supabase session on refresh.
         }
         
         // Always set loading to false after auth state changes
