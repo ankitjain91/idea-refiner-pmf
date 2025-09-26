@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,13 +11,10 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) => {
   const { user, session, loading, refreshSession } = useAuth();
   const location = useLocation();
-  const [bootstrapDone, setBootstrapDone] = useState(false);
   
-  useEffect(() => {
-    // Reduce bootstrap delay to 500ms instead of 2500ms
-    const t = setTimeout(() => setBootstrapDone(true), 500);
-    return () => clearTimeout(t);
-  }, []);
+  // Remove artificial bootstrap delay; rely solely on auth loading state
+  // This prevents premature redirects on hard refresh
+  
 
   useEffect(() => {
     // Check token validity on mount and route changes
@@ -40,8 +37,8 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
     checkToken();
   }, [session, loading, refreshSession, location.pathname]);
 
-  // Show loading spinner briefly while bootstrapping
-  if (loading && !bootstrapDone) {
+  // Show loading spinner while auth state is initializing
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
