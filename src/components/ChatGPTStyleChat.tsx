@@ -330,16 +330,31 @@ export default function ChatGPTStyleChat({
           }
         });
 
-        // Remove loading message
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
 
-        if (!error && data && data.response) {
+      if (!error && data) {
+        // Handle both string and object responses
+        let responseContent = '';
+        let responseSuggestions = [];
+        
+        if (typeof data === 'string') {
+          responseContent = data;
+        } else if (data.response) {
+          responseContent = data.response;
+          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        } else if (data.message) {
+          responseContent = data.message;
+          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        }
+        
+        if (responseContent) {
           const botMessage: Message = {
             id: `msg-${Date.now()}-bot`,
             type: 'bot',
-            content: data.response,
+            content: responseContent,
             timestamp: new Date(),
-            suggestions: Array.isArray(data.suggestions) ? data.suggestions : []
+            suggestions: responseSuggestions
           };
           
           setMessages(prev => [...prev, botMessage]);
@@ -347,6 +362,9 @@ export default function ChatGPTStyleChat({
           console.error('Invalid response structure:', data);
           throw new Error('Invalid response format');
         }
+      } else {
+        throw new Error('No data received');
+      }
       } catch (error) {
         console.error('Chat error:', error);
         // Remove loading message
@@ -564,12 +582,26 @@ export default function ChatGPTStyleChat({
       setMessages(prev => prev.filter(msg => !msg.isTyping));
 
       if (!error && data) {
+        // Handle both string and object responses
+        let responseContent = '';
+        let responseSuggestions = [];
+        
+        if (typeof data === 'string') {
+          responseContent = data;
+        } else if (data.response) {
+          responseContent = data.response;
+          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        } else if (data.message) {
+          responseContent = data.message;
+          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+        }
+        
         const botMessage: Message = {
           id: `msg-${Date.now()}-bot`,
           type: 'bot',
-          content: data.response || `Great idea! Let me help you explore "${idea}". What specific aspects would you like to refine or discuss?`,
+          content: responseContent || `Great idea! Let me help you explore "${idea}". What specific aspects would you like to refine or discuss?`,
           timestamp: new Date(),
-          suggestions: data.suggestions || [
+          suggestions: responseSuggestions.length > 0 ? responseSuggestions : [
             `What problem does ${idea} solve?`,
             `Who would use ${idea}?`,
             `How would ${idea} make money?`,
@@ -589,6 +621,9 @@ export default function ChatGPTStyleChat({
   };
 
   const handleSuggestionClick = async (suggestion: string) => {
+    // Prevent duplicate processing
+    if (isLoading) return;
+    
     // Create user message for the suggestion
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -609,24 +644,155 @@ export default function ChatGPTStyleChat({
       // Get AI response about the idea for refinement
       await handleSuggestionRefinement(suggestion);
     } else if (isRefinementMode && !isAnalyzing) {
-      // During refinement - continue conversation
-      setInput(suggestion);
-      setTimeout(() => handleSend(), 100);
+      // During refinement - use the suggestion as input
+      setInput('');
+      setIsLoading(true);
+      
+      // Add loading animation message
+      const loadingMessage: Message = {
+        id: `msg-loading-${Date.now()}`,
+        type: 'bot',
+        content: '',
+        timestamp: new Date(),
+        isTyping: true
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+      
+      try {
+        // Get AI response for refinement
+        const { data, error } = await supabase.functions.invoke('idea-chat', {
+          body: { 
+            message: suggestion,
+            conversationHistory: messages.map(m => ({
+              role: m.type === 'user' ? 'user' : 'assistant',
+              content: m.content
+            })),
+            idea: currentIdea || suggestion,
+            refinementMode: true
+          }
+        });
+
+        // Remove loading message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+
+        if (!error && data) {
+          // Handle both string and object responses
+          let responseContent = '';
+          let responseSuggestions = [];
+          
+          if (typeof data === 'string') {
+            responseContent = data;
+          } else if (data.response) {
+            responseContent = data.response;
+            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          } else if (data.message) {
+            responseContent = data.message;
+            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          }
+          
+          if (responseContent) {
+            const botMessage: Message = {
+              id: `msg-${Date.now()}-bot`,
+              type: 'bot',
+              content: responseContent,
+              timestamp: new Date(),
+              suggestions: responseSuggestions
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+          } else {
+            console.error('Invalid response structure:', data);
+            throw new Error('Invalid response format');
+          }
+        } else {
+          throw new Error('No data received');
+        }
+      } catch (error) {
+        console.error('Chat error:', error);
+        // Remove loading message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        const errorMessage: Message = {
+          id: `msg-error-${Date.now()}`,
+          type: 'bot',
+          content: "I apologize, I'm having trouble processing your request. Please try again.",
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
     } else if (isAnalyzing) {
-      // During analysis - save answer and continue
-      const updatedAnswers = { ...analysisAnswers, [currentQuestionIndex]: suggestion };
-      setAnalysisAnswers(updatedAnswers);
+      // During analysis - use the suggestion as the answer
+      const question = ANALYSIS_QUESTIONS[currentQuestionIndex];
+      setAnalysisAnswers(prev => ({
+        ...prev,
+        [question]: suggestion
+      }));
       
-      // Save session with updated answers
-      await saveSession();
+      const newProgress = ((currentQuestionIndex + 1) / ANALYSIS_QUESTIONS.length) * 100;
+      setAnalysisProgress(newProgress);
       
-      // Move to next question or complete
-      if (currentQuestionIndex < ANALYSIS_QUESTIONS.length - 1) {
+      if (currentQuestionIndex + 1 < ANALYSIS_QUESTIONS.length) {
+        // Ask next question with AI suggestions
         setCurrentQuestionIndex(prev => prev + 1);
-        setAnalysisProgress(((currentQuestionIndex + 2) / ANALYSIS_QUESTIONS.length) * 100);
-        await askNextQuestion(currentQuestionIndex + 1);
+        const nextQuestion = ANALYSIS_QUESTIONS[currentQuestionIndex + 1];
+        
+        setInput('');
+        setIsLoading(true);
+        
+        // Add loading animation message
+        const loadingMessage: Message = {
+          id: `msg-loading-${Date.now()}`,
+          type: 'bot',
+          content: '',
+          timestamp: new Date(),
+          isTyping: true
+        };
+        setMessages(prev => [...prev, loadingMessage]);
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('idea-chat', {
+            body: { 
+              message: `Help me answer: ${nextQuestion}`,
+              idea: currentIdea,
+              currentQuestion: nextQuestion,
+              questionNumber: currentQuestionIndex + 1,
+              analysisContext: analysisAnswers
+            }
+          });
+
+          // Remove loading message
+          setMessages(prev => prev.filter(msg => !msg.isTyping));
+
+          const questionMessage: Message = {
+            id: `msg-question-${Date.now()}`,
+            type: 'bot',
+            content: nextQuestion,
+            timestamp: new Date(),
+            suggestions: data?.suggestions || []
+          };
+          
+          setMessages(prev => [...prev, questionMessage]);
+        } catch (error) {
+          console.error('Error getting suggestions:', error);
+          // Remove loading message
+          setMessages(prev => prev.filter(msg => !msg.isTyping));
+          
+          const questionMessage: Message = {
+            id: `msg-question-${Date.now()}`,
+            type: 'bot',
+            content: nextQuestion,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, questionMessage]);
+        } finally {
+          setIsLoading(false);
+        }
       } else {
-        // Complete analysis
+        // Analysis complete
         completeAnalysis();
       }
     }
