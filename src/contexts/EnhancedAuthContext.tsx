@@ -303,11 +303,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // ProtectedRoute handles redirects; clearing here can wipe Supabase session on refresh.
         }
         
-        // Always set loading to false after auth state changes
-        if (mounted) {
-          setLoading(false);
-          setInitialized(true);
-        }
+          // Set loading false after any auth change; set initialized only after INITIAL_SESSION
+          if (mounted) {
+            setLoading(false);
+            if (event === 'INITIAL_SESSION') {
+              setInitialized(true);
+            }
+          }
       }
     );
 
