@@ -53,11 +53,27 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
       setTimeout(() => setProgress(0), 300);
     } catch (err) {
       clearInterval(progressInterval);
-      console.error('Error fetching insights (retrying)...', err);
-      // Exponential backoff retries, no fallback data
-      const delay = Math.min(8000, 1000 * Math.pow(2, retry));
+      console.error('Error fetching insights:', err);
+      
+      // Faster retry with reduced delays
+      const delay = Math.min(2000, 500 + (500 * retry));
       setProgress(0);
-      setTimeout(() => fetchDashboardInsights(retry + 1), delay);
+      
+      if (retry < 3) {
+        toast({
+          title: "Fetching data...",
+          description: `Retrying in ${delay/1000} seconds...`,
+          duration: 2000,
+        });
+        setTimeout(() => fetchDashboardInsights(retry + 1), delay);
+      } else {
+        toast({
+          title: "Still loading...",
+          description: "The AI is generating comprehensive insights. Please wait...",
+          duration: 3000,
+        });
+        setTimeout(() => fetchDashboardInsights(0), 1000);
+      }
     }
   };
 

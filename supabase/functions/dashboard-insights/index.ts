@@ -32,45 +32,54 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
-            max_tokens: 3000,
-            temperature: 0.7,
+            max_tokens: 2000,
+            temperature: 0.3,
+            response_format: { type: "json_object" },
             messages: [
               {
                 role: 'system',
-                content: `You are a product-market fit expert. Provide specific, actionable insights with real data.
-                Return a valid JSON object with this exact structure (no markdown, just JSON). Do not include any commentary or code fences, only raw JSON.
-                
-                REQUIRED JSON STRUCTURE:
+                content: `You are a product-market fit expert. Generate focused, actionable insights.
+                Return ONLY valid JSON matching this structure exactly:
                 {
-                  "pmfScore": number (0-100),
-                  "previousScore": number (0-100, estimate before improvements),
+                  "pmfScore": 75,
+                  "previousScore": 65,
                   "scoreBreakdown": {
-                    "marketDemand": { "current": number, "potential": number, "label": string },
-                    "productReadiness": { "current": number, "potential": number, "label": string },
-                    "userEngagement": { "current": number, "potential": number, "label": string },
-                    "revenueViability": { "current": number, "potential": number, "label": string }
+                    "marketDemand": { "current": 70, "potential": 85, "label": "Growing market" },
+                    "productReadiness": { "current": 60, "potential": 80, "label": "MVP stage" },
+                    "userEngagement": { "current": 65, "potential": 90, "label": "High potential" },
+                    "revenueViability": { "current": 55, "potential": 75, "label": "Needs validation" }
                   },
                   "growthMetrics": {
                     "timeline": [
-                      { "month": string, "users": number, "revenue": number, "engagement": number }
+                      { "month": "Jan", "users": 100, "revenue": 1000, "engagement": 45 },
+                      { "month": "Feb", "users": 250, "revenue": 2500, "engagement": 52 },
+                      { "month": "Mar", "users": 500, "revenue": 5000, "engagement": 58 }
                     ]
                   },
                   "competitorComparison": [
-                    { "name": string, "metric": string, "yours": number, "theirs": number, "unit": string }
+                    { "name": "Market Share", "metric": "Market Share", "yours": 5, "theirs": 25, "unit": "%" },
+                    { "name": "Pricing", "metric": "Price Point", "yours": 99, "theirs": 149, "unit": "$" }
                   ],
-                  "quickWins": [...existing structure...],
-                  "improvementsByTime": [...existing structure...],
-                  "improvementsByCost": [...existing structure...],
-                  "competitors": [...existing structure...],
-                  "channels": {...existing structure...},
-                  "marketSize": {...existing structure...},
-                  "realTimeMetrics": {...existing structure...},
-                  "monetization": {...existing structure...}
+                  "quickWins": [
+                    {
+                      "title": "Quick Win Title",
+                      "description": "Brief description",
+                      "impact": "High",
+                      "effort": "Low",
+                      "specificSteps": ["Step 1", "Step 2"],
+                      "sources": [{"name": "Source", "url": "https://example.com"}]
+                    }
+                  ],
+                  "competitors": [],
+                  "channels": {"organic": [], "paid": []},
+                  "marketSize": {"total": "$2B", "growth": "15% YoY", "sources": []},
+                  "realTimeMetrics": {"searchVolume": {"monthly": 50000, "trend": "Increasing", "relatedQueries": ["query1"]}},
+                  "monetization": {"revenue": {"month1": "$10K", "month6": "$100K", "year1": "$1M"}}
                 }`
               },
               {
                 role: 'user',
-                content: `Analyze this idea and provide comprehensive insights with real data, graphs, and metrics:\n\nIdea: ${idea}\nUser Answers: ${JSON.stringify(userAnswers, null, 2)}\n\nProvide specific, real data with actual competitor names, market sizes, growth projections, and actionable improvements. Include timeline data for graphs, competitor comparisons, and score breakdowns showing current vs potential after improvements. Use real companies and metrics.`
+                content: `Generate PMF insights for: ${idea}. Context: ${JSON.stringify(userAnswers).slice(0, 500)}. Be specific with real competitor names and data.`
               }
             ]
           })
@@ -117,7 +126,8 @@ serve(async (req) => {
         lastError = err;
         console.error(`[DASHBOARD-INSIGHTS] Attempt ${attempt} failed:`, err);
         if (attempt < 3) {
-          const delay = 500 * Math.pow(2, attempt - 1);
+          // Reduced retry delay for faster responses
+          const delay = 200 * attempt;
           await new Promise((res) => setTimeout(res, delay));
           continue;
         }
