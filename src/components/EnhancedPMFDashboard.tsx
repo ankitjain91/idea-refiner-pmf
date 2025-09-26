@@ -307,7 +307,7 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                 <Clock className="w-4 h-4" />
                 By Timeframe
               </h3>
-              {insights.improvementsByTime?.map((group: any, idx: number) => (
+              {insights.improvementsByTime?.length > 0 ? insights.improvementsByTime?.map((group: any, idx: number) => (
                 <Card 
                   key={idx} 
                   className="mb-4 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-green-500"
@@ -361,7 +361,11 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <Card className="p-6">
+                  <p className="text-muted-foreground text-center">No timeline improvements available yet. Complete the analysis to see recommendations.</p>
+                </Card>
+              )}
             </div>
 
             <div>
@@ -369,7 +373,7 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                 <DollarSign className="w-4 h-4" />
                 By Cost
               </h3>
-              {insights.improvementsByCost?.map((group: any, idx: number) => (
+              {insights.improvementsByCost?.length > 0 ? insights.improvementsByCost?.map((group: any, idx: number) => (
                 <Card 
                   key={idx} 
                   className="mb-4 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-blue-500"
@@ -420,13 +424,17 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <Card className="p-6">
+                  <p className="text-muted-foreground text-center">No cost-based improvements available yet. Complete the analysis to see ROI recommendations.</p>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="competitors" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {insights.competitors?.map((comp: any, idx: number) => (
+              {insights.competitors?.length > 0 ? insights.competitors?.map((comp: any, idx: number) => (
                 <Card 
                   key={idx}
                   className="group hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-background to-muted/20 border-l-4 border-l-purple-500"
@@ -480,7 +488,11 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <Card className="col-span-full p-6">
+                  <p className="text-muted-foreground text-center">No competitor analysis available. Complete the assessment to see competitive landscape.</p>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
@@ -490,7 +502,7 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                 <Rocket className="w-4 h-4" />
                 Organic Channels
               </h3>
-              {insights.channels?.organic?.map((channel: any, idx: number) => (
+              {insights.channels?.organic?.length > 0 ? insights.channels?.organic?.map((channel: any, idx: number) => (
                 <Card 
                   key={idx} 
                   className="mb-3 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-orange-500"
@@ -538,7 +550,11 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <Card className="p-6">
+                  <p className="text-muted-foreground text-center">No organic channels data available.</p>
+                </Card>
+              )}
             </div>
 
             <div>
@@ -546,7 +562,7 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                 <DollarSign className="w-4 h-4" />
                 Paid Channels
               </h3>
-              {insights.channels?.paid?.map((channel: any, idx: number) => (
+              {insights.channels?.paid?.length > 0 ? insights.channels?.paid?.map((channel: any, idx: number) => (
                 <Card 
                   key={idx} 
                   className="mb-3 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] border-l-4 border-l-indigo-500"
@@ -592,7 +608,11 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <Card className="p-6">
+                  <p className="text-muted-foreground text-center">No paid channels data available.</p>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
