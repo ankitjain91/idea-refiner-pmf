@@ -25,7 +25,6 @@ interface Message {
 }
 
 export default function HelpSupport() {
-  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -108,143 +107,106 @@ export default function HelpSupport() {
   };
 
   return (
-    <>
-      {/* Floating Help Button */}
-      <Button
-        onClick={() => setIsOpen(true)}
-        className={cn(
-          "fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-40",
-          "bg-gradient-primary hover:opacity-90 transition-all",
-          isOpen && "hidden"
-        )}
-        size="icon"
-      >
-        <HelpCircle className="w-6 h-6" />
-      </Button>
-
-      {/* Help Chat Panel */}
-      {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[600px] z-50 shadow-2xl flex flex-col glass-card">
-          {/* Header */}
-          <div className="p-4 border-b bg-gradient-primary text-primary-foreground rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bot className="w-5 h-5" />
-                <h3 className="font-semibold">PM-FIT Support</h3>
-                <Badge variant="secondary" className="text-xs">AI Powered</Badge>
-              </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setIsOpen(false)}
-                className="text-primary-foreground hover:bg-white/20"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex gap-2",
-                    message.role === 'user' ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Bot className="w-4 h-4 text-primary" />
-                    </div>
-                  )}
-                  <div
-                    className={cn(
-                      "max-w-[80%] rounded-lg p-3",
-                      message.role === 'user'
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    )}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <span className="text-xs opacity-70 mt-1 block">
-                      {message.timestamp.toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                      <User className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                  )}
+    <div className="flex flex-col h-full">
+      {/* Messages */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "flex gap-2",
+                message.role === 'user' ? "justify-end" : "justify-start"
+              )}
+            >
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 text-primary" />
                 </div>
-              ))}
-              {isLoading && (
-                <div className="flex gap-2 justify-start">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="bg-muted rounded-lg p-3">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  </div>
+              )}
+              <div
+                className={cn(
+                  "max-w-[80%] rounded-lg p-3",
+                  message.role === 'user'
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
+                )}
+              >
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <span className="text-xs opacity-70 mt-1 block">
+                  {message.timestamp.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
+              {message.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-primary-foreground" />
                 </div>
               )}
             </div>
-          </ScrollArea>
-
-          {/* Suggested Questions */}
-          {suggestedQuestions.length > 0 && (
-            <div className="px-4 pb-2">
-              <ScrollArea className="w-full">
-                <div className="flex gap-2">
-                  {suggestedQuestions.slice(0, 3).map((question, idx) => (
-                    <Button
-                      key={idx}
-                      size="sm"
-                      variant="outline"
-                      className="text-xs whitespace-nowrap"
-                      onClick={() => sendMessage(question)}
-                      disabled={isLoading}
-                    >
-                      {question}
-                    </Button>
-                  ))}
-                </div>
-              </ScrollArea>
+          ))}
+          {isLoading && (
+            <div className="flex gap-2 justify-start">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-primary" />
+              </div>
+              <div className="bg-muted rounded-lg p-3">
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </div>
             </div>
           )}
+        </div>
+      </ScrollArea>
 
-          {/* Input */}
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your question..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button
-                onClick={() => sendMessage()}
-                disabled={isLoading || !input.trim()}
-                size="icon"
-                className="bg-gradient-primary hover:opacity-90"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
+      {/* Suggested Questions */}
+      {suggestedQuestions.length > 0 && (
+        <div className="px-4 pb-2">
+          <ScrollArea className="w-full">
+            <div className="flex gap-2 flex-wrap">
+              {suggestedQuestions.slice(0, 3).map((question, idx) => (
+                <Button
+                  key={idx}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => sendMessage(question)}
+                  disabled={isLoading}
+                >
+                  {question}
+                </Button>
+              ))}
             </div>
-          </div>
-        </Card>
+          </ScrollArea>
+        </div>
       )}
-    </>
+
+      {/* Input */}
+      <div className="p-4 border-t">
+        <div className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your question..."
+            disabled={isLoading}
+            className="flex-1"
+          />
+          <Button
+            onClick={() => sendMessage()}
+            disabled={isLoading || !input.trim()}
+            size="icon"
+            className="bg-gradient-primary hover:opacity-90"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
