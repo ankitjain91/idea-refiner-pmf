@@ -296,14 +296,14 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           )}
                           onClick={() => loadSession(session.id)}
                         >
-                          <div className="flex-1 min-w-0 relative">
-                            {/* Session name with proper fade effect */}
-                            <div className="relative">
-                              <p className="text-sm font-medium truncate pr-6">
+                          <div className="flex-1 min-w-0 pr-8">
+                            {/* Session name with fade effect */}
+                            <div className="relative overflow-hidden">
+                              <p className="text-sm font-medium truncate">
                                 {session.session_name}
                               </p>
-                              {/* Fade gradient overlay - only shows when text overflows */}
-                              <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-0" />
+                              {/* Fade gradient for long text */}
+                              <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background via-background/80 to-transparent pointer-events-none" />
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="secondary" className="text-xs h-5 px-2">
@@ -314,18 +314,18 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                               </span>
                             </div>
                           </div>
-                          {/* Semi-transparent delete button */}
+                          {/* Always visible delete button */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-60 hover:opacity-100 hover:bg-destructive/10 transition-all duration-200 z-10"
+                            className="absolute right-1 top-1 h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-destructive/20 transition-opacity duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
                             }}
                             title="Delete session"
                           >
-                            <Trash2 className="h-3 w-3 text-destructive" />
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>
                       </SidebarMenuItem>
