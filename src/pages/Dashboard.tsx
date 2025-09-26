@@ -189,14 +189,6 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              data-help-button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowHelpSupport(!showHelpSupport)}
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
-            <Button
               onClick={() => {
                 setShowAnalysisDashboard(!showAnalysisDashboard);
                 setDashboardHeight("50%");
@@ -210,6 +202,19 @@ const Dashboard = () => {
             </Button>
             <UserMenu />
           </div>
+        </div>
+
+        {/* Bottom-left help button */}
+        <div className="absolute bottom-4 left-4 z-40">
+          <Button
+            data-help-button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowHelpSupport(!showHelpSupport)}
+            className="rounded-full w-10 h-10 shadow-md hover:shadow-lg transition-all"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Main Content - Vertical Stack */}
@@ -323,29 +328,13 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {/* Floating Help & Support Chat Bubble */}
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        className="fixed bottom-6 right-6 z-50"
-      >
-        <Button
-          onClick={() => setShowHelpSupport(!showHelpSupport)}
-          size="lg"
-          className="rounded-full w-14 h-14 p-0 bg-gradient-primary hover:scale-110 transition-transform shadow-lg"
-          aria-label="Help & Support"
-        >
-          <HelpCircle className="w-6 h-6" />
-        </Button>
-      </motion.div>
-
       {/* Help & Support Chat Window */}
       {showHelpSupport && (
         <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          className="fixed bottom-24 right-6 z-50 w-96 h-[500px] bg-background/95 backdrop-blur-xl border border-border/50 rounded-lg shadow-2xl"
+          initial={{ opacity: 0, x: -20, scale: 0.95 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: -20, scale: 0.95 }}
+          className="fixed bottom-20 left-4 z-50 w-96 h-[500px] bg-background/95 backdrop-blur-xl border border-border/50 rounded-lg shadow-2xl"
         >
           <div className="p-4 border-b border-border/50 flex justify-between items-center">
             <h3 className="font-semibold">Help & Support</h3>
