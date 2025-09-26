@@ -45,27 +45,11 @@ const Dashboard = () => {
     }
   }, [user, loading, navigate]);
 
-  // Handle scroll behavior for dashboard expansion
+  // Removed global wheel listener to prevent scroll hijacking
+  // Scroll behavior is now controlled via explicit buttons for reliability
   useEffect(() => {
-    if (!showAnalysisDashboard) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Scrolling up (negative deltaY) - expand dashboard
-      if (e.deltaY < 0) {
-        setDashboardHeight("100%");
-      } 
-      // Scrolling down (positive deltaY) - contract dashboard
-      else if (e.deltaY > 0) {
-        setDashboardHeight("50%");
-      }
-    };
-
-    // Add wheel event listener to the entire window
-    window.addEventListener('wheel', handleWheel);
-    
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-    };
+    // No-op: keep dependency to allow future scoped enhancements
+    return () => {};
   }, [showAnalysisDashboard]);
 
   const handleAnalysisReady = (idea: string, metadata: any) => {

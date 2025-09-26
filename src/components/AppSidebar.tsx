@@ -151,8 +151,8 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
 
         setCurrentSessionId(sessionId);
         
-        // Force reload the dashboard to refresh chat component
-        window.location.href = '/dashboard';
+        // Navigate to dashboard without full reload
+        navigate('/dashboard');
         
         toast({
           title: "Session Loaded",
