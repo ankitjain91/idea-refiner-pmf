@@ -26,21 +26,22 @@ export default function Auth() {
       // Validate input
       authSchema.parse({ email, password });
       
-      // First check if user already exists
-      const { data: existingUser } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'dummy-check-password-that-will-fail'
+      // Check if user already exists using our database function
+      const { data: emailExists, error: checkError } = await supabase.rpc('check_email_exists', {
+        email_to_check: email
       });
       
-      // If we get here without an error, somehow the dummy password worked (shouldn't happen)
-      // Or check the error message to determine if user exists
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'dummy-check'
-      });
+      if (checkError) {
+        toast({
+          title: "Error",
+          description: "Failed to verify email availability",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       
-      if (signInError && signInError.message?.toLowerCase().includes('invalid login credentials')) {
-        // User exists but wrong password - this means account exists
+      if (emailExists) {
         toast({
           title: "Account already exists",
           description: "This email is already registered. Please sign in instead.",
@@ -50,6 +51,7 @@ export default function Auth() {
         return;
       }
       
+      // Proceed with signup if email doesn't exist
       const redirectUrl = `${window.location.origin}/`;
       
       const { error, data } = await supabase.auth.signUp({
@@ -64,13 +66,6 @@ export default function Auth() {
         toast({
           title: "Error",
           description: error.message,
-          variant: "destructive",
-        });
-      } else if (data?.user?.identities?.length === 0) {
-        // This can happen when a user tries to sign up with an existing email
-        toast({
-          title: "Account already exists",
-          description: "This email is already registered. Please sign in instead.",
           variant: "destructive",
         });
       } else {
