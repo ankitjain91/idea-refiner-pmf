@@ -333,18 +333,19 @@ export default function ChatGPTStyleChat({
         // Remove loading message
         setMessages(prev => prev.filter(msg => !msg.isTyping));
 
-        if (!error && data) {
+        if (!error && data && data.response) {
           const botMessage: Message = {
             id: `msg-${Date.now()}-bot`,
             type: 'bot',
-            content: data.response || "Let me help you refine your idea...",
+            content: data.response,
             timestamp: new Date(),
-            suggestions: data.suggestions
+            suggestions: Array.isArray(data.suggestions) ? data.suggestions : []
           };
           
           setMessages(prev => [...prev, botMessage]);
         } else {
-          throw new Error('Failed to get response');
+          console.error('Invalid response structure:', data);
+          throw new Error('Invalid response format');
         }
       } catch (error) {
         console.error('Chat error:', error);

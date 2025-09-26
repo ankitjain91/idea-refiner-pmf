@@ -302,19 +302,19 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
     const systemPrompt = refinementMode 
       ? `You are an expert PM-Fit advisor helping refine and explore a product idea. 
          The user's product idea is: "${idea}"
-         ${webData ? `Available Market Data: ${JSON.stringify(webData.normalized || webData.raw)}` : ''}
          
-         Help the user:
-         - Explore different aspects of their idea
-         - Identify potential challenges and opportunities
-         - Refine their value proposition
-         - Consider target markets and use cases
-         - Think through implementation details
+         Help the user explore and refine their idea by:
+         - Asking clarifying questions about the concept
+         - Identifying potential challenges and opportunities
+         - Discussing target markets and use cases
+         - Exploring technical feasibility
+         - Considering business model options
          
-         Be conversational and help them think through their idea thoroughly before analysis.`
+         Be conversational, encouraging, and help them develop their idea thoroughly.
+         Keep responses concise and focused on one aspect at a time.`
       : `You are an expert PM-Fit advisor with access to real market data. 
          ${idea ? `The user's product idea is: "${idea}"` : 'Help the user develop and analyze their product idea.'}
-         ${webData ? `Available Market Data: ${JSON.stringify(webData.normalized || webData.raw)}` : ''}`;
+         Provide data-driven insights and actionable advice.`;
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -348,37 +348,55 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
     
     // Generate contextual suggestions with real data
     let suggestions = [];
-    if (refinementMode && idea) {
-      // Refinement mode suggestions - help explore the idea
+    try {
+      if (refinementMode && idea) {
+        // Refinement mode suggestions - help explore the idea
+        const ideaName = idea.slice(0, 30);
+        suggestions = [
+          `What specific problem does this solve?`,
+          `Who would be the ideal first customer?`,
+          `How would this generate revenue?`,
+          `What makes this different from existing solutions?`
+        ];
+      } else if (idea && webData) {
+        // Use real competitor and market data for suggestions
+        const competitors = webData.normalized?.topCompetitors || [];
+        const primaryAge = webData.raw?.demographics?.primaryAge || '25-35';
+        const minPrice = webData.raw?.pricing?.priceRange?.min || 10;
+        const maxPrice = webData.raw?.pricing?.priceRange?.max || 50;
+        const industry = webData.raw?.demographics?.industries?.[0] || 'technology';
+        
+        suggestions = [
+          competitors[0] ? `How to differentiate from ${competitors[0].name}` : `Key problems this solves`,
+          `Target ${primaryAge} demographic`,
+          `Price range: $${minPrice}-$${maxPrice}/month`,
+          `Focus on ${industry} industry`
+        ];
+      } else if (!idea) {
+        // Default suggestions for new users
+        suggestions = [
+          "AI-powered productivity tool for remote teams",
+          "Sustainable fashion marketplace for Gen Z",
+          "Mental health support platform for students",
+          "Carbon footprint tracker with rewards"
+        ];
+      } else {
+        // Fallback suggestions
+        const ideaShort = idea.length > 20 ? idea.substring(0, 20) + '...' : idea;
+        suggestions = [
+          `Market opportunity analysis`,
+          `Target customer research`,
+          `Competitor analysis`,
+          `Business model validation`
+        ];
+      }
+    } catch (suggestionError) {
+      console.error('Error generating suggestions:', suggestionError);
       suggestions = [
-        `What specific problem does ${idea} solve?`,
-        `Who would be the ideal first customer for ${idea}?`,
-        `How would ${idea} make money?`,
-        `What makes ${idea} different from existing solutions?`
-      ];
-    } else if (idea && webData) {
-      // Use real competitor and market data for suggestions
-      const competitors = webData.normalized?.topCompetitors || [];
-      suggestions = [
-        competitors[0] ? `How to compete with ${competitors[0].name}?` : `How does ${idea} solve a real problem?`,
-        `Target ${webData.raw?.demographics?.primaryAge || '25-35'} demographic specifically`,
-        `Price competitively at ${webData.raw?.pricing?.priceRange?.min || '$10'}-${webData.raw?.pricing?.priceRange?.max || '$50'}/month`,
-        `Focus on ${webData.raw?.demographics?.industries?.[0] || 'tech'} industry for launch`
-      ];
-    } else if (!idea) {
-      // Fetch trending startup ideas from real data
-      suggestions = [
-        "AI-powered productivity tool for remote teams",
-        "Sustainable fashion marketplace for Gen Z",
-        "Mental health support platform for students",
-        "Carbon footprint tracker with rewards"
-      ];
-    } else {
-      suggestions = [
-        `Analyze ${idea} market opportunity`,
-        `Find ${idea} target customers`,
-        `Research ${idea} competitors`,
-        `Validate ${idea} business model`
+        "Tell me more about your idea",
+        "What problem are you solving?",
+        "Who is your target customer?",
+        "What's your business model?"
       ];
     }
     
