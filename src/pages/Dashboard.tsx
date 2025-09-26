@@ -21,7 +21,6 @@ const Dashboard = () => {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [dashboardHeight, setDashboardHeight] = useState("50%");
   const dashboardRef = useRef<HTMLDivElement>(null);
-  const lastScrollY = useRef(0);
   
   useEffect(() => {
     // Clear all chat-related storage on mount (new login session)
@@ -50,31 +49,23 @@ const Dashboard = () => {
   useEffect(() => {
     if (!showAnalysisDashboard) return;
 
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLDivElement;
-      const scrollTop = target.scrollTop;
-      const scrollDiff = scrollTop - lastScrollY.current;
-      
-      // Scrolling down - expand dashboard
-      if (scrollDiff > 0 && scrollTop > 50) {
-        setDashboardHeight("85%");
+    const handleWheel = (e: WheelEvent) => {
+      // Scrolling up (negative deltaY) - expand dashboard
+      if (e.deltaY < 0) {
+        setDashboardHeight("100%");
       } 
-      // Scrolling up - reduce dashboard
-      else if (scrollDiff < 0 && scrollTop < 50) {
+      // Scrolling down (positive deltaY) - contract dashboard
+      else if (e.deltaY > 0) {
         setDashboardHeight("50%");
       }
-      
-      lastScrollY.current = scrollTop;
     };
 
-    const dashboardElement = dashboardRef.current;
-    if (dashboardElement) {
-      const scrollableDiv = dashboardElement.querySelector('.overflow-auto');
-      if (scrollableDiv) {
-        scrollableDiv.addEventListener('scroll', handleScroll);
-        return () => scrollableDiv.removeEventListener('scroll', handleScroll);
-      }
-    }
+    // Add wheel event listener to the entire window
+    window.addEventListener('wheel', handleWheel);
+    
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+    };
   }, [showAnalysisDashboard]);
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
@@ -162,14 +153,15 @@ const Dashboard = () => {
         </div>
 
         {/* Main Content - Vertical Stack */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Chat Section - Shrinks when dashboard expands */}
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Chat Section - Shrinks/hides when dashboard expands */}
           <motion.div 
             className="flex flex-col overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ 
-              opacity: 1,
-              height: showAnalysisDashboard ? `calc(100% - ${dashboardHeight})` : "100%"
+              opacity: dashboardHeight === "100%" ? 0 : 1,
+              height: dashboardHeight === "100%" ? "0%" : showAnalysisDashboard ? `calc(100% - ${dashboardHeight})` : "100%",
+              display: dashboardHeight === "100%" ? "none" : "flex"
             }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
@@ -188,7 +180,13 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ 
                   height: dashboardHeight, 
-                  opacity: 1 
+                  opacity: 1,
+                  position: dashboardHeight === "100%" ? "absolute" : "relative",
+                  top: dashboardHeight === "100%" ? 0 : "auto",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: dashboardHeight === "100%" ? 10 : 1
                 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
@@ -209,13 +207,22 @@ const Dashboard = () => {
                         <Sparkles className="h-3 w-3" />
                         {analysisData ? 'Live Analysis' : 'Awaiting Data'}
                       </Badge>
-                      {dashboardHeight === "85%" && (
+                      {dashboardHeight === "100%" && (
                         <Button
                           onClick={() => setDashboardHeight("50%")}
                           size="sm"
+                          variant="default"
+                        >
+                          Show Chat
+                        </Button>
+                      )}
+                      {dashboardHeight === "50%" && (
+                        <Button
+                          onClick={() => setDashboardHeight("100%")}
+                          size="sm"
                           variant="outline"
                         >
-                          Minimize
+                          Full Screen
                         </Button>
                       )}
                       <Button
