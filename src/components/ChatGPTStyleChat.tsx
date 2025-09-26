@@ -352,7 +352,7 @@ export default function ChatGPTStyleChat({
       setInput('');
       setIsLoading(true);
       
-      // Add loading animation message
+      // Add loading animation message with bot icon showing
       const loadingMessage: Message = {
         id: `msg-loading-${Date.now()}`,
         type: 'bot',
@@ -1202,7 +1202,7 @@ export default function ChatGPTStyleChat({
               ) : (
                 <>
                   {msg.type === 'bot' && (
-                    <div className="relative">
+                    <div className="relative animate-fade-in">
                       <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 shadow-sm">
                         <Bot className="h-5 w-5 text-primary" />
                       </div>
@@ -1221,10 +1221,13 @@ export default function ChatGPTStyleChat({
                       )}
                     >
                       {msg.isTyping ? (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" />
-                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+                        <div className="flex items-center gap-2 py-1 animate-fade-in">
+                          <Bot className="h-4 w-4 text-primary animate-pulse" />
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
                         </div>
                       ) : (
                         <div className="text-sm leading-relaxed">
@@ -1414,6 +1417,32 @@ export default function ChatGPTStyleChat({
               className="flex-1"
               disabled={isLoading}
             />
+            {/* Always visible Analyze button */}
+            <Button
+              onClick={() => {
+                // Use current input or existing idea for analysis
+                const ideaToAnalyze = currentIdea || input.trim();
+                if (ideaToAnalyze) {
+                  startAnalysis(ideaToAnalyze);
+                  if (input.trim() && !currentIdea) {
+                    setInput('');
+                  }
+                } else {
+                  toast({
+                    title: "No idea to analyze",
+                    description: "Please enter your product idea first",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              disabled={isLoading || (!currentIdea && !input.trim())}
+              size="icon"
+              variant="secondary"
+              className="hover:bg-primary hover:text-primary-foreground transition-colors"
+              title={currentIdea ? "Re-analyze current idea" : "Analyze your idea"}
+            >
+              <BarChart className="h-4 w-4" />
+            </Button>
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
