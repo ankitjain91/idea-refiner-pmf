@@ -1097,21 +1097,6 @@ export default function ChatGPTStyleChat({
             </div>
           ))}
 
-          {isLoading && (
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bot className="h-5 w-5 text-primary" />
-              </div>
-              <div className="bg-muted rounded-lg px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-                </div>
-              </div>
-            </div>
-          )}
-
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
