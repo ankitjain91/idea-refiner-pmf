@@ -80,14 +80,34 @@ export default function EnterpriseAuth() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if user already exists
+        if (error.message?.toLowerCase().includes("user already registered") || 
+            error.message?.toLowerCase().includes("already exists") ||
+            error.code === "user_already_exists") {
+          toast({
+            title: "Account already exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          // Optionally switch to sign in tab
+          const tabElement = document.querySelector('[value="signin"]') as HTMLElement;
+          if (tabElement) tabElement.click();
+        } else {
+          throw error;
+        }
+        return;
+      }
 
       if (data?.user?.identities?.length === 0) {
         toast({
           title: "Account already exists",
-          description: "Please sign in instead or use a different email.",
+          description: "This email is already registered. Please sign in instead.",
           variant: "destructive",
         });
+        // Switch to sign in tab
+        const tabElement = document.querySelector('[value="signin"]') as HTMLElement;
+        if (tabElement) tabElement.click();
       } else {
         toast({
           title: "Success! 🎉",
