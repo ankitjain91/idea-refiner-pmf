@@ -61,6 +61,8 @@ export default function ChatGPTStyleChat({
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [analysisAnswers, setAnalysisAnswers] = useState<Record<string, string>>({});
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [isRefinementMode, setIsRefinementMode] = useState(true);
+  const [showStartAnalysisButton, setShowStartAnalysisButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -153,7 +155,7 @@ export default function ChatGPTStyleChat({
       const welcomeMessage: Message = {
         id: `msg-welcome-${Date.now()}`,
         type: 'system',
-        content: "👋 Welcome! I'm your PM-Fit Analyzer. Tell me about your product idea and I'll help you analyze its market fit potential.",
+        content: "👋 Welcome! I'm your PM-Fit Analyzer. Share your product idea and I'll help you refine it. When you're ready, we can run a comprehensive analysis to evaluate its market fit potential.",
         timestamp: new Date(),
         suggestions: generateRandomSuggestions()
       };
@@ -213,6 +215,8 @@ export default function ChatGPTStyleChat({
     }
 
     setIsAnalyzing(true);
+    setIsRefinementMode(false);
+    setShowStartAnalysisButton(false);
     setCurrentQuestionIndex(0);
     setAnalysisProgress(0);
     
@@ -291,9 +295,14 @@ export default function ChatGPTStyleChat({
 
     setMessages(prev => [...prev, userMessage]);
     
-    // If this is the first message, set it as the idea
-    if (!currentIdea && !isAnalyzing) {
-      setCurrentIdea(input);
+    // If in refinement mode and not analyzing
+    if (isRefinementMode && !isAnalyzing) {
+      // If this is the first message, set it as the idea
+      if (!currentIdea) {
+        setCurrentIdea(input);
+        setShowStartAnalysisButton(true);
+      }
+      
       setInput('');
       setIsLoading(true);
       
@@ -307,28 +316,53 @@ export default function ChatGPTStyleChat({
       };
       setMessages(prev => [...prev, loadingMessage]);
       
-      // Simulate typing delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        // Get AI response for refinement
+        const { data, error } = await supabase.functions.invoke('idea-chat', {
+          body: { 
+            message: input,
+            conversationHistory: messages.map(m => ({
+              role: m.type === 'user' ? 'user' : 'assistant',
+              content: m.content
+            })),
+            idea: currentIdea || input,
+            refinementMode: true
+          }
+        });
+
+        // Remove loading message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+
+        if (!error && data) {
+          const botMessage: Message = {
+            id: `msg-${Date.now()}-bot`,
+            type: 'bot',
+            content: data.response || "Let me help you refine your idea...",
+            timestamp: new Date(),
+            suggestions: data.suggestions
+          };
+          
+          setMessages(prev => [...prev, botMessage]);
+        } else {
+          throw new Error('Failed to get response');
+        }
+      } catch (error) {
+        console.error('Chat error:', error);
+        // Remove loading message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        const errorMessage: Message = {
+          id: `msg-error-${Date.now()}`,
+          type: 'bot',
+          content: "I apologize, I'm having trouble processing your request. Please try again.",
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
       
-      // Remove loading message and add actual response
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
-      
-      // Respond with confirmation and analysis prompt
-      const confirmMessage: Message = {
-        id: `msg-confirm-${Date.now()}`,
-        type: 'bot',
-        content: `I understand you want to analyze: "${input}"\n\nI can help you evaluate this idea's product-market fit through a comprehensive analysis. Click the "Start Analysis" button below to begin, or continue chatting if you'd like to refine your idea first.`,
-        timestamp: new Date(),
-        suggestions: [
-          `How does ${input} work?`,
-          `What makes ${input} unique?`,
-          `${input} target market`,
-          `${input} revenue model`
-        ]
-      };
-      
-      setMessages(prev => [...prev, confirmMessage]);
-      setIsLoading(false);
       return;
     }
 
@@ -502,6 +536,57 @@ export default function ChatGPTStyleChat({
     }
   };
 
+  const handleSuggestionRefinement = async (idea: string) => {
+    setIsLoading(true);
+    
+    // Add loading animation message
+    const loadingMessage: Message = {
+      id: `msg-loading-${Date.now()}`,
+      type: 'bot',
+      content: '',
+      timestamp: new Date(),
+      isTyping: true
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+    
+    try {
+      // Get AI response for refinement
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: { 
+          message: `Tell me more about this idea: ${idea}`,
+          idea: idea,
+          refinementMode: true
+        }
+      });
+
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+
+      if (!error && data) {
+        const botMessage: Message = {
+          id: `msg-${Date.now()}-bot`,
+          type: 'bot',
+          content: data.response || `Great idea! Let me help you explore "${idea}". What specific aspects would you like to refine or discuss?`,
+          timestamp: new Date(),
+          suggestions: data.suggestions || [
+            `What problem does ${idea} solve?`,
+            `Who would use ${idea}?`,
+            `How would ${idea} make money?`,
+            `What makes ${idea} unique?`
+          ]
+        };
+        
+        setMessages(prev => [...prev, botMessage]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSuggestionClick = async (suggestion: string) => {
     // Create user message for the suggestion
     const userMessage: Message = {
@@ -515,13 +600,17 @@ export default function ChatGPTStyleChat({
     
     // Handle based on current state
     if (!currentIdea && !isAnalyzing) {
-      // First message - set as idea and start analysis
+      // First message - set as idea for refinement
       setCurrentIdea(suggestion);
+      setShowStartAnalysisButton(true);
       setInput('');
-      // Wait a moment for state to update before starting analysis
-      setTimeout(() => {
-        startAnalysis(suggestion);
-      }, 100);
+      
+      // Get AI response about the idea for refinement
+      await handleSuggestionRefinement(suggestion);
+    } else if (isRefinementMode && !isAnalyzing) {
+      // During refinement - continue conversation
+      setInput(suggestion);
+      setTimeout(() => handleSend(), 100);
     } else if (isAnalyzing) {
       // During analysis - save answer and continue
       const updatedAnswers = { ...analysisAnswers, [currentQuestionIndex]: suggestion };
@@ -755,20 +844,25 @@ export default function ChatGPTStyleChat({
       <div className="border-t bg-background p-4">
         <div className="max-w-3xl mx-auto">
           {/* Action Buttons */}
-          {currentIdea && !isAnalyzing && !showDashboard && (
-            <div className="flex items-center gap-2 mb-3">
+          {showStartAnalysisButton && isRefinementMode && !isAnalyzing && !showDashboard && (
+            <div className="flex items-center justify-between mb-3 p-3 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <BarChart className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Ready to analyze?</p>
+                  <p className="text-xs text-muted-foreground">Run comprehensive PM-Fit analysis when you're ready</p>
+                </div>
+              </div>
               <Button
                 onClick={() => startAnalysis()}
-                className="gap-2"
-                variant="default"
+                className="gap-2 shadow-lg"
+                size="sm"
               >
                 <Play className="h-4 w-4" />
-                Start PM-Fit Analysis
+                Start Analysis
               </Button>
-              <Badge variant="outline" className="gap-1">
-                <Sparkles className="h-3 w-3" />
-                {ANALYSIS_QUESTIONS.length} Questions
-              </Badge>
             </div>
           )}
           

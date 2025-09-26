@@ -114,7 +114,8 @@ serve(async (req) => {
       analysisContext = null,
       currentQuestion = null,
       questionNumber = null,
-      generatePMFAnalysis = false
+      generatePMFAnalysis = false,
+      refinementMode = false
     } = await req.json();
     
     console.log('Processing request for idea:', idea);
@@ -297,6 +298,24 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
     // Regular chat response with real data context
     const webData = idea ? await fetchRealWebData(idea, message) : null;
     
+    // Adjust system prompt based on refinement mode
+    const systemPrompt = refinementMode 
+      ? `You are an expert PM-Fit advisor helping refine and explore a product idea. 
+         The user's product idea is: "${idea}"
+         ${webData ? `Available Market Data: ${JSON.stringify(webData.normalized || webData.raw)}` : ''}
+         
+         Help the user:
+         - Explore different aspects of their idea
+         - Identify potential challenges and opportunities
+         - Refine their value proposition
+         - Consider target markets and use cases
+         - Think through implementation details
+         
+         Be conversational and help them think through their idea thoroughly before analysis.`
+      : `You are an expert PM-Fit advisor with access to real market data. 
+         ${idea ? `The user's product idea is: "${idea}"` : 'Help the user develop and analyze their product idea.'}
+         ${webData ? `Available Market Data: ${JSON.stringify(webData.normalized || webData.raw)}` : ''}`;
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -308,9 +327,7 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         messages: [
           {
             role: 'system',
-            content: `You are an expert PM-Fit advisor with access to real market data. 
-            ${idea ? `The user's product idea is: "${idea}"` : 'Help the user develop and analyze their product idea.'}
-            ${webData ? `Available Market Data: ${JSON.stringify(webData.normalized || webData.raw)}` : ''}`
+            content: systemPrompt
           },
           ...conversationHistory,
           { role: 'user', content: message }
@@ -331,7 +348,15 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
     
     // Generate contextual suggestions with real data
     let suggestions = [];
-    if (idea && webData) {
+    if (refinementMode && idea) {
+      // Refinement mode suggestions - help explore the idea
+      suggestions = [
+        `What specific problem does ${idea} solve?`,
+        `Who would be the ideal first customer for ${idea}?`,
+        `How would ${idea} make money?`,
+        `What makes ${idea} different from existing solutions?`
+      ];
+    } else if (idea && webData) {
       // Use real competitor and market data for suggestions
       const competitors = webData.normalized?.topCompetitors || [];
       suggestions = [
