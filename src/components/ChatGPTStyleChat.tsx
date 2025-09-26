@@ -768,16 +768,6 @@ export default function ChatGPTStyleChat({
                 <Send className="h-4 w-4" />
               )}
             </Button>
-            {showDashboard && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="relative"
-              >
-                <BarChart className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
-              </Button>
-            )}
           </div>
         </div>
       </div>
