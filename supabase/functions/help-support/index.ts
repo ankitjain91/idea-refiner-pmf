@@ -115,14 +115,102 @@ serve(async (req) => {
     const data = await response.json();
     const reply = data.choices[0].message.content;
 
-    // Generate suggested questions based on context
-    const suggestedQuestions = [
-      "How can I improve my PMF score?",
-      "What data sources does PM-FIT use?",
-      "How does the competitor analysis work?",
-      "Can you explain the market size calculations?",
-      "What's the difference between Pro and Enterprise plans?"
-    ];
+    // Generate contextually relevant suggested questions
+    const suggestionsPrompt = `Based on this help conversation:
+User asked: "${message}"
+Assistant replied: "${reply}"
+
+Generate 4 relevant follow-up questions the user might want to ask about PM-FIT features and functionality.
+Each question should be 5-10 words and directly related to the conversation context.
+Return ONLY a JSON array of 4 strings, no additional text.`;
+
+    let suggestedQuestions = [];
+    try {
+      const suggestionsResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant that generates relevant follow-up questions about the PM-FIT platform features.' },
+            { role: 'user', content: suggestionsPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        }),
+      });
+
+      if (suggestionsResponse.ok) {
+        const suggestionsData = await suggestionsResponse.json();
+        const suggestionsContent = suggestionsData.choices[0].message.content;
+        
+        // Parse the suggestions
+        try {
+          let parsed = suggestionsContent.trim();
+          if (parsed.startsWith('```')) {
+            parsed = parsed.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
+          }
+          suggestedQuestions = JSON.parse(parsed);
+        } catch (parseErr) {
+          console.log('Failed to parse suggestions, using defaults');
+        }
+      }
+    } catch (err) {
+      console.log('Error generating suggestions:', err);
+    }
+
+    // Fallback to contextual defaults if generation fails
+    if (!Array.isArray(suggestedQuestions) || suggestedQuestions.length === 0) {
+      const lowerMessage = message.toLowerCase();
+      
+      if (lowerMessage.includes('score') || lowerMessage.includes('pmf')) {
+        suggestedQuestions = [
+          "What factors affect my PMF score?",
+          "How often does the score update?",
+          "What's a good PMF score to aim for?",
+          "Can I track score changes over time?"
+        ];
+      } else if (lowerMessage.includes('data') || lowerMessage.includes('source')) {
+        suggestedQuestions = [
+          "How recent is the market data?",
+          "Which social platforms are analyzed?",
+          "How accurate are the market estimates?",
+          "Can I add custom data sources?"
+        ];
+      } else if (lowerMessage.includes('competitor') || lowerMessage.includes('competition')) {
+        suggestedQuestions = [
+          "How are competitors identified?",
+          "What competitor metrics are tracked?",
+          "Can I add competitors manually?",
+          "How is market share calculated?"
+        ];
+      } else if (lowerMessage.includes('plan') || lowerMessage.includes('pricing') || lowerMessage.includes('subscription')) {
+        suggestedQuestions = [
+          "What's included in the Pro plan?",
+          "Can I cancel my subscription anytime?",
+          "Is there a free trial available?",
+          "What payment methods are accepted?"
+        ];
+      } else if (lowerMessage.includes('session') || lowerMessage.includes('save')) {
+        suggestedQuestions = [
+          "How does auto-save work?",
+          "Can I export my analysis?",
+          "How many sessions can I have?",
+          "Can I share sessions with others?"
+        ];
+      } else {
+        // Default suggestions
+        suggestedQuestions = [
+          "How can I improve my PMF score?",
+          "What data sources does PM-FIT use?",
+          "How does competitor analysis work?",
+          "What's included in Pro plan?"
+        ];
+      }
+    }
 
     return new Response(
       JSON.stringify({ 

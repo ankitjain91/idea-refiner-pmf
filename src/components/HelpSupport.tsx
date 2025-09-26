@@ -161,24 +161,23 @@ export default function HelpSupport() {
       </ScrollArea>
 
       {/* Suggested Questions */}
-      {suggestedQuestions.length > 0 && (
-        <div className="px-4 pb-2">
-          <ScrollArea className="w-full">
-            <div className="flex gap-2 flex-wrap">
-              {suggestedQuestions.slice(0, 3).map((question, idx) => (
-                <Button
-                  key={idx}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs"
-                  onClick={() => sendMessage(question)}
-                  disabled={isLoading}
-                >
-                  {question}
-                </Button>
-              ))}
-            </div>
-          </ScrollArea>
+      {suggestedQuestions.length > 0 && !isLoading && (
+        <div className="px-4 pb-2 border-t pt-2">
+          <p className="text-xs text-muted-foreground mb-2">Suggested questions:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {suggestedQuestions.map((question, idx) => (
+              <Button
+                key={idx}
+                size="sm"
+                variant="outline"
+                className="text-xs text-left justify-start h-auto py-2 px-3 whitespace-normal"
+                onClick={() => sendMessage(question)}
+                disabled={isLoading}
+              >
+                {question}
+              </Button>
+            ))}
+          </div>
         </div>
       )}
 
