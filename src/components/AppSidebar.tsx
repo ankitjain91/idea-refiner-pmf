@@ -281,20 +281,20 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           )}
                           onClick={() => loadSession(session.id)}
                         >
-                          <div className="flex-1 min-w-0 pr-8 relative">
-                            {/* Session name with fade effect for overflow */}
-                            <div className="relative overflow-hidden">
-                              <p className="text-sm font-medium truncate pr-4">
+                          <div className="flex-1 min-w-0 relative">
+                            {/* Session name with proper fade effect */}
+                            <div className="relative">
+                              <p className="text-sm font-medium truncate pr-6">
                                 {session.session_name}
                               </p>
-                              {/* Fade gradient overlay */}
-                              <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background via-background/80 to-transparent pointer-events-none" />
+                              {/* Fade gradient overlay - only shows when text overflows */}
+                              <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="secondary" className="text-xs h-5 px-2">
                                 {session.pmf_score}% PMF
                               </Badge>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-muted-foreground truncate">
                                 {format(new Date(session.last_accessed), 'MMM d, h:mm a')}
                               </span>
                             </div>

@@ -30,6 +30,7 @@ interface Message {
   timestamp: Date;
   suggestions?: string[];
   metadata?: any;
+  isTyping?: boolean;
 }
 
 interface ChatGPTStyleChatProps {
@@ -215,6 +216,16 @@ export default function ChatGPTStyleChat({
     setCurrentQuestionIndex(0);
     setAnalysisProgress(0);
     
+    // Add loading animation while preparing analysis
+    const loadingMessage: Message = {
+      id: `msg-loading-analysis-${Date.now()}`,
+      type: 'bot',
+      content: '',
+      timestamp: new Date(),
+      isTyping: true
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+    
     // Get AI-suggested answer for the first question
     const firstQuestion = ANALYSIS_QUESTIONS[0];
     
@@ -228,6 +239,9 @@ export default function ChatGPTStyleChat({
           analysisContext: {}
         }
       });
+
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
 
       if (!error && data?.suggestions) {
         const analysisMessage: Message = {
@@ -251,10 +265,13 @@ export default function ChatGPTStyleChat({
       }
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      
       const analysisMessage: Message = {
         id: `msg-analysis-${Date.now()}`,
         type: 'bot',
-        content: `Great! Let's analyze "${currentIdea}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
+        content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
         timestamp: new Date()
       };
       
@@ -278,6 +295,23 @@ export default function ChatGPTStyleChat({
     if (!currentIdea && !isAnalyzing) {
       setCurrentIdea(input);
       setInput('');
+      setIsLoading(true);
+      
+      // Add loading animation message
+      const loadingMessage: Message = {
+        id: `msg-loading-${Date.now()}`,
+        type: 'bot',
+        content: '',
+        timestamp: new Date(),
+        isTyping: true
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+      
+      // Simulate typing delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Remove loading message and add actual response
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
       
       // Respond with confirmation and analysis prompt
       const confirmMessage: Message = {
@@ -294,6 +328,7 @@ export default function ChatGPTStyleChat({
       };
       
       setMessages(prev => [...prev, confirmMessage]);
+      setIsLoading(false);
       return;
     }
 
@@ -652,7 +687,15 @@ export default function ChatGPTStyleChat({
                           : 'bg-card border border-border/50 hover:shadow-lg'
                       )}
                     >
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      {msg.isTyping ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      )}
                     </div>
                     
                     {msg.suggestions && msg.suggestions.length > 0 && (
