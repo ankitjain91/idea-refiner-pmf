@@ -38,16 +38,84 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: `You are a product-market fit expert. Generate focused, actionable insights.
+                content: `You are a product-market fit expert. Generate focused, actionable insights with detailed explanations.
                 Return ONLY valid JSON matching this structure exactly:
                 {
                   "pmfScore": 75,
                   "previousScore": 65,
                   "scoreBreakdown": {
-                    "marketDemand": { "current": 70, "potential": 85, "label": "Growing market" },
-                    "productReadiness": { "current": 60, "potential": 80, "label": "MVP stage" },
-                    "userEngagement": { "current": 65, "potential": 90, "label": "High potential" },
-                    "revenueViability": { "current": 55, "potential": 75, "label": "Needs validation" }
+                    "marketDemand": { 
+                      "current": 70, 
+                      "potential": 85, 
+                      "label": "Growing market",
+                      "description": "Market demand measures how many people actively need and search for your solution",
+                      "calculation": "Based on search volume trends, competitor growth rates, and market research data",
+                      "dataSources": ["Google Trends", "Market Research Reports", "Competitor Analysis"],
+                      "insights": ["Growing 25% YoY", "High search volume for related terms"],
+                      "improvements": [
+                        {
+                          "action": "Target specific niche first",
+                          "impact": "High",
+                          "effort": "Low",
+                          "expectedResult": "15% increase in market fit"
+                        }
+                      ],
+                      "contextualRelevance": "For your 3D printing marketplace, market demand is strong due to growing customization trends"
+                    },
+                    "productReadiness": { 
+                      "current": 60, 
+                      "potential": 80, 
+                      "label": "MVP stage",
+                      "description": "How complete and polished your product is compared to market expectations",
+                      "calculation": "Evaluated based on feature completeness, UI/UX quality, and technical stability",
+                      "dataSources": ["Feature comparison", "Industry standards", "User expectations"],
+                      "insights": ["Core features defined", "Need UI improvements"],
+                      "improvements": [
+                        {
+                          "action": "Build MVP with core features",
+                          "impact": "High",
+                          "effort": "Medium",
+                          "expectedResult": "20% improvement in readiness"
+                        }
+                      ],
+                      "contextualRelevance": "Your marketplace needs basic listing, payment, and 3D preview features to be viable"
+                    },
+                    "userEngagement": { 
+                      "current": 65, 
+                      "potential": 90, 
+                      "label": "High potential",
+                      "description": "Predicted user interest and engagement based on market signals",
+                      "calculation": "Analyzed from similar product metrics, social media buzz, and community interest",
+                      "dataSources": ["Reddit discussions", "Social media trends", "Community forums"],
+                      "insights": ["Active community exists", "High interest in customization"],
+                      "improvements": [
+                        {
+                          "action": "Build community before launch",
+                          "impact": "High",
+                          "effort": "Low",
+                          "expectedResult": "25% boost in initial engagement"
+                        }
+                      ],
+                      "contextualRelevance": "3D printing enthusiasts are highly engaged and form tight communities"
+                    },
+                    "revenueViability": { 
+                      "current": 55, 
+                      "potential": 75, 
+                      "label": "Needs validation",
+                      "description": "How viable your monetization model is based on market conditions",
+                      "calculation": "Based on competitor pricing, market willingness to pay, and revenue model analysis",
+                      "dataSources": ["Competitor pricing", "Market surveys", "Industry reports"],
+                      "insights": ["Commission model proven", "Need to validate pricing"],
+                      "improvements": [
+                        {
+                          "action": "Test pricing with surveys",
+                          "impact": "Medium",
+                          "effort": "Low",
+                          "expectedResult": "20% clearer revenue path"
+                        }
+                      ],
+                      "contextualRelevance": "Marketplace commission of 10-15% is standard in your industry"
+                    }
                   },
                   "growthMetrics": {
                     "timeline": [
@@ -79,7 +147,18 @@ serve(async (req) => {
               },
               {
                 role: 'user',
-                content: `Generate PMF insights for: ${idea}. Context: ${JSON.stringify(userAnswers).slice(0, 500)}. Be specific with real competitor names and data.`
+                content: `Generate comprehensive PMF insights with detailed explanations for: ${idea}. 
+                User context: ${JSON.stringify(userAnswers).slice(0, 500)}. 
+                
+                For EACH metric in scoreBreakdown, provide:
+                1. Detailed description of what the metric means
+                2. How it's calculated specifically for this idea
+                3. Data sources used
+                4. Key insights specific to this idea
+                5. Actionable improvements with expected results
+                6. Contextual relevance explaining why this matters for their specific idea
+                
+                Make everything highly specific to their idea, not generic. Use real competitor names, real data points, and contextual explanations.`
               }
             ]
           })

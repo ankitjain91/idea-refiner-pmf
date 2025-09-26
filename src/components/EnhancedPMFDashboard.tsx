@@ -4,13 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, ExternalLink, RefreshCw, TrendingUp, Users, DollarSign, Target, Zap } from 'lucide-react';
+import { Loader2, ExternalLink, RefreshCw, TrendingUp, Users, DollarSign, Target, Zap, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PMFScoreDisplay } from './dashboard/PMFScoreDisplay';
 import { ScoreCard } from './dashboard/ScoreCard';
 import { GrowthChart } from './dashboard/GrowthChart';
 import { CompetitorChart } from './dashboard/CompetitorChart';
+import { MetricDetailModal } from './dashboard/MetricDetailModal';
 
 interface EnhancedPMFDashboardProps {
   idea: string;
@@ -21,6 +22,8 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [selectedMetric, setSelectedMetric] = useState<any>(null);
+  const [metricModalOpen, setMetricModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -115,34 +118,97 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {insights.scoreBreakdown && (
           <>
-            <ScoreCard
-              title="Market Demand"
-              current={insights.scoreBreakdown.marketDemand.current}
-              potential={insights.scoreBreakdown.marketDemand.potential}
-              label={insights.scoreBreakdown.marketDemand.label}
-              color="blue"
-            />
-            <ScoreCard
-              title="Product Readiness"
-              current={insights.scoreBreakdown.productReadiness.current}
-              potential={insights.scoreBreakdown.productReadiness.potential}
-              label={insights.scoreBreakdown.productReadiness.label}
-              color="green"
-            />
-            <ScoreCard
-              title="User Engagement"
-              current={insights.scoreBreakdown.userEngagement.current}
-              potential={insights.scoreBreakdown.userEngagement.potential}
-              label={insights.scoreBreakdown.userEngagement.label}
-              color="purple"
-            />
-            <ScoreCard
-              title="Revenue Viability"
-              current={insights.scoreBreakdown.revenueViability.current}
-              potential={insights.scoreBreakdown.revenueViability.potential}
-              label={insights.scoreBreakdown.revenueViability.label}
-              color="orange"
-            />
+            <div 
+              className="cursor-pointer transform transition-transform hover:scale-105"
+              onClick={() => {
+                setSelectedMetric({
+                  title: "Market Demand",
+                  ...insights.scoreBreakdown.marketDemand
+                });
+                setMetricModalOpen(true);
+              }}
+            >
+              <ScoreCard
+                title="Market Demand"
+                current={insights.scoreBreakdown.marketDemand.current}
+                potential={insights.scoreBreakdown.marketDemand.potential}
+                label={insights.scoreBreakdown.marketDemand.label}
+                color="blue"
+              />
+              <div className="flex items-center justify-center mt-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Info className="w-3 h-3 mr-1" />
+                Click for details
+              </div>
+            </div>
+            
+            <div 
+              className="cursor-pointer transform transition-transform hover:scale-105"
+              onClick={() => {
+                setSelectedMetric({
+                  title: "Product Readiness",
+                  ...insights.scoreBreakdown.productReadiness
+                });
+                setMetricModalOpen(true);
+              }}
+            >
+              <ScoreCard
+                title="Product Readiness"
+                current={insights.scoreBreakdown.productReadiness.current}
+                potential={insights.scoreBreakdown.productReadiness.potential}
+                label={insights.scoreBreakdown.productReadiness.label}
+                color="green"
+              />
+              <div className="flex items-center justify-center mt-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Info className="w-3 h-3 mr-1" />
+                Click for details
+              </div>
+            </div>
+            
+            <div 
+              className="cursor-pointer transform transition-transform hover:scale-105"
+              onClick={() => {
+                setSelectedMetric({
+                  title: "User Engagement",
+                  ...insights.scoreBreakdown.userEngagement
+                });
+                setMetricModalOpen(true);
+              }}
+            >
+              <ScoreCard
+                title="User Engagement"
+                current={insights.scoreBreakdown.userEngagement.current}
+                potential={insights.scoreBreakdown.userEngagement.potential}
+                label={insights.scoreBreakdown.userEngagement.label}
+                color="purple"
+              />
+              <div className="flex items-center justify-center mt-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Info className="w-3 h-3 mr-1" />
+                Click for details
+              </div>
+            </div>
+            
+            <div 
+              className="cursor-pointer transform transition-transform hover:scale-105"
+              onClick={() => {
+                setSelectedMetric({
+                  title: "Revenue Viability",
+                  ...insights.scoreBreakdown.revenueViability
+                });
+                setMetricModalOpen(true);
+              }}
+            >
+              <ScoreCard
+                title="Revenue Viability"
+                current={insights.scoreBreakdown.revenueViability.current}
+                potential={insights.scoreBreakdown.revenueViability.potential}
+                label={insights.scoreBreakdown.revenueViability.label}
+                color="orange"
+              />
+              <div className="flex items-center justify-center mt-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Info className="w-3 h-3 mr-1" />
+                Click for details
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -469,6 +535,14 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
           </TabsContent>
         </ScrollArea>
       </Tabs>
+
+      {/* Metric Detail Modal */}
+      <MetricDetailModal
+        isOpen={metricModalOpen}
+        onClose={() => setMetricModalOpen(false)}
+        metric={selectedMetric}
+        idea={idea}
+      />
     </div>
   );
 }
