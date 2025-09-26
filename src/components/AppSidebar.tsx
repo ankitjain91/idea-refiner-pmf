@@ -120,9 +120,13 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
         .from('analysis_sessions')
         .select('*')
         .eq('id', sessionId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        toast({ title: "Session not found", description: "This session could not be loaded." });
+        return;
+      }
 
       if (data) {
         // Restore all session data including insights and chat history
@@ -248,8 +252,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
         </SidebarGroup>
 
         {/* Recent Sessions */}
-        {isOpen && (
-          <SidebarGroup>
+        <SidebarGroup>
             <SidebarGroupLabel className="flex items-center justify-between">
               <span>Your Sessions</span>
               <Badge variant="outline" className="text-xs">
@@ -288,7 +291,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                                 {session.session_name}
                               </p>
                               {/* Fade gradient overlay - only shows when text overflows */}
-                              <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+                              <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-0" />
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="secondary" className="text-xs h-5 px-2">
@@ -303,7 +306,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-50 hover:opacity-100 hover:bg-destructive/10 transition-all duration-200"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-60 hover:opacity-100 hover:bg-destructive/10 transition-all duration-200 z-10"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
@@ -320,7 +323,6 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
               </ScrollArea>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
 
         {/* Help & Settings */}
         <SidebarGroup className="mt-auto">
