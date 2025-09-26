@@ -38,20 +38,23 @@ ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`
 
 Current Question: "${question}"
 
-Instructions:
-- Generate exactly 4 OPTIMAL ANSWERS to the question above that would MAXIMIZE PM-FIT score
-- Each answer should be strategic and would improve different PM-FIT factors (demand, pain intensity, differentiation, distribution)
-- Each suggestion must directly answer the question asked
-- Each suggestion must be exactly 5 words
-- These should be the BEST possible answers that would lead to highest PM-FIT score
-- Think about what answers would indicate strong product-market fit
-- Return ONLY a JSON array of 4 strings; no code fences, no additional text
+Generate exactly 4 OPTIMAL ANSWERS to the question above that would MAXIMIZE PM-FIT score.
 
-Example for "What's your unique value proposition?":
-["10x faster than any competitor",
- "Solves previously impossible technical problem",
- "90% cost reduction for enterprises",
- "First AI-powered solution in market"]`;
+Requirements:
+- Each answer must DIRECTLY and COMPLETELY answer the question asked
+- Each answer should be the most strategic response that would indicate strong product-market fit
+- Each answer should be 10-20 words (complete, meaningful responses)
+- Focus on answers that demonstrate: clear market need, strong differentiation, scalability, and profitable growth potential
+- Consider the specific context of the idea when generating answers
+- Make answers specific and actionable, not generic
+
+Return ONLY a JSON array of 4 strings; no code fences, no additional text.
+
+Example for "Who is your target audience?" for a VR language learning app:
+["Tech-savvy millennials aged 25-35 who travel frequently and need conversational language skills for business and leisure",
+ "Corporate professionals in multinational companies requiring immersive language training for international client interactions and presentations",
+ "University students studying abroad who need rapid language acquisition with cultural context and real-world practice scenarios",
+ "Language enthusiasts and polyglots seeking gamified, engaging methods to master multiple languages with native-level pronunciation"]`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -118,14 +121,10 @@ Example for "What's your unique value proposition?":
         throw new Error('Parsed response is not an array');
       }
 
-      // Normalize suggestions: strings only, exactly 5 words, top 4
+      // Normalize suggestions: ensure they are proper strings
       suggestions = (suggestions || [])
-        .filter((s: any) => typeof s === 'string')
+        .filter((s: any) => typeof s === 'string' && s.trim().length > 0)
         .map((s: string) => s.replace(/\s+/g, ' ').trim())
-        .map((s: string) => {
-          const words = s.split(' ').filter(Boolean);
-          return words.length >= 5 ? words.slice(0, 5).join(' ') : s;
-        })
         .slice(0, 4);
 
       if (suggestions.length < 4) throw new Error('Insufficient suggestions after normalization');
@@ -141,50 +140,53 @@ Example for "What's your unique value proposition?":
           'Using fallback suggestions only'
         ];
       } else {
-      const lowerQ = (question || '').toLowerCase();
-      if (lowerQ.includes('target audience')) {
-        suggestions = [
-          'Tech-savvy millennials in urban areas',
-          'Small business owners seeking efficiency',
-          'Parents looking for family solutions',
-          'Students and young professionals nationwide',
-        ];
-      } else if (lowerQ.includes('problem')) {
-        suggestions = [
-          'Saves time on repetitive tasks',
-          'Reduces costs and operational overhead',
-          'Improves cross-functional team collaboration',
-          'Provides actionable real-time data insights',
-        ];
-      } else if (
-        lowerQ.includes('budget') ||
-        lowerQ.includes('pricing') ||
-        lowerQ.includes('price point') ||
-        lowerQ.includes('price') ||
-        lowerQ.includes('customer acquisition') ||
-        lowerQ.includes('cac')
-      ) {
-        suggestions = [
-          'Target CAC $5–$15 per signup',
-          'Early tests $2–$6 per lead',
-          'Paid social $8–$20 per signup',
-          'Content SEO $1–$4 per signup',
-        ];
-      } else if (lowerQ.includes('value proposition') || lowerQ.includes('unique value')) {
-        suggestions = [
-          '10x faster than any competitor',
-          'Solves previously impossible technical problem',
-          '90% cost reduction for enterprises',
-          'First AI-powered solution in market',
-        ];
-      } else {
-        suggestions = [
-          'Need more context to generate ideas',
-          'Researching best approach for this',
-          'Requires deeper analysis and specifics',
-          'Share details to tailor suggestions',
-        ];
-      }
+        // Generate contextual fallback suggestions based on the question
+        const lowerQ = (question || '').toLowerCase();
+        
+        if (lowerQ.includes('target audience') || lowerQ.includes('who is your')) {
+          suggestions = [
+            'Tech-savvy early adopters aged 25-40 in major metropolitan areas seeking innovative solutions',
+            'Small to medium businesses with 10-100 employees looking to optimize operational efficiency',
+            'Budget-conscious consumers prioritizing value and quality over brand names in purchasing decisions',
+            'Enterprise clients requiring scalable, secure solutions with dedicated support and customization options'
+          ];
+        } else if (lowerQ.includes('problem') || lowerQ.includes('pain point')) {
+          suggestions = [
+            'Current solutions take 10x longer and cost 5x more than necessary for basic tasks',
+            'No existing platform integrates all required features forcing users to juggle multiple tools',
+            'Manual processes cause 30% error rates leading to significant revenue loss and customer churn',
+            'Lack of real-time insights prevents data-driven decisions causing missed growth opportunities'
+          ];
+        } else if (lowerQ.includes('unique value') || lowerQ.includes('proposition') || lowerQ.includes('different')) {
+          suggestions = [
+            'First AI-powered solution delivering 10x faster results with 90% accuracy improvement guaranteed',
+            'Only platform combining all essential features at 50% lower cost than competitors',
+            'Patented technology solving previously impossible problems with proven ROI within 30 days',
+            'Zero learning curve with intuitive design reducing onboarding from weeks to hours'
+          ];
+        } else if (lowerQ.includes('monetization') || lowerQ.includes('revenue') || lowerQ.includes('pricing')) {
+          suggestions = [
+            'Freemium model with $29/month pro tier targeting 20% conversion rate after trial',
+            'Usage-based pricing starting at $99/month scaling with customer growth and value delivered',
+            'Enterprise licensing at $10K/year with unlimited users and premium support included',
+            'Transaction-based model taking 2.5% commission on platform-facilitated deals and exchanges'
+          ];
+        } else if (lowerQ.includes('competitor') || lowerQ.includes('competition')) {
+          suggestions = [
+            'Three established players dominate but lack innovation and have poor user experience ratings',
+            'Fragmented market with no clear leader creating opportunity for superior solution to win',
+            'Legacy solutions from 2010s haven\'t adapted to modern user needs and expectations',
+            'High-priced enterprise solutions leaving SMB market completely underserved and seeking alternatives'
+          ];
+        } else {
+          // Generic fallback for unknown questions
+          suggestions = [
+            'Comprehensive market research indicates strong demand with limited quality solutions available currently',
+            'Data-driven approach validated through customer interviews and prototype testing with target users',
+            'Leveraging emerging technologies to create competitive advantages traditional players cannot match quickly',
+            'Building strategic partnerships to accelerate growth and establish market leadership position early'
+          ];
+        }
       }
     }
 
