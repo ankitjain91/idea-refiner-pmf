@@ -65,7 +65,6 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   };
 
   const mainNav = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
   ];
