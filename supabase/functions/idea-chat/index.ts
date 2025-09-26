@@ -451,11 +451,11 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
             role: 'system',
             content: systemPrompt
           },
-          ...conversationHistory.slice(-4),  // Keep only last 4 messages for speed
+          ...conversationHistory.slice(-3),  // Keep only last 3 messages for speed
           { role: 'user', content: message }
         ],
-        max_tokens: 400,
-        temperature: 0.5
+        max_tokens: 300,  // Reduced for faster response
+        temperature: 0.4   // Lower temperature for more focused responses
       }),
     });
 
@@ -491,12 +491,13 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
           messages: [
             {
               role: 'system',
-              content: 'Return 4 follow-up questions as JSON array.'
+              content: 'Return 2 follow-up questions as JSON: {"suggestions": ["Q1", "Q2"]}'
             },
-            { role: 'user', content: suggestionPrompt.slice(0, 500) }  // Limit prompt size
+            { role: 'user', content: `Suggest 2 questions for: ${idea || message}`.slice(0, 200) }
           ],
-          max_tokens: 100,
-          temperature: 0.6
+          max_tokens: 60,
+          temperature: 0.3,
+          response_format: { type: "json_object" }
         }),
       });
       
@@ -505,11 +506,9 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         const suggestionContent = suggestionData.choices[0].message.content;
         
         try {
-          // Parse the JSON array
+          // Parse the JSON
           const parsed = JSON.parse(suggestionContent);
-          if (Array.isArray(parsed)) {
-            suggestions = parsed.slice(0, 4); // Ensure max 4 suggestions
-          }
+          suggestions = parsed.suggestions ? parsed.suggestions.slice(0, 2) : [];
         } catch {
           console.log('Could not parse suggestions, using fallbacks');
         }

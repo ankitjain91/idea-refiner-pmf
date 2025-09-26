@@ -9,7 +9,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
   SidebarHeader,
   SidebarFooter
@@ -28,7 +27,9 @@ import {
   Archive,
   Star,
   LayoutDashboard,
-  Trash2
+  Trash2,
+  HelpCircle,
+  MessageCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -124,6 +125,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   };
 
   const mainNav = [
+    { title: "Help & Support", url: "#", icon: HelpCircle, action: "help" },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
   ];
@@ -216,11 +218,24 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
             <SidebarMenu>
               {mainNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavClass}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {isOpen && <span>{item.title}</span>}
-                    </NavLink>
+                  <SidebarMenuButton 
+                    asChild={!item.action}
+                    onClick={item.action === 'help' ? () => {
+                      const helpBtn = document.querySelector('[data-help-button]') as HTMLButtonElement;
+                      if (helpBtn) helpBtn.click();
+                    } : undefined}
+                  >
+                    {item.action ? (
+                      <button className="flex items-center w-full hover:bg-muted/50 rounded-md px-2 py-1.5">
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {isOpen && <span>{item.title}</span>}
+                      </button>
+                    ) : (
+                      <NavLink to={item.url} end className={getNavClass}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {isOpen && <span>{item.title}</span>}
+                      </NavLink>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -231,14 +246,11 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-2">
-        <div className="flex items-center justify-between">
-          <SidebarTrigger />
-          {isOpen && currentSession && (
-            <div className="text-xs text-muted-foreground truncate max-w-[120px]">
-              Active: {currentSession.name}
-            </div>
-          )}
-        </div>
+        {isOpen && currentSession && (
+          <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+            Active: {currentSession.name}
+          </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

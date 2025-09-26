@@ -12,7 +12,6 @@ import { useSession } from "@/contexts/SessionContext";
 import { useAutoSaveSession } from "@/hooks/useAutoSaveSession";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, BarChart, Sparkles, CheckCircle, HelpCircle } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -181,7 +180,6 @@ const Dashboard = () => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-3">
-            <SidebarTrigger />
             <div>
               <h1 className="text-lg font-semibold">PM-Fit Analyzer</h1>
               <p className="text-xs text-muted-foreground">
@@ -190,6 +188,14 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              data-help-button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowHelpSupport(!showHelpSupport)}
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
             <Button
               onClick={() => {
                 setShowAnalysisDashboard(!showAnalysisDashboard);
