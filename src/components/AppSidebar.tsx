@@ -16,36 +16,21 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Home, 
   MessageSquare, 
   ChartBar, 
   Clock, 
   Plus,
-  Trash2,
   Crown,
   Settings,
   HelpCircle,
   Archive,
   Star
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-
-interface Session {
-  id: string;
-  session_name: string;
-  idea: string;
-  pmf_score: number;
-  last_accessed: string;
-  created_at: string;
-  is_active: boolean;
-}
 
 interface AppSidebarProps {
   onNewChat?: () => void;
@@ -58,40 +43,6 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   const { subscription } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loadingSessions, setLoadingSessions] = useState(true);
-  const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      loadSessions();
-      // Check if there's a loaded session in localStorage
-      const savedSessionId = localStorage.getItem('loadedSessionId') || localStorage.getItem('currentSessionId');
-      if (savedSessionId) {
-        setLoadedSessionId(savedSessionId);
-      }
-    }
-  }, [user]);
-
-  const loadSessions = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('analysis_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('last_accessed', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      setSessions(data || []);
-    } catch (error) {
-      console.error('Failed to load sessions:', error);
-    } finally {
-      setLoadingSessions(false);
-    }
-  };
 
   const createNewSession = async () => {
     // Clear current session data
@@ -101,7 +52,10 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     localStorage.removeItem('userAnswers');
     localStorage.removeItem('userRefinements');
     localStorage.removeItem('ideaMetadata');
-    setLoadedSessionId(null);
+    localStorage.removeItem('chatHistory');
+    localStorage.removeItem('analysisCompleted');
+    localStorage.removeItem('analysisData');
+    localStorage.removeItem('pmfScore');
     
     // If on dashboard, navigate to home
     if (window.location.pathname === '/dashboard') {
@@ -109,106 +63,6 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     } else {
       // Otherwise trigger reset on current page
       onNewChat?.();
-    }
-    
-    // Reload sessions list
-    await loadSessions();
-  };
-
-  const loadSession = async (sessionId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('analysis_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) {
-        toast({ title: "Session not found", description: "This session could not be loaded." });
-        return;
-      }
-
-      // Clear existing data first
-      localStorage.removeItem('chatHistory');
-      localStorage.removeItem('analysisCompleted');
-      
-      // Restore all session data including insights and chat history
-      localStorage.setItem('loadedSessionId', sessionId);
-      localStorage.setItem('currentSessionId', sessionId); // backward compatibility
-      localStorage.setItem('userIdea', data.idea);
-      localStorage.setItem('userAnswers', JSON.stringify(data.user_answers || {}));
-      localStorage.setItem('userRefinements', JSON.stringify(data.refinements || {}));
-      localStorage.setItem('ideaMetadata', JSON.stringify(data.metadata || {}));
-      localStorage.setItem('pmfScore', String(data.pmf_score || 0));
-      
-      // Restore insights and chat history if present
-      if (data.insights && typeof data.insights === 'object' && !Array.isArray(data.insights)) {
-        const insights = data.insights as any;
-        if (insights.chatHistory) {
-          localStorage.setItem('chatHistory', JSON.stringify(insights.chatHistory));
-        }
-        if (insights.analysisCompleted !== undefined) {
-          localStorage.setItem('analysisCompleted', String(insights.analysisCompleted));
-        }
-        if (insights.analysisData) {
-          localStorage.setItem('analysisData', JSON.stringify(insights.analysisData));
-        }
-      }
-      
-      // Update last accessed
-      await supabase
-        .from('analysis_sessions')
-        .update({ last_accessed: new Date().toISOString() })
-        .eq('id', sessionId);
-
-      setLoadedSessionId(sessionId);
-      
-      // Navigate to dashboard - the dashboard will detect the session change
-      if (window.location.pathname !== '/dashboard') {
-        navigate('/dashboard');
-      }
-      
-      toast({
-        title: "Session Loaded",
-        description: `Loaded: ${data.session_name}`,
-      });
-    } catch (error) {
-      console.error('Failed to load session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load session",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const deleteSession = async (sessionId: string) => {
-    try {
-      const { error } = await supabase
-        .from('analysis_sessions')
-        .delete()
-        .eq('id', sessionId);
-
-      if (error) throw error;
-
-      setSessions(sessions.filter(s => s.id !== sessionId));
-      
-      if (loadedSessionId === sessionId) {
-        createNewSession();
-      }
-      
-      toast({
-        title: "Session Deleted",
-        description: "Session has been removed",
-      });
-    } catch (error) {
-      console.error('Failed to delete session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete session",
-        variant: "destructive"
-      });
     }
   };
 
@@ -264,93 +118,6 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Recent Sessions */}
-        <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center justify-between">
-              <span>Your Sessions</span>
-              <Badge variant="outline" className="text-xs">
-                {sessions.length}
-              </Badge>
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <ScrollArea className="h-[250px]">
-                <SidebarMenu>
-                  {loadingSessions ? (
-                    <div className="px-2 py-4 text-sm text-muted-foreground">
-                      Loading sessions...
-                    </div>
-                  ) : sessions.length === 0 ? (
-                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                      <p>No saved sessions yet</p>
-                      <p className="text-xs mt-1">Your analyses will be saved here</p>
-                    </div>
-                  ) : (
-                    sessions.map((session) => (
-                      <SidebarMenuItem key={session.id}>
-                        <div
-                          className={cn(
-                            "group relative flex items-center px-2 py-2.5 rounded-lg transition-all duration-200",
-                            "hover:bg-muted/60 hover:shadow-sm",
-                            loadedSessionId === session.id
-                              ? 'bg-primary/10 border-l-2 border-primary shadow-sm'
-                              : ''
-                          )}
-                        >
-                          <div 
-                            className="flex-1 min-w-0 pr-2 cursor-pointer"
-                            onClick={() => loadSession(session.id)}
-                          >
-                            {/* Session name with fade effect */}
-                            <div className="relative overflow-hidden">
-                              <p className="text-sm font-medium truncate">
-                                {session.session_name}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="secondary" className="text-xs h-5 px-2">
-                                {session.pmf_score}% PMF
-                              </Badge>
-                              <span className="text-xs text-muted-foreground truncate">
-                                {format(new Date(session.last_accessed), 'MMM d')}
-                              </span>
-                            </div>
-                          </div>
-                          {/* Hover actions - always visible on hover */}
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                loadSession(session.id);
-                              }}
-                              title="Load session"
-                            >
-                              Load
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteSession(session.id);
-                              }}
-                              title="Delete session"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      </SidebarMenuItem>
-                    ))
-                  )}
-                </SidebarMenu>
-              </ScrollArea>
-            </SidebarGroupContent>
-          </SidebarGroup>
 
         {/* Help & Settings */}
         <SidebarGroup className="mt-auto">
