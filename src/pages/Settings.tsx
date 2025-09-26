@@ -62,7 +62,7 @@ export default function Settings() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate("/auth");
+      navigate("/auth", { state: { from: { pathname: "/settings" } } });
     } else if (user) {
       loadProfile();
     }

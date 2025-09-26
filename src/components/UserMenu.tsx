@@ -11,11 +11,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, User, Settings } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export const UserMenu = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignOut = async () => {
@@ -34,7 +35,7 @@ export const UserMenu = () => {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate('/auth')}
+        onClick={() => navigate('/auth', { state: { from: location } })}
       >
         Sign In
       </Button>

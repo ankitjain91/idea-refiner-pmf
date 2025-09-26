@@ -57,17 +57,14 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     localStorage.removeItem('analysisData');
     localStorage.removeItem('pmfScore');
     
-    // If on dashboard, navigate to home
-    if (window.location.pathname === '/dashboard') {
-      navigate('/');
-    } else {
-      // Otherwise trigger reset on current page
-      onNewChat?.();
-    }
+    // Always navigate to dashboard for new analysis
+    navigate('/dashboard');
+    // Also trigger reset callback if provided
+    onNewChat?.();
   };
 
   const mainNav = [
-    { title: "New Analysis", url: "/", icon: Plus, action: createNewSession },
+    { title: "New Analysis", url: "/dashboard", icon: Plus, action: createNewSession },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
   ];

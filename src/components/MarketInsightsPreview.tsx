@@ -15,7 +15,7 @@ import {
   Globe,
   Zap
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface MarketInsightsPreviewProps {
@@ -30,6 +30,7 @@ const MarketInsightsPreview: React.FC<MarketInsightsPreviewProps> = ({
   pmfScore = 75
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const sampleInsights = {
     marketSize: {
@@ -191,7 +192,7 @@ const MarketInsightsPreview: React.FC<MarketInsightsPreviewProps> = ({
                 </p>
               </div>
               <Button 
-                onClick={() => navigate('/pricing')}
+                onClick={() => navigate('/pricing', { state: { from: location } })}
                 className="w-full sm:w-auto"
               >
                 View Premium Plans

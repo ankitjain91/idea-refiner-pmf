@@ -14,8 +14,8 @@ const Logout = () => {
       // Sign out from Supabase
       await supabase.auth.signOut();
       
-      // Redirect to landing page
-      navigate('/');
+      // Redirect to auth page after logout
+      navigate('/auth', { replace: true });
     };
     
     handleLogout();

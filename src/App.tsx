@@ -50,7 +50,7 @@ const App = () => (
                 } />
                 <Route path="/subscription-success" element={
                   <ProtectedRoute>
-                    <Index />
+                    <Dashboard />
                   </ProtectedRoute>
                 } />
                 

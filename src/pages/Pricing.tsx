@@ -30,7 +30,7 @@ export default function PricingPage() {
         });
         setLoadingPlan(null);
         setTimeout(() => {
-          navigate('/', { state: { from: { pathname: '/pricing' } } });
+          navigate('/auth', { state: { from: { pathname: '/pricing' } } });
         }, 1500);
         return;
       }
