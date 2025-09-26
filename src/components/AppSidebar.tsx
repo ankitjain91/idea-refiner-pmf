@@ -60,15 +60,15 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   const { toast } = useToast();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       loadSessions();
-      // Get current session from localStorage
+      // Check if there's a loaded session in localStorage
       const savedSessionId = localStorage.getItem('currentSessionId');
       if (savedSessionId) {
-        setCurrentSessionId(savedSessionId);
+        setLoadedSessionId(savedSessionId);
       }
     }
   }, [user]);
@@ -100,7 +100,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     localStorage.removeItem('userAnswers');
     localStorage.removeItem('userRefinements');
     localStorage.removeItem('ideaMetadata');
-    setCurrentSessionId(null);
+    setLoadedSessionId(null);
     
     // If on dashboard, navigate to home
     if (window.location.pathname === '/dashboard') {
@@ -128,37 +128,49 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
         return;
       }
 
-      if (data) {
-        // Restore all session data including insights and chat history
-        localStorage.setItem('currentSessionId', sessionId);
-        localStorage.setItem('userIdea', data.idea);
-        localStorage.setItem('userAnswers', JSON.stringify(data.user_answers || {}));
-        localStorage.setItem('userRefinements', JSON.stringify(data.refinements || {}));
-        localStorage.setItem('ideaMetadata', JSON.stringify(data.metadata || {}));
-        
-        // Restore insights and chat history if present
-        if (data.insights && typeof data.insights === 'object' && !Array.isArray(data.insights)) {
-          const insights = data.insights as any;
-          localStorage.setItem('chatHistory', JSON.stringify(insights.chatHistory || []));
-          localStorage.setItem('analysisCompleted', insights.analysisCompleted ? 'true' : 'false');
+      // Clear existing data first
+      localStorage.removeItem('chatHistory');
+      localStorage.removeItem('analysisCompleted');
+      
+      // Restore all session data including insights and chat history
+      localStorage.setItem('currentSessionId', sessionId);
+      localStorage.setItem('userIdea', data.idea);
+      localStorage.setItem('userAnswers', JSON.stringify(data.user_answers || {}));
+      localStorage.setItem('userRefinements', JSON.stringify(data.refinements || {}));
+      localStorage.setItem('ideaMetadata', JSON.stringify(data.metadata || {}));
+      localStorage.setItem('pmfScore', String(data.pmf_score || 0));
+      
+      // Restore insights and chat history if present
+      if (data.insights && typeof data.insights === 'object' && !Array.isArray(data.insights)) {
+        const insights = data.insights as any;
+        if (insights.chatHistory) {
+          localStorage.setItem('chatHistory', JSON.stringify(insights.chatHistory));
         }
-        
-        // Update last accessed
-        await supabase
-          .from('analysis_sessions')
-          .update({ last_accessed: new Date().toISOString() })
-          .eq('id', sessionId);
-
-        setCurrentSessionId(sessionId);
-        
-        // Navigate to dashboard without full reload
-        navigate('/dashboard');
-        
-        toast({
-          title: "Session Loaded",
-          description: `Loaded: ${data.session_name}`,
-        });
+        if (insights.analysisCompleted !== undefined) {
+          localStorage.setItem('analysisCompleted', String(insights.analysisCompleted));
+        }
+        if (insights.analysisData) {
+          localStorage.setItem('analysisData', JSON.stringify(insights.analysisData));
+        }
       }
+      
+      // Update last accessed
+      await supabase
+        .from('analysis_sessions')
+        .update({ last_accessed: new Date().toISOString() })
+        .eq('id', sessionId);
+
+      setLoadedSessionId(sessionId);
+      
+      // Navigate to dashboard - the dashboard will detect the session change
+      if (window.location.pathname !== '/dashboard') {
+        navigate('/dashboard');
+      }
+      
+      toast({
+        title: "Session Loaded",
+        description: `Loaded: ${data.session_name}`,
+      });
     } catch (error) {
       console.error('Failed to load session:', error);
       toast({
@@ -180,7 +192,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
 
       setSessions(sessions.filter(s => s.id !== sessionId));
       
-      if (currentSessionId === sessionId) {
+      if (loadedSessionId === sessionId) {
         createNewSession();
       }
       
@@ -278,7 +290,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           className={cn(
                             "group relative flex items-center px-2 py-2.5 rounded-lg cursor-pointer transition-all duration-200",
                             "hover:bg-muted/60 hover:shadow-sm",
-                            currentSessionId === session.id
+                            loadedSessionId === session.id
                               ? 'bg-primary/10 border-l-2 border-primary shadow-sm'
                               : ''
                           )}

@@ -20,23 +20,63 @@ const Dashboard = () => {
   const [showAnalysisDashboard, setShowAnalysisDashboard] = useState(false);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [dashboardHeight, setDashboardHeight] = useState("50%");
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
   
+  // Watch for session changes in localStorage
   useEffect(() => {
-    // Clear all chat-related storage on mount (new login session)
-    localStorage.removeItem('currentSessionId');
-    localStorage.removeItem('userIdea');
-    localStorage.removeItem('userAnswers');
-    localStorage.removeItem('userRefinements');
-    localStorage.removeItem('ideaMetadata');
-    localStorage.removeItem('pmfCurrentIdea');
-    localStorage.removeItem('pmfTabHistory');
-    localStorage.removeItem('pmfFeatures');
-    localStorage.removeItem('pmfAuthMethod');
-    localStorage.removeItem('pmfTheme');
-    localStorage.removeItem('pmfScreens');
-    setChatKey(prev => prev + 1);
-  }, []); // Only run once on component mount
+    const checkSessionData = () => {
+      const sessionId = localStorage.getItem('currentSessionId');
+      const idea = localStorage.getItem('userIdea');
+      const answers = localStorage.getItem('userAnswers');
+      const metadata = localStorage.getItem('ideaMetadata');
+      const analysisCompleted = localStorage.getItem('analysisCompleted');
+      
+      if (sessionId && sessionId !== currentSessionId) {
+        setCurrentSessionId(sessionId);
+        
+        // If we have analysis data, show the dashboard
+        if (idea && analysisCompleted === 'true') {
+          const parsedAnswers = answers ? JSON.parse(answers) : {};
+          const parsedMetadata = metadata ? JSON.parse(metadata) : {};
+          
+          setAnalysisData({ 
+            idea, 
+            metadata: { 
+              ...parsedMetadata, 
+              answers: parsedAnswers 
+            } 
+          });
+          setShowAnalysisDashboard(true);
+        } else {
+          setShowAnalysisDashboard(false);
+        }
+        
+        // Force reload chat with new session data
+        setChatKey(prev => prev + 1);
+      }
+    };
+    
+    // Check immediately
+    checkSessionData();
+    
+    // Listen for storage changes (session loads)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'currentSessionId' || e.key === 'userIdea') {
+        checkSessionData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Check periodically for same-window updates
+    const interval = setInterval(checkSessionData, 500);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [currentSessionId]);
   
   useEffect(() => {
     // Redirect to auth if not logged in and not loading
@@ -44,13 +84,6 @@ const Dashboard = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
-
-  // Removed global wheel listener to prevent scroll hijacking
-  // Scroll behavior is now controlled via explicit buttons for reliability
-  useEffect(() => {
-    // No-op: keep dependency to allow future scoped enhancements
-    return () => {};
-  }, [showAnalysisDashboard]);
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
     setAnalysisData({ idea, metadata });
@@ -60,6 +93,7 @@ const Dashboard = () => {
     localStorage.setItem('pmfCurrentIdea', idea);
     localStorage.setItem('userAnswers', JSON.stringify(metadata.answers || {}));
     localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
+    localStorage.setItem('analysisCompleted', 'true');
   };
 
   const handleNewChat = () => {
@@ -75,11 +109,14 @@ const Dashboard = () => {
     localStorage.removeItem('pmfAuthMethod');
     localStorage.removeItem('pmfTheme');
     localStorage.removeItem('pmfScreens');
+    localStorage.removeItem('chatHistory');
+    localStorage.removeItem('analysisCompleted');
     
     setChatKey((k) => k + 1);
     setShowAnalysisDashboard(false);
     setAnalysisData(null);
     setDashboardHeight("50%");
+    setCurrentSessionId(null);
   };
   
   // Show loading while checking auth
