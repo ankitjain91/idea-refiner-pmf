@@ -1222,7 +1222,6 @@ export default function ChatGPTStyleChat({
                     >
                       {msg.isTyping ? (
                         <div className="flex items-center gap-2 py-1 animate-fade-in">
-                          <Bot className="h-4 w-4 text-primary animate-pulse" />
                           <div className="flex gap-1">
                             <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                             <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />

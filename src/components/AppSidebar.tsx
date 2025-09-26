@@ -146,9 +146,9 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
         )}
       </SidebarHeader>
 
-      <SidebarContent>
-        {/* Brainstorming Sessions */}
-        <SidebarGroup>
+      <SidebarContent className="flex flex-col">
+        {/* Brainstorming Sessions - takes available space */}
+        <SidebarGroup className="flex-1">
           <div className="flex items-center justify-between px-3">
             <SidebarGroupLabel>Sessions</SidebarGroupLabel>
             <Button
@@ -161,7 +161,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
             </Button>
           </div>
           <SidebarGroupContent>
-            <ScrollArea className="h-[250px]">
+            <ScrollArea className="h-full">
               <SidebarMenu>
                 {liveSessions.map((session) => (
                   <SidebarMenuItem key={session.id}>
@@ -211,8 +211,8 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Main Navigation */}
-        <SidebarGroup>
+        {/* Main Navigation - positioned at bottom */}
+        <SidebarGroup className="mt-auto border-t">
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
