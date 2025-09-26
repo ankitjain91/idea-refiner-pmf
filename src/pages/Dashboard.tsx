@@ -4,6 +4,7 @@ import PMFAnalyzer from "@/components/PMFAnalyzer";
 import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
+import HelpSupport from "@/components/HelpSupport";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SessionContext";
 import { useAutoSaveSession } from "@/hooks/useAutoSaveSession";
@@ -370,13 +371,19 @@ const Dashboard = () => {
                         </p>
                       </div>
                     </div>
-                  )}
-                </div>
+        )}
+      </div>
+      
+      {/* Help & Support Chat */}
+      <HelpSupport />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
+      
+      {/* Help & Support Chat */}
+      <HelpSupport />
     </div>
   );
 };
