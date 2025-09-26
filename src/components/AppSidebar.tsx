@@ -66,7 +66,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     if (user) {
       loadSessions();
       // Check if there's a loaded session in localStorage
-      const savedSessionId = localStorage.getItem('currentSessionId');
+      const savedSessionId = localStorage.getItem('loadedSessionId');
       if (savedSessionId) {
         setLoadedSessionId(savedSessionId);
       }
@@ -95,7 +95,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
 
   const createNewSession = async () => {
     // Clear current session data
-    localStorage.removeItem('currentSessionId');
+    localStorage.removeItem('loadedSessionId');
     localStorage.removeItem('userIdea');
     localStorage.removeItem('userAnswers');
     localStorage.removeItem('userRefinements');
@@ -133,7 +133,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       localStorage.removeItem('analysisCompleted');
       
       // Restore all session data including insights and chat history
-      localStorage.setItem('currentSessionId', sessionId);
+      localStorage.setItem('loadedSessionId', sessionId);
       localStorage.setItem('userIdea', data.idea);
       localStorage.setItem('userAnswers', JSON.stringify(data.user_answers || {}));
       localStorage.setItem('userRefinements', JSON.stringify(data.refinements || {}));
