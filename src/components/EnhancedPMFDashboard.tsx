@@ -4,9 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, ExternalLink, RefreshCw } from 'lucide-react';
+import { Loader2, ExternalLink, RefreshCw, TrendingUp, Users, DollarSign, Target, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { PMFScoreDisplay } from './dashboard/PMFScoreDisplay';
+import { ScoreCard } from './dashboard/ScoreCard';
+import { GrowthChart } from './dashboard/GrowthChart';
+import { CompetitorChart } from './dashboard/CompetitorChart';
 
 interface EnhancedPMFDashboardProps {
   idea: string;
@@ -77,49 +81,131 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
 
   return (
     <div className="space-y-6">
+      {/* Header with Score Display */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">PM-Fit Score: {insights.pmfScore}%</h2>
-          <p className="text-sm text-muted-foreground">Real-time analysis</p>
-        </div>
-        <button onClick={() => fetchDashboardInsights(0)} className="p-2">
+        <PMFScoreDisplay 
+          currentScore={insights.pmfScore} 
+          previousScore={insights.previousScore || insights.pmfScore - 10}
+        />
+        <button 
+          onClick={() => fetchDashboardInsights(0)} 
+          className="p-3 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
+        >
           <RefreshCw className="w-5 h-5" />
         </button>
       </div>
 
+      {/* Score Breakdown Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {insights.scoreBreakdown && (
+          <>
+            <ScoreCard
+              title="Market Demand"
+              current={insights.scoreBreakdown.marketDemand.current}
+              potential={insights.scoreBreakdown.marketDemand.potential}
+              label={insights.scoreBreakdown.marketDemand.label}
+              color="blue"
+            />
+            <ScoreCard
+              title="Product Readiness"
+              current={insights.scoreBreakdown.productReadiness.current}
+              potential={insights.scoreBreakdown.productReadiness.potential}
+              label={insights.scoreBreakdown.productReadiness.label}
+              color="green"
+            />
+            <ScoreCard
+              title="User Engagement"
+              current={insights.scoreBreakdown.userEngagement.current}
+              potential={insights.scoreBreakdown.userEngagement.potential}
+              label={insights.scoreBreakdown.userEngagement.label}
+              color="purple"
+            />
+            <ScoreCard
+              title="Revenue Viability"
+              current={insights.scoreBreakdown.revenueViability.current}
+              potential={insights.scoreBreakdown.revenueViability.potential}
+              label={insights.scoreBreakdown.revenueViability.label}
+              color="orange"
+            />
+          </>
+        )}
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {insights.growthMetrics?.timeline && (
+          <GrowthChart data={insights.growthMetrics.timeline} />
+        )}
+        {insights.competitorComparison && (
+          <CompetitorChart data={insights.competitorComparison} />
+        )}
+      </div>
+
+      {/* Detailed Insights Tabs */}
       <Tabs defaultValue="quickwins" className="w-full">
         <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="quickwins">Quick Wins</TabsTrigger>
-          <TabsTrigger value="improvements">Improvements</TabsTrigger>
-          <TabsTrigger value="competitors">Competitors</TabsTrigger>
-          <TabsTrigger value="channels">Channels</TabsTrigger>
-          <TabsTrigger value="metrics">Metrics</TabsTrigger>
+          <TabsTrigger value="quickwins" className="flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Quick Wins
+          </TabsTrigger>
+          <TabsTrigger value="improvements" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Improvements
+          </TabsTrigger>
+          <TabsTrigger value="competitors" className="flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Competitors
+          </TabsTrigger>
+          <TabsTrigger value="channels" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Channels
+          </TabsTrigger>
+          <TabsTrigger value="metrics" className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4" />
+            Metrics
+          </TabsTrigger>
         </TabsList>
 
         <ScrollArea className="h-[500px] mt-4">
           <TabsContent value="quickwins" className="space-y-4">
             {insights.quickWins?.map((win: any, idx: number) => (
-              <Card key={idx}>
+              <Card 
+                key={idx} 
+                className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-l-4 border-l-primary hover:scale-[1.02]"
+              >
                 <CardHeader>
-                  <CardTitle>{win.title}</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>{win.title}</span>
+                    <Zap className="w-5 h-5 text-yellow-500" />
+                  </CardTitle>
                   <div className="flex gap-2">
-                    <Badge>Impact: {win.impact}</Badge>
-                    <Badge>Effort: {win.effort}</Badge>
+                    <Badge variant={win.impact === 'High' ? 'default' : 'secondary'}>
+                      Impact: {win.impact}
+                    </Badge>
+                    <Badge variant={win.effort === 'Low' ? 'default' : 'secondary'}>
+                      Effort: {win.effort}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p>{win.description}</p>
-                  <div className="mt-2">
-                    <strong>Steps:</strong>
-                    <ul className="list-disc list-inside">
+                  <p className="text-muted-foreground">{win.description}</p>
+                  <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                    <strong className="text-sm">Implementation Steps:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
                       {win.specificSteps?.map((step: string, i: number) => (
-                        <li key={i}>{step}</li>
+                        <li key={i} className="text-sm">{step}</li>
                       ))}
                     </ul>
                   </div>
                   <div className="flex gap-2 mt-3">
                     {win.sources?.map((source: any, i: number) => (
-                      <a key={i} href={source.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary flex items-center gap-1">
+                      <a 
+                        key={i} 
+                        href={source.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                      >
                         <ExternalLink className="w-3 h-3" />
                         {source.name}
                       </a>
@@ -186,38 +272,59 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
           </TabsContent>
 
           <TabsContent value="competitors" className="space-y-4">
-            {insights.competitors?.map((comp: any, idx: number) => (
-              <Card key={idx}>
-                <CardHeader>
-                  <CardTitle>{comp.name}</CardTitle>
-                  <Badge>{comp.marketShare} market share</Badge>
-                </CardHeader>
-                <CardContent>
-                  <p>{comp.description}</p>
-                  <div className="grid grid-cols-2 gap-4 mt-3">
-                    <div>
-                      <strong>Pricing:</strong> {comp.pricing}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {insights.competitors?.map((comp: any, idx: number) => (
+                <Card 
+                  key={idx}
+                  className="group hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-background to-muted/20"
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{comp.name}</CardTitle>
+                      <Target className="w-5 h-5 text-primary" />
                     </div>
-                    <div>
-                      <strong>Funding:</strong> {comp.fundingRaised}
+                    <Badge className="w-fit">{comp.marketShare} market share</Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">{comp.description}</p>
+                    <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pricing</p>
+                        <p className="font-semibold">{comp.pricing}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Funding</p>
+                        <p className="font-semibold">{comp.fundingRaised}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-3">
-                    <a href={comp.website} target="_blank" rel="noopener noreferrer" className="text-primary">
-                      Visit Website
-                    </a>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    {comp.sources?.map((source: any, i: number) => (
-                      <a key={i} href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3" />
-                        {source.name}
+                    <div className="mt-4 flex items-center justify-between">
+                      <a 
+                        href={comp.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Visit Website
                       </a>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      <div className="flex gap-2">
+                        {comp.sources?.map((source: any, i: number) => (
+                          <a 
+                            key={i} 
+                            href={source.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            {source.name}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="channels" className="space-y-4">
@@ -270,17 +377,26 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
             </div>
           </TabsContent>
 
-          <TabsContent value="metrics" className="space-y-4">
-            <Card>
+          <TabsContent value="metrics" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-500/5 to-blue-600/5">
               <CardHeader>
-                <CardTitle>Market Size</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-blue-500" />
+                  Market Size
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{insights.marketSize?.total}</p>
-                <p>Growth: {insights.marketSize?.growth}</p>
-                <div className="flex gap-2 mt-2">
+                <p className="text-3xl font-bold text-blue-600">{insights.marketSize?.total}</p>
+                <p className="text-sm text-muted-foreground mt-1">Growth: {insights.marketSize?.growth}</p>
+                <div className="flex gap-2 mt-3">
                   {insights.marketSize?.sources?.map((source: any, i: number) => (
-                    <a key={i} href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">
+                    <a 
+                      key={i} 
+                      href={source.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs text-primary hover:text-primary/80 transition-colors"
+                    >
                       {source.name}
                     </a>
                   ))}
@@ -288,38 +404,48 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-green-500/5 to-green-600/5">
               <CardHeader>
-                <CardTitle>Search Volume</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  Search Volume
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{insights.realTimeMetrics?.searchVolume?.monthly?.toLocaleString()}</p>
-                <Badge>{insights.realTimeMetrics?.searchVolume?.trend}</Badge>
-                <div className="mt-2">
+                <p className="text-3xl font-bold text-green-600">
+                  {insights.realTimeMetrics?.searchVolume?.monthly?.toLocaleString()}
+                </p>
+                <Badge className="mt-2" variant={insights.realTimeMetrics?.searchVolume?.trend === 'Increasing' ? 'default' : 'secondary'}>
+                  {insights.realTimeMetrics?.searchVolume?.trend}
+                </Badge>
+                <div className="mt-3 flex flex-wrap gap-1">
                   {insights.realTimeMetrics?.searchVolume?.relatedQueries?.map((query: string, i: number) => (
-                    <Badge key={i} variant="outline" className="mr-1">{query}</Badge>
+                    <Badge key={i} variant="outline" className="text-xs">{query}</Badge>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-500/5 to-purple-600/5">
               <CardHeader>
-                <CardTitle>Revenue Projections</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-purple-500" />
+                  Revenue Projections
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
                     <p className="text-sm text-muted-foreground">Month 1</p>
-                    <p className="font-bold">{insights.monetization?.revenue?.month1}</p>
+                    <p className="font-bold text-purple-600">{insights.monetization?.revenue?.month1}</p>
                   </div>
-                  <div>
+                  <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
                     <p className="text-sm text-muted-foreground">Month 6</p>
-                    <p className="font-bold">{insights.monetization?.revenue?.month6}</p>
+                    <p className="font-bold text-purple-600">{insights.monetization?.revenue?.month6}</p>
                   </div>
-                  <div>
+                  <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
                     <p className="text-sm text-muted-foreground">Year 1</p>
-                    <p className="font-bold">{insights.monetization?.revenue?.year1}</p>
+                    <p className="font-bold text-purple-600">{insights.monetization?.revenue?.year1}</p>
                   </div>
                 </div>
               </CardContent>

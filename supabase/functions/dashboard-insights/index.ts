@@ -38,11 +38,39 @@ serve(async (req) => {
               {
                 role: 'system',
                 content: `You are a product-market fit expert. Provide specific, actionable insights with real data.
-                Return a valid JSON object with this exact structure (no markdown, just JSON). Do not include any commentary or code fences, only raw JSON.`
+                Return a valid JSON object with this exact structure (no markdown, just JSON). Do not include any commentary or code fences, only raw JSON.
+                
+                REQUIRED JSON STRUCTURE:
+                {
+                  "pmfScore": number (0-100),
+                  "previousScore": number (0-100, estimate before improvements),
+                  "scoreBreakdown": {
+                    "marketDemand": { "current": number, "potential": number, "label": string },
+                    "productReadiness": { "current": number, "potential": number, "label": string },
+                    "userEngagement": { "current": number, "potential": number, "label": string },
+                    "revenueViability": { "current": number, "potential": number, "label": string }
+                  },
+                  "growthMetrics": {
+                    "timeline": [
+                      { "month": string, "users": number, "revenue": number, "engagement": number }
+                    ]
+                  },
+                  "competitorComparison": [
+                    { "name": string, "metric": string, "yours": number, "theirs": number, "unit": string }
+                  ],
+                  "quickWins": [...existing structure...],
+                  "improvementsByTime": [...existing structure...],
+                  "improvementsByCost": [...existing structure...],
+                  "competitors": [...existing structure...],
+                  "channels": {...existing structure...},
+                  "marketSize": {...existing structure...},
+                  "realTimeMetrics": {...existing structure...},
+                  "monetization": {...existing structure...}
+                }`
               },
               {
                 role: 'user',
-                content: `Analyze this idea and provide comprehensive insights:\n\nIdea: ${idea}\nUser Answers: ${JSON.stringify(userAnswers, null, 2)}\n\nProvide specific, real data with actual competitor names, market sizes, and actionable improvements. Include real source URLs. Ensure every section is populated with contextual data.`
+                content: `Analyze this idea and provide comprehensive insights with real data, graphs, and metrics:\n\nIdea: ${idea}\nUser Answers: ${JSON.stringify(userAnswers, null, 2)}\n\nProvide specific, real data with actual competitor names, market sizes, growth projections, and actionable improvements. Include timeline data for graphs, competitor comparisons, and score breakdowns showing current vs potential after improvements. Use real companies and metrics.`
               }
             ]
           })
