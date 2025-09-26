@@ -45,22 +45,65 @@ async function fetchRealWebData(idea: string, question: string) {
 
 // Generate real, contextual suggestions based on the bot's response
 async function generateRealSuggestions(idea: string, question: string, webData: any, botResponse?: string) {
-  const systemPrompt = `You are helping with a product-market fit conversation about "${idea}".
-
-${botResponse ? `The assistant just said: "${botResponse.slice(0, 300)}..."` : `Current question: "${question}"`}
-
+  // Check if this is an analysis question that needs answer suggestions
+  const analysisQuestions = {
+    "Who is your target audience?": [
+      "age", "demographic", "customer", "user"
+    ],
+    "What problem does your product solve?": [
+      "problem", "pain point", "challenge", "issue"
+    ],
+    "What is your budget?": [
+      "budget", "funding", "cost", "investment"
+    ],
+    "What is your unique value proposition?": [
+      "value", "unique", "differentiator", "advantage"
+    ]
+  };
+  
+  const isAnalysisQuestion = Object.keys(analysisQuestions).includes(question);
+  
+  let systemPrompt = '';
+  
+  if (isAnalysisQuestion) {
+    // Generate answer suggestions for analysis questions
+    systemPrompt = `You are helping someone answer: "${question}" for their startup idea: "${idea}".
+    
 ${webData ? `Market Data Available:
-- Competitors: ${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Various'}
-- Target Age: ${webData.raw?.demographics?.primaryAge || '25-35'}
-- Industry: ${webData.raw?.demographics?.industries?.[0] || 'General'}` : ''}
+- Competitors: ${webData.normalized?.topCompetitors?.slice(0, 3).map((c: any) => `${c.name} (${c.pricing})`).join(', ') || 'Various'}
+- Market Size: $${(webData.raw?.marketSize / 1000000).toFixed(0)}M
+- Growth Rate: ${webData.raw?.growthRate}% annually
+- Target Demographics: ${webData.raw?.demographics?.primaryAge || '25-35'} age group
+- Industries: ${webData.raw?.demographics?.industries?.slice(0, 2).join(', ') || 'General'}` : ''}
 
-Generate 4 natural follow-up questions or responses that:
-1. Are directly relevant to what was just discussed
-2. Help the user think deeper about their answer
-3. Are conversational and specific
-4. Maximum 12 words each
+Generate 4 specific, actionable answer suggestions for this question.
+Each should be a concrete answer they could use, 5-8 words maximum.
+
+Examples for context:
+- For target audience: "Tech-savvy millennials in urban areas", "Small business owners under 50", "College students on tight budgets"
+- For problems: "Saves 5 hours weekly on planning", "Reduces travel costs by 40%", "Eliminates need for multiple apps"
+- For budget: "$10K for MVP development", "$5K bootstrap with no funding", "$50K seed round investment"
+- For value prop: "AI-powered at half the price", "Only solution with real-time sync", "No technical skills required"
+
+Return ONLY a JSON array of 4 specific answer suggestions relevant to "${idea}".`;
+  } else {
+    // Generate follow-up questions for general conversation
+    systemPrompt = `You are helping with a product-market fit conversation about "${idea}".
+
+${botResponse ? `The assistant just said: "${botResponse.slice(0, 300)}..."` : `Current topic: "${question}"`}
+
+${webData ? `Market Context:
+- Key Competitors: ${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Various'}
+- Market Growth: ${webData.raw?.growthRate}% annually` : ''}
+
+Generate 4 natural follow-up questions that:
+1. Build on what was just discussed
+2. Help explore the idea deeper
+3. Are specific and actionable
+4. Maximum 10 words each
 
 Return ONLY a JSON array of 4 strings.`;
+  }
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -72,23 +115,29 @@ Return ONLY a JSON array of 4 strings.`;
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Generate 4 contextual follow-up suggestions as a JSON array only.' },
+          { 
+            role: 'system', 
+            content: 'You must return exactly 4 suggestions as a JSON array. No markdown, no code blocks, just the JSON array.' 
+          },
           { role: 'user', content: systemPrompt }
         ],
-        max_tokens: 150,
-        temperature: 0.7
+        max_tokens: 200,
+        temperature: 0.8
       }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      const content = data.choices[0].message.content;
+      let content = data.choices[0].message.content;
       
       try {
+        // Remove any markdown formatting
+        content = content.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
+        
         // Parse JSON response
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
-          return parsed.slice(0, 4);
+          return parsed.slice(0, 4).map(s => String(s).trim());
         }
         
         // Try to extract JSON array if wrapped in text
@@ -96,11 +145,43 @@ Return ONLY a JSON array of 4 strings.`;
         if (jsonMatch) {
           const suggestions = JSON.parse(jsonMatch[0]);
           if (Array.isArray(suggestions)) {
-            return suggestions.slice(0, 4);
+            return suggestions.slice(0, 4).map(s => String(s).trim());
           }
         }
       } catch (e) {
         console.error('Error parsing suggestions:', e);
+        // Return fallback suggestions based on question type
+        if (isAnalysisQuestion) {
+          if (question.includes("target audience")) {
+            return [
+              "Young professionals 25-35 years",
+              "Small business owners nationwide",
+              "Students seeking affordable solutions",
+              "Tech-savvy early adopters"
+            ];
+          } else if (question.includes("problem")) {
+            return [
+              "Saves time on daily tasks",
+              "Reduces operational costs significantly",
+              "Simplifies complex workflows",
+              "Eliminates manual processes"
+            ];
+          } else if (question.includes("budget")) {
+            return [
+              "$5,000 initial investment",
+              "$10,000 for MVP development",
+              "$25,000 seed funding",
+              "$2,000 monthly operations"
+            ];
+          } else if (question.includes("value proposition")) {
+            return [
+              "50% faster than competitors",
+              "AI-powered personalization features",
+              "No technical skills required",
+              "All-in-one integrated solution"
+            ];
+          }
+        }
       }
     }
   } catch (error) {
