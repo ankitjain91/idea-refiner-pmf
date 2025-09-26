@@ -68,13 +68,6 @@ export const UserMenu = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => navigate('/dashboard')}
-          className="cursor-pointer"
-        >
-          <User className="mr-2 h-4 w-4" />
-          <span>Dashboard</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
           onClick={() => navigate('/pricing')}
           className="cursor-pointer"
         >
