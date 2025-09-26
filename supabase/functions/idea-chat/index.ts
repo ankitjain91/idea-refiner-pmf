@@ -43,31 +43,24 @@ async function fetchRealWebData(idea: string, question: string) {
   return null;
 }
 
-// Generate real, contextual suggestions based on web data and AI analysis
-async function generateRealSuggestions(idea: string, question: string, webData: any) {
-  const systemPrompt = `You are a PM-Fit expert analyzing "${idea}". 
-Question being answered: "${question}"
+// Generate real, contextual suggestions based on the bot's response
+async function generateRealSuggestions(idea: string, question: string, webData: any, botResponse?: string) {
+  const systemPrompt = `You are helping with a product-market fit conversation about "${idea}".
 
-${webData ? `Real Market Data Found:
-- Market Size: ${webData.raw?.marketSize || 'Analyzing...'}
-- Growth Rate: ${webData.raw?.growthRate || 'Analyzing...'}%
-- Top Competitors: ${webData.raw?.topCompetitors?.map((c: any) => c.name).join(', ') || 'Analyzing...'}
-- Demographics: ${JSON.stringify(webData.raw?.demographics) || 'Analyzing...'}
-` : ''}
+${botResponse ? `The assistant just said: "${botResponse.slice(0, 300)}..."` : `Current question: "${question}"`}
 
-Generate 4 HIGHLY SPECIFIC suggestions for "${idea}" that:
-1. Use the actual market data provided above
-2. Directly answer: "${question}"
-3. Include real competitor names, actual market metrics, or proven strategies
-4. Are maximum 15 words each
-5. Are immediately actionable and specific to "${idea}"
+${webData ? `Market Data Available:
+- Competitors: ${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Various'}
+- Target Age: ${webData.raw?.demographics?.primaryAge || '25-35'}
+- Industry: ${webData.raw?.demographics?.industries?.[0] || 'General'}` : ''}
 
-Example format for "${idea}":
-- If problem solving: "Target remote teams struggling with [specific pain point from data]"
-- If audience: "Focus on ${webData?.raw?.demographics?.primaryAge || '25-40'} year olds in ${webData?.raw?.demographics?.geographic?.[0] || 'tech hubs'}"
-- If competitors: "Differentiate from ${webData?.raw?.topCompetitors?.[0]?.name || 'market leader'} by [specific strategy]"
+Generate 4 natural follow-up questions or responses that:
+1. Are directly relevant to what was just discussed
+2. Help the user think deeper about their answer
+3. Are conversational and specific
+4. Maximum 12 words each
 
-Format as JSON array of strings only.`;
+Return ONLY a JSON array of 4 strings.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -77,12 +70,13 @@ Format as JSON array of strings only.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Fast model for quick suggestions
+        model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: systemPrompt }
+          { role: 'system', content: 'Generate 4 contextual follow-up suggestions as a JSON array only.' },
+          { role: 'user', content: systemPrompt }
         ],
-        max_tokens: 200,
-        temperature: 0.5
+        max_tokens: 150,
+        temperature: 0.7
       }),
     });
 
@@ -91,17 +85,22 @@ Format as JSON array of strings only.`;
       const content = data.choices[0].message.content;
       
       try {
-        // Try to extract JSON array from the response
+        // Parse JSON response
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed)) {
+          return parsed.slice(0, 4);
+        }
+        
+        // Try to extract JSON array if wrapped in text
         const jsonMatch = content.match(/\[[\s\S]*?\]/);
         if (jsonMatch) {
           const suggestions = JSON.parse(jsonMatch[0]);
-          // Ensure we have an array of strings
           if (Array.isArray(suggestions)) {
-            return suggestions.slice(0, 4); // Return max 4 suggestions
+            return suggestions.slice(0, 4);
           }
         }
       } catch (e) {
-        console.error('Error parsing suggestions JSON:', e);
+        console.error('Error parsing suggestions:', e);
       }
     }
   } catch (error) {
@@ -318,15 +317,18 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         const mainData = await mainResponse.json();
         aiResponse = mainData.choices[0].message.content;
       }
+      
+      // Generate contextual suggestions based on the bot's response
+      const contextualSuggestions = await generateRealSuggestions(idea, currentQuestion, webData, aiResponse);
 
       return new Response(
         JSON.stringify({ 
           response: aiResponse || `Let me help you analyze ${idea} with real market data.`,
-          suggestions: realSuggestions || [
-            `Based on ${webData?.normalized?.topCompetitors?.[0]?.name || 'market leaders'}`,
-            `Target ${webData?.raw?.demographics?.primaryAge || '25-44 year olds'}`,
-            `Price at ${webData?.raw?.pricing?.averagePrice || '$15'}/month like competitors`,
-            `Focus on ${webData?.raw?.demographics?.industries?.[0] || 'tech'} industry first`
+          suggestions: contextualSuggestions || [
+            `Tell me more about the specific use case`,
+            `What's your unique advantage here?`,
+            `How will you reach these customers?`,
+            `What's the MVP feature set?`
           ],
           metadata: {
             questionContext: currentQuestion,
@@ -390,49 +392,80 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
     
-    // Generate contextual suggestions with real data
+    // Generate contextual suggestions based on the AI response
     let suggestions = [];
     try {
-      if (refinementMode && idea) {
-        // Refinement mode suggestions - help explore the idea
-        const ideaName = idea.slice(0, 30);
-        suggestions = [
-          `What specific problem does this solve?`,
-          `Who would be the ideal first customer?`,
-          `How would this generate revenue?`,
-          `What makes this different from existing solutions?`
-        ];
-      } else if (idea && webData) {
-        // Use real competitor and market data for suggestions
-        const competitors = webData.normalized?.topCompetitors || [];
-        const primaryAge = webData.raw?.demographics?.primaryAge || '25-35';
-        const minPrice = webData.raw?.pricing?.priceRange?.min || 10;
-        const maxPrice = webData.raw?.pricing?.priceRange?.max || 50;
-        const industry = webData.raw?.demographics?.industries?.[0] || 'technology';
+      // Generate suggestions that are contextual to the AI response
+      const suggestionPrompt = `Based on this response: "${aiResponse.slice(0, 500)}..."
+      
+      Generate 4 short, contextual follow-up questions or prompts that the user might want to explore next.
+      Make them specific to what was just discussed.
+      Return ONLY a JSON array of strings, no explanation.
+      
+      Example format: ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3", "Follow-up question 4"]`;
+      
+      const suggestionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',  // Using mini model for quick suggestions
+          messages: [
+            {
+              role: 'system',
+              content: 'You generate contextual follow-up questions. Return only a JSON array of 4 strings.'
+            },
+            { role: 'user', content: suggestionPrompt }
+          ],
+          max_tokens: 200,
+          temperature: 0.7
+        }),
+      });
+      
+      if (suggestionResponse.ok) {
+        const suggestionData = await suggestionResponse.json();
+        const suggestionContent = suggestionData.choices[0].message.content;
         
-        suggestions = [
-          competitors[0] ? `How to differentiate from ${competitors[0].name}` : `Key problems this solves`,
-          `Target ${primaryAge} demographic`,
-          `Price range: $${minPrice}-$${maxPrice}/month`,
-          `Focus on ${industry} industry`
-        ];
-      } else if (!idea) {
-        // Default suggestions for new users
-        suggestions = [
-          "AI-powered productivity tool for remote teams",
-          "Sustainable fashion marketplace for Gen Z",
-          "Mental health support platform for students",
-          "Carbon footprint tracker with rewards"
-        ];
-      } else {
-        // Fallback suggestions
-        const ideaShort = idea.length > 20 ? idea.substring(0, 20) + '...' : idea;
-        suggestions = [
-          `Market opportunity analysis`,
-          `Target customer research`,
-          `Competitor analysis`,
-          `Business model validation`
-        ];
+        try {
+          // Parse the JSON array
+          const parsed = JSON.parse(suggestionContent);
+          if (Array.isArray(parsed)) {
+            suggestions = parsed.slice(0, 4); // Ensure max 4 suggestions
+          }
+        } catch {
+          console.log('Could not parse suggestions, using fallbacks');
+        }
+      }
+      
+      // Fallback suggestions if generation fails
+      if (suggestions.length === 0) {
+        if (refinementMode && idea) {
+          // Refinement mode fallbacks
+          suggestions = [
+            `What specific problem does this solve?`,
+            `Who would be the ideal first customer?`,
+            `How would this generate revenue?`,
+            `What makes this different from existing solutions?`
+          ];
+        } else if (!idea) {
+          // Default suggestions for new users
+          suggestions = [
+            "AI-powered productivity tool for remote teams",
+            "Sustainable fashion marketplace for Gen Z",
+            "Mental health support platform for students",
+            "Carbon footprint tracker with rewards"
+          ];
+        } else {
+          // Generic fallbacks
+          suggestions = [
+            `Tell me more about the target market`,
+            `What are the main challenges?`,
+            `How will you validate this idea?`,
+            `What's your competitive advantage?`
+          ];
+        }
       }
     } catch (suggestionError) {
       console.error('Error generating suggestions:', suggestionError);
