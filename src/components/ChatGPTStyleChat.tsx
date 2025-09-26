@@ -31,6 +31,7 @@ interface Message {
   suggestions?: string[];
   metadata?: any;
   isTyping?: boolean;
+  pmfAnalysis?: any;
 }
 
 interface ChatGPTStyleChatProps {
@@ -214,11 +215,13 @@ export default function ChatGPTStyleChat({
       setCurrentIdea(ideaToAnalyze);
     }
 
+    // Reset analysis state for fresh analysis
     setIsAnalyzing(true);
     setIsRefinementMode(false);
     setShowStartAnalysisButton(false);
     setCurrentQuestionIndex(0);
     setAnalysisProgress(0);
+    setAnalysisAnswers({}); // Clear previous answers for fresh analysis
     
     // Add loading animation while preparing analysis
     const loadingMessage: Message = {
@@ -575,25 +578,102 @@ export default function ChatGPTStyleChat({
     setIsAnalyzing(false);
     setAnalysisProgress(100);
     
-    const completionMessage: Message = {
-      id: `msg-complete-${Date.now()}`,
-      type: 'system',
-      content: "🎉 Analysis complete! Generating your comprehensive PM-Fit report...",
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, completionMessage]);
-    
     // Generate PM-Fit analysis
-    if (onAnalysisReady) {
-      const analysisData = {
-        idea: currentIdea,
-        answers: analysisAnswers,
-        sessionId,
-        timestamp: new Date().toISOString()
-      };
+    const loadingMsg: Message = {
+      id: `msg-loading-pmf-${Date.now()}`,
+      type: 'bot',
+      content: '',
+      timestamp: new Date(),
+      isTyping: true
+    };
+    setMessages(prev => [...prev, loadingMsg]);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: { 
+          message: currentIdea,
+          generatePMFAnalysis: true,
+          analysisContext: analysisAnswers
+        }
+      });
       
-      onAnalysisReady(currentIdea, analysisData);
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      
+      if (!error && data) {
+        const pmfScore = data.pmfAnalysis?.pmfScore || 0;
+        const isGoodScore = pmfScore >= 70;
+        
+        const completionMessage: Message = {
+          id: `msg-complete-${Date.now()}`,
+          type: 'system',
+          content: `🎯 Analysis complete! Your PM-Fit score is **${pmfScore}/100**.\n\n${
+            isGoodScore 
+              ? "✨ Great score! Your idea shows strong market potential. You can view the detailed analysis or continue refining for even better results."
+              : `📈 There's room for improvement. ${pmfScore < 40 ? 'Your idea needs significant refinement.' : 'Your idea has potential but could be stronger.'} Let's work on improving it!`
+          }`,
+          timestamp: new Date(),
+          pmfAnalysis: data.pmfAnalysis,
+          suggestions: isGoodScore ? [
+            "View detailed PM-Fit analysis",
+            "Start with a new idea",
+            "Refine this idea further",
+            "Export analysis report"
+          ] : [
+            "Refine my idea based on feedback",
+            "View improvement suggestions",
+            "Re-analyze with changes",
+            "Start fresh with new approach"
+          ]
+        };
+        
+        setMessages(prev => [...prev, completionMessage]);
+        
+        // Show refinement options based on score
+        if (!isGoodScore) {
+          setTimeout(() => {
+            const refinementPrompt: Message = {
+              id: `msg-refine-${Date.now()}`,
+              type: 'bot',
+              content: "Would you like to refine your idea? I can help you improve specific aspects to increase your PM-Fit score.",
+              timestamp: new Date(),
+              suggestions: [
+                "Help me improve the value proposition",
+                "Refine the target audience",
+                "Strengthen the monetization strategy",
+                "Address competitive weaknesses"
+              ]
+            };
+            setMessages(prev => [...prev, refinementPrompt]);
+            setIsRefinementMode(true);
+            setCurrentQuestionIndex(0);
+            setAnalysisAnswers({});
+          }, 1500);
+        }
+        
+        // Only trigger onAnalysisReady if score is good or user explicitly wants to proceed
+        if (isGoodScore && onAnalysisReady) {
+          const analysisData = {
+            idea: currentIdea,
+            answers: analysisAnswers,
+            pmfAnalysis: data.pmfAnalysis,
+            sessionId,
+            timestamp: new Date().toISOString()
+          };
+          
+          onAnalysisReady(currentIdea, analysisData);
+        }
+      }
+    } catch (error) {
+      console.error('Error generating PMF analysis:', error);
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      
+      const errorMessage: Message = {
+        id: `msg-error-${Date.now()}`,
+        type: 'system',
+        content: "Failed to generate analysis. Let's continue refining your idea.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
     
     // Save final session state
@@ -1187,7 +1267,68 @@ export default function ChatGPTStyleChat({
                             return (
                               <Button
                                 key={idx}
-                                onClick={() => handleSuggestionClick(suggestion)}
+                                onClick={() => {
+                                  // Handle special action suggestions
+                                  if (suggestion === "View detailed PM-Fit analysis" && msg.pmfAnalysis) {
+                                    if (onAnalysisReady) {
+                                      const analysisData = {
+                                        idea: currentIdea,
+                                        answers: analysisAnswers,
+                                        pmfAnalysis: msg.pmfAnalysis,
+                                        sessionId,
+                                        timestamp: new Date().toISOString()
+                                      };
+                                      onAnalysisReady(currentIdea, analysisData);
+                                    }
+                                  } else if (suggestion === "Re-analyze with changes" || suggestion === "Refine this idea further") {
+                                    // Enable refinement mode for iteration
+                                    setShowStartAnalysisButton(true);
+                                    setIsRefinementMode(true);
+                                    setIsAnalyzing(false);
+                                    setCurrentQuestionIndex(0);
+                                    setAnalysisAnswers({});
+                                    const refineMsg: Message = {
+                                      id: `msg-refine-${Date.now()}`,
+                                      type: 'bot',
+                                      content: "Let's refine your idea to improve the PM-Fit score. What specific aspects would you like to enhance?",
+                                      timestamp: new Date(),
+                                      suggestions: [
+                                        "Improve the value proposition",
+                                        "Better define target audience",
+                                        "Strengthen monetization model",
+                                        "Differentiate from competitors"
+                                      ]
+                                    };
+                                    setMessages(prev => [...prev, refineMsg]);
+                                  } else if (suggestion === "Refine my idea based on feedback") {
+                                    setIsRefinementMode(true);
+                                    handleSuggestionClick("Let me refine my idea based on the analysis feedback");
+                                  } else if (suggestion === "Start with a new idea" || suggestion === "Start fresh with new approach") {
+                                    // Reset everything for a new idea
+                                    setCurrentIdea('');
+                                    setAnalysisAnswers({});
+                                    setCurrentQuestionIndex(0);
+                                    setIsAnalyzing(false);
+                                    setIsRefinementMode(true);
+                                    setShowStartAnalysisButton(false);
+                                    setAnalysisProgress(0);
+                                    const resetMsg: Message = {
+                                      id: `msg-reset-${Date.now()}`,
+                                      type: 'bot',
+                                      content: "Let's start fresh! Share your new product idea and I'll help you refine and analyze it.",
+                                      timestamp: new Date(),
+                                      suggestions: [
+                                        "AI-powered mental health app",
+                                        "Sustainable fashion marketplace",
+                                        "Remote work collaboration tool",
+                                        "Educational platform for seniors"
+                                      ]
+                                    };
+                                    setMessages([resetMsg]);
+                                  } else {
+                                    handleSuggestionClick(suggestion);
+                                  }
+                                }}
                                 variant="outline"
                                 size="sm"
                                 className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group hover:scale-105 duration-200"
@@ -1226,8 +1367,12 @@ export default function ChatGPTStyleChat({
                   <BarChart className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Ready to analyze?</p>
-                  <p className="text-xs text-muted-foreground">Run comprehensive PM-Fit analysis when you're ready</p>
+                  <p className="text-sm font-medium">
+                    {analysisProgress > 0 && analysisProgress < 100 ? 'Ready to re-analyze?' : 'Ready to analyze?'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {analysisProgress === 100 ? 'Re-run analysis with your refined idea' : 'Run comprehensive PM-Fit analysis when you\'re ready'}
+                  </p>
                 </div>
               </div>
               <Button
@@ -1236,7 +1381,7 @@ export default function ChatGPTStyleChat({
                 size="sm"
               >
                 <Play className="h-4 w-4" />
-                Start Analysis
+                {analysisProgress === 100 ? 'Re-analyze Idea' : 'Start Analysis'}
               </Button>
             </div>
           )}
