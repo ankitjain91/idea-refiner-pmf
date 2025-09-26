@@ -26,6 +26,30 @@ export default function Auth() {
       // Validate input
       authSchema.parse({ email, password });
       
+      // First check if user already exists
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy-check-password-that-will-fail'
+      });
+      
+      // If we get here without an error, somehow the dummy password worked (shouldn't happen)
+      // Or check the error message to determine if user exists
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy-check'
+      });
+      
+      if (signInError && signInError.message?.toLowerCase().includes('invalid login credentials')) {
+        // User exists but wrong password - this means account exists
+        toast({
+          title: "Account already exists",
+          description: "This email is already registered. Please sign in instead.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
       const redirectUrl = `${window.location.origin}/`;
       
       const { error, data } = await supabase.auth.signUp({
@@ -37,22 +61,11 @@ export default function Auth() {
       });
 
       if (error) {
-        // Check if user already exists
-        if (error.message?.toLowerCase().includes("user already registered") || 
-            error.message?.toLowerCase().includes("already exists") ||
-            error.code === "user_already_exists") {
-          toast({
-            title: "Account already exists",
-            description: "This email is already registered. Please sign in instead.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
       } else if (data?.user?.identities?.length === 0) {
         // This can happen when a user tries to sign up with an existing email
         toast({
