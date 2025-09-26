@@ -159,34 +159,73 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
+          company: string | null
           created_at: string
           display_name: string | null
+          email_notifications: boolean | null
+          full_name: string | null
           id: string
+          linkedin_url: string | null
+          location: string | null
+          marketing_emails: boolean | null
+          phone: string | null
+          role: string | null
           stripe_customer_id: string | null
           subscription_end_date: string | null
           subscription_tier: Database["public"]["Enums"]["app_role"] | null
+          timezone: string | null
+          twitter_url: string | null
           updated_at: string
           user_id: string
+          website: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          company?: string | null
           created_at?: string
           display_name?: string | null
+          email_notifications?: boolean | null
+          full_name?: string | null
           id?: string
+          linkedin_url?: string | null
+          location?: string | null
+          marketing_emails?: boolean | null
+          phone?: string | null
+          role?: string | null
           stripe_customer_id?: string | null
           subscription_end_date?: string | null
           subscription_tier?: Database["public"]["Enums"]["app_role"] | null
+          timezone?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id: string
+          website?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          company?: string | null
           created_at?: string
           display_name?: string | null
+          email_notifications?: boolean | null
+          full_name?: string | null
           id?: string
+          linkedin_url?: string | null
+          location?: string | null
+          marketing_emails?: boolean | null
+          phone?: string | null
+          role?: string | null
           stripe_customer_id?: string | null
           subscription_end_date?: string | null
           subscription_tier?: Database["public"]["Enums"]["app_role"] | null
+          timezone?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }

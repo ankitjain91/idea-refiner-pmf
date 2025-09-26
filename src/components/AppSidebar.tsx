@@ -68,6 +68,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
 
   const mainNav = [
     { title: "New Analysis", url: "/", icon: Plus, action: createNewSession },
+    { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
   ];
 
@@ -118,7 +119,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Help & Settings */}
+        {/* Help & Support */}
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
@@ -127,14 +128,6 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                   <button className="w-full justify-start">
                     <HelpCircle className="mr-2 h-4 w-4" />
                     {isOpen && <span>Help & Support</span>}
-                  </button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <button className="w-full justify-start">
-                    <Settings className="mr-2 h-4 w-4" />
-                    {isOpen && <span>Settings</span>}
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>

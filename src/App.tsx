@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Pricing from "./pages/Pricing";
 import AuthPage from "./pages/Auth";
+import Settings from "./pages/Settings";
 import Logout from "./pages/Logout";
 import NotFound from "./pages/NotFound";
 
@@ -40,6 +41,11 @@ const App = () => (
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Settings />
                   </ProtectedRoute>
                 } />
                 <Route path="/subscription-success" element={
