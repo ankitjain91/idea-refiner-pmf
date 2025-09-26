@@ -45,23 +45,16 @@ async function fetchRealWebData(idea: string, question: string) {
 
 // Generate real, contextual suggestions based on the bot's response
 async function generateRealSuggestions(idea: string, question: string, webData: any, botResponse?: string) {
-  // Check if this is an analysis question that needs answer suggestions
-  const analysisQuestions = {
-    "Who is your target audience?": [
-      "age", "demographic", "customer", "user"
-    ],
-    "What problem does your product solve?": [
-      "problem", "pain point", "challenge", "issue"
-    ],
-    "What is your budget?": [
-      "budget", "funding", "cost", "investment"
-    ],
-    "What is your unique value proposition?": [
-      "value", "unique", "differentiator", "advantage"
-    ]
-  };
+  // Robust detection of analysis question type (handles contractions and variants)
+  const q = (question || '').toLowerCase();
+  const qType = q.includes('target audience') || q.includes('who is your target') ? 'audience'
+    : q.includes('problem') || q.includes('pain point') ? 'problem'
+    : q.includes('value proposition') || q.includes('unique value') || q.includes('differentiator') ? 'value'
+    : q.includes('monetization') || q.includes('revenue') || q.includes('business model') || q.includes('pricing') ? 'monetization'
+    : q.includes('competitor') || q.includes('competition') ? 'competitors'
+    : null;
   
-  const isAnalysisQuestion = Object.keys(analysisQuestions).includes(question);
+  const isAnalysisQuestion = qType !== null;
   
   let systemPrompt = '';
   
@@ -76,14 +69,15 @@ ${webData ? `Market Data Available:
 - Target Demographics: ${webData.raw?.demographics?.primaryAge || '25-35'} age group
 - Industries: ${webData.raw?.demographics?.industries?.slice(0, 2).join(', ') || 'General'}` : ''}
 
-Generate 4 specific, actionable answer suggestions for this question.
-Each should be a concrete answer they could use, 5-8 words maximum.
+Generate 4 specific, actionable answer suggestions for this exact question.
+Each should be a concrete answer they could use, 5-10 words maximum.
 
-Examples for context:
-- For target audience: "Tech-savvy millennials in urban areas", "Small business owners under 50", "College students on tight budgets"
-- For problems: "Saves 5 hours weekly on planning", "Reduces travel costs by 40%", "Eliminates need for multiple apps"
-- For budget: "$10K for MVP development", "$5K bootstrap with no funding", "$50K seed round investment"
-- For value prop: "AI-powered at half the price", "Only solution with real-time sync", "No technical skills required"
+Provide examples style only (do NOT output these examples):
+- Audience: "Tech-savvy millennials in urban areas", "Small business owners under 50"
+- Problems: "Saves 5 hours weekly on planning", "Reduces travel costs by 40%"
+- Monetization: "$29/month subscription with 14-day trial", "Usage-based pricing $0.05 per task"
+- Value prop: "AI-powered at half the price", "Only solution with real-time sync"
+- Competitors: "Competes with Duolingo, 50% cheaper", "Beats X on accuracy and speed"
 
 Return ONLY a JSON array of 4 specific answer suggestions relevant to "${idea}".`;
   } else {
