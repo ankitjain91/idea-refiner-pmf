@@ -77,7 +77,7 @@ Format as JSON array of strings only.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-mini',  // Fast model for quick suggestions
         messages: [
           { role: 'system', content: systemPrompt }
         ],
@@ -188,7 +188,7 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5-2025-08-07',  // GPT-5 for detailed PMF analysis
           messages: [
             {
               role: 'system',
@@ -196,8 +196,8 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
             },
             { role: 'user', content: analysisPrompt }
           ],
-          max_tokens: 1500,
-          temperature: 0.4
+          max_completion_tokens: 2000,  // GPT-5 uses max_completion_tokens
+          // temperature parameter not supported in GPT-5
         }),
       });
 
@@ -258,7 +258,7 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o-mini',  // Fast model for conversation
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message }
@@ -304,7 +304,7 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-mini',  // Fast model for regular chat
         messages: [
           {
             role: 'system',

@@ -58,7 +58,7 @@ Good example format (not to copy):
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-mini',  // Fast model for quick suggestions
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
