@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1108,7 +1109,15 @@ export default function ChatGPTStyleChat({
             >
               {msg.type === 'system' ? (
                 <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg text-sm max-w-md text-center">
-                  {msg.content}
+                  <ReactMarkdown 
+                    className="prose prose-sm dark:prose-invert max-w-none"
+                    components={{
+                      p: ({children}) => <p className="mb-0">{children}</p>,
+                      strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <>
@@ -1138,7 +1147,28 @@ export default function ChatGPTStyleChat({
                           <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
                         </div>
                       ) : (
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        <div className="text-sm leading-relaxed">
+                          <ReactMarkdown 
+                            className="prose prose-sm dark:prose-invert max-w-none"
+                            components={{
+                              p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                              strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
+                              em: ({children}) => <em className="italic">{children}</em>,
+                              ul: ({children}) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                              ol: ({children}) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                              li: ({children}) => <li className="mb-1">{children}</li>,
+                              code: ({children}) => <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>,
+                              pre: ({children}) => <pre className="bg-muted p-3 rounded-lg overflow-x-auto mb-2">{children}</pre>,
+                              blockquote: ({children}) => <blockquote className="border-l-2 border-primary pl-4 italic my-2">{children}</blockquote>,
+                              h1: ({children}) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
+                              h2: ({children}) => <h2 className="text-lg font-semibold mb-2">{children}</h2>,
+                              h3: ({children}) => <h3 className="text-base font-semibold mb-1">{children}</h3>,
+                              a: ({children, href}) => <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
                       )}
                     </div>
                     
