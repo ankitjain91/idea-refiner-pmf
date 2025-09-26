@@ -204,18 +204,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Bottom-left help button */}
-        <div className="absolute bottom-4 left-4 z-40">
-          <Button
-            data-help-button
-            variant="outline"
-            size="icon"
-            onClick={() => setShowHelpSupport(!showHelpSupport)}
-            className="rounded-full w-10 h-10 shadow-md hover:shadow-lg transition-all"
-          >
-            <HelpCircle className="h-5 w-5" />
-          </Button>
-        </div>
 
         {/* Main Content - Vertical Stack */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
