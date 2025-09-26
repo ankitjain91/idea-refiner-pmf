@@ -281,10 +281,15 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                           )}
                           onClick={() => loadSession(session.id)}
                         >
-                          <div className="flex-1 min-w-0 pr-8">
-                            <p className="text-sm font-medium truncate">
-                              {session.session_name}
-                            </p>
+                          <div className="flex-1 min-w-0 pr-8 relative">
+                            {/* Session name with fade effect for overflow */}
+                            <div className="relative overflow-hidden">
+                              <p className="text-sm font-medium truncate pr-4">
+                                {session.session_name}
+                              </p>
+                              {/* Fade gradient overlay */}
+                              <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background via-background/80 to-transparent pointer-events-none" />
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="secondary" className="text-xs h-5 px-2">
                                 {session.pmf_score}% PMF
@@ -294,11 +299,11 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                               </span>
                             </div>
                           </div>
-                          {/* Delete button - always visible */}
+                          {/* Semi-transparent delete button */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 hover:bg-destructive/10 transition-all duration-200"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-50 hover:opacity-100 hover:bg-destructive/10 transition-all duration-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
