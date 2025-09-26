@@ -26,9 +26,11 @@ export default function Auth() {
       // Validate input
       authSchema.parse({ email, password });
       
+      const normalizedEmail = email.trim().toLowerCase();
+      
       // Check if user already exists using our database function
       const { data: emailExists, error: checkError } = await supabase.rpc('check_email_exists', {
-        email_to_check: email
+        email_to_check: normalizedEmail
       });
       
       if (checkError) {
@@ -65,8 +67,8 @@ export default function Auth() {
       // Proceed with signup if email doesn't exist
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error, data } = await supabase.auth.signUp({
-        email,
+      const { error } = await supabase.auth.signUp({
+        email: normalizedEmail,
         password,
         options: {
           emailRedirectTo: redirectUrl

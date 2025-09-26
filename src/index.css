@@ -59,6 +59,7 @@ All colors MUST be HSL.
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(280 85% 65%));
     --gradient-accent: linear-gradient(135deg, hsl(267 84% 81%), hsl(280 85% 65%));
+    --gradient-google: linear-gradient(90deg, hsl(217 91% 60%), hsl(142 76% 56%), hsl(38 92% 60%), hsl(0 84% 60%));
     --gradient-mesh: radial-gradient(at 40% 20%, hsl(217 91% 60% / 0.15) 0px, transparent 50%),
                       radial-gradient(at 80% 0%, hsl(280 85% 65% / 0.1) 0px, transparent 50%),
                       radial-gradient(at 0% 50%, hsl(267 84% 81% / 0.1) 0px, transparent 50%);
@@ -184,6 +185,14 @@ All colors MUST be HSL.
   .gradient-text {
     @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-semibold;
   }
+  
+  .btn-google {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-medium shadow-md transition-opacity;
+    color: hsl(var(--foreground));
+    background-image: var(--gradient-google);
+    border: none;
+  }
+  .btn-google:hover { opacity: 0.9; }
   
   .animate-float {
     animation: float 6s ease-in-out infinite;

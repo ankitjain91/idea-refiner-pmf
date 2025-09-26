@@ -94,35 +94,54 @@ export default function LandingPage() {
 
     try {
       authSchema.parse({ email, password });
-      
-      // We rely on Supabase auth returning an error if the email is already registered
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth`
-        }
+
+      // Normalize email to avoid case-sensitivity issues
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // Check on server if email already exists (prevents sending confirmation emails)
+      const { data: emailExists, error: checkError } = await supabase.rpc('check_email_exists', {
+        email_to_check: normalizedEmail,
       });
 
-      if (error) {
-        // Check for various "already exists" error messages
-        const errorMsg = error.message.toLowerCase();
-        if (errorMsg.includes('already registered') || 
-            errorMsg.includes('already exists') || 
-            errorMsg.includes('user already registered') ||
-            errorMsg.includes('duplicate') ||
-            errorMsg.includes('unique constraint')) {
-          toast({
-            title: "Account exists",
-            description: "This email is already registered. Please sign in instead.",
-            variant: "default",
-          });
-          setIsSignUp(false); // Switch to sign-in mode
-          return;
-        }
-        throw error;
+      if (checkError) {
+        toast({
+          title: "Could not verify email",
+          description: "Please try again in a moment.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      if (emailExists === true) {
+        toast({
+          title: "Account exists",
+          description: "This email is already registered. Please sign in.",
+          variant: "default",
+        });
+        setIsSignUp(false);
+        return;
+      }
+
+      if (emailExists !== false) {
+        // Unknown result (null/undefined). Safer to stop than to send a signup email.
+        toast({
+          title: "Unable to verify",
+          description: "We couldn't verify this email. Try again later or sign in if you already have an account.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Proceed with actual signup
+      const { error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+        },
+      });
+
+      if (error) throw error;
 
       toast({
         title: "Success!",
@@ -199,7 +218,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
       {/* Left Side - Landing Content */}
-      <div className="w-full lg:w-1/2 bg-gradient-to-br from-primary/5 via-accent/5 to-background relative overflow-hidden flex">
+      <div className="w-full lg:w-1/2 bg-[image:var(--gradient-mesh)] relative overflow-hidden flex">
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
         <div className="relative z-10 p-12 flex flex-col justify-between w-full">
           <motion.div 
@@ -292,13 +311,13 @@ export default function LandingPage() {
       {/* Right Side - Auth Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">
-              {isSignUp ? "Create an account" : "Welcome back"}
-            </CardTitle>
-            <CardDescription className="text-center">
-              {isSignUp ? "Enter your email below to create your account" : "Enter your email to sign in to your account"}
-            </CardDescription>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl text-center">
+                {isSignUp ? "Create your account" : "Sign in to your account"}
+              </CardTitle>
+              <CardDescription className="text-center">
+                {isSignUp ? "Enter your email below to create your account" : "Enter your email to sign in to your account"}
+              </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
@@ -353,7 +372,7 @@ export default function LandingPage() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
+                  <span className="px-2 text-muted-foreground">
                     Or continue with
                   </span>
                 </div>
@@ -361,8 +380,7 @@ export default function LandingPage() {
               
               <Button
                 type="button"
-                variant="outline"
-                className="w-full"
+                className="w-full btn-google"
                 onClick={() => handleSocialSignIn('google')}
                 disabled={socialLoading !== null || isLoading}
               >
@@ -371,7 +389,7 @@ export default function LandingPage() {
                 ) : (
                   <>
                     <Chrome className="mr-2 h-4 w-4" />
-                    Google
+                    Continue with Google
                   </>
                 )}
               </Button>
