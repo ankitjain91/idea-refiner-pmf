@@ -192,7 +192,7 @@ export default function Auth() {
                     <Separator className="w-full" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    <span className="px-2 text-muted-foreground">Or continue with</span>
                   </div>
                 </div>
 
@@ -202,14 +202,16 @@ export default function Auth() {
                     variant="outline"
                     onClick={() => handleSocialSignIn('google')}
                     disabled={socialLoading !== null}
-                    className="relative"
+                    className="relative group hover:border-primary/50 transition-all"
                   >
                     {socialLoading === 'google' ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
                         <Chrome className="w-4 h-4 mr-2" />
-                        Google
+                        <span className="bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 to-red-500 bg-clip-text text-transparent font-semibold">
+                          Google
+                        </span>
                       </>
                     )}
                   </Button>
