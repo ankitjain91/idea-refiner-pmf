@@ -48,14 +48,24 @@ async function generateRealSuggestions(idea: string, question: string, webData: 
   const systemPrompt = `You are a PM-Fit expert analyzing "${idea}". 
 Question being answered: "${question}"
 
-${webData ? `Market Data: ${JSON.stringify(webData.normalized || webData.raw, null, 2)}` : ''}
+${webData ? `Real Market Data Found:
+- Market Size: ${webData.raw?.marketSize || 'Analyzing...'}
+- Growth Rate: ${webData.raw?.growthRate || 'Analyzing...'}%
+- Top Competitors: ${webData.raw?.topCompetitors?.map((c: any) => c.name).join(', ') || 'Analyzing...'}
+- Demographics: ${JSON.stringify(webData.raw?.demographics) || 'Analyzing...'}
+` : ''}
 
-Generate 4 SPECIFIC, ACTIONABLE suggestions that:
-1. Are based on real market data and trends
-2. Directly answer the question for "${idea}"
-3. Include specific metrics, companies, or strategies when relevant
+Generate 4 HIGHLY SPECIFIC suggestions for "${idea}" that:
+1. Use the actual market data provided above
+2. Directly answer: "${question}"
+3. Include real competitor names, actual market metrics, or proven strategies
 4. Are maximum 15 words each
-5. Are immediately actionable by the user
+5. Are immediately actionable and specific to "${idea}"
+
+Example format for "${idea}":
+- If problem solving: "Target remote teams struggling with [specific pain point from data]"
+- If audience: "Focus on ${webData?.raw?.demographics?.primaryAge || '25-40'} year olds in ${webData?.raw?.demographics?.geographic?.[0] || 'tech hubs'}"
+- If competitors: "Differentiate from ${webData?.raw?.topCompetitors?.[0]?.name || 'market leader'} by [specific strategy]"
 
 Format as JSON array of strings only.`;
 

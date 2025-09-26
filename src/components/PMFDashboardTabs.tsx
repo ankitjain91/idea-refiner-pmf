@@ -13,8 +13,15 @@ import {
   ArrowRight,
   CheckCircle,
   ExternalLink,
-  Loader2
+  Loader2,
+  Info
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useState, useEffect } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -175,10 +182,28 @@ export default function PMFDashboardTabs({
         <TabsContent value="overview" className="mt-6 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-yellow-500" />
-                Real Market Insights
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-yellow-500" />
+                  Real Market Insights for "{idea}"
+                </CardTitle>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm">
+                        <strong>Market Insights:</strong> AI-powered analysis using real-time data from multiple sources.
+                        Shows opportunities and challenges specific to "{idea}" based on current market conditions,
+                        competitor analysis, and trend data.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {marketData ? (
@@ -263,8 +288,27 @@ export default function PMFDashboardTabs({
         <TabsContent value="market" className="mt-6 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Market Opportunity</CardTitle>
-              <CardDescription>How big can this get?</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Market Opportunity</CardTitle>
+                  <CardDescription>How big can "{idea}" get?</CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm">
+                        <strong>Market Analysis:</strong> Real-time data showing market size, growth rate, and competition
+                        for "{idea}". Data is sourced from industry reports, competitor analysis, and market trends.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
@@ -320,8 +364,28 @@ export default function PMFDashboardTabs({
         <TabsContent value="customers" className="mt-6 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Your Future Customers</CardTitle>
-              <CardDescription>Who needs this most?</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Your Future Customers</CardTitle>
+                  <CardDescription>Who needs "{idea}" most?</CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm">
+                        <strong>Customer Segments:</strong> AI-identified target audiences for "{idea}".
+                        Based on demographic analysis, psychographic profiling, and market behavior patterns
+                        from real user data and market research.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">

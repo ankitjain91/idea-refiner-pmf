@@ -156,24 +156,58 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <AITooltip content={isLargeMarket ? 'high' : 'low'} context="marketSize">
-            <div>
-              <p className="text-sm text-muted-foreground">Market Size</p>
-              <p className="text-2xl font-bold">
-                ${(marketSizeValue / 1000000000).toFixed(1)}B
-              </p>
-            </div>
-          </AITooltip>
+          <div className="relative">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-5 w-5 z-10">
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">
+                    <strong>Market Size:</strong> Total addressable market value for "{idea}". 
+                    This data is fetched from real market reports and industry analysis.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <AITooltip content={isLargeMarket ? 'high' : 'low'} context="marketSize">
+              <div>
+                <p className="text-sm text-muted-foreground">Market Size</p>
+                <p className="text-2xl font-bold">
+                  ${(marketSizeValue / 1000000000).toFixed(1)}B
+                </p>
+              </div>
+            </AITooltip>
+          </div>
           
-          <AITooltip content={data.raw.growthRate > 20 ? 'high' : 'low'} context="growthRate">
-            <div>
-              <p className="text-sm text-muted-foreground">Growth Rate</p>
-              <p className="text-2xl font-bold flex items-center gap-1">
-                {data.raw.growthRate}%
-                <TrendingUp className="w-4 h-4 text-green-500" />
-              </p>
-            </div>
-          </AITooltip>
+          <div className="relative">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-5 w-5 z-10">
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">
+                    <strong>Growth Rate:</strong> Year-over-year market growth percentage. 
+                    Higher rates indicate emerging opportunities in the "{idea}" space.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <AITooltip content={data.raw.growthRate > 20 ? 'high' : 'low'} context="growthRate">
+              <div>
+                <p className="text-sm text-muted-foreground">Growth Rate</p>
+                <p className="text-2xl font-bold flex items-center gap-1">
+                  {data.raw.growthRate}%
+                  <TrendingUp className="w-4 h-4 text-green-500" />
+                </p>
+              </div>
+            </AITooltip>
+          </div>
         </div>
 
         {data.raw.demographics && (
@@ -413,10 +447,29 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold">Live Platform Analysis</h2>
-        <Badge variant="outline" className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4" />
-          Real-time Data
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            Real-time Data
+          </Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">
+                  <strong>Platform Analysis:</strong> Real-time data collection from multiple sources
+                  analyzing "{idea}". Each platform provides unique insights: market trends (Google),
+                  community discussions (Reddit), video content (YouTube), social buzz (Twitter/X),
+                  viral trends (TikTok), and product data (Amazon).
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
