@@ -1058,9 +1058,9 @@ export default function ChatGPTStyleChat({
                     >
                       {msg.isTyping ? (
                         <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 bg-primary/60 rounded-full" />
-                          <div className="w-2 h-2 bg-primary/60 rounded-full" />
-                          <div className="w-2 h-2 bg-primary/60 rounded-full" />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
                         </div>
                       ) : (
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -1104,9 +1104,9 @@ export default function ChatGPTStyleChat({
               </div>
               <div className="bg-muted rounded-lg px-4 py-3">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary/60 rounded-full" />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full" />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full" />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
                 </div>
               </div>
             </div>
