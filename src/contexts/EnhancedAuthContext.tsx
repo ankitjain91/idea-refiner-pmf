@@ -240,9 +240,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             syncUserRole();
           }, 60 * 1000);
         }
-        // Defer setting loading=false to the auth state change listener to avoid race conditions
-        // This prevents premature redirects on hard refresh before session is restored
-        // if (mounted) { setLoading(false); }
+        // Mark auth initialized after getSession completes to avoid race conditions
+        if (mounted) {
+          setLoading(false);
+          setInitialized(true);
+        }
       } catch (error) {
         console.error("Error initializing auth:", error);
         // Keep loading=true; onAuthStateChange will finalize loading state
@@ -252,7 +254,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Set up auth state change listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         console.log("Auth state changed:", event, newSession?.user?.email);
         
         if (!mounted) return;
@@ -271,45 +273,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(newSession?.user ?? null);
         
         if (newSession?.user) {
-          // Fetch profile
-          const profile = await fetchUserProfile(newSession.user.id);
-          if (mounted && profile) {
-            setUserProfile(profile);
-          }
+          // Defer profile fetch and role sync to avoid async work inside callback
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(newSession.user!.id);
+            if (mounted && profile) {
+              setUserProfile(profile);
+            }
+            syncUserRole();
+          }, 0);
           
           // Set up intervals for active session
-          if (newSession) {
-            refreshIntervalRef.current = setInterval(() => {
-              checkTokenExpiry(newSession);
-            }, 4 * 60 * 1000);
-            
-            roleRefreshIntervalRef.current = setInterval(() => {
-              syncUserRole();
-            }, 60 * 1000);
-          }
+          refreshIntervalRef.current = setInterval(() => {
+            checkTokenExpiry(newSession);
+          }, 4 * 60 * 1000);
+          
+          roleRefreshIntervalRef.current = setInterval(() => {
+            syncUserRole();
+          }, 60 * 1000);
           
           // Handle sign in redirect
           if (event === 'SIGNED_IN') {
-            setTimeout(() => {
-              if (mounted) syncUserRole();
-            }, 1000);
-            
             const from = location.state?.from?.pathname;
             if (from) navigate(from);
           }
         } else {
           setUserProfile(null);
-          // Avoid forcing navigation or clearing storage on SIGNED_OUT during hydration.
-          // ProtectedRoute handles redirects; clearing here can wipe Supabase session on refresh.
+          // No navigation or storage clearing on SIGNED_OUT; let ProtectedRoute handle it
         }
         
-          // Set loading false after any auth change; set initialized only after INITIAL_SESSION
-          if (mounted) {
-            setLoading(false);
-            if (event === 'INITIAL_SESSION') {
-              setInitialized(true);
-            }
-          }
+        // Do not toggle loading/initialized here to avoid race conditions with initialize()
       }
     );
 

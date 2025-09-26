@@ -48,6 +48,7 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
 
   // If authentication is required and user is not authenticated
   if (requireAuth && !user) {
+    console.log("ProtectedRoute redirecting to /auth:", { initialized, loading, hasUser: !!user, path: location.pathname });
     // Redirect to auth page but save the location they were trying to go to
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
