@@ -27,8 +27,8 @@ serve(async (req) => {
     console.log('[GENERATE-SUGGESTIONS] Idea context:', ideaDescription);
     console.log('[GENERATE-SUGGESTIONS] Previous answers:', previousAnswers);
 
-    // Create a context-aware prompt
-    const systemPrompt = `You are an expert startup advisor helping entrepreneurs validate their ideas through Product-Market Fit analysis. Generate specific, contextual answer suggestions based on the user's startup idea.`;
+    // Create a context-aware prompt that generates actual answers to the question
+    const systemPrompt = `You are an expert startup advisor helping entrepreneurs achieve optimal Product-Market Fit. Your goal is to suggest answers that would maximize their PM-FIT score by addressing key success factors: market demand, pain point intensity, competition gaps, differentiation, and distribution readiness.`;
     
     const userPrompt = `
 Startup Idea: "${ideaDescription || 'Not provided yet'}"
@@ -39,17 +39,19 @@ ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`
 Current Question: "${question}"
 
 Instructions:
-- Generate exactly 4 sample answers tailored to the startup idea above
-- Each suggestion must be highly specific and contextual
+- Generate exactly 4 OPTIMAL ANSWERS to the question above that would MAXIMIZE PM-FIT score
+- Each answer should be strategic and would improve different PM-FIT factors (demand, pain intensity, differentiation, distribution)
+- Each suggestion must directly answer the question asked
 - Each suggestion must be exactly 5 words
-- Make the 4 suggestions diverse (different strategies/angles)
+- These should be the BEST possible answers that would lead to highest PM-FIT score
+- Think about what answers would indicate strong product-market fit
 - Return ONLY a JSON array of 4 strings; no code fences, no additional text
 
-Good example format (not to copy):
-["Busy parents needing simpler budgeting",
- "Freelancers managing irregular monthly income",
- "Creators juggling multi-platform client invoices",
- "Digital nomads handling cross-border payments"]`;
+Example for "What's your unique value proposition?":
+["10x faster than any competitor",
+ "Solves previously impossible technical problem",
+ "90% cost reduction for enterprises",
+ "First AI-powered solution in market"]`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -170,10 +172,10 @@ Good example format (not to copy):
         ];
       } else if (lowerQ.includes('value proposition') || lowerQ.includes('unique value')) {
         suggestions = [
-          'Faster, simpler workflow than competitors',
-          'Automated insights reducing manual effort',
-          'Seamless integrations with existing tools',
-          'Personalized recommendations improving outcomes',
+          '10x faster than any competitor',
+          'Solves previously impossible technical problem',
+          '90% cost reduction for enterprises',
+          'First AI-powered solution in market',
         ];
       } else {
         suggestions = [
