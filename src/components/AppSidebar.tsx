@@ -25,7 +25,6 @@ import {
   Plus,
   Crown,
   Settings,
-  HelpCircle,
   Archive,
   Star,
   LayoutDashboard,
@@ -229,21 +228,6 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Help & Support */}
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <button className="w-full justify-start">
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    {isOpen && <span>Help & Support</span>}
-                  </button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t p-2">
