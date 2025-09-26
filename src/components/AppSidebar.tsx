@@ -290,37 +290,38 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                       <SidebarMenuItem key={session.id}>
                         <div
                           className={cn(
-                            "group relative flex items-center px-2 py-2.5 rounded-lg cursor-pointer transition-all duration-200",
+                            "group relative flex items-center px-2 py-2.5 rounded-lg transition-all duration-200",
                             "hover:bg-muted/60 hover:shadow-sm",
                             loadedSessionId === session.id
                               ? 'bg-primary/10 border-l-2 border-primary shadow-sm'
                               : ''
                           )}
-                          onClick={() => loadSession(session.id)}
                         >
-                          <div className="flex-1 min-w-0 pr-24">
+                          <div 
+                            className="flex-1 min-w-0 pr-2 cursor-pointer"
+                            onClick={() => loadSession(session.id)}
+                          >
                             {/* Session name with fade effect */}
                             <div className="relative overflow-hidden">
                               <p className="text-sm font-medium truncate">
                                 {session.session_name}
                               </p>
-                              {/* Fade gradient for long text */}
-                              <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background via-background/80 to-transparent pointer-events-none" />
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="secondary" className="text-xs h-5 px-2">
                                 {session.pmf_score}% PMF
                               </Badge>
                               <span className="text-xs text-muted-foreground truncate">
-                                {format(new Date(session.last_accessed), 'MMM d, h:mm a')}
+                                {format(new Date(session.last_accessed), 'MMM d')}
                               </span>
                             </div>
                           </div>
-                          {/* Hover actions: Load & Delete */}
-                          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          {/* Hover actions - always visible on hover */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               variant="secondary"
                               size="sm"
+                              className="h-7 px-2 text-xs"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 loadSession(session.id);
@@ -330,16 +331,16 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
                               Load
                             </Button>
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 hover:bg-destructive/20"
+                              variant="destructive"
+                              size="sm"
+                              className="h-7 w-7 p-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteSession(session.id);
                               }}
                               title="Delete session"
                             >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
