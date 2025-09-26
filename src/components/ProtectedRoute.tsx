@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) => {
-  const { user, session, loading, refreshSession } = useAuth();
+  const { user, session, loading, initialized, refreshSession } = useAuth();
   const location = useLocation();
   
   // Remove artificial bootstrap delay; rely solely on auth loading state
@@ -38,7 +38,7 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
   }, [session, loading, refreshSession, location.pathname]);
 
   // Show loading spinner while auth state is initializing
-  if (loading) {
+  if (loading || !initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

@@ -17,6 +17,7 @@ interface AuthContextType {
   session: Session | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  initialized: boolean;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
   syncUserRole: () => Promise<void>;
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   userProfile: null,
   loading: true,
+  initialized: false,
   signOut: async () => {},
   refreshSession: async () => {},
   syncUserRole: async () => {},
@@ -55,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -306,6 +309,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Always set loading to false after auth state changes
         if (mounted) {
           setLoading(false);
+          setInitialized(true);
         }
       }
     );
@@ -375,6 +379,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         userProfile,
         loading,
+        initialized,
         signOut,
         refreshSession,
         syncUserRole,
