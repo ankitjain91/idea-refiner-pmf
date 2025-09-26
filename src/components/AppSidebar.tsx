@@ -125,9 +125,9 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   };
 
   const mainNav = [
-    { title: "Help & Support", url: "#", icon: HelpCircle, action: "help" },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
+    { title: "Help & Support", url: "#", icon: HelpCircle, action: "help" },
   ];
 
   const getNavClass = ({ isActive }: { isActive: boolean }) =>
