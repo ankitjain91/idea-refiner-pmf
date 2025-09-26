@@ -297,8 +297,47 @@ export default function ChatGPTStyleChat({
     
     // If in refinement mode and not analyzing
     if (isRefinementMode && !isAnalyzing) {
-      // If this is the first message, set it as the idea
+      // If this is the first message, validate it's an actual idea
       if (!currentIdea) {
+        // Simple validation to check if it looks like an idea
+        const looksLikeIdea = input.length > 10 && 
+          !input.match(/^(hi|hello|hey|test|testing|ok|yes|no|help|thanks|bye|good|bad|nice|cool|wow|lol|haha|what|where|when|who|why|how)$/i) &&
+          (input.includes(' ') || input.length > 20);
+        
+        if (!looksLikeIdea) {
+          const funnyResponses = [
+            "🎭 Nice try, but that's not an idea! That's like calling a potato a spaceship. Give me a real product idea!",
+            "🤔 Hmm, that doesn't smell like an idea... it smells like... *sniff sniff*... procrastination! Come on, hit me with your best shot!",
+            "🎪 Ladies and gentlemen, we have a trickster in the house! But I'm not falling for it. Give me a REAL idea, not whatever that was!",
+            "🚨 IDEA POLICE HERE! That's not an idea, that's just words pretending to be an idea. Try again with something that actually solves a problem!",
+            "🦄 I asked for an idea, not a unicorn's sneeze! Come on, give me something with substance - like 'an app that...' or 'a platform for...'",
+            "🎮 Error 404: Idea not found! You've entered the cheat code for 'no effort'. Please insert a real product idea to continue!",
+            "🍕 That's about as much of an idea as pineapple is a pizza topping (controversial, I know). Give me something real to work with!",
+            "🤖 Beep boop! My idea detector is showing... nothing. Absolutely nothing. It's flatter than a pancake. Feed me a real idea!",
+            "🎯 You missed the target by... oh, about a mile. That's not an idea, that's just keyboard gymnastics. Try again with an actual concept!",
+            "🧙‍♂️ My crystal ball shows... cloudy with a chance of 'that's not an idea'. Cast a better spell and give me something innovative!"
+          ];
+          
+          const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
+          
+          const validationMessage: Message = {
+            id: `msg-validation-${Date.now()}`,
+            type: 'bot',
+            content: randomResponse,
+            timestamp: new Date(),
+            suggestions: [
+              "AI-powered personal finance assistant",
+              "Sustainable fashion marketplace",
+              "Mental health support platform",
+              "Smart home automation for elderly"
+            ]
+          };
+          
+          setMessages(prev => [...prev, validationMessage]);
+          setInput('');
+          return;
+        }
+        
         setCurrentIdea(input);
         setShowStartAnalysisButton(true);
       }
@@ -330,41 +369,41 @@ export default function ChatGPTStyleChat({
           }
         });
 
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
+        // Remove loading message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
 
-      if (!error && data) {
-        // Handle both string and object responses
-        let responseContent = '';
-        let responseSuggestions = [];
-        
-        if (typeof data === 'string') {
-          responseContent = data;
-        } else if (data.response) {
-          responseContent = data.response;
-          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-        } else if (data.message) {
-          responseContent = data.message;
-          responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-        }
-        
-        if (responseContent) {
-          const botMessage: Message = {
-            id: `msg-${Date.now()}-bot`,
-            type: 'bot',
-            content: responseContent,
-            timestamp: new Date(),
-            suggestions: responseSuggestions
-          };
+        if (!error && data) {
+          // Handle both string and object responses
+          let responseContent = '';
+          let responseSuggestions = [];
           
-          setMessages(prev => [...prev, botMessage]);
+          if (typeof data === 'string') {
+            responseContent = data;
+          } else if (data.response) {
+            responseContent = data.response;
+            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          } else if (data.message) {
+            responseContent = data.message;
+            responseSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+          }
+          
+          if (responseContent) {
+            const botMessage: Message = {
+              id: `msg-${Date.now()}-bot`,
+              type: 'bot',
+              content: responseContent,
+              timestamp: new Date(),
+              suggestions: responseSuggestions
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+          } else {
+            console.error('Invalid response structure:', data);
+            throw new Error('Invalid response format');
+          }
         } else {
-          console.error('Invalid response structure:', data);
-          throw new Error('Invalid response format');
+          throw new Error('No data received');
         }
-      } else {
-        throw new Error('No data received');
-      }
       } catch (error) {
         console.error('Chat error:', error);
         // Remove loading message
