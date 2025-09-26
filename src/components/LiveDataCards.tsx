@@ -120,19 +120,27 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
       <div className="mt-3 pt-3 border-t">
         <div className="flex items-center gap-2 mb-2">
           <ExternalLink className="w-3 h-3 text-muted-foreground" />
-          <span className="text-xs font-medium text-muted-foreground">Data Sources</span>
+          <span className="text-xs font-medium text-muted-foreground">Data Sources (Click to explore)</span>
         </div>
         <div className="space-y-1">
           {sources.slice(0, 3).map((source: any, i: number) => (
-            <a
+            <Button
               key={i}
-              href={source.url || source}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline block truncate"
+              variant="ghost"
+              size="sm"
+              asChild
+              className="h-auto p-1 justify-start w-full"
             >
-              {source.source || source.url || source}
-            </a>
+              <a
+                href={source.url || source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span className="truncate">{source.source || source.url || source}</span>
+              </a>
+            </Button>
           ))}
         </div>
       </div>
@@ -201,29 +209,59 @@ export default function LiveDataCards({ idea }: LiveDataCardsProps) {
               <Badge variant="outline" className="text-xs">
                 {data.raw.pricing.model}
               </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+                onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(idea + ' pricing comparison')}`, '_blank')}
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                Research Pricing Strategy
+              </Button>
             </div>
           </div>
         )}
 
         {data.raw.topCompetitors && data.raw.topCompetitors.length > 0 && (
           <div>
-            <p className="text-sm font-medium mb-2">Top Competitors</p>
-            <ScrollArea className="h-24">
+            <p className="text-sm font-medium mb-2">Top Competitors (Click to research)</p>
+            <ScrollArea className="h-32">
               <div className="space-y-2">
                 {data.raw.topCompetitors.map((comp: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{comp.name}</span>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {comp.marketShare}% share
-                      </Badge>
-                      {comp.pricing && (
-                        <Badge variant="secondary" className="text-xs">
-                          {comp.pricing}
+                  <Card key={i} className="p-2 hover:bg-muted/50 transition-colors cursor-pointer">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between p-0 h-auto"
+                      onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(comp.name + ' company')}`, '_blank')}
+                    >
+                      <span className="text-sm font-medium">{comp.name}</span>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {comp.marketShare}% share
                         </Badge>
-                      )}
-                    </div>
-                  </div>
+                        {comp.pricing && (
+                          <Badge variant="secondary" className="text-xs">
+                            {comp.pricing}
+                          </Badge>
+                        )}
+                        {comp.funding && (
+                          <Badge variant="default" className="text-xs">
+                            {comp.funding}
+                          </Badge>
+                        )}
+                      </div>
+                    </Button>
+                    {comp.strengths && comp.strengths.length > 0 && (
+                      <div className="mt-1 flex gap-1">
+                        {comp.strengths.slice(0, 2).map((strength: string, j: number) => (
+                          <Badge key={j} variant="outline" className="text-xs text-green-600">
+                            ✓ {strength}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
                 ))}
               </div>
             </ScrollArea>

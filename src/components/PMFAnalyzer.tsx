@@ -57,70 +57,100 @@ export default function PMFAnalyzer() {
   const [resetTrigger, setResetTrigger] = useState(0);
   const [autoAnalyzing, setAutoAnalyzing] = useState(false);
 
-  // Auto-fetch real market data on component mount
+  // Fetch real market data from edge functions
+  const fetchRealMarketData = async (ideaText: string, category: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('market-insights', {
+        body: { 
+          idea: ideaText, 
+          userAnswers,
+          category 
+        }
+      });
+      
+      if (error) throw error;
+      return data?.insights || null;
+    } catch (error) {
+      console.error(`Error fetching ${category} data:`, error);
+      return null;
+    }
+  };
+
+  // Auto-fetch real market data on component mount or when idea changes
   useEffect(() => {
-    const autoAnalyzeIdea = async () => {
-      if (!autoAnalyzing && !metadata) {
-        setAutoAnalyzing(true);
+    const loadStoredData = async () => {
+      const storedIdea = localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea');
+      const storedAnswers = localStorage.getItem('userAnswers');
+      const storedMetadata = localStorage.getItem('ideaMetadata');
+      
+      if (storedIdea && !initialIdea) {
+        setInitialIdea(storedIdea);
+        setIdea(storedIdea);
         
-        // Example ideas to auto-analyze with real market data
-        const sampleIdeas = [
-          "AI-powered meal planning app for busy professionals",
-          "Sustainable fashion marketplace for Gen Z",
-          "Remote team collaboration tool with AI assistance",
-          "Mental health support platform for students",
-          "Crypto portfolio management for beginners"
-        ];
+        if (storedAnswers) {
+          try {
+            const answers = JSON.parse(storedAnswers);
+            setUserAnswers(answers);
+          } catch (e) {
+            console.error('Error parsing stored answers:', e);
+          }
+        }
         
-        const randomIdea = sampleIdeas[Math.floor(Math.random() * sampleIdeas.length)];
+        if (storedMetadata) {
+          try {
+            const meta = JSON.parse(storedMetadata);
+            setMetadata(meta);
+            if (meta.pmfScore) {
+              setPmfScore(meta.pmfScore);
+            } else if (meta.scoreBreakdown) {
+              const score = calculatePMFScore(meta.scoreBreakdown);
+              setPmfScore(score);
+            }
+          } catch (e) {
+            console.error('Error parsing stored metadata:', e);
+          }
+        }
         
-        try {
-          toast({
-            title: "Fetching Real Market Data",
-            description: `Analyzing: "${randomIdea}"`,
-          });
-          
-          setInitialIdea(randomIdea);
-          localStorage.setItem('userIdea', randomIdea);
-          
-          // Fetch real market signals
-          const fetchedMetadata = await fetchSignals(randomIdea);
-          setMetadata(fetchedMetadata);
-          
-          // Calculate PM-Fit score
-          const score = calculatePMFScore(fetchedMetadata.scoreBreakdown);
-          setPmfScore(score);
-          
-          // Set some sample answers for demonstration
-          const demoAnswers = {
-            'Initial Idea': randomIdea,
-            'What problem does your product solve?': 'Saves time and increases productivity',
-            'Who is your target audience?': 'B2C - Young adults (18-35)',
-            'What\'s your unique value proposition?': 'Superior user experience with AI integration'
-          };
-          setUserAnswers(demoAnswers);
-          localStorage.setItem('userAnswers', JSON.stringify(demoAnswers));
-          localStorage.setItem('ideaMetadata', JSON.stringify(fetchedMetadata));
-          
-          toast({
-            title: "Real Data Loaded",
-            description: `PM-Fit Score: ${score}/100 based on actual market data`,
-          });
-        } catch (error) {
-          console.error('Auto-analysis error:', error);
-          toast({
-            title: "Data Fetch Error",
-            description: "Failed to fetch market data. You can still enter your own idea.",
-            variant: "destructive"
-          });
-        } finally {
-          setAutoAnalyzing(false);
+        // Fetch fresh real-time data
+        if (storedIdea) {
+          try {
+            toast({
+              title: "Fetching Real Market Data",
+              description: `Analyzing: "${storedIdea}"`,
+            });
+            
+            // Fetch real market signals
+            const fetchedMetadata = await fetchSignals(storedIdea);
+            setMetadata(fetchedMetadata);
+            
+            // Fetch additional real data from market insights
+            const marketData = await fetchRealMarketData(storedIdea, 'market');
+            const socialData = await fetchRealMarketData(storedIdea, 'social');
+            const customerData = await fetchRealMarketData(storedIdea, 'customers');
+            
+            // Merge real data into metadata
+            const enhancedMetadata = {
+              ...fetchedMetadata,
+              marketInsights: marketData,
+              socialInsights: socialData,
+              customerInsights: customerData
+            };
+            
+            setMetadata(enhancedMetadata);
+            localStorage.setItem('ideaMetadata', JSON.stringify(enhancedMetadata));
+            
+            toast({
+              title: "Real Data Loaded",
+              description: `Analysis complete with live market data`,
+            });
+          } catch (error) {
+            console.error('Error fetching market data:', error);
+          }
         }
       }
     };
     
-    // Run auto-analysis on mount
-    autoAnalyzeIdea();
+    loadStoredData();
   }, []);
 
   const sampleQuestions = [
