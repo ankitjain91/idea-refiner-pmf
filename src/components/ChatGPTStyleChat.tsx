@@ -738,11 +738,17 @@ export default function ChatGPTStyleChat({
             </motion.div>
           )}
 
-          {messages.map((msg) => (
+          {messages.map((msg, index) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ 
+                duration: 0.4,
+                delay: index * 0.05,
+                ease: [0.4, 0, 0.2, 1]
+              }}
               className={cn(
                 "flex gap-3",
                 msg.type === 'user' && 'justify-end',
@@ -778,34 +784,78 @@ export default function ChatGPTStyleChat({
                       )}
                     >
                       {msg.isTyping ? (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
+                        <motion.div 
+                          className="flex items-center gap-1.5"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <motion.div 
+                            className="w-2 h-2 bg-primary/60 rounded-full"
+                            animate={{ y: [0, -5, 0] }}
+                            transition={{ duration: 0.5, repeat: Infinity, delay: 0 }}
+                          />
+                          <motion.div 
+                            className="w-2 h-2 bg-primary/60 rounded-full"
+                            animate={{ y: [0, -5, 0] }}
+                            transition={{ duration: 0.5, repeat: Infinity, delay: 0.1 }}
+                          />
+                          <motion.div 
+                            className="w-2 h-2 bg-primary/60 rounded-full"
+                            animate={{ y: [0, -5, 0] }}
+                            transition={{ duration: 0.5, repeat: Infinity, delay: 0.2 }}
+                          />
+                        </motion.div>
                       ) : (
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                       )}
                     </div>
                     
                     {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="mt-3 space-y-2">
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.4 }}
+                        className="mt-3 space-y-2"
+                      >
                         <p className="text-xs text-muted-foreground font-medium">AI-Powered Suggestions:</p>
-                        <div className="flex flex-wrap gap-2">
+                        <motion.div 
+                          className="flex flex-wrap gap-2"
+                          initial="hidden"
+                          animate="visible"
+                          variants={{
+                            hidden: { opacity: 0 },
+                            visible: {
+                              opacity: 1,
+                              transition: {
+                                staggerChildren: 0.1
+                              }
+                            }
+                          }}
+                        >
                           {msg.suggestions.map((suggestion, idx) => (
-                            <Button
+                            <motion.div
                               key={idx}
-                              onClick={() => handleSuggestionClick(suggestion)}
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group"
+                              variants={{
+                                hidden: { opacity: 0, scale: 0.8, y: 10 },
+                                visible: { opacity: 1, scale: 1, y: 0 }
+                              }}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                             >
-                              <Sparkles className="h-3 w-3 mr-1 text-primary group-hover:animate-pulse" />
-                              {suggestion}
-                            </Button>
+                              <Button
+                                onClick={() => handleSuggestionClick(suggestion)}
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-auto py-2 px-3 hover:bg-primary/10 hover:border-primary transition-all group animate-fade-in"
+                              >
+                                <Sparkles className="h-3 w-3 mr-1 text-primary group-hover:animate-pulse" />
+                                {suggestion}
+                              </Button>
+                            </motion.div>
                           ))}
-                        </div>
-                      </div>
+                        </motion.div>
+                      </motion.div>
                     )}
                   </div>
                   {msg.type === 'user' && (
@@ -820,20 +870,46 @@ export default function ChatGPTStyleChat({
 
           {isLoading && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -5, scale: 0.95 }}
+              transition={{ 
+                duration: 0.3,
+                ease: [0.4, 0, 0.2, 1]
+              }}
               className="flex gap-3"
             >
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <motion.div 
+                className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
                 <Bot className="h-5 w-5 text-primary" />
-              </div>
-              <div className="bg-muted rounded-lg px-4 py-3">
+              </motion.div>
+              <motion.div 
+                className="bg-muted rounded-lg px-4 py-3"
+                initial={{ width: 60 }}
+                animate={{ width: [60, 80, 60] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <motion.span 
+                    className="w-2 h-2 bg-primary/60 rounded-full"
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                  />
+                  <motion.span 
+                    className="w-2 h-2 bg-primary/60 rounded-full"
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }}
+                  />
+                  <motion.span 
+                    className="w-2 h-2 bg-primary/60 rounded-full"
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
+                  />
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           )}
 
