@@ -361,8 +361,8 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    setInput(suggestion);
-    inputRef.current?.focus();
+    // Treat suggestion as an immediate answer to the current step
+    handleStepAnswer(suggestion, currentStep);
   };
 
   const handleStepEdit = (stepIndex: number) => {

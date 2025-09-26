@@ -155,9 +155,62 @@ export default function CompactChatBox({ onAnalysisReady, className }: CompactCh
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setInput(suggestion);
-    inputRef.current?.focus();
+  const handleSuggestionClick = async (suggestion: string) => {
+    if (isLoading) return;
+
+    const userMessage: Message = {
+      id: `msg-${Date.now()}`,
+      type: 'user',
+      content: suggestion,
+      timestamp: new Date()
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+    setIsLoading(true);
+
+    if (!currentIdea) {
+      setCurrentIdea(suggestion);
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: {
+          message: suggestion,
+          conversationHistory: newMessages.map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content
+          }))
+        }
+      });
+
+      if (error) throw error;
+
+      const botMessage: Message = {
+        id: `msg-${Date.now()}-bot`,
+        type: 'bot',
+        content: data.response || 'Let me analyze that for you...',
+        timestamp: new Date(),
+        suggestions: data.suggestions || getContextualSuggestions()
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+
+      if (data.pmfAnalysis && onAnalysisReady) {
+        onAnalysisReady(currentIdea || suggestion, data.pmfAnalysis);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to get response. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+      inputRef.current?.focus();
+    }
   };
 
   return (
