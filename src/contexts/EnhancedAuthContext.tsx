@@ -237,16 +237,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             syncUserRole();
           }, 60 * 1000);
         }
-        
-        // Always set loading to false after initialization
-        if (mounted) {
-          setLoading(false);
-        }
+        // Defer setting loading=false to the auth state change listener to avoid race conditions
+        // This prevents premature redirects on hard refresh before session is restored
+        // if (mounted) { setLoading(false); }
       } catch (error) {
         console.error("Error initializing auth:", error);
-        if (mounted) {
-          setLoading(false);
-        }
+        // Keep loading=true; onAuthStateChange will finalize loading state
+        // to prevent redirect race conditions on refresh
       }
     };
 
