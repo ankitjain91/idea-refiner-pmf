@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/EnhancedAuthContext";
+import { SessionProvider } from "@/contexts/SessionContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Index from "./pages/Index";
@@ -22,45 +23,47 @@ const App = () => (
     <BrowserRouter>
       <AuthProvider>
         <SubscriptionProvider>
-          <SidebarProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                {/* Root route - redirects based on auth status */}
-                <Route path="/" element={<Index />} />
-                
-                {/* Authentication route */}
-                <Route path="/auth" element={<AuthPage />} />
-                
-                {/* Logout route */}
-                <Route path="/logout" element={<Logout />} />
-                
-                {/* Public route - accessible by anyone */}
-                <Route path="/pricing" element={<Pricing />} />
-                
-                {/* Protected routes - require authentication */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } />
-                <Route path="/subscription-success" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                
-                {/* 404 fallback - must be last */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </TooltipProvider>
-          </SidebarProvider>
+          <SessionProvider>
+            <SidebarProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Routes>
+                  {/* Root route - redirects based on auth status */}
+                  <Route path="/" element={<Index />} />
+                  
+                  {/* Authentication route */}
+                  <Route path="/auth" element={<AuthPage />} />
+                  
+                  {/* Logout route */}
+                  <Route path="/logout" element={<Logout />} />
+                  
+                  {/* Public route - accessible by anyone */}
+                  <Route path="/pricing" element={<Pricing />} />
+                  
+                  {/* Protected routes - require authentication */}
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/subscription-success" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* 404 fallback - must be last */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </TooltipProvider>
+            </SidebarProvider>
+          </SessionProvider>
         </SubscriptionProvider>
       </AuthProvider>
     </BrowserRouter>

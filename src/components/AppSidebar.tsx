@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Home, 
   MessageSquare, 
@@ -27,11 +28,14 @@ import {
   HelpCircle,
   Archive,
   Star,
-  LayoutDashboard
+  LayoutDashboard,
+  Trash2
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSession } from "@/contexts/SessionContext";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface AppSidebarProps {
   onNewChat?: () => void;
@@ -42,6 +46,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
   const isOpen = open !== false;
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const { sessions, currentSession, createSession, loadSession, deleteSession } = useSession();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -58,19 +63,24 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
     localStorage.removeItem('analysisData');
     localStorage.removeItem('pmfScore');
     
+    // Create a new brainstorming session
+    await createSession("New brainstorming session");
+    
     // Trigger reset callback if provided
     onNewChat?.();
     
     // Stay on dashboard - the chat component will reset
   };
 
+  const handleLoadSession = async (sessionId: string) => {
+    await loadSession(sessionId);
+    // Trigger reset callback to update the chat
+    onNewChat?.();
+  };
+
   const mainNav = [
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
-  ];
-
-  const actionItems = [
-    { title: "New Analysis", icon: Plus, action: createNewSession },
   ];
 
   const getNavClass = ({ isActive }: { isActive: boolean }) =>
@@ -81,7 +91,7 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       <SidebarHeader className="border-b p-4">
         {isOpen && (
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Start Your PMF Journey</h2>
+            <h2 className="text-lg font-semibold">PM-FIT</h2>
             <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'}>
               {subscription.tier}
             </Badge>
@@ -90,26 +100,67 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Action Buttons */}
+        {/* Brainstorming Sessions */}
         <SidebarGroup>
-          <SidebarGroupLabel>Actions</SidebarGroupLabel>
+          <div className="flex items-center justify-between px-3">
+            <SidebarGroupLabel>Sessions</SidebarGroupLabel>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={createNewSession}
+              className="h-6 w-6 p-0"
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {actionItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={item.action}
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {isOpen && <span>{item.title}</span>}
-                    </Button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <ScrollArea className="h-[250px]">
+              <SidebarMenu>
+                {sessions.map((session) => (
+                  <SidebarMenuItem key={session.id}>
+                    <div className="flex items-center justify-between w-full group">
+                      <SidebarMenuButton
+                        onClick={() => handleLoadSession(session.id)}
+                        className={`flex-1 ${
+                          currentSession?.id === session.id
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm truncate max-w-[140px]">
+                            {session.name}
+                          </span>
+                          {isOpen && (
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(session.last_accessed), "MMM d, h:mm a")}
+                            </span>
+                          )}
+                        </div>
+                      </SidebarMenuButton>
+                      {isOpen && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSession(session.id);
+                          }}
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </SidebarMenuItem>
+                ))}
+                {sessions.length === 0 && isOpen && (
+                  <div className="text-xs text-muted-foreground px-3 py-2">
+                    No sessions yet. Click + to create one.
+                  </div>
+                )}
+              </SidebarMenu>
+            </ScrollArea>
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -150,7 +201,14 @@ export function AppSidebar({ onNewChat }: AppSidebarProps = {}) {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-2">
-        <SidebarTrigger />
+        <div className="flex items-center justify-between">
+          <SidebarTrigger />
+          {isOpen && currentSession && (
+            <div className="text-xs text-muted-foreground truncate max-w-[120px]">
+              Active: {currentSession.name}
+            </div>
+          )}
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

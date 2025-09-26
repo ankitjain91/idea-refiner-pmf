@@ -12,6 +12,186 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+listen_ip = "0.0.0.0"
+port = 54323
+ip_version = "both"
+
+[storage]
+enabled = true
+bind_ip = "0.0.0.0"
+port = 54325
+proxy_port = 54324
+
+[storage.file_size_limit]
+
+[studio]
+enabled = true
+port = 54323
+api_url = ""
+openai_api_key = ""
+
+[inbucket]
+enabled = true
+bind_ip = "127.0.0.1"
+port = 54326
+smtp_port = 54327
+pop3_port = 54328
+
+[auth]
+enabled = true
+site_url = ""
+additional_redirect_urls = []
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+email.enable_signup = true
+email.enable_confirmations = false
+sms.enable_signup = true
+sms.enable_confirmations = false
+sms.max_frequency = "15s"
+sms.test_otp = ""
+external.apple.enabled = false
+external.apple.client_id = ""
+external.apple.secret = ""
+external.azure.enabled = false
+external.azure.client_id = ""
+external.azure.secret = ""
+external.azure.url = ""
+external.bitbucket.enabled = false
+external.bitbucket.client_id = ""
+external.bitbucket.secret = ""
+external.discord.enabled = false
+external.discord.client_id = ""
+external.discord.secret = ""
+external.facebook.enabled = false
+external.facebook.client_id = ""
+external.facebook.secret = ""
+external.figma.enabled = false
+external.figma.client_id = ""
+external.figma.secret = ""
+external.github.enabled = false
+external.github.client_id = ""
+external.github.secret = ""
+external.gitlab.enabled = false
+external.gitlab.client_id = ""
+external.gitlab.secret = ""
+external.gitlab.url = ""
+external.google.enabled = false
+external.google.client_id = ""
+external.google.secret = ""
+external.google.skip_nonce_check = false
+external.keycloak.enabled = false
+external.keycloak.client_id = ""
+external.keycloak.secret = ""
+external.keycloak.url = ""
+external.linkedin_oidc.enabled = false
+external.linkedin_oidc.client_id = ""
+external.linkedin_oidc.secret = ""
+external.notion.enabled = false
+external.notion.client_id = ""
+external.notion.secret = ""
+external.twitch.enabled = false
+external.twitch.client_id = ""
+external.twitch.secret = ""
+external.twitter.enabled = false
+external.twitter.client_id = ""
+external.twitter.secret = ""
+external.spotify.enabled = false
+external.spotify.client_id = ""
+external.spotify.secret = ""
+external.slack_oidc.enabled = false
+external.slack_oidc.client_id = ""
+external.slack_oidc.secret = ""
+external.zoom.enabled = false
+external.zoom.client_id = ""
+external.zoom.secret = ""
+external.kakao.enabled = false
+external.kakao.client_id = ""
+external.kakao.secret = ""
+external.fly.enabled = false
+external.fly.client_id = ""
+external.fly.secret = ""
+external.fly.url = ""
+external.workos.enabled = false
+external.workos.client_id = ""
+external.workos.secret = ""
+external.workos.url = ""
+
+[auth.email]
+name_ato_z_only = false
+
+[analytics]
+enabled = false
+port = 54327
+backend = "postgres"
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+inspector_port = 8083
+
+[functions.check-subscription]
+verify_jwt = true
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.customer-portal]
+verify_jwt = true
+
+[functions.dashboard-insights]
+verify_jwt = true
+
+[functions.enterprise-features]
+verify_jwt = true
+
+[functions.google-trends]
+verify_jwt = true
+
+[functions.idea-chat]
+verify_jwt = true
+
+[functions.market-insights]
+verify_jwt = true
+
+[functions.reddit-search]
+verify_jwt = true
+
+[functions.search-web]
+verify_jwt = true
+
+[functions.subscription-benefits]
+verify_jwt = true
+
+[functions.sync-subscription-role]
+verify_jwt = true
+
+[functions.tiktok-trends]
+verify_jwt = true
+
+[functions.twitter-search]
+verify_jwt = true
+
+[functions.youtube-search]
+verify_jwt = true
+
+[functions.generate-suggestions]
+verify_jwt = true
+
+[functions.generate-session-name]
+verify_jwt = true
+
 [functions.idea-chat]
 verify_jwt = true
 

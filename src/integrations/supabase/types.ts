@@ -62,6 +62,39 @@ export type Database = {
         }
         Relationships: []
       }
+      brainstorming_sessions: {
+        Row: {
+          activity_log: Json
+          created_at: string
+          id: string
+          last_accessed: string
+          name: string
+          state: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_log?: Json
+          created_at?: string
+          id?: string
+          last_accessed?: string
+          name: string
+          state?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_log?: Json
+          created_at?: string
+          id?: string
+          last_accessed?: string
+          name?: string
+          state?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       collaborations: {
         Row: {
           created_at: string
