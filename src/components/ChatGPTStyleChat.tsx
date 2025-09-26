@@ -18,7 +18,6 @@ import {
   Play
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
@@ -967,12 +966,7 @@ export default function ChatGPTStyleChat({
         <div className="max-w-3xl mx-auto space-y-4 pb-32">
           {/* Welcome Card with Suggestions */}
           {messages.length === 1 && messages[0].type === 'system' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mb-8"
-            >
+            <div className="mb-8">
               <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-primary/5 via-background to-accent/5 shadow-xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
                 <div className="relative p-8 space-y-6">
@@ -982,7 +976,7 @@ export default function ChatGPTStyleChat({
                         <Bot className="h-8 w-8 text-primary-foreground" />
                       </div>
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                        <div className="w-3 h-3 bg-green-400 rounded-full" />
                       </div>
                     </div>
                     <div className="flex-1">
@@ -1025,15 +1019,12 @@ export default function ChatGPTStyleChat({
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           )}
 
-          {messages.map((msg, index) => (
-            <motion.div
+          {messages.map((msg) => (
+            <div
               key={msg.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
               className={cn(
                 "flex gap-3",
                 msg.type === 'user' && 'justify-end',
@@ -1067,21 +1058,9 @@ export default function ChatGPTStyleChat({
                     >
                       {msg.isTyping ? (
                         <div className="flex items-center gap-1.5">
-                          <motion.div 
-                            className="w-2 h-2 bg-primary/60 rounded-full"
-                            animate={{ y: [0, -5, 0] }}
-                            transition={{ duration: 0.5, repeat: Infinity, delay: 0 }}
-                          />
-                          <motion.div 
-                            className="w-2 h-2 bg-primary/60 rounded-full"
-                            animate={{ y: [0, -5, 0] }}
-                            transition={{ duration: 0.5, repeat: Infinity, delay: 0.1 }}
-                          />
-                          <motion.div 
-                            className="w-2 h-2 bg-primary/60 rounded-full"
-                            animate={{ y: [0, -5, 0] }}
-                            transition={{ duration: 0.5, repeat: Infinity, delay: 0.2 }}
-                          />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full" />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full" />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full" />
                         </div>
                       ) : (
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -1115,7 +1094,7 @@ export default function ChatGPTStyleChat({
                   )}
                 </>
               )}
-            </motion.div>
+            </div>
           ))}
 
           {isLoading && (
@@ -1125,9 +1104,9 @@ export default function ChatGPTStyleChat({
               </div>
               <div className="bg-muted rounded-lg px-4 py-3">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse" />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse delay-100" />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-pulse delay-200" />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full" />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full" />
+                  <span className="w-2 h-2 bg-primary/60 rounded-full" />
                 </div>
               </div>
             </div>
