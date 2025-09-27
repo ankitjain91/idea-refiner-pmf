@@ -610,8 +610,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="mb-6"
           >
-            <Badge className="px-6 py-2 text-xs font-mono tracking-wider bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 text-primary shadow-[0_0_20px_rgba(100,150,255,0.2)] animate-pulse">
-              <Sparkles className="w-3 h-3 mr-2" />
+            <Badge className="px-6 py-2 text-xs font-mono tracking-wider bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 text-primary/80 backdrop-blur-sm transition-all duration-500 hover:shadow-[0_0_15px_rgba(100,150,255,0.15)]">
+              <Sparkles className="w-3 h-3 mr-2 opacity-60" />
               SMOOTHBRAINS NEURAL ENGINE v2.0
             </Badge>
           </motion.div>
