@@ -5,8 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface RunAnalysisOptions {
   brief: BriefFields;
-  idea: string; // Primary synthesized idea statement
-  conversationContext?: string; // Optional aggregated user message context
+  idea: string;
   signalAbort?: () => boolean;
 }
 
@@ -19,7 +18,7 @@ export interface RunAnalysisProgress {
 export type ProgressCallback = (update: RunAnalysisProgress) => void;
 
 export async function runEnterpriseAnalysis(opts: RunAnalysisOptions, onProgress: ProgressCallback): Promise<AnalysisResult> {
-  const { brief, idea, conversationContext } = opts;
+  const { brief, idea } = opts;
   const start = Date.now();
   onProgress({ phase: 'validate', pct: 5, note: 'Validating brief completeness' });
 
@@ -43,7 +42,7 @@ export async function runEnterpriseAnalysis(opts: RunAnalysisOptions, onProgress
     body: {
       message: idea || brief.problem,
       generatePMFAnalysis: true,
-      analysisContext: { brief, conversationContext }
+      analysisContext: { brief }
     }
   });
   if (error) throw error;
