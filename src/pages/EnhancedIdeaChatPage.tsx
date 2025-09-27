@@ -96,15 +96,6 @@ const EnhancedIdeaChatPage = () => {
                 className="data-[state=checked]:bg-primary"
               />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowSessionPicker(true)}
-              className="flex items-center gap-2"
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Sessions</span>
-            </Button>
             <ThemeToggle />
             <UserMenu />
           </div>
