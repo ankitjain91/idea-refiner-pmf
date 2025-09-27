@@ -29,6 +29,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { LS_KEYS } from '@/lib/storage-keys';
+import { backgroundProcessor } from '@/lib/background-processor';
 
 // Import refactored components and utilities
 import { Message, ResponseMode, SuggestionItem } from './chat/types';
@@ -254,6 +255,52 @@ What's your startup idea?`,
       setMessages([welcomeMessage]);
     }
   }, [currentSession?.name, anonymous, fetchRandomIdeas, messages.length]);
+
+  // Listen for background request completions
+  useEffect(() => {
+    const handleBackgroundComplete = (event: CustomEvent) => {
+      const { requestId, result, type, sessionId } = event.detail;
+      
+      // Only handle results for the current session
+      if (sessionId !== currentSession?.id) return;
+      
+      console.log(`Background ${type} request completed:`, requestId);
+      
+      // If we navigated away and came back, the typing indicator might still be showing
+      if (type === 'chat' && result.success) {
+        setMessages(prev => {
+          const hasTyping = prev.some(msg => msg.isTyping);
+          if (hasTyping) {
+            // Remove typing indicator and add the completed message
+            return prev.filter(msg => !msg.isTyping);
+          }
+          return prev;
+        });
+        setIsTyping(false);
+      }
+    };
+    
+    const handleBackgroundError = (event: CustomEvent) => {
+      const { requestId, error, type, sessionId } = event.detail;
+      
+      // Only handle errors for the current session
+      if (sessionId !== currentSession?.id) return;
+      
+      console.error(`Background ${type} request failed:`, requestId, error);
+      
+      // Remove typing indicator on error
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      setIsTyping(false);
+    };
+    
+    window.addEventListener('background-request-complete', handleBackgroundComplete as EventListener);
+    window.addEventListener('background-request-error', handleBackgroundError as EventListener);
+    
+    return () => {
+      window.removeEventListener('background-request-complete', handleBackgroundComplete as EventListener);
+      window.removeEventListener('background-request-error', handleBackgroundError as EventListener);
+    };
+  }, [currentSession?.id]);
 
   // Listen for session reset event
   useEffect(() => {
@@ -553,6 +600,12 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     
     setMessages(prev => [...prev, userMessage]);
     
+    // Create an AbortController for this specific request
+    const controller = new AbortController();
+    
+    // Store the controller so we can abort on unmount
+    const messageId = Date.now().toString();
+    
     // Check for trickery attempts first
     const trickeryCheck = detectTrickery(messageText);
     if (trickeryCheck.isTricky) {
@@ -585,7 +638,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         ];
         
         const saltyMessage: Message = {
-          id: Date.now().toString(),
+          id: messageId,
           type: 'bot',
           content: enhancedResponse,
           timestamp: new Date(),
@@ -596,7 +649,11 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         
         setMessages(prev => [...prev, saltyMessage]);
         
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('Request aborted due to navigation');
+          return;
+        }
         console.error('Error enhancing salty response:', error);
         
         // Fallback to escalated responses
@@ -619,7 +676,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         }
         
         const saltyMessage: Message = {
-          id: Date.now().toString(),
+          id: messageId,
           type: 'bot',
           content: escalatedResponse,
           timestamp: new Date(),
@@ -651,6 +708,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       };
       setMessages(prev => [...prev, typingMessage]);
 
+      // Generate a unique request ID for tracking
+      const requestId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const sessionId = currentSession?.id;
+
       try {
         // Build conversation history
         const conversationHistory = messages
@@ -666,7 +727,8 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         Challenge assumptions, identify risks, and push for validation, but always within the scope of improving "${currentIdea}".
         User says: ${messageText}`;
 
-        const { data, error } = await supabase.functions.invoke('idea-chat', {
+        // Register the main chat request for background processing
+        const chatPromise = supabase.functions.invoke('idea-chat', {
           body: { 
             message: contextualMessage,
             conversationHistory,
@@ -676,6 +738,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
           }
         });
 
+        backgroundProcessor.register(requestId, chatPromise, 'chat', sessionId);
+
+        const { data, error } = await chatPromise;
+
         if (error) throw error;
 
         // Don't remove typing indicator yet - keep it visible until response is ready
@@ -684,8 +750,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         let pointChange = 0;
         let pointsExplanation = '';
         
+        const evalRequestId = `eval-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
         try {
-          const { data: evaluationData } = await supabase.functions.invoke('evaluate-wrinkle-points', {
+          const evalPromise = supabase.functions.invoke('evaluate-wrinkle-points', {
             body: { 
               userMessage: messageText,
               botResponse: data.response || 'AI response processing...',
@@ -693,12 +761,16 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
               currentWrinklePoints: wrinklePoints
             }
           });
+
+          backgroundProcessor.register(evalRequestId, evalPromise, 'evaluation', sessionId);
+          
+          const { data: evaluationData } = await evalPromise;
           
           if (evaluationData?.pointChange !== undefined) {
             pointChange = evaluationData.pointChange;
             pointsExplanation = evaluationData.explanation || '';
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error evaluating wrinkle points:', error);
           pointChange = (Math.random() * 2) + 1; // 1-3 points for refinement
           pointsExplanation = 'Refining your idea!';
@@ -716,7 +788,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         }
 
         const botMessage: Message = {
-          id: Date.now().toString(),
+          id: messageId,
           type: 'bot',
           content: data.response || "Let's continue refining your idea to maximize success.",
           timestamp: new Date(),
@@ -729,7 +801,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
         setIsTyping(false);
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error:', error);
         setMessages(prev => prev.filter(msg => !msg.isTyping));
         setIsTyping(false);
@@ -767,10 +839,17 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       Is this message related to discussing/refining the startup idea, business strategy, profitability, market fit, or implementation? 
       Respond with JSON: {"onTopic": true/false, "redirect": "funny message to bring them back if off-topic"}`;
       
+      const topicRequestId = `topic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const sessionId = currentSession?.id;
+      
       try {
-        const { data: topicData } = await supabase.functions.invoke('idea-chat', {
+        const topicPromise = supabase.functions.invoke('idea-chat', {
           body: { message: topicCheckPrompt, conversationHistory: [] }
         });
+        
+        backgroundProcessor.register(topicRequestId, topicPromise, 'chat', sessionId);
+        
+        const { data: topicData } = await topicPromise;
         
         let topicCheck = { onTopic: true, redirect: '' };
         try {
@@ -853,6 +932,9 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     };
     setMessages(prev => [...prev, typingMessage]);
 
+    const mainRequestId = `main-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = currentSession?.id;
+
     try {
       // Build conversation history
       const conversationHistory = messages
@@ -867,13 +949,17 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         ? `Context: We are refining the startup idea "${currentIdea}" to maximize profitability and success. Focus on actionable insights for market fit, revenue optimization, growth strategies, and competitive advantages. User message: ${messageText}`
         : messageText;
 
-      const { data, error } = await supabase.functions.invoke('idea-chat', {
+      const chatPromise = supabase.functions.invoke('idea-chat', {
         body: { 
           message: contextualMessage,
           conversationHistory,
           responseMode: responseMode
         }
       });
+
+      backgroundProcessor.register(mainRequestId, chatPromise, 'chat', sessionId);
+
+      const { data, error } = await chatPromise;
 
       if (error) throw error;
 
@@ -883,8 +969,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       let pointChange = 0;
       let pointsExplanation = '';
       
+      const evalRequestId = `eval-main-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
       try {
-        const { data: evaluationData } = await supabase.functions.invoke('evaluate-wrinkle-points', {
+        const evalPromise = supabase.functions.invoke('evaluate-wrinkle-points', {
           body: { 
             userMessage: messageText,
             currentIdea: currentIdea,
@@ -892,6 +980,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
             currentWrinklePoints: wrinklePoints
           }
         });
+        
+        backgroundProcessor.register(evalRequestId, evalPromise, 'evaluation', sessionId);
+        
+        const { data: evaluationData } = await evalPromise;
         
         if (evaluationData?.pointChange !== undefined) {
           pointChange = evaluationData.pointChange;
