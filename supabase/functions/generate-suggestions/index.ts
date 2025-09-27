@@ -31,30 +31,33 @@ serve(async (req) => {
     const systemPrompt = `You are an expert startup advisor helping entrepreneurs achieve optimal Product-Market Fit. Your goal is to suggest answers that would maximize their PM-FIT score by addressing key success factors: market demand, pain point intensity, competition gaps, differentiation, and distribution readiness.`;
     
     const userPrompt = `
-Startup Idea: "${ideaDescription || 'Not provided yet'}"
-
-Previous conversation context (Q: A):
-${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`).join('\n') : 'None'}
+Context:
+- Startup Idea: "${ideaDescription || 'New startup idea being developed'}"
+- Previous answers: ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`).join(' | ') : 'None yet'}
 
 Current Question: "${question}"
 
-Generate exactly 4 OPTIMAL ANSWERS to the question above that would MAXIMIZE PM-FIT score.
+Generate 4 high-quality, strategic suggestions that directly answer this question to help achieve optimal Product-Market Fit. Each suggestion should be:
 
-Requirements:
-- Each answer must DIRECTLY and COMPLETELY answer the question asked
-- Each answer should be the most strategic response that would indicate strong product-market fit
-- Each answer should be 10-20 words (complete, meaningful responses)
-- Focus on answers that demonstrate: clear market need, strong differentiation, scalability, and profitable growth potential
-- Consider the specific context of the idea when generating answers
-- Make answers specific and actionable, not generic
+1. A complete, specific answer to the question (not a prompt or partial thought)
+2. Strategic and likely to maximize PM-FIT score
+3. Contextually relevant to the startup idea
+4. 15-30 words for clarity and completeness
+5. Actionable and practical
 
-Return ONLY a JSON array of 4 strings; no code fences, no additional text.
+Focus on demonstrating:
+- Clear market demand and pain point resolution
+- Strong competitive differentiation
+- Scalability and growth potential
+- Clear path to profitability
 
-Example for "Who is your target audience?" for a VR language learning app:
-["Tech-savvy millennials aged 25-35 who travel frequently and need conversational language skills for business and leisure",
- "Corporate professionals in multinational companies requiring immersive language training for international client interactions and presentations",
- "University students studying abroad who need rapid language acquisition with cultural context and real-world practice scenarios",
- "Language enthusiasts and polyglots seeking gamified, engaging methods to master multiple languages with native-level pronunciation"]`;
+Format: Return ONLY a JSON array of 4 suggestion strings, no markdown or explanation.
+
+Example output format:
+["First complete strategic answer addressing the question directly",
+ "Second insightful answer with specific market positioning",
+ "Third answer highlighting unique value and differentiation",
+ "Fourth answer demonstrating scalability and growth potential"]`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -63,13 +66,15 @@ Example for "Who is your target audience?" for a VR language learning app:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Fast model for quick suggestions
+        model: 'gpt-4o',  // Using more powerful model for better suggestions
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 300,
-        temperature: 0.7
+        max_tokens: 500,  // Increased for complete answers
+        temperature: 0.8,  // Slightly higher for more creative suggestions
+        presence_penalty: 0.6,  // Reduce repetition
+        frequency_penalty: 0.3  // Encourage variety
       }),
     });
 

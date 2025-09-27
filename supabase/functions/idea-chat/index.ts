@@ -495,77 +495,75 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
       aiResponse = 'Encountered a processing hiccup, but you can continue refining—provide more specifics and retry.';
     }
     
-    // Generate contextual suggestions based on the AI response
+    // Generate high-quality contextual suggestions based on the AI response
     let suggestions = [];
     try {
-      // Generate suggestions that are contextual helpful tips/information instead of questions
-      const suggestionPrompt = `Based on this response: "${aiResponse.slice(0, 500)}..."
+      const suggestionData = await openAIChatRequest({
+        model: 'gpt-4o',  // Using better model for quality suggestions
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You help entrepreneurs refine startup ideas. Generate specific, actionable suggestions that guide toward Product-Market Fit.' 
+          },
+          { 
+            role: 'user', 
+            content: `Context:
+- Startup idea: "${idea || 'Not specified yet'}"
+- User message: "${message.slice(0, 200)}"
+- Current discussion: "${aiResponse.slice(0, 300)}"
+${webData ? `- Market data available: ${webData.normalized?.topCompetitors?.length || 0} competitors identified` : ''}
+
+Generate 4 actionable suggestions that:
+1. Are complete statements/actions (not questions)
+2. Help take concrete next steps
+3. Focus on achieving Product-Market Fit
+4. Are specific to this idea (20-30 words each)
+
+Return as JSON: {"suggestions": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}`
+          }
+        ],
+        max_tokens: 300,
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+      });
       
-      Generate 4 short, helpful tips, insights, or actionable advice related to what was just discussed.
-      These should be informational statements that provide value, NOT questions for the user to answer.
-      Make them specific and practical.
-      Return ONLY a JSON array of strings, no explanation.
-      
-      Example format: ["Consider validating with 10 target users first", "Freemium models work well for this market", "Focus on mobile-first experience", "Start with one core feature"]`;
-      
-      try {
-        const suggestionData = await openAIChatRequest({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: 'Return 2 helpful tips/insights as JSON: {"suggestions": ["Tip1", "Tip2"]}' },
-            { role: 'user', content: `Provide 2 helpful tips for: ${idea || message}`.slice(0, 200) }
-          ],
-          max_tokens: 60,
-          temperature: 0.35,
-          response_format: { type: 'json_object' }
-        });
-        const suggestionContent = suggestionData.choices?.[0]?.message?.content || '';
-        const parsed = safeParseJSON(suggestionContent);
-        if (parsed?.suggestions && Array.isArray(parsed.suggestions)) {
-          suggestions = parsed.suggestions.slice(0,2).map((s: any) => String(s));
-        }
-      } catch (suggErr) {
-        console.error('Suggestion generation failed:', suggErr);
+      const suggestionContent = suggestionData.choices?.[0]?.message?.content || '';
+      const parsed = safeParseJSON(suggestionContent);
+      if (parsed?.suggestions && Array.isArray(parsed.suggestions)) {
+        suggestions = parsed.suggestions.slice(0, 4).map((s: any) => String(s));
       }
-      
-      // Fallback suggestions if generation fails
-      if (suggestions.length === 0) {
-        if (refinementMode && idea) {
-          // Refinement mode fallbacks
-          suggestions = [
-            `Start by interviewing 5-10 potential users`,
-            `Focus on one specific user segment first`,
-            `Test your core assumption before building`,
-            `Consider the simplest viable solution`
-          ];
-        } else if (!idea) {
-          // Default suggestions for new users
-          suggestions = [
-            "AI-powered productivity tool for remote teams",
-            "Sustainable fashion marketplace for Gen Z",
-            "Mental health support platform for students",
-            "Carbon footprint tracker with rewards"
-          ];
-        } else {
-          // Generic fallbacks
-          suggestions = [
-            `Research your market size and trends`,
-            `Start with a simple MVP to test demand`,
-            `Focus on solving one problem really well`,
-            `Talk to potential customers early and often`
-          ];
-        }
-      }
-    } catch (suggestionError) {
-      console.error('Error generating suggestions:', suggestionError);
-      suggestions = [
-        "Start by defining your core problem clearly",
-        "Interview potential customers early",
-        "Focus on one target segment initially",
-        "Test your business model assumptions"
-      ];
+    } catch (suggErr) {
+      console.error('Suggestion generation failed:', suggErr);
     }
-    
+      
+    // Fallback suggestions if generation fails
+    if (suggestions.length === 0) {
+      if (refinementMode && idea) {
+        // Refinement mode fallbacks
+        suggestions = [
+          `Start by interviewing 5-10 potential users`,
+          `Focus on one specific user segment first`,
+          `Test your core assumption before building`,
+          `Consider the simplest viable solution`
+        ];
+      } else if (!idea) {
+        // Default suggestions for new users
+        suggestions = [
+          "AI-powered productivity tool for remote teams",
+          "Sustainable fashion marketplace for Gen Z",
+          "Mental health support platform for students",
+          "Carbon footprint tracker with rewards"
+        ];
+      } else {
+        // Generic fallbacks
+        suggestions = [
+          `Research your market size and trends`,
+          `Start with a simple MVP to test demand`,
+          `Focus on solving one problem really well`,
+          `Talk to potential customers early and often`
+        ];
+      }
+    }
     return new Response(
       JSON.stringify({ 
         response: aiResponse,
