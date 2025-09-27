@@ -34,6 +34,7 @@ import { useSession } from "@/contexts/SessionContext";
 import { useAlerts } from "@/contexts/AlertContext";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { DeleteSessionsButton } from "@/components/DeleteSessionsButton";
 
 interface AppSidebarProps {
   onNewChat?: () => void;
@@ -288,7 +289,12 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
 
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-2">
+      <SidebarFooter className="border-t p-2 space-y-2">
+        {isOpen && (
+          <div className="px-2">
+            <DeleteSessionsButton />
+          </div>
+        )}
         {isOpen && currentSession && (
           <div className="text-[11px] text-muted-foreground truncate max-w-[180px] flex items-center gap-2">
             <span className="inline-flex items-center gap-1">
