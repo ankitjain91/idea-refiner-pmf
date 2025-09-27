@@ -411,7 +411,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         autoDismissMs: 6000,
       });
       
-      navigate('/auth', { replace: true });
+      navigate('/', { replace: true, state: { openAuthModal: true } });
     } catch (error) {
       console.error("Sign out error:", error);
       addAlert({
