@@ -39,14 +39,134 @@ import {
   Activity,
   Gauge,
   Timer,
-  Layers
+  Layers,
+  Trophy,
+  Sparkle,
+  Flame
 } from "lucide-react";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 
 const authSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
+
+// Fun Wrinkle Points Counter Component
+const WrinkleCounter = ({ points }: { points: number }) => {
+  const displayPoints = useSpring(points, { stiffness: 100, damping: 30 });
+  
+  return (
+    <motion.div 
+      className="fixed top-6 right-6 z-50"
+      initial={{ scale: 0, rotate: -180 }}
+      animate={{ scale: 1, rotate: 0 }}
+      transition={{ type: "spring", duration: 1 }}
+    >
+      <div className="relative">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-xl"
+        />
+        <div className="relative bg-black/90 border border-primary/30 rounded-2xl px-6 py-3 shadow-[0_0_30px_rgba(100,150,255,0.3)]">
+          <div className="flex items-center gap-3">
+            <motion.div
+              animate={{ 
+                scale: [1, 1.2, 1],
+                rotate: [0, 180, 360]
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                repeatDelay: 3
+              }}
+            >
+              <Brain className="w-8 h-8 text-primary" />
+            </motion.div>
+            <div>
+              <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">Wrinkle Points</p>
+              <motion.p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+                {Math.floor(displayPoints.get())}
+              </motion.p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Achievement Badge Component
+const AchievementBadge = ({ icon: Icon, title, description, unlocked, points }: any) => {
+  return (
+    <motion.div
+      whileHover={{ scale: unlocked ? 1.05 : 1, y: unlocked ? -5 : 0 }}
+      className={`relative p-4 rounded-xl border ${
+        unlocked 
+          ? 'bg-gradient-to-br from-gray-900/90 to-gray-950/90 border-primary/30 shadow-[0_0_20px_rgba(100,150,255,0.2)]' 
+          : 'bg-gray-950/50 border-gray-800 opacity-50'
+      }`}
+    >
+      {unlocked && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute -top-2 -right-2"
+        >
+          <div className="bg-gradient-to-r from-primary to-accent rounded-full p-1">
+            <Check className="w-3 h-3 text-black" />
+          </div>
+        </motion.div>
+      )}
+      <div className="flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          unlocked ? 'bg-gradient-to-br from-primary/20 to-accent/20' : 'bg-gray-800'
+        }`}>
+          <Icon className={`w-5 h-5 ${unlocked ? 'text-primary' : 'text-gray-600'}`} />
+        </div>
+        <div className="flex-1">
+          <h4 className="font-bold text-sm mb-1">{title}</h4>
+          <p className="text-xs text-gray-400">{description}</p>
+          <div className="flex items-center gap-1 mt-2">
+            <Sparkle className="w-3 h-3 text-primary" />
+            <span className="text-xs font-mono text-primary">+{points} WP</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Progress Bar Component
+const BrainProgressBar = ({ level, progress }: { level: number; progress: number }) => {
+  return (
+    <div className="relative">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Badge className="bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
+            Level {level}
+          </Badge>
+          <span className="text-xs text-gray-400 font-mono">SMOOTHBRAIN → WRINKLEBRAIN</span>
+        </div>
+        <span className="text-sm font-bold text-primary">{progress}%</span>
+      </div>
+      <div className="h-3 bg-gray-900 rounded-full overflow-hidden border border-gray-800">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          className="h-full bg-gradient-to-r from-primary via-primary/80 to-accent relative"
+        >
+          <motion.div
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          />
+        </motion.div>
+      </div>
+    </div>
+  );
+};
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -60,6 +180,12 @@ export default function LandingPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   
+  // Gamification States
+  const [wrinklePoints, setWrinklePoints] = useState(0);
+  const [userLevel, setUserLevel] = useState(1);
+  const [achievements, setAchievements] = useState<string[]>([]);
+  const [smoothbrainScore, setSmoothbrainScore] = useState(100);
+  
   const heroRef = useRef(null);
   const featuresRef = useRef(null);
   const capabilitiesRef = useRef(null);
@@ -69,6 +195,60 @@ export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
+
+  // Fun scroll-based wrinkle point accumulation
+  useEffect(() => {
+    const unsubscribe = scrollYProgress.on("change", (latest) => {
+      const scrollPercentage = Math.floor(latest * 100);
+      setWrinklePoints(prev => {
+        const newPoints = scrollPercentage * 5;
+        if (newPoints > prev) {
+          // Level up every 500 points
+          if (newPoints >= 500 && prev < 500) {
+            setUserLevel(2);
+            toast({
+              title: "🎉 Level Up!",
+              description: "You're now a Level 2 Thinker!",
+            });
+          }
+          if (newPoints >= 1000 && prev < 1000) {
+            setUserLevel(3);
+            toast({
+              title: "🚀 Level Up!",
+              description: "Level 3 - Getting those wrinkles!",
+            });
+          }
+          if (newPoints >= 2000 && prev < 2000) {
+            setUserLevel(4);
+            toast({
+              title: "🧠 Level Up!",
+              description: "Level 4 - Big Brain Time!",
+            });
+          }
+          
+          // Unlock achievements
+          if (newPoints >= 100 && !achievements.includes("first_scroll")) {
+            setAchievements(prev => [...prev, "first_scroll"]);
+            toast({
+              title: "🧠 Achievement Unlocked!",
+              description: "First Wrinkle - You're getting smarter!",
+            });
+          }
+          if (newPoints >= 500 && !achievements.includes("halfway")) {
+            setAchievements(prev => [...prev, "halfway"]);
+            toast({
+              title: "🎯 Achievement Unlocked!",
+              description: "Halfway to Genius - Keep scrolling!",
+            });
+          }
+        }
+        return newPoints > prev ? newPoints : prev;
+      });
+      setSmoothbrainScore(Math.max(0, 100 - scrollPercentage));
+    });
+    
+    return () => unsubscribe();
+  }, [scrollYProgress, achievements, toast]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -231,6 +411,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-black overflow-x-hidden">
+      {/* Wrinkle Points Counter */}
+      <WrinkleCounter points={wrinklePoints} />
+      
       {/* Futuristic Grid Background */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(100,150,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(100,150,255,0.01)_1px,transparent_1px)] bg-[size:100px_100px] pointer-events-none" />
       
@@ -280,7 +463,7 @@ export default function LandingPage() {
             className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto font-light"
           >
             AI-powered market validation that analyzes millions of data points in real-time. 
-            Stop building products nobody wants.
+            Stop building products nobody wants. Gain wrinkles, not regrets!
           </motion.p>
 
           <motion.div 
@@ -295,6 +478,11 @@ export default function LandingPage() {
               onClick={() => {
                 setIsSignUp(true);
                 setShowAuthModal(true);
+                setWrinklePoints(prev => prev + 50);
+                toast({
+                  title: "🧠 +50 Wrinkle Points!",
+                  description: "Smart move! You're getting wrinklier!",
+                });
               }}
             >
               <Rocket className="mr-2 h-5 w-5" />
@@ -315,7 +503,7 @@ export default function LandingPage() {
             </Button>
           </motion.div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats with Gamification */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -324,15 +512,15 @@ export default function LandingPage() {
           >
             <div className="text-center">
               <p className="text-3xl font-bold text-primary mb-1">10K+</p>
-              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Ideas Validated</p>
+              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Wrinkles Added</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary mb-1">92%</p>
-              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Success Rate</p>
+              <p className="text-3xl font-bold text-primary mb-1">{smoothbrainScore}%</p>
+              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Smoothbrain Score</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-primary mb-1">60s</p>
-              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Analysis Time</p>
+              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">To Big Brain</p>
             </div>
           </motion.div>
         </div>
@@ -345,7 +533,7 @@ export default function LandingPage() {
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
         >
           <div className="flex flex-col items-center gap-2">
-            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider">Scroll to explore</p>
+            <p className="text-xs text-gray-500 font-mono uppercase tracking-wider">Scroll to gain wrinkles</p>
             <motion.div
               animate={{ y: [0, 10, 0] }}
               transition={{ duration: 1.5, repeat: Infinity }}
@@ -355,6 +543,65 @@ export default function LandingPage() {
           </div>
         </motion.div>
       </motion.section>
+
+      {/* Gamification Section */}
+      <section className="relative py-32 px-4">
+        <div className="max-w-7xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+            className="text-center mb-20"
+          >
+            <Badge className="mb-6 px-4 py-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
+              🧠 BRAIN METRICS
+            </Badge>
+            <h2 className="text-5xl md:text-6xl font-display font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+              Your Wrinkle Journey
+            </h2>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-12">
+              Track your progress from Smoothbrain to Wrinklebrain. Each validation adds wrinkles!
+            </p>
+            
+            {/* Progress Bar */}
+            <div className="max-w-2xl mx-auto mb-16">
+              <BrainProgressBar level={userLevel} progress={Math.min(100, (wrinklePoints / 20))} />
+            </div>
+          </motion.div>
+
+          {/* Achievements Grid */}
+          <div className="grid md:grid-cols-4 gap-6">
+            <AchievementBadge 
+              icon={Brain} 
+              title="First Wrinkle" 
+              description="Scroll the landing page" 
+              unlocked={achievements.includes("first_scroll")}
+              points={100}
+            />
+            <AchievementBadge 
+              icon={Trophy} 
+              title="Halfway Genius" 
+              description="Reach 500 wrinkle points" 
+              unlocked={achievements.includes("halfway")}
+              points={500}
+            />
+            <AchievementBadge 
+              icon={Flame} 
+              title="On Fire" 
+              description="Validate 5 ideas" 
+              unlocked={false}
+              points={1000}
+            />
+            <AchievementBadge 
+              icon={Award} 
+              title="Big Brain" 
+              description="Reach Level 10" 
+              unlocked={false}
+              points={5000}
+            />
+          </div>
+        </div>
+      </section>
 
       {/* What It Does Section */}
       <section className="relative py-32 px-4">
@@ -421,290 +668,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Showcase */}
-      <section ref={featuresRef} className="relative py-32 px-4">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="text-center mb-20"
-          >
-            <Badge className="mb-6 px-4 py-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
-              KEY FEATURES
-            </Badge>
-            <h2 className="text-5xl md:text-6xl font-display font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
-              Enterprise-Grade Intelligence
-            </h2>
-          </motion.div>
-
-          <div className="grid lg:grid-cols-2 gap-12">
-            {[
-              {
-                icon: BarChart3,
-                title: "Market Size Calculator",
-                description: "Get accurate TAM, SAM, and SOM calculations based on real data",
-                stats: "99.2% Accuracy"
-              },
-              {
-                icon: Users,
-                title: "Competitor Analysis",
-                description: "Deep dive into 50+ competitors with strengths and weaknesses",
-                stats: "50+ Data Points"
-              },
-              {
-                icon: MessageSquare,
-                title: "Sentiment Analysis",
-                description: "Real-time social media sentiment from millions of posts",
-                stats: "10M+ Posts Daily"
-              },
-              {
-                icon: LineChart,
-                title: "Growth Projections",
-                description: "AI-powered growth forecasts for the next 5 years",
-                stats: "5 Year Forecast"
-              },
-              {
-                icon: Shield,
-                title: "Risk Assessment",
-                description: "Identify potential challenges before they become problems",
-                stats: "200+ Risk Factors"
-              },
-              {
-                icon: Lightbulb,
-                title: "Pivot Suggestions",
-                description: "Get intelligent pivot recommendations when needed",
-                stats: "AI-Powered"
-              }
-            ].map((feature, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
-                className="flex gap-6 p-6 rounded-2xl bg-gradient-to-r from-gray-900/50 to-gray-950/50 border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(100,150,255,0.1)]"
-              >
-                <div className="shrink-0">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                    <feature.icon className="w-6 h-6 text-primary" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-2 text-white">{feature.title}</h3>
-                  <p className="text-gray-400 mb-3">{feature.description}</p>
-                  <Badge variant="outline" className="border-primary/30 text-primary">
-                    {feature.stats}
-                  </Badge>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Who It's For */}
-      <section className="relative py-32 px-4 bg-gradient-to-b from-black via-gray-950/50 to-black">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="text-center mb-20"
-          >
-            <Badge className="mb-6 px-4 py-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
-              TARGET USERS
-            </Badge>
-            <h2 className="text-5xl md:text-6xl font-display font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
-              Built for Innovators
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-4 gap-6">
-            {[
-              { icon: Rocket, title: "Startup Founders", count: "2.5K+" },
-              { icon: Briefcase, title: "Product Managers", count: "3.2K+" },
-              { icon: Cpu, title: "Tech Entrepreneurs", count: "1.8K+" },
-              { icon: Award, title: "VCs & Investors", count: "500+" }
-            ].map((user, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="text-center p-8 rounded-2xl bg-gradient-to-b from-gray-900/30 to-gray-950/30 border border-gray-800 hover:border-primary/30 transition-all duration-300"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(100,150,255,0.2)]">
-                  <user.icon className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-bold mb-2 text-white">{user.title}</h3>
-                <p className="text-2xl font-bold text-primary">{user.count}</p>
-                <p className="text-xs text-gray-500 mt-1">Active Users</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section ref={testimonialsRef} className="relative py-32 px-4">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="text-center mb-20"
-          >
-            <Badge className="mb-6 px-4 py-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
-              SOCIAL PROOF
-            </Badge>
-            <h2 className="text-5xl md:text-6xl font-display font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
-              Trusted by Founders
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Sarah Chen",
-                role: "Founder, TechFlow",
-                content: "Saved us 3 months of market research. The AI insights were spot-on!",
-                rating: 5
-              },
-              {
-                name: "Marcus Johnson",
-                role: "CEO, DataPulse",
-                content: "Found product-market fit in weeks instead of months. Game changer!",
-                rating: 5
-              },
-              {
-                name: "Emily Rodriguez",
-                role: "Product Lead, NextGen",
-                content: "The competitor analysis alone is worth 10x the price. Incredible tool!",
-                rating: 5
-              }
-            ].map((testimonial, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
-              >
-                <Card className="bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex gap-1 mb-4">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-primary text-primary" />
-                      ))}
-                    </div>
-                    <p className="text-gray-300 mb-6 italic">"{testimonial.content}"</p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary">
-                          {testimonial.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">{testimonial.name}</p>
-                        <p className="text-sm text-gray-500">{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Preview */}
-      <section ref={pricingRef} className="relative py-32 px-4 bg-gradient-to-b from-black via-gray-950/50 to-black">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="text-center mb-20"
-          >
-            <Badge className="mb-6 px-4 py-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
-              PRICING
-            </Badge>
-            <h2 className="text-5xl md:text-6xl font-display font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
-              Start Free, Scale Fast
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                name: "Starter",
-                price: "Free",
-                period: "forever",
-                features: ["5 validations/month", "Basic analysis", "Email support"],
-                cta: "Start Free",
-                popular: false
-              },
-              {
-                name: "Professional",
-                price: "$49",
-                period: "/month",
-                features: ["Unlimited validations", "Advanced AI analysis", "Priority support", "API access"],
-                cta: "Start Trial",
-                popular: true
-              },
-              {
-                name: "Enterprise",
-                price: "Custom",
-                period: "pricing",
-                features: ["White label", "Custom models", "Dedicated support", "SLA guarantee"],
-                cta: "Contact Sales",
-                popular: false
-              }
-            ].map((plan, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
-                className="relative"
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                    <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0">
-                      MOST POPULAR
-                    </Badge>
-                  </div>
-                )}
-                <Card className={`h-full ${plan.popular ? 'bg-gradient-to-b from-gray-900 to-gray-950 border-primary/30 shadow-[0_0_40px_rgba(100,150,255,0.2)]' : 'bg-gray-950/80 border-gray-800'} hover:border-primary/30 transition-all duration-300`}>
-                  <CardHeader className="text-center pb-8">
-                    <CardTitle className="text-2xl mb-4">{plan.name}</CardTitle>
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-5xl font-bold text-white">{plan.price}</span>
-                      <span className="text-gray-500">{plan.period}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-primary shrink-0" />
-                          <span className="text-gray-300">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      className={`w-full ${plan.popular ? 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg' : ''}`}
-                      variant={plan.popular ? "default" : "outline"}
-                    >
-                      {plan.cta}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA */}
       <section className="relative py-32 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -717,11 +680,11 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl" />
             <div className="relative bg-gradient-to-b from-gray-900/90 to-gray-950/90 rounded-3xl p-12 border border-primary/30 shadow-[0_0_60px_rgba(100,150,255,0.3)]">
               <h2 className="text-4xl md:text-5xl font-display font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300">
-                Ready to Validate Your Idea?
+                Ready to Gain Some Wrinkles?
               </h2>
               <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-                Join thousands of successful founders who validated their ideas with Smoothbrains. 
-                Start your free trial today.
+                Join thousands of successful founders who evolved from Smoothbrains to Wrinklebrains. 
+                Start your neural evolution today!
               </p>
               <Button 
                 size="lg" 
@@ -729,38 +692,21 @@ export default function LandingPage() {
                 onClick={() => {
                   setIsSignUp(true);
                   setShowAuthModal(true);
+                  setWrinklePoints(prev => prev + 100);
+                  toast({
+                    title: "🚀 +100 Wrinkle Points!",
+                    description: "You're evolving rapidly!",
+                  });
                 }}
               >
                 Get Started Now
                 <ArrowUpRight className="ml-2 h-5 w-5" />
               </Button>
-              <p className="text-sm text-gray-500 mt-6">No credit card required • 5 free validations</p>
+              <p className="text-sm text-gray-500 mt-6">No credit card required • 5 free validations • Instant wrinkles</p>
             </div>
           </motion.div>
         </div>
       </section>
-
-      {/* Sticky Bottom CTA */}
-      <motion.div 
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5, delay: 1 }}
-        className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none z-40"
-      >
-        <div className="max-w-7xl mx-auto flex justify-center pointer-events-auto">
-          <Button 
-            size="lg" 
-            className="px-8 py-4 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-[0_0_40px_rgba(100,150,255,0.4)] hover:shadow-[0_0_60px_rgba(100,150,255,0.6)] transition-all duration-300"
-            onClick={() => {
-              setIsSignUp(true);
-              setShowAuthModal(true);
-            }}
-          >
-            <Rocket className="mr-2 h-5 w-5" />
-            Get Started - It's Free
-          </Button>
-        </div>
-      </motion.div>
 
       {/* Auth Modal */}
       {showAuthModal && (
@@ -779,10 +725,10 @@ export default function LandingPage() {
             <Card className="w-full max-w-md bg-gray-950/95 border-gray-800">
               <CardHeader className="space-y-1">
                 <CardTitle className="text-2xl text-center">
-                  {isSignUp ? "Create your account" : "Welcome back"}
+                  {isSignUp ? "Join the Wrinkle Revolution" : "Welcome back, Thinker"}
                 </CardTitle>
                 <CardDescription className="text-center">
-                  {isSignUp ? "Start your free trial today" : "Sign in to continue"}
+                  {isSignUp ? "Start your journey to big brain status" : "Continue gaining those wrinkles"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
