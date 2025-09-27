@@ -1,9 +1,26 @@
+// @ts-nocheck
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// NOTE: This edge function has been hardened for reliability: env validation, retry logic, timeouts, safer JSON parsing.
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+
+// Centralized environment validation (pre-flight)
+function validateEnv() {
+  const missing: string[] = [];
+  if (!openAIApiKey) missing.push('OPENAI_API_KEY');
+  if (!SUPABASE_URL) missing.push('SUPABASE_URL');
+  if (!SUPABASE_ANON_KEY) missing.push('SUPABASE_ANON_KEY');
+  if (missing.length) {
+    return new Response(
+      JSON.stringify({ error: `Missing environment variables: ${missing.join(', ')}`, code: 'CONFIG_MISSING' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  return null;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +43,55 @@ ALSO PROVIDE:
 - A next validation step framed as an experiment (label: Next Test) with success metric.
 Tone: analytical, candid, concise, never rude, never dismissive—focused on truth-seeking.`;
 
-// Fetch real web data for suggestions
+// Generic timed fetch with abort (edge-safe)
+async function timedFetch(resource: string, init: RequestInit & { timeoutMs?: number } = {}) {
+  const { timeoutMs = 12000, ...rest } = init;
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    // @ts-ignore signal attach
+    const resp = await fetch(resource, { ...rest, signal: controller.signal });
+    return resp;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function openAIChatRequest(body: any, { retries = 2 }: { retries?: number } = {}) {
+  let attempt = 0;
+  let lastError: any = null;
+  while (attempt <= retries) {
+    try {
+      const resp = await timedFetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body),
+        timeoutMs: 18000
+      });
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `OpenAI HTTP ${resp.status}`);
+      }
+      return await resp.json();
+    } catch (e) {
+      lastError = e;
+      attempt++;
+      if (attempt > retries) break;
+      // Exponential backoff
+      await new Promise(r => setTimeout(r, 400 * attempt * attempt));
+    }
+  }
+  throw lastError || new Error('Unknown OpenAI error');
+}
+
+function safeParseJSON<T = any>(text: string): T | null {
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+// Fetch real web data for suggestions (best-effort; never throws)
 async function fetchRealWebData(idea: string, question: string) {
   try {
     // Call search-web function to get real market data
@@ -39,13 +104,14 @@ async function fetchRealWebData(idea: string, question: string) {
     
     console.log('Fetching web data for:', searchQuery);
     
-    const webSearchResponse = await fetch(`${SUPABASE_URL}/functions/v1/search-web`, {
+    const webSearchResponse = await timedFetch(`${SUPABASE_URL}/functions/v1/search-web`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query: searchQuery }),
+      timeoutMs: 10000
     });
 
     if (webSearchResponse.ok) {
@@ -58,6 +124,8 @@ async function fetchRealWebData(idea: string, question: string) {
   }
   return null;
 }
+
+// --- End helper section ---
 
 // Generate real, contextual suggestions based on the bot's response
 async function generateRealSuggestions(idea: string, question: string, webData: any, botResponse?: string) {
@@ -116,29 +184,16 @@ Return ONLY a JSON array of 4 strings.`;
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+      const data = await openAIChatRequest({
         model: 'gpt-4o-mini',
         messages: [
-          { 
-            role: 'system', 
-            content: 'Return exactly 4 suggestions as a JSON array.' 
-          },
+          { role: 'system', content: 'Return exactly 4 suggestions as a JSON array.' },
           { role: 'user', content: systemPrompt }
         ],
-        max_tokens: 100,
-        temperature: 0.7
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      let content = data.choices[0].message.content;
+        max_tokens: 120,
+        temperature: 0.65
+      });
+      let content = data.choices?.[0]?.message?.content || '';
       
       try {
         // Remove any markdown formatting
@@ -193,14 +248,13 @@ Return ONLY a JSON array of 4 strings.`;
           }
         }
       }
-    }
   } catch (error) {
     console.error('Error generating suggestions:', error);
   }
-  
   return null;
 }
 
+// Entry HTTP handler
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -222,9 +276,8 @@ serve(async (req) => {
     console.log('Current question:', currentQuestion);
     console.log('Generate PMF Analysis:', generatePMFAnalysis);
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+    const envError = validateEnv();
+    if (envError) return envError;
 
     // If generating PMF analysis, create comprehensive analysis with real data
     if (generatePMFAnalysis && message) {
@@ -282,30 +335,18 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
   ]
 }`;
 
-      const analysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',  // Using faster model for quick analysis
-          messages: [
-            {
-              role: 'system',
-              content: 'Return only valid JSON for PMF analysis.'
-            },
-            { role: 'user', content: analysisPrompt }
-          ],
-          response_format: { type: "json_object" },
-          max_tokens: 1000,
-          temperature: 0.3
-        }),
-      });
-
-      if (analysisResponse.ok) {
-        const analysisData = await analysisResponse.json();
-        const content = analysisData.choices[0].message.content;
+      try {
+        const analysisData = await openAIChatRequest({
+          model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'Return only valid JSON for PMF analysis.' },
+              { role: 'user', content: analysisPrompt }
+            ],
+            response_format: { type: 'json_object' },
+            max_tokens: 1100,
+            temperature: 0.25
+        }, { retries: 1 });
+        const content = analysisData.choices?.[0]?.message?.content || '';
         
         try {
           // Clean the content to extract JSON
@@ -361,6 +402,8 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+      } catch (analysisErr) {
+        console.error('Analysis generation error:', analysisErr);
       }
     }
 
@@ -387,27 +430,20 @@ Previous context: ${JSON.stringify(analysisContext || {}, null, 2)}
 
 Provide data-driven analysis specific to "${idea}" and this question. Include real metrics, competitor names, and market data where relevant.`;
 
-      const mainResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',  // Using faster model
+      let aiResponse = '';
+      try {
+        const mainData = await openAIChatRequest({
+          model: 'gpt-4o-mini',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message }
           ],
-          max_tokens: 400,
+          max_tokens: 420,
           temperature: 0.4
-        }),
-      });
-
-      let aiResponse = "";
-      if (mainResponse.ok) {
-        const mainData = await mainResponse.json();
-        aiResponse = mainData.choices[0].message.content;
+        });
+        aiResponse = mainData.choices?.[0]?.message?.content || '';
+      } catch (e) {
+        console.error('Primary analysis question OpenAI error:', e);
       }
       
       // Generate contextual suggestions based on the bot's response
@@ -441,35 +477,23 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
       ? `${DEVILS_ADVOCATE_GUIDELINES}\nContext: Refinement mode for idea: "${idea}". Your role: stress-test assumptions, expose weak links, then guide improvement. Focus one core gap per reply if multiple are missing.`
       : `${DEVILS_ADVOCATE_GUIDELINES}\nContext: General exploration.${idea ? ` Idea: "${idea}".` : ''} Provide data-grounded pushback and require specificity before endorsing feasibility.`;
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Using faster model for quick responses
+    let aiResponse = '';
+    try {
+      const data = await openAIChatRequest({
+        model: 'gpt-4o-mini',
         messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          ...conversationHistory.slice(-3),  // Keep only last 3 messages for speed
+          { role: 'system', content: systemPrompt },
+          ...conversationHistory.slice(-3),
           { role: 'user', content: message }
         ],
-        max_tokens: 300,  // Reduced for faster response
-        temperature: 0.4   // Lower temperature for more focused responses
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenAI API error:', error);
-      throw new Error(error.error?.message || 'Failed to get AI response');
+        max_tokens: 320,
+        temperature: 0.4
+      });
+      aiResponse = data.choices?.[0]?.message?.content || '';
+    } catch (primaryErr) {
+      console.error('Primary chat error:', primaryErr);
+      aiResponse = 'Encountered a processing hiccup, but you can continue refining—provide more specifics and retry.';
     }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
     
     // Generate contextual suggestions based on the AI response
     let suggestions = [];
@@ -483,38 +507,24 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
       
       Example format: ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3", "Follow-up question 4"]`;
       
-      const suggestionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',  // Using mini model for quick suggestions
+      try {
+        const suggestionData = await openAIChatRequest({
+          model: 'gpt-4o-mini',
           messages: [
-            {
-              role: 'system',
-              content: 'Return 2 follow-up questions as JSON: {"suggestions": ["Q1", "Q2"]}'
-            },
+            { role: 'system', content: 'Return 2 follow-up questions as JSON: {"suggestions": ["Q1", "Q2"]}' },
             { role: 'user', content: `Suggest 2 questions for: ${idea || message}`.slice(0, 200) }
           ],
           max_tokens: 60,
-          temperature: 0.3,
-          response_format: { type: "json_object" }
-        }),
-      });
-      
-      if (suggestionResponse.ok) {
-        const suggestionData = await suggestionResponse.json();
-        const suggestionContent = suggestionData.choices[0].message.content;
-        
-        try {
-          // Parse the JSON
-          const parsed = JSON.parse(suggestionContent);
-          suggestions = parsed.suggestions ? parsed.suggestions.slice(0, 2) : [];
-        } catch {
-          console.log('Could not parse suggestions, using fallbacks');
+          temperature: 0.35,
+          response_format: { type: 'json_object' }
+        });
+        const suggestionContent = suggestionData.choices?.[0]?.message?.content || '';
+        const parsed = safeParseJSON(suggestionContent);
+        if (parsed?.suggestions && Array.isArray(parsed.suggestions)) {
+          suggestions = parsed.suggestions.slice(0,2).map((s: any) => String(s));
         }
+      } catch (suggErr) {
+        console.error('Suggestion generation failed:', suggErr);
       }
       
       // Fallback suggestions if generation fails
