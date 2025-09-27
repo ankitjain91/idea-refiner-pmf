@@ -79,6 +79,9 @@ export default function AuthPage() {
         title: "Success!",
         description: "Check your email to confirm your account.",
       });
+      
+      // Navigate to ideachat with session picker state
+      navigate("/ideachat", { state: { showSessionPicker: true } });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -104,7 +107,7 @@ export default function AuthPage() {
 
       if (error) throw error;
 
-      navigate("/ideachat");
+      navigate("/ideachat", { state: { showSessionPicker: true } });
     } catch (error: any) {
       toast({
         title: "Error",

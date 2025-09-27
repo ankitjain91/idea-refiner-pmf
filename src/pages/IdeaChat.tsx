@@ -30,8 +30,10 @@ const IdeaChatPage = () => {
   const [analysisCompleted, setAnalysisCompleted] = useState<boolean>(() => {
     try { return localStorage.getItem(LS_KEYS.analysisCompleted) === 'true'; } catch { return false; }
   });
-  // Session picker overlay state
-  const [showSessionPicker, setShowSessionPicker] = useState(false);
+  // Session picker overlay state - check if we should show it from navigation state
+  const [showSessionPicker, setShowSessionPicker] = useState(() => {
+    return location.state?.showSessionPicker || false;
+  });
   const sessionDecisionKey = 'pmf.session.decisionMade';
   const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);
@@ -98,8 +100,13 @@ const IdeaChatPage = () => {
     };
   }, []);
 
-  // Restore last conversation state if returning from dashboard
+  // Restore last conversation state if returning from dashboard  
   useEffect(() => {
+    // Clear navigation state after using it
+    if (location.state?.showSessionPicker) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    
     const fromDash = localStorage.getItem('returnToChat');
     // If there's a stored desired path (e.g., after session load) and we're not on it, navigate.
     try {
