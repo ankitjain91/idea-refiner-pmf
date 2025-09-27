@@ -20,20 +20,11 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { createSession } = useSession();
   
-  // Create a new session after successful authentication
-  const handleAuthSuccess = async () => {
-    try {
-      // Create new session
-      await createSession("New Session");
-      // Navigate to ideachat
-      navigate('/ideachat', { replace: true });
-    } catch (error) {
-      console.error("Error creating session after auth:", error);
-      // Still navigate to ideachat even if session creation fails
-      navigate('/ideachat', { replace: true });
-    }
+  // Handle successful authentication
+  const handleAuthSuccess = () => {
+    // Just navigate, session creation will be handled by SessionContext
+    navigate('/ideachat', { replace: true });
   };
   
   // Listen for auth state changes

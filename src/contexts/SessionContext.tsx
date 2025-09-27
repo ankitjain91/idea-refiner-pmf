@@ -483,17 +483,40 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     loadSessions();
   }, [loadSessions]);
 
-  // Auto-load last active session on initial mount once sessions are fetched
+  // Auto-load last active session or create first session
   useEffect(() => {
-    if (!currentSession && sessions.length > 0) {
-      try {
-        const lastId = localStorage.getItem('currentSessionId');
-        if (lastId && sessions.some(s => s.id === lastId)) {
-          loadSession(lastId);
+    const initializeSession = async () => {
+      // Only proceed if we have loaded sessions and no current session
+      if (!loading && sessions !== undefined && !currentSession) {
+        if (sessions.length > 0) {
+          // Load last active session
+          try {
+            const lastId = localStorage.getItem('currentSessionId');
+            if (lastId && sessions.some(s => s.id === lastId)) {
+              await loadSession(lastId);
+            } else {
+              // Load the first session if no last ID
+              await loadSession(sessions[0].id);
+            }
+          } catch (error) {
+            console.error('Error loading session:', error);
+          }
+        } else {
+          // Create first session only if user is authenticated and has no sessions
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            try {
+              await createSession("My First Session");
+            } catch (error) {
+              console.error('Error creating initial session:', error);
+            }
+          }
         }
-      } catch {}
-    }
-  }, [sessions, currentSession]);
+      }
+    };
+
+    initializeSession();
+  }, [sessions, currentSession, loading]);
 
   return (
     <SessionContext.Provider
