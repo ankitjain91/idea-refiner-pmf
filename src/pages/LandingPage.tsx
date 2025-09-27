@@ -665,8 +665,8 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto font-light"
           >
-            AI-powered market validation that analyzes millions of data points in real-time. 
-            Stop building products nobody wants. Gain wrinkles, not regrets!
+            Educational market analysis tool using public data aggregation. Results are estimates for learning purposes. 
+            Not financial or legal advice. Individual results may vary.*
           </motion.p>
 
           <motion.div 
@@ -714,16 +714,16 @@ export default function LandingPage() {
             className="grid grid-cols-3 gap-8 max-w-2xl mx-auto"
           >
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary mb-1">10K+</p>
-              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Wrinkles Added</p>
+              <p className="text-3xl font-bold text-primary mb-1">Est. 2024</p>
+              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Platform Launch</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-primary mb-1">{smoothbrainScore}%</p>
-              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Smoothbrain Score</p>
+              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Algorithm Accuracy†</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary mb-1">60s</p>
-              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">To Big Brain</p>
+              <p className="text-3xl font-bold text-primary mb-1">~60s</p>
+              <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Avg. Analysis Time</p>
             </div>
           </motion.div>
         </div>
@@ -928,19 +928,19 @@ export default function LandingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">100 brain smoothings/month</span>
+                      <span className="text-gray-300">5 analyses per month</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Basic wrinkle detection</span>
+                      <span className="text-gray-300">Public data insights</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Gentle brain massage</span>
+                      <span className="text-gray-300">Educational resources</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Email support</span>
+                      <span className="text-gray-300">Community support</span>
                     </div>
                   </div>
                   <Button 
@@ -984,23 +984,23 @@ export default function LandingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Unlimited brain polishing</span>
+                      <span className="text-gray-300">Unlimited analyses</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Advanced wrinkle removal</span>
+                      <span className="text-gray-300">Advanced market research</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Priority smoothing queue</span>
+                      <span className="text-gray-300">Priority processing</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Custom brain reports</span>
+                      <span className="text-gray-300">Detailed reports (PDF)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">24/7 neural support</span>
+                      <span className="text-gray-300">Email & chat support</span>
                     </div>
                   </div>
                   <Button 
@@ -1038,23 +1038,23 @@ export default function LandingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Everything in Wrinkle Eraser</span>
+                      <span className="text-gray-300">Everything in Pro</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Quantum brain smoothing</span>
+                      <span className="text-gray-300">Custom data sources</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Personal brain butler</span>
+                      <span className="text-gray-300">Dedicated account manager</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">Direct neural API access</span>
+                      <span className="text-gray-300">API access (rate limited)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-gray-300">White-glove onboarding</span>
+                      <span className="text-gray-300">Team collaboration tools</span>
                     </div>
                   </div>
                   <Button 
@@ -1124,6 +1124,22 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* Legal Disclaimer Footer */}
+      <footer className="py-8 px-4 border-t border-gray-800">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-xs text-gray-500 mb-4">
+            * This platform provides educational analysis tools based on publicly available data. Results are algorithmic estimates and should not be considered professional advice.
+          </p>
+          <p className="text-xs text-gray-500 mb-4">
+            † Accuracy metrics are based on internal testing and may vary. Past performance does not guarantee future results.
+          </p>
+          <p className="text-xs text-gray-500">
+            By using this platform, you acknowledge that all analyses are for informational purposes only. We are not responsible for business decisions made based on our tools.
+            Please consult with qualified professionals for investment, legal, or business advice. Terms of Service and Privacy Policy apply.
+          </p>
+        </div>
+      </footer>
 
       {/* Auth Modal */}
       {showAuthModal && (
