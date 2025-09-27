@@ -384,7 +384,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const answers = localStorage.getItem('userAnswers');
       const metadata = localStorage.getItem('ideaMetadata');
       const refinements = localStorage.getItem('userRefinements');
-      const chatHistory = localStorage.getItem('chatHistory');
+  const chatHistory = localStorage.getItem('chatHistory');
+  const derivedPersonas = localStorage.getItem('pmf.derived.personas');
+  const derivedPains = localStorage.getItem('pmf.derived.pains');
+  const derivedKeywords = localStorage.getItem('pmf.derived.keywords');
+  const derivedPricing = localStorage.getItem('pmf.derived.pricing');
       const pmfFeatures = localStorage.getItem('pmfFeatures');
       const pmfTabHistory = localStorage.getItem('pmfTabHistory');
   const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
@@ -395,6 +399,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const parsedMetadata = metadata ? JSON.parse(metadata) : {};
       const parsedRefinements = refinements ? JSON.parse(refinements) : [];
       const parsedChat = chatHistory ? JSON.parse(chatHistory) : [];
+      const parsedDerived = {
+        personas: derivedPersonas ? JSON.parse(derivedPersonas) : [],
+        pains: derivedPains ? JSON.parse(derivedPains) : [],
+        keywords: derivedKeywords ? JSON.parse(derivedKeywords) : [],
+        pricing: derivedPricing ? JSON.parse(derivedPricing) : null
+      };
       const parsedFeatures = pmfFeatures ? JSON.parse(pmfFeatures) : [];
       const parsedTabHistory = pmfTabHistory ? JSON.parse(pmfTabHistory) : [];
 
@@ -411,7 +421,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         analysisData: {
           metadata: parsedMetadata,
           features: parsedFeatures,
-          tabHistory: parsedTabHistory
+          tabHistory: parsedTabHistory,
+          derived: parsedDerived,
+          lastMessageAt: parsedChat.length ? parsedChat[parsedChat.length-1]?.timestamp : null
         },
         scrollPosition: window.scrollY,
         timestamp: new Date().toISOString(),
