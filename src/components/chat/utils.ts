@@ -111,30 +111,33 @@ export const generateSuggestionExplanation = (suggestionText: string): string =>
 
 // Helper function to detect if text looks like an idea description (more lenient)
 export const isIdeaDescription = (text: string): boolean => {
-  if (text.length <= 20) return false;
+  // Very lenient check - accept almost anything that looks like an idea
+  if (text.length <= 15) return false;
   
-  // Check for trickery first
+  // Check for obvious non-ideas
   const trickery = detectTrickery(text);
   if (trickery.isTricky) return false;
   
-  // Must not start with pure question words (but allow "I want to...")
-  if (text.toLowerCase().match(/^(what is|how do|why should|when will|where can|tell me|explain)/)) {
+  // Reject pure greetings or test messages
+  if (text.toLowerCase().match(/^(hi|hello|hey|test|testing|lol|haha|ok|okay|sure|yes|no)$/)) {
     return false;
   }
   
-  // More lenient business/product indicators
+  // Very lenient business/product indicators - expanded list
   const businessWords = [
     'app', 'platform', 'service', 'product', 'business', 'startup', 'company', 
     'tool', 'system', 'website', 'application', 'marketplace', 'solution',
     'build', 'create', 'help', 'solve', 'automate', 'connect', 'manage',
-    'for', 'that', 'helps', 'enables', 'allows', 'makes'
+    'for', 'that', 'helps', 'enables', 'allows', 'makes', 'expert', 
+    'consult', 'session', 'call', 'retired', 'micro', 'minute', 'hour',
+    'connect', 'match', 'find', 'share', 'track', 'monitor', 'optimize'
   ];
   const hasBusinessContext = businessWords.some(word => text.toLowerCase().includes(word));
   
-  // More lenient - accept shorter but focused descriptions
-  const isSubstantial = text.split(' ').length >= 5;
+  // Very lenient - accept even short descriptions with business words OR longer messages
+  const isSubstantial = text.split(' ').length >= 3 || text.length > 30;
   
-  return hasBusinessContext && isSubstantial;
+  return hasBusinessContext || isSubstantial;
 };
 
 // Helper function to create idea preview

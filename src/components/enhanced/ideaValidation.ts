@@ -10,8 +10,30 @@ export interface ValidationResult {
 
 export async function validateFirstIdea(messageText: string, wrinklePoints: number, hasValidIdea: boolean): Promise<ValidationResult> {
   if (hasValidIdea) return { valid: true };
-  const heuristicLooksLikeIdea = isIdeaDescription(messageText);
-  const validationPrompt = `You are a FLEXIBLE startup idea validator. Determine if the user submission shows a reasonable startup idea attempt. Accept ideas that have at least 2 of these 3 elements: (1) some target audience/user mentioned, (2) a problem or need identified, (3) a solution direction or approach suggested. Be generous - even if one element is vague or incomplete, if you can see entrepreneurial intent and it's not pure nonsense/joke, mark it valid. Only reject obvious non-ideas like jokes, pure questions, or completely unrelated content. Respond ONLY with minified JSON: {"valid": true|false, "reason": "short reason why or what is missing", "improvementHints": ["array of 2-4 very tactical improvement prompts the user can answer" ]}. User submission: """${messageText}"""`;
+  
+  // Very lenient heuristic - accept if it mentions any problem-solving concept
+  const heuristicLooksLikeIdea = messageText.length > 15 && (
+    messageText.toLowerCase().includes('connect') ||
+    messageText.toLowerCase().includes('platform') ||
+    messageText.toLowerCase().includes('app') ||
+    messageText.toLowerCase().includes('tool') ||
+    messageText.toLowerCase().includes('service') ||
+    messageText.toLowerCase().includes('help') ||
+    messageText.toLowerCase().includes('solve') ||
+    messageText.toLowerCase().includes('build') ||
+    messageText.toLowerCase().includes('create') ||
+    messageText.toLowerCase().includes('startup') ||
+    messageText.toLowerCase().includes('business') ||
+    messageText.toLowerCase().includes('idea') ||
+    messageText.toLowerCase().includes('automate') ||
+    messageText.toLowerCase().includes('manage') ||
+    messageText.toLowerCase().includes('track') ||
+    messageText.toLowerCase().includes('find') ||
+    messageText.toLowerCase().includes('match') ||
+    messageText.toLowerCase().includes('marketplace')
+  );
+  
+  const validationPrompt = `You are an EXTREMELY LENIENT startup idea validator. Accept ANY attempt at describing a business idea, no matter how vague. Only reject if it's clearly just a greeting, random text, or explicit joke. If there's ANY mention of solving a problem, connecting people, building something, or providing value, mark it VALID. Respond ONLY with JSON: {"valid": true|false, "reason": "brief reason"}. User submission: """${messageText}"""`;
   try {
     const { data, error } = await supabase.functions.invoke('idea-chat', { body: { message: validationPrompt, conversationHistory: [] }});
     if (error) throw error;
@@ -20,7 +42,8 @@ export async function validateFirstIdea(messageText: string, wrinklePoints: numb
       const jsonMatch = data?.response?.match(/\{[\s\S]*\}/);
       if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
     } catch {}
-    const isValid = parsed.valid === true && heuristicLooksLikeIdea;
+    // Be EXTREMELY lenient - accept if either check passes OR if it's long enough and seems intentional
+    const isValid = parsed.valid === true || heuristicLooksLikeIdea || (messageText.length > 30 && !messageText.toLowerCase().match(/^(hi|hello|hey|test|testing|lol|haha)/));
     if (!isValid) {
       const funnyLines = [
         'That was a vibe, not a startup. Need: WHO + painful workflow + wedge.',
@@ -48,7 +71,8 @@ export async function validateFirstIdea(messageText: string, wrinklePoints: numb
     }
     return { valid: true, preview: createIdeaPreview(messageText) };
   } catch {
-    if (isIdeaDescription(messageText)) {
+    // If validation fails, be lenient and accept anything that looks like an idea attempt
+    if (messageText.length > 20) {
       return { valid: true, preview: createIdeaPreview(messageText) };
     }
     const gateMessage: Message = {
