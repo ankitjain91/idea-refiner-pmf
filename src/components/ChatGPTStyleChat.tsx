@@ -865,6 +865,8 @@ export default function ChatGPTStyleChat({
       setIsRefinementMode(true);
       emitMode('refine');
       setInput('');
+      // Immediately engage with an initial AI response about the idea
+      await handleSuggestionRefinement(input);
       return;
     }
 
@@ -872,6 +874,7 @@ export default function ChatGPTStyleChat({
     if (isRefinementMode && !isAnalyzing) {
       setInput('');
       setIsLoading(true);
+      setTypingStatus('Formulating a helpful reply...');
       
       // Add loading animation message with bot icon showing
       const loadingMessage: Message = {
