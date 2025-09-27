@@ -156,10 +156,14 @@ Share your business concept and I'll help you refine it with sharp questions, ma
 What's your startup idea?`,
         timestamp: new Date(),
         suggestions: [
-          "I want to build [specific solution] for [target users] who struggle with [exact problem]",
-          "My idea solves [pain point] by [unique approach] for [niche market]",
-          "I'm creating [product/service] that helps [specific role] overcome [workflow friction]",
-          "My startup addresses [real problem I've experienced] through [innovative solution]"
+          "AI-powered mental health companion that detects emotional patterns through voice analysis during daily check-ins",
+          "Blockchain-based skill verification platform where professionals earn NFT badges from peer reviews",
+          "Micro-learning app that teaches coding through 5-minute AR puzzles you solve in physical space",
+          "Carbon credit marketplace for individuals to offset daily activities with verified local green projects",
+          "AI interior designer that generates room layouts from a photo and your Pinterest boards",
+          "Subscription service for renting high-end work equipment (cameras, tools, instruments) by the hour",
+          "Platform connecting retired experts with startups for micro-consulting sessions (15-30 min calls)",
+          "Smart grocery list that predicts what you need based on purchase patterns and recipe history"
         ]
       };
       setMessages([welcomeMessage]);
