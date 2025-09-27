@@ -3,14 +3,13 @@ import { LS_KEYS } from '@/lib/storage-keys';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { useNavigate } from 'react-router-dom';
-import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
 import { Loader2, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DynamicStatusBar } from './DynamicStatusBar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SessionPicker } from '@/components/SessionPicker';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+
 import EnhancedIdeaChat from '@/components/EnhancedIdeaChat';
 
 const EnhancedIdeaChatPage = () => {
@@ -56,75 +55,65 @@ const EnhancedIdeaChatPage = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen max-h-screen flex w-full bg-gradient-to-br from-background via-background to-muted/20 overflow-hidden">
-        <SessionPicker 
-          open={showSessionPicker} 
-          onSessionSelected={() => setShowSessionPicker(false)}
-          allowClose={!!currentSession}
-          onClose={() => setShowSessionPicker(false)}
-        />
-        
-        {/* Sidebar */}
-        <AppSidebar />
-        
-        {/* Main Content */}
-        <SidebarInset className="flex-1 min-h-0">
-          <div className="flex flex-col h-screen max-h-screen">
-            {/* Header */}
-            <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-              <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3">
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col">
-                    <h1 className="text-sm sm:text-lg font-semibold flex items-center gap-1 sm:gap-2">
-                      {currentSession && (
-                        <span className="text-xs sm:text-sm text-foreground">
-                          {currentSession.name}
-                          {saving && (
-                            <span className="text-xs text-blue-500 ml-1">Saving...</span>
-                          )}
-                        </span>
-                      )}
-                    </h1>
-                    <p className="text-xs text-muted-foreground">
-                      Refine · Analyze · Iterate
-                      {currentSession && (
-                        <span className="ml-2 text-green-600">✓ Auto-saving</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSessionPicker(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <FolderOpen className="w-4 h-4" />
-                    <span className="hidden sm:inline">Sessions</span>
-                  </Button>
-                  <ThemeToggle />
-                  <UserMenu />
-                </div>
-              </div>
+    <div className="flex flex-col h-screen max-h-screen">
+      <SessionPicker 
+        open={showSessionPicker} 
+        onSessionSelected={() => setShowSessionPicker(false)}
+        allowClose={!!currentSession}
+        onClose={() => setShowSessionPicker(false)}
+      />
+      
+      {/* Header */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
+        <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+              <h1 className="text-sm sm:text-lg font-semibold flex items-center gap-1 sm:gap-2">
+                {currentSession && (
+                  <span className="text-xs sm:text-sm text-foreground">
+                    {currentSession.name}
+                    {saving && (
+                      <span className="text-xs text-blue-500 ml-1">Saving...</span>
+                    )}
+                  </span>
+                )}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Refine · Analyze · Iterate
+                {currentSession && (
+                  <span className="ml-2 text-green-600">✓ Auto-saving</span>
+                )}
+              </p>
             </div>
-
-            {/* Chat Content */}
-            <div className="flex-1 min-h-0 p-1 sm:p-2 lg:p-4">
-              <EnhancedIdeaChat 
-                onAnalysisReady={handleAnalysisReady} 
-                sessionName={currentSession?.name || 'New Chat Session'}
-              />
-            </div>
-
-            {/* Status Bar */}
-            <DynamicStatusBar />
           </div>
-        </SidebarInset>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSessionPicker(true)}
+              className="flex items-center gap-2"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Sessions</span>
+            </Button>
+            <ThemeToggle />
+            <UserMenu />
+          </div>
+        </div>
       </div>
-    </SidebarProvider>
+
+      {/* Chat Content - reduced padding on left side */}
+      <div className="flex-1 min-h-0 pl-1 pr-2 sm:pl-2 sm:pr-4 lg:pl-3 lg:pr-6 py-2 lg:py-4">
+        <EnhancedIdeaChat 
+          onAnalysisReady={handleAnalysisReady} 
+          sessionName={currentSession?.name || 'New Chat Session'}
+        />
+      </div>
+
+      {/* Status Bar */}
+      <DynamicStatusBar />
+    </div>
   );
 };
 
