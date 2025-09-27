@@ -5,7 +5,8 @@ import { useSession } from '@/contexts/SimpleSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FolderOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { DynamicStatusBar } from './DynamicStatusBar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SessionPicker } from '@/components/SessionPicker';
@@ -25,16 +26,16 @@ const EnhancedIdeaChatPage = () => {
     }
   }, [authLoading, user, navigate]);
 
-  // Show session picker when user is logged in but has no current session AND no saved session ID
+  // Show session picker when user is logged in but has no current session
   useEffect(() => {
-    if (!authLoading && user && !currentSession) {
-      // Check if there's a saved session ID from previous visit
-      const savedSessionId = localStorage.getItem('currentSessionId');
-      if (!savedSessionId) {
-        setShowSessionPicker(true);
-      }
+    if (!authLoading && user && !currentSession && !saving) {
+      // Always show session picker if no current session is loaded
+      setShowSessionPicker(true);
+    } else if (currentSession) {
+      // Hide session picker when a session is loaded
+      setShowSessionPicker(false);
     }
-  }, [authLoading, user, currentSession]);
+  }, [authLoading, user, currentSession, saving]);
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
     // Store analysis data for dashboard access
@@ -59,7 +60,9 @@ const EnhancedIdeaChatPage = () => {
       <div className="min-h-screen max-h-screen flex w-full bg-gradient-to-br from-background via-background to-muted/20 overflow-hidden">
         <SessionPicker 
           open={showSessionPicker} 
-          onSessionSelected={() => setShowSessionPicker(false)} 
+          onSessionSelected={() => setShowSessionPicker(false)}
+          allowClose={!!currentSession}
+          onClose={() => setShowSessionPicker(false)}
         />
         
         {/* Sidebar */}
@@ -93,6 +96,15 @@ const EnhancedIdeaChatPage = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSessionPicker(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    <span className="hidden sm:inline">Sessions</span>
+                  </Button>
                   <ThemeToggle />
                   <UserMenu />
                 </div>
