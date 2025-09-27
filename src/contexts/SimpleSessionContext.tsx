@@ -295,7 +295,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const { error } = await supabase
         .from('brainstorming_sessions')
         .update({
-          data: sessionData,
+          state: sessionData as any,
           updated_at: new Date().toISOString()
         })
         .eq('id', currentSession.id);

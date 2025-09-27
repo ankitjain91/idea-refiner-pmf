@@ -25,7 +25,7 @@ export async function validateFirstIdea(messageText: string, wrinklePoints: numb
       const funnyLines = [
         'That was a vibe, not a startup. Need: WHO + painful workflow + wedge.',
         'Cortical folds will not wrinkle for fluff. Specify the user and the manual grind.',
-        'Like ordering “food” at a restaurant. Give me the dish, spice level, plating angle.',
+        'Like ordering "food" at a restaurant. Give me the dish, spice level, plating angle.',
         'Motivational poster energy. Narrow the wedge.'
       ];
       const randomFunny = funnyLines[Math.floor(Math.random()*funnyLines.length)];

@@ -42,6 +42,7 @@ import {
 import MessageRenderer from './chat/MessageRenderer';
 import AnimatedBrain from './AnimatedBrain';
 import { BrainHeader } from './enhanced/BrainHeader';
+import { validateFirstIdea } from './enhanced/ideaValidation';
 
 interface EnhancedIdeaChatProps {
   sessionName?: string;
@@ -78,6 +79,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const [hoveringBrain, setHoveringBrain] = useState(false);
   const [hasValidIdea, setHasValidIdea] = useState(false);
   const [persistenceLevel, setPersistenceLevel] = useState(0);
+  const [offTopicAttempts, setOffTopicAttempts] = useState(0);
   const { currentSession } = useSession();
   const [anonymous, setAnonymous] = useState(false);
   const isDefaultSessionName = !currentSession?.name;
@@ -180,9 +182,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
         const welcomeMessage: Message = {
           id: 'welcome',
           type: 'bot',
-          content: `🧠 Welcome to ${currentSession.name}! Ready to dive deep into your startup idea? Let's develop some serious brain wrinkles together!
+          content: `🧠 Welcome to ${currentSession.name}! I'm your profit-focused startup advisor.
 
-Share your business concept and I'll help you refine it with sharp questions, market insights, and strategic analysis. No generic fluff allowed - I'm here to push you toward real product-market fit.
+Share your startup idea and I'll help you maximize its profitability through strategic analysis, market insights, and revenue optimization. Focus on WHO has WHAT problem and HOW you'll solve it profitably.
 
 What's your startup idea?`,
           timestamp: new Date(),
@@ -352,8 +354,29 @@ What's your startup idea?`,
     };
     return memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
   }, []);
-  const resetChat = () => {
-    setMessages([]); // No auto-welcome; user must name session then provide idea
+  const resetChat = async () => {
+    // Fetch new random ideas for the reset
+    const randomIdeas = await fetchRandomIdeas();
+    const suggestions = randomIdeas && randomIdeas.length > 0 
+      ? randomIdeas.slice(0, 4)
+      : [
+          "AI tool that automates invoice processing for accountants",
+          "Platform connecting local farmers directly with restaurants",
+          "Smart scheduling assistant for remote teams across timezones",
+          "Subscription box for personalized wellness products"
+        ];
+    
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      type: 'bot',
+      content: `🧠 Fresh session! Share your startup idea and I'll help you maximize its profitability.
+
+Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
+      timestamp: new Date(),
+      suggestions
+    };
+    
+    setMessages([welcomeMessage]);
     setInput('');
     setIsTyping(false);
     setConversationStarted(false);
@@ -362,6 +385,7 @@ What's your startup idea?`,
     setWrinklePoints(0);
     setHasValidIdea(false);
     setAnonymous(false);
+    setOffTopicAttempts(0);
     onReset?.();
   };
 
@@ -604,99 +628,96 @@ What's your startup idea?`,
 
     // If we don't have a valid idea yet, attempt validation first
     if (!hasValidIdea) {
+      const validation = await validateFirstIdea(messageText, wrinklePoints, hasValidIdea);
+      
+      if (!validation.valid) {
+        setMessages(prev => [...prev, validation.gateMessage!]);
+        setIsTyping(false);
+        setOffTopicAttempts(prev => prev + 1);
+        return;
+      }
+      
+      // Approved idea
+      setCurrentIdea(validation.preview || createIdeaPreview(messageText));
+      setHasValidIdea(true);
+      setOffTopicAttempts(0);
+
+    }
+
+    // Check if message is off-topic (after we have a valid idea)
+    if (hasValidIdea && offTopicAttempts < 5) {
+      const topicCheckPrompt = `The startup idea is: "${currentIdea}". User message: "${messageText}". 
+      Is this message related to discussing/refining the startup idea, business strategy, profitability, market fit, or implementation? 
+      Respond with JSON: {"onTopic": true/false, "redirect": "funny message to bring them back if off-topic"}`;
+      
       try {
-        // More lenient heuristic check
-        const heuristicLooksLikeIdea = messageText.length > 25 && 
-          (messageText.includes('build') || messageText.includes('create') || 
-           messageText.includes('help') || messageText.includes('solve') ||
-           messageText.includes('automate') || messageText.includes('platform') ||
-           messageText.includes('tool') || messageText.includes('app') ||
-           messageText.includes('service') || messageText.includes('product') ||
-           messageText.includes('business') || messageText.includes('startup') ||
-           messageText.includes('idea') || messageText.includes('want'));
-        
-        const validationPrompt = `You are a helpful startup idea validator. Determine if the user submission contains a startup idea. Be VERY LENIENT - accept anything that remotely looks like they're trying to share a business concept.
-Respond ONLY with minified JSON: {"valid": true|false, "reason": "short feedback"}.
-User submission: """${messageText}"""`;
-
-        const { data: validationData, error: validationError } = await supabase.functions.invoke('idea-chat', {
-          body: { message: validationPrompt, conversationHistory: [] }
+        const { data: topicData } = await supabase.functions.invoke('idea-chat', {
+          body: { message: topicCheckPrompt, conversationHistory: [] }
         });
-
-        if (validationError) throw validationError;
-
-        let parsed: { valid?: boolean; reason?: string; improvementHints?: string[] } = {};
+        
+        let topicCheck = { onTopic: true, redirect: '' };
         try {
-          const jsonMatch = validationData?.response?.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              parsed = JSON.parse(jsonMatch[0]);
-            }
-        } catch (e) {
-          console.warn('Failed to parse validation JSON, fallback to heuristic', e);
-        }
-
-        // Be very lenient - accept if either validation passes
-        const isValid = parsed.valid === true || (heuristicLooksLikeIdea && parsed.valid !== false);
-
-        if (!isValid) {
-          const funnyLines = [
-            "That wasn't a startup idea, that was a vibe. I need specifics.",
-            "My cortical folds refuse to wrinkle for abstract fluff. Give me WHO has WHAT pain.",
-            "That was like ordering 'food' at a restaurant. I need the dish, spice level, and plating concept.",
-            "Your submission was a motivational poster, not a wedge. Niche it down hard."
+          const jsonMatch = topicData?.response?.match(/\{[\s\S]*\}/);
+          if (jsonMatch) topicCheck = JSON.parse(jsonMatch[0]);
+        } catch {}
+        
+        if (!topicCheck.onTopic) {
+          setOffTopicAttempts(prev => prev + 1);
+          const redirectLines = [
+            "🎯 Whoa there! Let's lasso this back to your startup. What's the biggest implementation challenge?",
+            "🚀 Houston, we're off course! Back to profit mode - how will you monetize this?",
+            "🧠 My wrinkles are smoothing! Quick, tell me about your pricing strategy!",
+            "💡 That's cool but... let's talk money! What's your customer acquisition cost?",
+            "🌮 Interesting but not as tasty as profit margins! What's your revenue model?"
           ];
-          const randomFunny = funnyLines[Math.floor(Math.random() * funnyLines.length)];
-          const improvementHints = (parsed.improvementHints && Array.isArray(parsed.improvementHints) && parsed.improvementHints.length > 0)
-            ? parsed.improvementHints
-            : [
-                "Who EXACTLY experiences this pain (role / segment / context)?",
-                "Describe the awkward manual workaround they do today.",
-                "What narrow starting wedge feature solves one painful slice?",
-                "What unique data/signals do you get by starting there?"
-              ];
-
-          const gateMessage: Message = {
+          
+          const redirectMessage: Message = {
             id: Date.now().toString(),
             type: 'bot',
-            content: `🧪 Idea Validation: NOT APPROVED\n\n${randomFunny}\n\nReason: ${parsed.reason || 'Missing concrete target, problem, or wedge.'}\n\nAnswer one of these to refine:\n- ${improvementHints.join('\n- ')}`,
-            timestamp: new Date(),
-            suggestions: improvementHints.map(h => `Answer: ${h}`),
-            pointsEarned: -0.5,
-            pointsExplanation: 'Session naming required to begin.'
-          };
-          setMessages(prev => [...prev, gateMessage]);
-          setIsTyping(false);
-          return; // STOP normal flow until validated
-        }
-
-        // Approved idea: capture preview + unlock analyses
-        setCurrentIdea(createIdeaPreview(messageText));
-        setHasValidIdea(true);
-      } catch (e) {
-        console.error('Idea validation failed, falling back to heuristic only.', e);
-        if (isIdeaDescription(messageText)) {
-          setCurrentIdea(createIdeaPreview(messageText));
-          setHasValidIdea(true);
-        } else {
-          const fallbackGate: Message = {
-            id: Date.now().toString(),
-            type: 'bot',
-            content: `🧪 Idea Validation Glitch: I couldn't fully evaluate that, but it still feels too vague. Give me: WHO specifically + their painful moment + your narrow starting feature.`,
+            content: topicCheck.redirect || redirectLines[Math.min(offTopicAttempts, 4)],
             timestamp: new Date(),
             suggestions: [
-              'Target user: [role / segment] facing [specific recurring pain]',
-              'Manual workaround today: [exact hack / spreadsheet / duct tape process]',
-              'Starting wedge feature: [ultra-specific capability]',
-              'Why now / unique insight: [data / behavior / timing]'
+              "How can I maximize revenue?",
+              "What's the pricing sweet spot?",
+              "How do I beat competitors?",
+              "What's my growth strategy?"
             ],
             pointsEarned: -0.25,
-            pointsExplanation: 'Need clearer idea before wrinkling.'
+            pointsExplanation: 'Stay focused on profit to earn wrinkles!'
           };
-          setMessages(prev => [...prev, fallbackGate]);
+          
+          setMessages(prev => [...prev, redirectMessage]);
           setIsTyping(false);
+          
+          if (offTopicAttempts >= 4) {
+            const finalWarning: Message = {
+              id: Date.now().toString() + '_final',
+              type: 'bot',
+              content: "🛑 Last chance! I'm here to maximize your startup's profitability. One more off-topic and I stop. What profit-related question can I help with?",
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, finalWarning]);
+          }
           return;
+        } else {
+          setOffTopicAttempts(0);
         }
+      } catch (error) {
+        console.error('Topic check failed:', error);
       }
+    }
+    
+    // Stop after 5 off-topic attempts
+    if (offTopicAttempts >= 5) {
+      const stopMessage: Message = {
+        id: Date.now().toString(),
+        type: 'bot',
+        content: "🔚 I'm a profit-focused startup advisor, not a general chatbot. Start a new session when ready to maximize your business success! 🚀",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, stopMessage]);
+      setIsTyping(false);
+      return;
     }
 
     // Add typing indicator
@@ -718,9 +739,9 @@ User submission: """${messageText}"""`;
           content: msg.content
         }));
 
-      // Add contextual grounding to the message
+      // Add contextual grounding to maximize profitability focus
       const contextualMessage = currentIdea 
-        ? `Context: We are discussing the idea "${currentIdea}". Please keep your response focused on this specific idea. ${messageText}`
+        ? `Context: We are refining the startup idea "${currentIdea}" to maximize profitability and success. Focus on actionable insights for market fit, revenue optimization, growth strategies, and competitive advantages. User message: ${messageText}`
         : messageText;
 
       const { data, error } = await supabase.functions.invoke('idea-chat', {
@@ -1067,8 +1088,29 @@ const ChatMessageItem = useMemo(() => {
   };
   return React.memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
 }, []);
-  const resetChatHandler = useCallback(() => {
-    setMessages([]); // No auto-welcome; user must name session then provide idea
+  const resetChatHandler = useCallback(async () => {
+    // Fetch new random ideas for the reset
+    const randomIdeas = await fetchRandomIdeas();
+    const suggestions = randomIdeas && randomIdeas.length > 0 
+      ? randomIdeas.slice(0, 4)
+      : [
+          "AI-powered tool that predicts customer churn before it happens",
+          "Marketplace connecting retired experts with startups needing advisors",
+          "Automated compliance checker for SaaS companies entering new markets",
+          "Platform that turns customer feedback into actionable product roadmaps"
+        ];
+    
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      type: 'bot',
+      content: `🧠 Fresh session! Share your startup idea and I'll help you maximize its profitability through strategic analysis and market insights.
+
+Focus on: WHO has WHAT problem and your solution approach.`,
+      timestamp: new Date(),
+      suggestions
+    };
+    
+    setMessages([welcomeMessage]);
     setInput('');
     setIsTyping(false);
     setConversationStarted(false);
@@ -1077,8 +1119,9 @@ const ChatMessageItem = useMemo(() => {
     setWrinklePoints(0);
     setHasValidIdea(false);
     setAnonymous(false);
+    setOffTopicAttempts(0);
     onReset?.();
-  }, [onReset]);
+  }, [onReset, fetchRandomIdeas]);
 
   const handleSuggestionClickHandler = useCallback((suggestionText: string) => {
     setInput(suggestionText);
