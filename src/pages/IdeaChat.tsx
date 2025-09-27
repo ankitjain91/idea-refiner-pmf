@@ -249,7 +249,6 @@ const IdeaChatPage = () => {
       <div className="relative flex h-screen" style={{ width: sidebarWidth, transition: draggingRef.current ? 'none' : 'width 140ms ease' }}>
         <div className="flex-1 h-full border-r glass-super-surface overflow-hidden">
           <AppSidebar
-            onNewChat={handleNewChat}
             className={autoCollapsed ? 'data-[collapsed=true]:w-[72px]' : ''}
             style={{
               width: '100%',
@@ -291,16 +290,13 @@ const IdeaChatPage = () => {
                   <span>{currentSession?.name || 'Idea Chat'}</span>
                   {currentSession && (
                     <span className='ml-2 inline-flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground'>
-                      {isSaving ? (
+                      {saving ? (
                         <>
                           <Loader2 className='h-3 w-3 animate-spin' /> Saving…
                         </>
-                      ) : lastSavedAt ? (
-                        <>
-                          <span className='inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse' />
-                          Saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </>
-                      ) : null}
+                      ) : (
+                        <span className='text-xs text-muted-foreground'>Session saved</span>
+                      )}
                     </span>
                   )}
                 </span>
@@ -357,7 +353,7 @@ const IdeaChatPage = () => {
                           <span className="inline-flex h-4 w-4 items-center justify-center rounded-sm bg-primary/15 text-[10px] text-primary group-hover:bg-primary/25">{s.name?.charAt(0) || 'S'}</span>
                           <span className="truncate max-w-[240px]" title={s.name}>{s.name || 'Untitled Session'}</span>
                         </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(s.last_accessed).toLocaleString()}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(s.updated_at).toLocaleString()}</p>
                       </div>
                       <span className="text-[10px] uppercase tracking-wide text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
                     </button>
