@@ -12,7 +12,6 @@ import {
   Bot,
   User,
   Loader2,
-  BarChart,
   Sparkles,
   ArrowRight,
   Play,
@@ -1453,7 +1452,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         const normalized = (responseSuggestions || []).map(String)
           .map(s => s.replace(/^[-•\d\.\s]+/, '').trim())
           .filter(s => s)
-          .map(s => s.length > 60 ? s.slice(0,57).trimEnd() + '…' : s)
+          // do not truncate suggestions
           .slice(0,6);
         const seen: string[] = [];
         normalized.forEach(s => { if (!seen.some(d => d.toLowerCase() === s.toLowerCase())) seen.push(s); });
@@ -1625,7 +1624,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
           const norm = (responseSuggestions || []).map(String)
             .map(s => s.replace(/^[-•\d\.\s]+/, '').trim())
             .filter(s => s)
-            .map(s => s.length > 60 ? s.slice(0,57).trimEnd() + '…' : s)
+            // do not truncate suggestions
             .slice(0,6);
           const ded: string[] = [];
           norm.forEach(s => { if (!ded.some(d => d.toLowerCase() === s.toLowerCase())) ded.push(s); });
@@ -1950,32 +1949,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
   {/* Input Area - Fixed at Bottom */}
   <div className="border-t bg-background p-4">
         <div className="max-w-3xl mx-auto">
-          {/* Action Buttons */}
-          {showStartAnalysisButton && isRefinementMode && !isAnalyzing && !showDashboard && (
-            <div className="flex items-center justify-between mb-3 p-3 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <BarChart className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">
-                    {isBriefQAMode ? 'Brief Q&A in progress' : (brief.problem && brief.targetUser ? 'Ready to analyze?' : 'Capture brief to analyze')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {isBriefQAMode ? 'Answer the questions or cancel' : (brief.problem && brief.targetUser ? `Run comprehensive ${SCORE_LABEL}` : 'Answer a few quick questions inline')}
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={() => startAnalysis()}
-                className="gap-2 shadow-lg"
-                size="sm"
-              >
-                <Play className="h-4 w-4" />
-                {isBriefQAMode ? 'Cancel Q&A' : 'Start Analysis'}
-              </Button>
-            </div>
-          )}
+          {/* Analysis action banner removed (moved to top bar) */}
 
           {/* Drawer brief form removed in favor of inline Q&A */}
           
