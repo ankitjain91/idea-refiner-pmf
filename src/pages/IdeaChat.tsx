@@ -35,10 +35,16 @@ const IdeaChatPage = () => {
     return location.state?.showSessionPicker || false;
   });
   
+  // Track if user came from auth (login/signup)
+  const [requireSessionSelection, setRequireSessionSelection] = useState(() => {
+    return location.state?.showSessionPicker || false;
+  });
+  
   // Watch for navigation state changes
   useEffect(() => {
     if (location.state?.showSessionPicker) {
       setShowSessionPicker(true);
+      setRequireSessionSelection(true);
       // Clear the state to prevent re-opening on refresh
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -111,6 +117,10 @@ const IdeaChatPage = () => {
 
   // Restore last conversation state if returning from dashboard  
   useEffect(() => {
+    // Don't auto-load session if coming from auth
+    if (requireSessionSelection) {
+      return;
+    }
     
     const fromDash = localStorage.getItem('returnToChat');
     // If there's a stored desired path (e.g., after session load) and we're not on it, navigate.
@@ -148,7 +158,7 @@ const IdeaChatPage = () => {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [requireSessionSelection]);
 
   // Delay overlay loader to avoid flashing on fast operations
   useEffect(() => {
@@ -317,10 +327,17 @@ const IdeaChatPage = () => {
         <div className='flex-1 relative p-2'>
           {showOverlayLoader && <EngagingLoader active={true} scope='dashboard' />}
           <SessionPicker 
-            open={showSessionPicker} 
-            onSessionSelected={() => setShowSessionPicker(false)}
-            allowClose={true}
-            onClose={() => setShowSessionPicker(false)}
+            open={showSessionPicker || (requireSessionSelection && !currentSession)} 
+            onSessionSelected={() => {
+              setShowSessionPicker(false);
+              setRequireSessionSelection(false);
+            }}
+            allowClose={!requireSessionSelection}
+            onClose={() => {
+              if (!requireSessionSelection) {
+                setShowSessionPicker(false);
+              }
+            }}
           />
           <div className='absolute inset-0 flex flex-col'>
             <Suspense fallback={<div className='flex-1 flex items-center justify-center'><Loader2 className='h-6 w-6 animate-spin' /></div>}>

@@ -424,26 +424,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
       
-      // For authenticated users, check for stored session
+      // For authenticated users, clear any stored session to force selection
       const storedSessionId = localStorage.getItem('currentSessionId');
       
       if (storedSessionId) {
-        // Never load anonymous sessions for authenticated users
-        if (storedSessionId.startsWith('anon-')) {
-          // Clear anonymous session data
-          localStorage.removeItem('currentSessionId');
-          localStorage.removeItem('currentAnonymousSession');
-        } else {
-          // Try to load authenticated session
-          try {
-            await loadSession(storedSessionId);
-            return;
-          } catch (e) {
-            console.error('Error loading stored session:', e);
-            // Clear invalid session ID
-            localStorage.removeItem('currentSessionId');
-          }
-        }
+        // Always clear stored session IDs on initialization
+        // This forces users to select a session via the picker
+        localStorage.removeItem('currentSessionId');
+        localStorage.removeItem('currentAnonymousSession');
       }
       
       // Load all sessions for authenticated user
