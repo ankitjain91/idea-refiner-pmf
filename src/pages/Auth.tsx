@@ -30,7 +30,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      navigate("/ideachat");
+      navigate("/ideachat", { state: { showSessionPicker: true } });
     }
   }, [user, navigate]);
 
