@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMemo from 'react';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 // Import refactored components and utilities
 import { Message, ResponseMode, SuggestionItem } from './chat/types';
@@ -67,7 +66,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   });
   
   const [currentIdea, setCurrentIdea] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([]); // Start empty; gated until session named
+  const [messages, setMessages] = useState<Message[]>([]);
   
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -77,10 +76,10 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const [hoveringBrain, setHoveringBrain] = useState(false);
   const [hasValidIdea, setHasValidIdea] = useState(false);
   const [persistenceLevel, setPersistenceLevel] = useState(0);
-  const [internalSessionName, setInternalSessionName] = useState<string>(sessionName);
-  const [sessionNameDraft, setSessionNameDraft] = useState('');
+  const { currentSession } = useSession();
   const [anonymous, setAnonymous] = useState(false);
-  const isDefaultSessionName = !internalSessionName || internalSessionName === 'New Chat Session';
+  const isDefaultSessionName = !currentSession?.name;
+  const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
 
   // Derived: wrinkle tier + dynamic tooltip messaging
   const wrinkleTier = React.useMemo(() => {
@@ -141,6 +140,29 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Initialize welcome message when session is available
+  useEffect(() => {
+    if (currentSession?.name && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: 'welcome',
+        type: 'bot',
+        content: `🧠 Welcome to ${currentSession.name}! Ready to dive deep into your startup idea? Let's develop some serious brain wrinkles together!
+
+Share your business concept and I'll help you refine it with sharp questions, market insights, and strategic analysis. No generic fluff allowed - I'm here to push you toward real product-market fit.
+
+What's your startup idea?`,
+        timestamp: new Date(),
+        suggestions: [
+          "I want to build [specific solution] for [target users] who struggle with [exact problem]",
+          "My idea solves [pain point] by [unique approach] for [niche market]",
+          "I'm creating [product/service] that helps [specific role] overcome [workflow friction]",
+          "My startup addresses [real problem I've experienced] through [innovative solution]"
+        ]
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [currentSession?.name, messages.length]);
 
   useEffect(() => {
     if (!anonymous) {
@@ -264,10 +286,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     setCurrentIdea('');
     setWrinklePoints(0);
     setHasValidIdea(false);
-    // Force new session to be explicitly named
-  setInternalSessionName('');
-    setSessionNameDraft('');
-  setAnonymous(false);
+    setAnonymous(false);
     onReset?.();
   };
 
@@ -680,26 +699,12 @@ User submission: """${messageText}"""`;
   }; // Properly close the sendMessageHandler function
 
   // Ensure unique variable declarations
-const handleSessionNameClick = React.useCallback(() => {
-  const sessionInput = document.getElementById('session-name-input');
-  if (sessionInput) {
-    sessionInput.classList.add('animate-pulse');
-    setTimeout(() => sessionInput.classList.remove('animate-pulse'), 1000);
-  }
-}, []);
-
-const handleKeyPress = React.useCallback((e: React.KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    if (isDefaultSessionName) {
-      handleSessionNameClick();
-      return;
+  const handleKeyPress = React.useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
-    sendMessage();
-  }
-}, [isDefaultSessionName, handleSessionNameClick, sendMessage]);
-
-useEffect(() => {
+  }, [sendMessage]);useEffect(() => {
   if (messages.length > 1) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }
@@ -805,8 +810,6 @@ const ChatMessageItem = React.useMemo(() => {
     setCurrentIdea('');
     setWrinklePoints(0);
     setHasValidIdea(false);
-    setInternalSessionName('');
-    setSessionNameDraft('');
     setAnonymous(false);
     onReset?.();
   }, [onReset]);
@@ -821,25 +824,7 @@ const ChatMessageItem = React.useMemo(() => {
   const sendMessageHandler = React.useCallback(async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
     if (!messageText || isTyping) return;
-    if (isDefaultSessionName) {
-      setMessages(prev => {
-        if (prev.some(m => m.id === 'name_gate')) return prev; // avoid duplicates
-        return [...prev, {
-          id: 'name_gate',
-          type: 'bot',
-          content: '📝 Please name this session before starting. Give it something meaningful like "HVAC Dispatch Automation" or "Nurse Shift Triage Tool".',
-          timestamp: new Date(),
-          suggestions: [
-            'Session name: AI Claims Triage',
-            'Session name: Inventory Sync Agent',
-            'Session name: B2B Onboarding Optimizer'
-          ],
-          pointsEarned: 0,
-          pointsExplanation: 'Session naming required to begin.'
-        }];
-      });
-      return;
-    }
+    // Session management is handled by parent component/SessionContext
 
     setInput('');
     setConversationStarted(true);
@@ -1214,7 +1199,7 @@ User submission: """${messageText}"""`;
         variant: "destructive"
       });
     }
-  }, [input, isTyping, isDefaultSessionName, messages, wrinklePoints, currentIdea, hasValidIdea, responseMode, toast]); // Properly close the sendMessageHandler function
+  }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, responseMode, toast]); // Properly close the sendMessageHandler function
 
   return (
     <TooltipProvider>
@@ -1236,50 +1221,23 @@ User submission: """${messageText}"""`;
             dynamicBrainTooltip={dynamicBrainTooltip}
           />
           <div className="flex flex-col">
-            {!isDefaultSessionName ? (
-              <h3 className="font-extrabold tracking-tight fluid-text-xl leading-tight select-text">
-                {internalSessionName}
-              </h3>
-            ) : (
-              <div className="flex flex-col gap-2 p-2 rounded-md bg-muted/30 border border-border/60">
-                <p className="text-[11px] uppercase tracking-wide font-medium text-primary/80">Name This Session To Start</p>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    id="session-name-input"
-                    value={sessionNameDraft}
-                    onChange={(e) => setSessionNameDraft(e.target.value)}
-                    placeholder="e.g. HVAC Predictive Maintenance"
-                    className="h-8 text-xs flex-1"
-                  />
-                  <div className="flex items-center gap-1 pr-2">
-                    <Checkbox id="anon-session" checked={anonymous} onCheckedChange={(v: any) => setAnonymous(Boolean(v))} />
-                    <label htmlFor="anon-session" className="text-[10px] select-none cursor-pointer text-muted-foreground">Anonymous</label>
-                  </div>
-                  <Button
-                    size="sm"
-                    disabled={sessionNameDraft.trim().length < 4}
-                    onClick={() => {
-                      if (sessionNameDraft.trim().length >= 4) {
-                        setInternalSessionName(sessionNameDraft.trim());
-                        setSessionNameDraft('');
-                        // Remove gate message if present
-                        setMessages(prev => prev.filter(m => m.id !== 'name_gate'));
-                      }
-                    }}
-                    className="h-8"
-                  >
-                    Save
-                  </Button>
-                </div>
-                <p className="text-[10px] text-muted-foreground">Use something specific: target user + problem or wedge. This anchors refinement.</p>
-              </div>
-            )}
+            <h3 className="font-extrabold tracking-tight fluid-text-xl leading-tight select-text">
+              {displaySessionName}
+            </h3>
             <p className="fluid-text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[0.75rem] tracking-tight text-primary/90">{wrinklePoints.toFixed(1)}</span>
               <span className="text-[0.65rem] uppercase tracking-wide font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">Wrinkles</span>
+              {currentSession?.is_anonymous && (
+                <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
+              )}
               {responseMode === 'summary' && (
                 <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded fluid-text-xs font-medium inline-flex items-center gap-1">
                   ⚡ Summary Mode
+                </span>
+              )}
+              {responseMode === 'verbose' && (
+                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded fluid-text-xs font-medium inline-flex items-center gap-1">
+                  📜 Verbose Mode
                 </span>
               )}
             </p>
@@ -1290,54 +1248,52 @@ User submission: """${messageText}"""`;
             )}
           </div>
         </div>
-        <div className="flex items-center fluid-gap">
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={responseMode === 'summary' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setResponseMode('summary');
-                    localStorage.setItem('responseMode', 'summary');
-                  }}
-                  className="h-8 w-8 p-0"
-                >
-                  <Zap className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <p className="fluid-text-xs leading-relaxed">Get concise, focused brain-wrinkle responses that quickly develop core thinking patterns</p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={responseMode === 'verbose' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setResponseMode('verbose');
-                    localStorage.setItem('responseMode', 'verbose');
-                  }}
-                  className="h-8 w-8 p-0"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <p className="fluid-text-xs leading-relaxed">Get detailed, comprehensive brain-wrinkle analysis that explores deep neural pathways and complex thinking patterns</p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-
-          <Button
+          <div className="flex items-center fluid-gap">
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={responseMode === 'summary' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setResponseMode('summary');
+                      if (!anonymous) localStorage.setItem('responseMode', 'summary');
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Zap className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="fluid-text-xs leading-relaxed">Get concise, focused brain-wrinkle responses that quickly develop core thinking patterns</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={responseMode === 'verbose' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setResponseMode('verbose');
+                      if (!anonymous) localStorage.setItem('responseMode', 'verbose');
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="fluid-text-xs leading-relaxed">Get detailed, comprehensive brain-wrinkle analysis that explores deep neural pathways and complex thinking patterns</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </div>          <Button
             variant="ghost"
             size="icon"
             onClick={resetChat}

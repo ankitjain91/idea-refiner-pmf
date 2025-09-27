@@ -5,15 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Plus, User, Clock, Trash2, Edit2, Copy, Sparkles } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, Plus, User, Clock, Trash2, Edit2, Copy, Sparkles, Shuffle, Info } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface SessionPickerProps {
   open: boolean;
   onSessionSelected: () => void;
+  allowClose?: boolean;
+  onClose?: () => void;
 }
 
-export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSelected }) => {
+export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSelected, allowClose = false, onClose }) => {
   const { user } = useAuth();
   const { 
     sessions, 
@@ -31,6 +34,15 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
   const [isCreating, setIsCreating] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+
+  const generateFunName = () => {
+    const adjectives = ['Brilliant', 'Creative', 'Innovative', 'Strategic', 'Visionary', 'Bold', 'Clever', 'Dynamic', 'Epic', 'Fresh'];
+    const nouns = ['Venture', 'Quest', 'Journey', 'Mission', 'Project', 'Vision', 'Dream', 'Spark', 'Wave', 'Storm'];
+    const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${randomAdj} ${randomNoun}`;
+  };
 
   useEffect(() => {
     if (open && user) {
@@ -43,8 +55,9 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
     
     setIsCreating(true);
     try {
-      await createSession(newSessionName.trim());
+      await createSession(newSessionName.trim(), isAnonymous);
       setNewSessionName('');
+      setIsAnonymous(false);
       onSessionSelected();
     } catch (error) {
       console.error('Error creating session:', error);
@@ -104,16 +117,71 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
 
   if (!user) {
     return (
-      <Dialog open={open} onOpenChange={() => {}}>
-        <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <Dialog open={open} onOpenChange={allowClose ? (open) => !open && onClose?.() : () => {}}>
+        <DialogContent 
+          className="max-w-md" 
+          data-hide-close={!allowClose ? "true" : undefined}
+          onPointerDownOutside={allowClose ? undefined : (e) => e.preventDefault()} 
+          onEscapeKeyDown={allowClose ? undefined : (e) => e.preventDefault()}
+        >
           <DialogHeader>
-            <DialogTitle>Start Brainstorming</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Start Your Smoothbrain
+            </DialogTitle>
             <CardDescription>
               You need to be logged in to save your sessions, or you can use anonymous mode.
             </CardDescription>
           </DialogHeader>
           <div className="space-y-4">
-
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Create Anonymous Smoothbrain</CardTitle>
+                <CardDescription>
+                  Start brainstorming without signing up. Your session won't be saved.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter smoothbrain name..."
+                    value={newSessionName}
+                    onChange={(e) => setNewSessionName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
+                  />
+                  <Button 
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewSessionName(generateFunName())}
+                    title="Generate AI name"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    onClick={handleCreateSession}
+                    disabled={!newSessionName.trim() || isCreating}
+                  >
+                    {isCreating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    Create
+                  </Button>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="anonymous" 
+                    checked={true}
+                    disabled={true}
+                  />
+                  <label htmlFor="anonymous" className="text-sm text-muted-foreground">
+                    Anonymous mode (session won't be saved)
+                  </label>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </DialogContent>
       </Dialog>
@@ -121,30 +189,43 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
   }
 
   return (
-      <Dialog open={open}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <Dialog open={open} onOpenChange={allowClose ? (open) => !open && onClose?.() : () => {}}>
+        <DialogContent 
+          className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto"
+          data-hide-close={!allowClose ? "true" : undefined}
+          onPointerDownOutside={allowClose ? undefined : (e) => e.preventDefault()} 
+          onEscapeKeyDown={allowClose ? undefined : (e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              Choose Your Session
+              Choose Your Smoothbrain
             </DialogTitle>
             <DialogDescription>
-              Select an existing brainstorm session or create a new one to continue your PMF analysis journey.
+              Select an existing smoothbrain or create a new one to continue your PMF analysis journey.
             </DialogDescription>
           </DialogHeader>        <div className="space-y-6">
           {/* Create New Session */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Create New Session</CardTitle>
+              <CardTitle className="text-lg">Create New Smoothbrain</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Enter session name..."
+                  placeholder="Enter smoothbrain name..."
                   value={newSessionName}
                   onChange={(e) => setNewSessionName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
                 />
+                <Button 
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setNewSessionName(generateFunName())}
+                  title="Generate AI name"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
                 <Button 
                   onClick={handleCreateSession}
                   disabled={!newSessionName.trim() || isCreating}
@@ -156,6 +237,17 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                   )}
                   Create
                 </Button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="anonymous" 
+                  checked={isAnonymous}
+                  onCheckedChange={(checked) => setIsAnonymous(checked === true)}
+                />
+                <label htmlFor="anonymous" className="text-sm text-muted-foreground">
+                  Create as anonymous (won't be saved to your account)
+                </label>
+                <Info className="h-4 w-4 text-muted-foreground" />
               </div>
               
 
@@ -171,7 +263,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           ) : sessions.length > 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Your Sessions ({sessions.length})</CardTitle>
+                <CardTitle className="text-lg">Your Smoothbrains ({sessions.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">

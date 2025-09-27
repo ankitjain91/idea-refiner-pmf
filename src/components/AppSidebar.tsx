@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { BRAND } from '@/branding';
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
+import { SessionPicker } from '@/components/SessionPicker';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface AppSidebarProps {
   style?: React.CSSProperties;
@@ -61,7 +64,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
           <div className="flex items-center justify-between">
             <h2 className="text-base sm:text-lg font-semibold truncate">{BRAND}</h2>
             <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'} className="text-xs">
-              {subscription.tier}
+              {SUBSCRIPTION_TIERS[subscription.tier]?.name || subscription.tier}
             </Badge>
           </div>
         )}
@@ -84,13 +87,20 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
                   >
                     {item.action ? (
                       <button className="flex items-center w-full hover:bg-muted/50 rounded-md px-2 py-1.5">
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {isOpen && <span>{item.title}</span>}
+                        <item.icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                        {isOpen && (
+                          <span className={cn(
+                            "text-sm leading-tight",
+                            item.action === 'new-smoothbrain' && 'font-bold text-blue-700 dark:text-blue-400'
+                          )}>
+                            {item.title}
+                          </span>
+                        )}
                       </button>
                     ) : (
                       <NavLink to={item.url} end className={getNavClass}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {isOpen && <span>{item.title}</span>}
+                        <item.icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                        {isOpen && <span className="text-sm leading-tight">{item.title}</span>}
                       </NavLink>
                     )}
                   </SidebarMenuButton>

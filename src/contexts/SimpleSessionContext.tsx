@@ -29,7 +29,7 @@ interface SessionContextType {
   
   // Core actions
   loadSessions: () => Promise<void>;
-  createSession: (name: string) => Promise<void>;
+  createSession: (name: string, anonymous?: boolean) => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   
   // Session management
@@ -89,13 +89,23 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  // Load all sessions for current user
+  // Load all sessions for current user and auto-load most recent if none is currently loaded
   const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setSessions([]);
+        // Check for anonymous session
+        const anonymousSession = localStorage.getItem('currentAnonymousSession');
+        if (anonymousSession && !currentSession) {
+          try {
+            const parsed = JSON.parse(anonymousSession);
+            setCurrentSession(parsed);
+          } catch (e) {
+            console.error('Error parsing anonymous session:', e);
+          }
+        }
         return;
       }
 
@@ -107,21 +117,22 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (error) throw error;
 
-      const mappedSessions: BrainstormingSession[] = (data || []).map((session: any) => ({
-        id: session.id,
-        name: session.name,
-        data: session.state || {
+      // Map database sessions (anonymous sessions are never saved to DB)
+      const mappedSessions: BrainstormingSession[] = (data || []).map(session => ({
+        ...session,
+        data: (session.state as unknown as SessionData) || {
           chatHistory: [],
           currentIdea: '',
           analysisData: {},
-          pmfScore: 0,
           analysisCompleted: false,
-          lastActivity: session.updated_at
+          lastActivity: new Date().toISOString()
         },
-        created_at: session.created_at,
-        updated_at: session.updated_at,
-        user_id: session.user_id,
-        is_anonymous: false // Non-anonymous since they're saved to DB with user_id
+        analysis_data: {
+          score: 0,
+          insights: [],
+          recommendations: []
+        },
+        is_anonymous: false // All database sessions are non-anonymous
       }));
 
       setSessions(mappedSessions);
@@ -132,14 +143,35 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  // Create a new session - always requires authentication and name
-  const createSession = useCallback(async (name: string) => {
+  // Create a new session (authenticated or anonymous)
+  const createSession = useCallback(async (name: string, anonymous: boolean = false) => {
     if (!name || !name.trim()) {
       throw new Error('Session name is required');
     }
     
     setLoading(true);
     try {
+      if (anonymous) {
+        // Create anonymous session (not persisted to database)
+        const anonymousSession: BrainstormingSession = {
+          id: `anon-${Date.now()}`,
+          name: name.trim(),
+          data: getCurrentSessionData(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_anonymous: true
+        };
+        
+        // Store locally but don't persist to database or add to sessions list
+        localStorage.setItem('currentAnonymousSession', JSON.stringify(anonymousSession));
+        localStorage.setItem('currentSessionId', anonymousSession.id);
+        setCurrentSession(anonymousSession);
+        
+        console.log('Created anonymous session:', anonymousSession.name);
+        // Note: Anonymous sessions are not added to the sessions array to keep them out of recents
+        return;
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('Must be logged in to create sessions');
@@ -239,29 +271,37 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  // Save current session data (auto-save for non-anonymous sessions)
+  // Save current session data to database (skip anonymous sessions)
   const saveCurrentSession = useCallback(async () => {
     if (!currentSession || saving) return;
-
+    
+    // Don't save anonymous sessions to database
+    if (currentSession.is_anonymous) {
+      // Update local storage for anonymous sessions
+      const sessionData = getCurrentSessionData();
+      const updatedSession = {
+        ...currentSession,
+        data: sessionData,
+        updated_at: new Date().toISOString()
+      };
+      localStorage.setItem('currentAnonymousSession', JSON.stringify(updatedSession));
+      return;
+    }
+    
     setSaving(true);
     try {
       const sessionData = getCurrentSessionData();
       
-      await supabase
+      const { error } = await supabase
         .from('brainstorming_sessions')
         .update({
-          state: sessionData as any,
+          data: sessionData,
           updated_at: new Date().toISOString()
         })
         .eq('id', currentSession.id);
 
-      // Update local session data
-      setCurrentSession(prev => prev ? {
-        ...prev,
-        data: sessionData,
-        updated_at: new Date().toISOString()
-      } : null);
-
+      if (error) throw error;
+      
     } catch (error) {
       console.error('Error saving session:', error);
     } finally {
@@ -352,6 +392,47 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       throw error;
     }
   }, [sessions]);
+
+  // Initialize session on mount - check for existing session
+  useEffect(() => {
+    const initializeSession = async () => {
+      // First, check for stored session ID
+      const storedSessionId = localStorage.getItem('currentSessionId');
+      
+      if (storedSessionId) {
+        // Check if it's an anonymous session
+        if (storedSessionId.startsWith('anon-')) {
+          const anonymousSession = localStorage.getItem('currentAnonymousSession');
+          if (anonymousSession) {
+            try {
+              const parsed = JSON.parse(anonymousSession);
+              setCurrentSession(parsed);
+              console.log('Loaded anonymous session:', parsed.name);
+              return;
+            } catch (e) {
+              console.error('Error parsing anonymous session:', e);
+            }
+          }
+        } else {
+          // Try to load authenticated session
+          try {
+            await loadSession(storedSessionId);
+            return;
+          } catch (e) {
+            console.error('Error loading stored session:', e);
+            // Clear invalid session ID
+            localStorage.removeItem('currentSessionId');
+          }
+        }
+      }
+      
+      // If no stored session, just load the sessions list (don't auto-select)
+      // User will choose via SessionPicker dialog
+      await loadSessions();
+    };
+    
+    initializeSession();
+  }, []);
 
   // Auto-save functionality (debounced)
   useEffect(() => {

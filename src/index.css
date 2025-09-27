@@ -435,4 +435,13 @@ All colors MUST be HSL.
     border-width: 1px !important; 
     border-style: solid !important;
   }
+
+  /* Hide close button when data-hide-close is true */
+  [data-hide-close="true"] button[data-radix-collection-item] {
+    display: none !important;
+  }
+  
+  [data-hide-close="true"] > button:last-child {
+    display: none !important;
+  }
 }

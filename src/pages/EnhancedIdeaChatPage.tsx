@@ -74,11 +74,9 @@ const EnhancedIdeaChatPage = () => {
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col">
                     <h1 className="text-sm sm:text-lg font-semibold flex items-center gap-1 sm:gap-2">
-                      <span className="hidden sm:inline">Brainstorm</span>
-                      <span className="sm:hidden">Brainstorm</span>
                       {currentSession && (
-                        <span className="text-xs sm:text-sm text-muted-foreground">
-                          <span className="hidden sm:inline">• </span>{currentSession.name}
+                        <span className="text-xs sm:text-sm text-foreground">
+                          {currentSession.name}
                           {saving && (
                             <span className="text-xs text-blue-500 ml-1">Saving...</span>
                           )}
@@ -86,7 +84,7 @@ const EnhancedIdeaChatPage = () => {
                       )}
                     </h1>
                     <p className="text-xs text-muted-foreground">
-                      Brainstorm · Refine · Analyze
+                      Refine · Analyze · Iterate
                       {currentSession && (
                         <span className="ml-2 text-green-600">✓ Auto-saving</span>
                       )}

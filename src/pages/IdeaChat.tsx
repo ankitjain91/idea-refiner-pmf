@@ -15,6 +15,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import EngagingLoader from '@/components/engagement/EngagingLoader';
 import { SessionPicker } from '@/components/SessionPicker';
 import { cn } from '@/lib/utils';
+import { useLocation } from 'react-router-dom';
 
 const ChatGPTStyleChat = lazy(() => import('@/components/ChatGPTStyleChat'));
 
@@ -22,6 +23,7 @@ const IdeaChatPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { currentSession, createSession, loadSession, loading: sessionLoading, saving, sessions } = useSession();
   const [chatKey, setChatKey] = useState(0);
+  const location = useLocation();
   const sessionCreatedRef = useRef(false);
   const [sessionReloading, setSessionReloading] = useState(false);
   const [showOverlayLoader, setShowOverlayLoader] = useState(false);
@@ -149,42 +151,19 @@ const IdeaChatPage = () => {
     return () => t && clearTimeout(t);
   }, [sessionLoading, sessionReloading]);
 
-  // Removed auto-create session on refresh to satisfy requirement
-  // After login: ensure sessions list is loaded or create new session for current idea if none exists
+  // Always show smoothbrain picker after login if no current session
   useEffect(() => {
     if (!user || sessionLoading) return;
     if (currentSession) return; // already have one
-    const decisionMade = sessionStorage.getItem(sessionDecisionKey);
-    if (!decisionMade && sessions && sessions.length > 0) {
-      // Show picker instead of auto-loading
-      setShowSessionPicker(true);
-      return;
-    }
-    if (!decisionMade && sessions && sessions.length === 0 && !localStorage.getItem('sessionCreateInProgress')) {
-      // No prior sessions; create automatically (first-time user)
-      if (!sessionCreatedRef.current) {
-        sessionCreatedRef.current = true;
-        const idea = localStorage.getItem('userIdea') || '';
-        const context = idea.trim().length > 5 ? idea.split(/\s+/).slice(0,6).join(' ') : 'Idea Session';
-        createSession(context).then(() => sessionStorage.setItem(sessionDecisionKey, 'created')); 
-      }
-    }
-  }, [user, currentSession, sessions, sessionLoading, createSession]);
+    
+    // Clear any previous decision and always show picker for authenticated users
+    sessionStorage.removeItem(sessionDecisionKey);
+    setShowSessionPicker(true);
+  }, [user, currentSession, sessionLoading]);
 
-  const handleSelectExisting = async (id: string) => {
-    await loadSession(id);
-    try { sessionStorage.setItem(sessionDecisionKey, 'selected'); } catch {}
-    setShowSessionPicker(false);
-  };
 
-  const handleCreateNew = async () => {
-    if (localStorage.getItem('sessionCreateInProgress')) return;
-    const idea = localStorage.getItem('userIdea') || '';
-    const context = idea.trim().length > 5 ? idea.split(/\s+/).slice(0,6).join(' ') : 'New Idea Session';
-    await createSession(context);
-    try { sessionStorage.setItem(sessionDecisionKey, 'created'); } catch {}
-    setShowSessionPicker(false);
-  };
+
+
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
     // Store all necessary data for dashboard
@@ -225,14 +204,7 @@ const IdeaChatPage = () => {
     navigate('/dashboard');
   };
 
-  const handleNewChat = () => {
-    const keys = [
-      'currentSessionId','userIdea','userAnswers','userRefinements','ideaMetadata','pmfCurrentIdea','pmfTabHistory','pmfFeatures','pmfAuthMethod','pmfTheme','pmfScreens','chatHistory',LS_KEYS.analysisCompleted
-    ];
-    keys.forEach(k => localStorage.removeItem(k));
-    setChatKey(k => k + 1);
-    sessionCreatedRef.current = false;
-  };
+
 
   if (authLoading) {
     return (
@@ -249,7 +221,6 @@ const IdeaChatPage = () => {
       <div className="relative flex h-screen" style={{ width: sidebarWidth, transition: draggingRef.current ? 'none' : 'width 140ms ease' }}>
         <div className="flex-1 h-full border-r glass-super-surface overflow-hidden">
           <AppSidebar
-            onNewChat={handleNewChat}
             className={autoCollapsed ? 'data-[collapsed=true]:w-[72px]' : ''}
             style={{
               width: '100%',
@@ -288,25 +259,26 @@ const IdeaChatPage = () => {
               >
                 <span className="flex items-center gap-2">
                   <Lightbulb className="h-4 w-4 text-yellow-400" />
-                  <span>{currentSession?.name || 'Idea Chat'}</span>
-                  {currentSession && (
+                  {location.pathname !== '/ideachat' ? (
+                    <button 
+                      onClick={() => navigate('/ideachat')}
+                      className="hover:text-primary transition-colors cursor-pointer underline-offset-4 hover:underline"
+                      title="Go back to chat"
+                    >
+                      {currentSession?.name || 'Idea Chat'}
+                    </button>
+                  ) : (
+                    <span>{currentSession?.name || 'Idea Chat'}</span>
+                  )}
+                  {currentSession && saving && (
                     <span className='ml-2 inline-flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground'>
-                      {isSaving ? (
-                        <>
-                          <Loader2 className='h-3 w-3 animate-spin' /> Saving…
-                        </>
-                      ) : lastSavedAt ? (
-                        <>
-                          <span className='inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse' />
-                          Saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </>
-                      ) : null}
+                      <Loader2 className='h-3 w-3 animate-spin' /> Saving…
                     </span>
                   )}
                 </span>
                 {sessionReloading && <Loader2 className='h-4 w-4 animate-spin text-primary' />}
               </h1>
-              <p className='text-xs text-muted-foreground'>Brainstorm · Refine · Analyze</p>
+              <p className='text-xs text-muted-foreground'>Refine · Analyze · Iterate</p>
             </div>
           </div>
             <div className='flex items-center gap-2'>
@@ -333,43 +305,10 @@ const IdeaChatPage = () => {
         </div>
         <div className='flex-1 relative p-2'>
           {showOverlayLoader && <EngagingLoader active={true} scope='dashboard' />}
-          {showSessionPicker && !currentSession && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-background/70">
-              <div className="w-full max-w-lg mx-auto rounded-xl glass-super-surface border p-5 shadow-xl animate-in fade-in slide-in-from-top-4">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-base font-semibold flex items-center gap-2"><Lightbulb className="h-4 w-4 text-yellow-400" /> Pick a Session</h2>
-                    <p className="text-xs text-muted-foreground mt-1">Select a previous brainstorming session or start a fresh one.</p>
-                  </div>
-                </div>
-                <div className="max-h-72 overflow-auto pr-1 space-y-2">
-                  {(!sessions || sessionLoading) && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center"><Loader2 className="h-4 w-4 animate-spin" /> Loading sessions…</div>
-                  )}
-                  {sessions && sessions.length > 0 && sessions.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => handleSelectExisting(s.id)}
-                      className="w-full text-left group rounded-lg border border-border/60 hover:border-primary/50 hover:bg-primary/5 px-3 py-2 transition-colors flex items-center justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate flex items-center gap-2">
-                          <span className="inline-flex h-4 w-4 items-center justify-center rounded-sm bg-primary/15 text-[10px] text-primary group-hover:bg-primary/25">{s.name?.charAt(0) || 'S'}</span>
-                          <span className="truncate max-w-[240px]" title={s.name}>{s.name || 'Untitled Session'}</span>
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(s.last_accessed).toLocaleString()}</p>
-                      </div>
-                      <span className="text-[10px] uppercase tracking-wide text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between mt-5">
-                  <Button size="sm" variant="outline" onClick={handleCreateNew} className="gap-1"><Plus className="h-3 w-3" /> New Session</Button>
-                  <div className="text-[10px] text-muted-foreground">You can always switch later from the sidebar.</div>
-                </div>
-              </div>
-            </div>
-          )}
+          <SessionPicker 
+            open={showSessionPicker && !currentSession} 
+            onSessionSelected={() => setShowSessionPicker(false)}
+          />
           <div className='absolute inset-0 flex flex-col'>
             <Suspense fallback={<div className='flex-1 flex items-center justify-center'><Loader2 className='h-6 w-6 animate-spin' /></div>}>
               <div className='flex-1 m-2 rounded-xl glass-super-surface elevation-1 overflow-hidden'>

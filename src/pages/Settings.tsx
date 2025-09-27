@@ -451,15 +451,20 @@ export default function Settings() {
                     <div>
                       <p className="font-semibold">Current Plan</p>
                       <p className="text-sm text-muted-foreground">
-                        {subscription.tier === 'free' ? 'Free Plan' : 
-                         subscription.tier === 'pro' ? 'Pro Plan' : 
-                         subscription.tier === 'enterprise' ? 'Enterprise Plan' : 
+                        {subscription.tier === 'free' ? '🧠 Smooth Starter' : 
+                         subscription.tier === 'basic' ? '🧩 Wrinkle Worthy' :
+                         subscription.tier === 'pro' ? '🚀 Big Brain Energy' : 
+                         subscription.tier === 'enterprise' ? '🏆 Galaxy Brain Elite' : 
                          'Premium Plan'}
                       </p>
                     </div>
                   </div>
                   <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'}>
-                    {subscription.tier.toUpperCase()}
+                    {subscription.tier === 'free' ? '🧠 SMOOTH' : 
+                     subscription.tier === 'basic' ? '🧩 WRINKLE' :
+                     subscription.tier === 'pro' ? '🚀 BIG BRAIN' : 
+                     subscription.tier === 'enterprise' ? '🏆 GALAXY' : 
+                     String(subscription.tier).toUpperCase()}
                   </Badge>
                 </div>
 
