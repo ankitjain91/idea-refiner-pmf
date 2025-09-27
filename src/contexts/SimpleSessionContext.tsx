@@ -426,19 +426,24 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
       
-      // For authenticated users, clear any stored session to force selection
-      const storedSessionId = localStorage.getItem('currentSessionId');
-      console.log('[SessionContext] Stored session ID:', storedSessionId);
+      // For authenticated users, always start fresh - no auto-loading
+      console.log('[SessionContext] Authenticated user detected, clearing any local session data');
       
-      if (storedSessionId) {
-        // Always clear stored session IDs on initialization
-        // This forces users to select a session via the picker
-        console.log('[SessionContext] Clearing stored session to force picker');
-        localStorage.removeItem('currentSessionId');
-        localStorage.removeItem('currentAnonymousSession');
-      }
+      // Clear any stored session IDs to ensure fresh start
+      localStorage.removeItem('currentSessionId');
+      localStorage.removeItem('currentAnonymousSession');
       
-      // Load all sessions for authenticated user
+      // Clear any other session-related data that might cause auto-loading
+      localStorage.removeItem('chatHistory');
+      localStorage.removeItem('userIdea');
+      localStorage.removeItem('userAnswers');
+      localStorage.removeItem('ideaMetadata');
+      
+      // Ensure no current session is set
+      setCurrentSession(null);
+      
+      // Load all sessions from database for authenticated user
+      console.log('[SessionContext] Loading sessions from database...');
       await loadSessions();
     };
     

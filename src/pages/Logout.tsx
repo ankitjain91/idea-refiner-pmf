@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-// Mirror selective clearing list from auth context (duplication kept minimal to avoid circular import)
+// Clear ALL session-related data from localStorage on logout
 const APP_LOCALSTORAGE_KEYS = [
   'currentSessionId',
   'sessionDesiredPath',
@@ -24,7 +24,11 @@ const APP_LOCALSTORAGE_KEYS = [
   'pmfCurrentIdea',
   'authSnapshot',
   'currentAnonymousSession', // Clear anonymous session data
-  'pmf.session.decisionMade' // Clear session decision state
+  'pmf.session.decisionMade', // Clear session decision state
+  'brainstormingSessionData', // Clear any cached session data
+  'lastSessionActivity', // Clear activity tracking
+  'sessionBackup', // Clear any session backups
+  'ideaChatSidebarWidth', // Clear UI preferences related to sessions
 ];
 
 const Logout = () => {
@@ -32,12 +36,38 @@ const Logout = () => {
   
   useEffect(() => {
     const handleLogout = async () => {
-  // Selectively clear app-managed keys (preserve theme / other user prefs)
-  try { APP_LOCALSTORAGE_KEYS.forEach(k => localStorage.removeItem(k)); } catch {}
-  try { window.dispatchEvent(new CustomEvent('auth:state-changed', { detail: 'SIGNED_OUT' })); } catch {}
+      console.log('[Logout] Starting logout process, clearing all session data...');
+      
+      // Clear ALL app-managed keys (preserve only theme / other user prefs)
+      try { 
+        APP_LOCALSTORAGE_KEYS.forEach(k => {
+          console.log(`[Logout] Removing localStorage key: ${k}`);
+          localStorage.removeItem(k);
+        });
+        
+        // Also clear any keys that start with session-related prefixes
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('session') || key.startsWith('chat') || key.startsWith('idea') || key.startsWith('pmf'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => {
+          console.log(`[Logout] Removing additional key: ${key}`);
+          localStorage.removeItem(key);
+        });
+      } catch (e) {
+        console.error('[Logout] Error clearing localStorage:', e);
+      }
+      
+      try { 
+        window.dispatchEvent(new CustomEvent('auth:state-changed', { detail: 'SIGNED_OUT' })); 
+      } catch {}
       
       // Sign out from Supabase
       await supabase.auth.signOut();
+      console.log('[Logout] Supabase signout complete');
       
       // Redirect to landing page with state to open auth modal
       navigate('/', { replace: true, state: { openAuthModal: true } });
