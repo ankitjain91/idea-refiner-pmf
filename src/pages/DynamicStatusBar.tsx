@@ -13,7 +13,7 @@ export const DynamicStatusBar: React.FC = () => {
     return () => window.removeEventListener('chat:status', handler as any);
   }, []);
 
-  let text = 'Share your startup idea to begin.';
+  let text = '';
   if (status.kind === 'brief-suggestions') text = 'Fetching contextual brief answer suggestions...';
   else if (status.kind === 'analysis') {
     const phaseMap: Record<string,string> = {

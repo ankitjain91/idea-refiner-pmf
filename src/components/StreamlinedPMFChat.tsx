@@ -145,6 +145,7 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [typingMessage, setTypingMessage] = useState('Thinking about your idea...');
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -231,14 +232,29 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
       setCompletedSteps(prev => [...prev, stepIndex]);
     }
 
+    // Show typing indicator immediately
+    setIsTyping(true);
+    
+    // Update typing message based on step
+    const typingMessages = [
+      "Analyzing your idea concept...",
+      "Understanding your target market...",
+      "Evaluating the problem space...",
+      "Reviewing your revenue model...",
+      "Researching competitive landscape...",
+      "Examining your go-to-market strategy...",
+      "Assessing your value proposition...",
+      "Evaluating project timeline..."
+    ];
+    setTypingMessage(typingMessages[stepIndex] || "Processing your response...");
+
     // Move to next step or analyze
     if (stepIndex < conversationSteps.length - 1) {
-      // Add next question
+      // Add next question with delay
       const nextStep = stepIndex + 1;
       setCurrentStep(nextStep);
-      setIsTyping(true);
 
-      // Simulate typing delay
+      // Simulate realistic typing delay
       setTimeout(() => {
         const nextMessage: Message = {
           id: `step-${nextStep}`,
@@ -250,15 +266,19 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
         };
         setMessages(prev => [...prev, nextMessage]);
         setIsTyping(false);
-      }, 500);
+        setTypingMessage('Thinking about your idea...');
+      }, 1500);
     } else {
       // All steps completed, run analysis
+      setTypingMessage('Generating comprehensive PM-Fit analysis...');
       await runPMFAnalysis(newAnswers);
     }
   };
 
   const runPMFAnalysis = async (answers: Record<number, string>) => {
     setIsAnalyzing(true);
+    setIsTyping(true);
+    setTypingMessage('🔍 Analyzing market data and competitors...');
     setShowMarketPreview(true);
 
     try {
@@ -268,7 +288,9 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
         .map(([_, answer]) => answer)
         .join(' ');
 
-      try {
+        try {
+          // Update status message during API call
+          setTypingMessage('🤖 Generating personalized insights...');
         const { data, error } = await supabase.functions.invoke('idea-chat', {
           body: { 
             message: ideaDescription,
@@ -322,6 +344,7 @@ Let's dive into your results! 🚀`,
       };
 
       setMessages(prev => [...prev, analysisMessage]);
+      setIsTyping(false);
       
       // Trigger navigation to dashboard with analysis data
       setTimeout(() => {
@@ -363,6 +386,7 @@ Let's dive into your results! 🚀`,
       };
 
       setMessages(prev => [...prev, analysisMessage]);
+      setIsTyping(false);
       onAnalysisReady(answers[0] || ideaDescription, fallbackAnalysis);
       
       toast({
@@ -374,6 +398,7 @@ Let's dive into your results! 🚀`,
     } finally {
       setIsAnalyzing(false);
       setIsTyping(false);
+      setTypingMessage('Thinking about your idea...');
     }
   };
 
@@ -491,18 +516,28 @@ Let's dive into your results! 🚀`,
           </AnimatePresence>
 
           {isTyping && (
-            <div className="flex gap-3">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex gap-3"
+            >
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="h-5 w-5 text-primary" />
               </div>
               <Card className="px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="text-xs text-muted-foreground ml-2 animate-fade-in">
+                    {typingMessage}
+                  </span>
                 </div>
               </Card>
-            </div>
+            </motion.div>
           )}
 
           {showMarketPreview && !isAnalyzing && (
