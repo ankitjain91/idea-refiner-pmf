@@ -17,7 +17,9 @@ import {
   RotateCcw,
   ArrowRight,
   Zap,
-  FileText
+  FileText,
+  ListMinus,    // Better icon for summary mode
+  Layers        // Better icon for verbose mode
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -1358,13 +1360,15 @@ User submission: """${messageText}"""`;
                 <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
               )}
               {responseMode === 'summary' && (
-                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded fluid-text-xs font-medium inline-flex items-center gap-1">
-                  ⚡ Summary Mode
+                <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded fluid-text-xs font-medium inline-flex items-center gap-1">
+                  <ListMinus className="w-3 h-3" />
+                  Summary
                 </span>
               )}
               {responseMode === 'verbose' && (
-                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded fluid-text-xs font-medium inline-flex items-center gap-1">
-                  📜 Verbose Mode
+                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded fluid-text-xs font-medium inline-flex items-center gap-1">
+                  <Layers className="w-3 h-3" />
+                  Detailed
                 </span>
               )}
             </p>
@@ -1386,15 +1390,18 @@ User submission: """${messageText}"""`;
                       setResponseMode('summary');
                       if (!anonymous) localStorage.setItem('responseMode', 'summary');
                     }}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 transition-all duration-200"
                   >
-                    <Zap className="h-4 w-4" />
+                    <ListMinus className={cn(
+                      "h-4 w-4 transition-colors",
+                      responseMode === 'summary' ? 'text-primary-foreground' : 'text-muted-foreground'
+                    )} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <p className="fluid-text-xs leading-relaxed">Get concise, focused brain-wrinkle responses that quickly develop core thinking patterns</p>
+                    <ListMinus className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <p className="fluid-text-xs leading-relaxed">Summary mode: Get concise, focused responses that hit the key points</p>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -1408,15 +1415,18 @@ User submission: """${messageText}"""`;
                       setResponseMode('verbose');
                       if (!anonymous) localStorage.setItem('responseMode', 'verbose');
                     }}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 transition-all duration-200"
                   >
-                    <FileText className="h-4 w-4" />
+                    <Layers className={cn(
+                      "h-4 w-4 transition-colors",
+                      responseMode === 'verbose' ? 'text-primary-foreground' : 'text-muted-foreground'
+                    )} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <p className="fluid-text-xs leading-relaxed">Get detailed, comprehensive brain-wrinkle analysis that explores deep neural pathways and complex thinking patterns</p>
+                    <Layers className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="fluid-text-xs leading-relaxed">Verbose mode: Get detailed, comprehensive analysis with deep insights</p>
                   </div>
                 </TooltipContent>
               </Tooltip>
