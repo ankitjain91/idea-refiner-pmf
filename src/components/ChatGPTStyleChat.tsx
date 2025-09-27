@@ -84,12 +84,12 @@ export default function ChatGPTStyleChat({
       const banner: Message = {
         id: `msg-refine-banner-${Date.now()}`,
         type: 'system',
-        content: '✨ Refinement Mode: You can iteratively sharpen positioning, differentiation and monetization before running full analysis. Ask for improvements or start the brief Q&A.',
+        content: '✨ Refinement Mode: You can iteratively sharpen positioning, differentiation and monetization before running full analysis. Ask for improvements or start the analysis.',
         timestamp: new Date(),
         suggestions: [
           'Improve differentiation',
           'Clarify target user',
-          'Start Brief Q&A',
+          'Start Analysis',
           'Show examples of strong positioning'
         ]
       };
@@ -191,53 +191,12 @@ export default function ChatGPTStyleChat({
     return undefined;
   };
 
-  // Unified suggestion selection handler (supports brief Q&A, actions, defaults)
+  // Unified suggestion selection handler (supports actions and defaults)
   const handleSuggestionSelection = (msg: Message, suggestion: string) => {
-    // Handle Brief Q&A suggestion answers inline
-    if (isBriefQAMode && msg.metadata?.briefQuestionKey) {
-      const lower = suggestion.toLowerCase();
-      if (suggestion === 'Regenerate answers' && msg.metadata?.briefQuestionKey) {
-        const field = msg.metadata.briefQuestionKey as string;
-        // Put question back into loading state briefly
-        const regenId = msg.id + '-regen-' + Date.now();
-        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: true, suggestions: undefined } : m));
-        fetchContextualBriefSuggestions([field]).then(newSug => {
-          const arr = (newSug[field] || []).slice(0,4);
-          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: false, suggestions: [...arr, 'Regenerate answers', 'Skip', 'Cancel'] } : m));
-        });
-        return;
-      }
-      if (lower === 'cancel') {
-        setIsBriefQAMode(false);
-        const cancelMsg: Message = { id: `msg-brief-cancel-${Date.now()}`, type: 'system', content: '🛑 Brief Q&A cancelled.', timestamp: new Date() };
-        setMessages(prev => [...prev, cancelMsg]);
-        return;
-      }
-      if (lower === 'skip') {
-        const nextIdx = (msg.metadata.briefQuestionIndex ?? 0) + 1;
-        setBriefQuestionIndex(nextIdx);
-        if (nextIdx >= briefQuestionsRef.current.length) {
-          summarizeBriefAndOfferAnalysis();
-          setIsBriefQAMode(false);
-        } else {
-          askBriefQuestionWithFreshFetch(nextIdx, undefined);
-        }
-        return;
-      }
-      if (suggestion === 'Regenerate answers' && msg.metadata?.briefQuestionKey) {
-        const field = msg.metadata.briefQuestionKey as string;
-        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: true, suggestions: undefined } : m));
-        fetchContextualBriefSuggestions([field]).then(newSug => {
-          const arr = (newSug[field] || []).slice(0,4);
-          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: false, suggestions: [...arr, 'Regenerate answers', 'Skip', 'Cancel'] } : m));
-        });
-        return;
-      }
-      // Default during Brief Q&A: place suggestion into input and wait for user to send
-      setInput(suggestion);
-      inputRef.current?.focus();
-      return;
-    }
+    // Brief Q&A disabled: always just populate input for user confirmation
+    setInput(suggestion);
+    inputRef.current?.focus();
+    return;
     // Handle special action suggestions
     if (suggestion === "Show Dashboard" || suggestion === "View detailed HyperFlux analysis") {
       // Check if we have analysis data
@@ -307,13 +266,8 @@ export default function ChatGPTStyleChat({
       handleSuggestionClick("Let me refine my idea based on the analysis feedback");
       return;
     }
-    if (suggestion === 'Run HyperFlux Analysis') {
-      if (!brief.problem || !brief.targetUser) {
-        const warn: Message = { id: `msg-brief-warn-${Date.now()}`, type: 'system', content: '🤔 I need to know a bit more before we can run the analysis! Let\'s start the Brief Q&A to fill in what problem you\'re solving and who you\'re helping.', timestamp: new Date() };
-        setMessages(prev => [...prev, warn]);
-      } else {
-        runBriefAnalysis();
-      }
+    if (suggestion === 'Run HyperFlux Analysis' || suggestion === 'Start Analysis') {
+      runBriefAnalysis();
       return;
     }
     if (suggestion === 'Show live market signals') {
@@ -366,7 +320,7 @@ export default function ChatGPTStyleChat({
 
   // External trigger to open analysis brief (from parent layout / dashboard panel)
   useEffect(() => {
-    const openBrief = () => startBriefQnA();
+    const openBrief = () => { if (!isAnalyzing) runBriefAnalysis(); };
     const closeBrief = () => { if (isBriefQAMode) { setIsBriefQAMode(false); window.dispatchEvent(new CustomEvent('analysis:briefEnded')); } };
     window.addEventListener('analysis:openBrief', openBrief);
     window.addEventListener('analysis:closeBrief', closeBrief);
@@ -374,7 +328,7 @@ export default function ChatGPTStyleChat({
       window.removeEventListener('analysis:openBrief', openBrief);
       window.removeEventListener('analysis:closeBrief', closeBrief);
     };
-  }, [isBriefQAMode]);
+  }, [isBriefQAMode, isAnalyzing]);
 
   // Fetch AI suggestions for brief fields
   const fetchBriefSuggestions = useCallback(async (force = false, enrich = false) => {
@@ -724,13 +678,17 @@ export default function ChatGPTStyleChat({
 
   // Single-pass analysis generator using the brief
   const runBriefAnalysis = async () => {
-    if (!brief.problem.trim() || !brief.targetUser.trim()) {
-      toast({ title: 'Need more detail', description: 'Provide at least the problem and target user.' });
-      return;
-    }
   setIsBriefQAMode(false);
+  if (isAnalyzing) return;
   setIsAnalyzing(true);
   emitMode('analysis');
+  const activatedMsg: Message = {
+    id: `msg-analysis-activated-${Date.now()}`,
+    type: 'system',
+    content: '✅ Analysis Activated. Processing your idea now…',
+    timestamp: new Date()
+  };
+  setMessages(prev => [...prev, activatedMsg]);
   try { window.dispatchEvent(new CustomEvent('analysis:running', { detail: { running: true } })); } catch {}
     setAnalysisProgress(3);
     const analysisStartId = `msg-brief-start-${Date.now()}`;
@@ -744,7 +702,7 @@ export default function ChatGPTStyleChat({
     setMessages(prev => [...prev, loadingMsg]);
 
     try {
-      const result: AnalysisResult = await runEnterpriseAnalysis({ brief, idea: currentIdea || brief.problem }, (update) => {
+      const result: AnalysisResult = await runEnterpriseAnalysis({ brief, idea: currentIdea || brief.problem || 'Untitled Idea' }, (update) => {
         setAnalysisProgress(Math.min(98, Math.max(5, update.pct)));
         setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: `${update.phase === 'validate' ? 'Checking your idea details...' : update.phase === 'fetch-model' ? 'Getting smart insights...' : update.phase === 'structure' ? 'Organizing the findings...' : update.phase === 'finalize' ? 'Putting it all together...' : 'Working on it...'}\n${update.note ? '💡 ' + update.note : ''}` } : m));
       });
@@ -815,41 +773,8 @@ export default function ChatGPTStyleChat({
       createSession(input.split(/\s+/).slice(0,6).join(' '));
     }
     
-    // If in Brief Q&A capture mode (takes precedence over refinement)
-    if (isBriefQAMode && !isAnalyzing) {
-      const questions = briefQuestionsRef.current;
-      const currentQ = questions[briefQuestionIndex];
-      const rawAnswer = input.trim();
-
-      // Allow simple commands
-      if (/^cancel$/i.test(rawAnswer)) {
-        setIsBriefQAMode(false);
-        const cancelMsg: Message = {
-          id: `msg-brief-cancel-${Date.now()}`,
-          type: 'system',
-          content: '🛑 Brief Q&A cancelled. You can restart anytime with the Start Brief button.',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, cancelMsg]);
-        setInput('');
-        return;
-      }
-      const skip = /^skip$/i.test(rawAnswer) || rawAnswer === '-';
-      if (!skip && currentQ) {
-        setBrief(b => ({ ...b, [currentQ.key]: rawAnswer }));
-      }
-      const nextIndex = briefQuestionIndex + 1;
-      setBriefQuestionIndex(nextIndex);
-      setInput('');
-      // Finished?
-      if (nextIndex >= questions.length) {
-        summarizeBriefAndOfferAnalysis();
-        setIsBriefQAMode(false);
-      } else {
-        askNextBriefQuestion(nextIndex);
-      }
-      return;
-    }
+    // Brief Q&A disabled
+    // Proceed with normal send flow
 
     // Idea intake path (before refinement mode begins)
     if (!currentIdea && !isAnalyzing) {
@@ -1064,26 +989,8 @@ export default function ChatGPTStyleChat({
   // Step-based analysis functions removed (completeAnalysis, askNextQuestion) as we now use a single brief.
 
   const startAnalysis = () => {
-    // If Q&A is active, cancel it
-    if (isBriefQAMode) {
-      setIsBriefQAMode(false);
-      const cancelMsg: Message = {
-        id: `msg-brief-cancel-${Date.now()}`,
-        type: 'system',
-        content: '🛑 Brief Q&A cancelled. Click "Start Analysis" to begin again.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, cancelMsg]);
-      return;
-    }
-    
-    // If we have enough brief data, run analysis directly
-    if (brief.problem && brief.targetUser) {
-      runBriefAnalysis();
-    } else {
-      // Start brief Q&A to gather information
-      startBriefQnA();
-    }
+    if (isBriefQAMode) setIsBriefQAMode(false);
+    if (!isAnalyzing) runBriefAnalysis();
   };
 
   const startBriefQnA = () => {
@@ -1099,7 +1006,7 @@ export default function ChatGPTStyleChat({
     const intro: Message = {
       id: `msg-brief-intro-${Date.now()}`,
       type: 'system',
-      content: `� Brief Q&A activated. Probable answers loading…`,
+      content: `✅ Analysis Activated.`,
       timestamp: new Date()
     };
     const loadingFirst: Message = {
