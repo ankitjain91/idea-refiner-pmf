@@ -271,11 +271,11 @@ const IdeaChatPage = () => {
             <Button
               size="sm"
               variant="default"
-              className="h-8 px-3 text-[11px] gap-1.5 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+              className="h-8 px-3 text-[11px] gap-1.5 font-medium bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary/85 shadow-sm hover:shadow-md transition-all duration-200"
               onClick={() => window.dispatchEvent(new CustomEvent('analysis:openBrief'))}
               title="Run comprehensive PMF analysis"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <Sparkles className="h-3.5 w-3.5 text-primary-foreground/90" />
               <span className="hidden sm:inline">Start Analysis</span>
               <span className="sm:hidden">Analyze</span>
             </Button>
