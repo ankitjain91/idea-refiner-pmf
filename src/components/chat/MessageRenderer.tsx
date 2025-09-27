@@ -125,12 +125,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
       {/* Suggestions */}
       {message.suggestions && message.suggestions.length > 0 && (
-        <div className="mt-4 space-y-2 w-full">
+        <div className="mt-4 space-y-2">
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-wrap gap-1 sm:gap-2 w-full"
+            className="flex flex-wrap gap-2"
           >
             {message.suggestions.map((suggestion, idx) => (
               <motion.div
@@ -138,7 +138,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + idx * 0.05 }}
-                className="flex-grow basis-full sm:basis-[calc(50%-0.25rem)] md:basis-[calc(33.333%-0.5rem)]"
               >
                 <Button
                   variant="outline"
@@ -158,11 +157,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       onSendMessage(suggestionText);
                     }
                   }}
-                  className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group touch-manipulation min-h-[32px] h-auto px-2 sm:px-3 text-left justify-start w-full whitespace-normal"
+                  className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group touch-manipulation h-auto min-h-[32px] px-3 py-2 text-left justify-start whitespace-normal max-w-[280px]"
                 >
-                  <div className="flex items-start gap-1 w-full">
+                  <div className="flex items-start gap-1.5">
                     <Lightbulb className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
-                    <span className="break-words flex-1 leading-relaxed">
+                    <span className="break-words leading-relaxed">
                       {typeof suggestion === 'string' 
                         ? suggestion 
                         : (suggestion && typeof suggestion === 'object' && suggestion.text)
