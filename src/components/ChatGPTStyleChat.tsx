@@ -197,7 +197,7 @@ export default function ChatGPTStyleChat({
     inputRef.current?.focus();
     return;
     // Handle special action suggestions
-    if (suggestion === "Show Dashboard" || suggestion === "View detailed HyperFlux analysis") {
+    if (suggestion === "View Dashboard" || suggestion === "View detailed HyperFlux analysis") {
       // Check if we have analysis data
       const analysisMsg = messages.find(m => m.pmfAnalysis);
       if (analysisMsg?.pmfAnalysis && onAnalysisReady) {
@@ -711,11 +711,11 @@ export default function ChatGPTStyleChat({
       const completion: Message = {
         id: `msg-brief-complete-${Date.now()}`,
         type: 'system',
-        content: `🎯 ${SCORE_LABEL} pipeline complete in ${(result.meta.durationMs/1000).toFixed(1)}s. Score: **${pmfScore}/100** (${result.meta.viabilityLabel || 'Unlabeled'}).\nWeak areas: ${result.meta.weakAreas.length ? result.meta.weakAreas.join(', ') : 'None emphasized.'}\n\n**Click "Show Dashboard" to view your detailed analysis.**`,
+        content: `🎯 ${SCORE_LABEL} pipeline complete in ${(result.meta.durationMs/1000).toFixed(1)}s. Score: **${pmfScore}/100** (${result.meta.viabilityLabel || 'Unlabeled'}).\nWeak areas: ${result.meta.weakAreas.length ? result.meta.weakAreas.join(', ') : 'None emphasized.'}\n\n**Click "View Dashboard" to see your detailed analysis.**`,
         timestamp: new Date(),
         pmfAnalysis: result.pmfAnalysis,
         suggestions: good ? [
-          'Show Dashboard',
+          'View Dashboard',
           'Show live market signals',
           'Refine further',
           'Export report'
@@ -723,7 +723,7 @@ export default function ChatGPTStyleChat({
           'Improve differentiation',
           'Clarify target user',
           'Strengthen monetization',
-          'Show Dashboard',
+          'View Dashboard',
           'Show live market signals'
         ]
       };
