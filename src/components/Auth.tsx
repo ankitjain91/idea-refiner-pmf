@@ -174,13 +174,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
-      
-      <Card className="w-full max-w-md relative z-10 border-border/50 bg-card/95 backdrop-blur-xl">
+      <Card className="w-full border-gray-700/50 bg-gray-900/95 backdrop-blur-xl shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-display gradient-text">PMF Validator</CardTitle>
-          <CardDescription>Sign in to save and track your startup ideas</CardDescription>
+          <CardTitle className="text-3xl font-bold text-gray-100">Neural Auth</CardTitle>
+          <CardDescription className="text-gray-400">Initialize secure connection to the innovation matrix</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
@@ -224,10 +221,10 @@ export default function Auth() {
               <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
+                    <Separator className="w-full bg-gray-700" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="px-2 text-muted-foreground bg-transparent">Or continue with</span>
+                    <span className="px-2 text-gray-400 bg-gray-900">Or continue with</span>
                   </div>
                 </div>
 
@@ -237,7 +234,7 @@ export default function Auth() {
                     variant="default"
                     onClick={() => handleSocialSignIn('google')}
                     disabled={socialLoading !== null}
-                    className="relative bg-gradient-primary text-primary-foreground hover:opacity-90 border-0 group shadow-md"
+                    className="relative bg-gray-800 hover:bg-gray-700 text-gray-100 border-gray-600 group shadow-md"
                   >
                     {socialLoading === 'google' ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -322,6 +319,5 @@ export default function Auth() {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
   );
 }
