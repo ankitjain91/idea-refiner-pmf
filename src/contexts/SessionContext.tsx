@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LS_KEYS } from '@/lib/storage-keys';
+import { useAlerts } from '@/contexts/AlertContext';
 
 interface SessionData {
   chatHistory: any[];
@@ -14,10 +15,13 @@ interface SessionData {
 interface BrainstormingSession {
   id: string;
   name: string;
-  data: SessionData;
   created_at: string;
   updated_at: string;
-  user_id?: string;
+  user_id: string;
+  last_accessed: string;
+  state: any;
+  activity_log: any[];
+  data?: SessionData; // Make data optional for backward compatibility
 }
 
 interface SessionContextType {
@@ -54,15 +58,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [sessions, setSessions] = useState<BrainstormingSession[]>([]);
   const [currentSession, setCurrentSession] = useState<BrainstormingSession | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [activityBuffer, setActivityBuffer] = useState<any[]>([]);
   const interactionSaveTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastSerializedStateRef = useRef<string>('');
-  const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [sessionLoadAttempt, setSessionLoadAttempt] = useState(0);
-  const { addAlert } = useAlerts(); // Will only use for error cases now (silent success UX)
   const renamingRef = useRef(false);
   const duplicatingRef = useRef(false);
+
+  // Define SessionState interface locally
+  interface SessionState {
+    currentPath: string;
+    chatHistory: any[];
+    ideaData: any;
+    analysisData: any;
+    scrollPosition: number;
+    timestamp: string;
+  }
+  
+  const { addAlert } = useAlerts();
 
   // Load all sessions for the current user with simple exponential backoff on transient/network errors
   const loadSessions = useCallback(async (attempt: number = 0) => {
@@ -144,12 +159,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Create session in database
       const { data, error } = await supabase
         .from('brainstorming_sessions')
-        .insert({
+        .insert([{
           user_id: user.id,
           name: sessionName,
-          state: currentState,
+          state: currentState as any,
           activity_log: [],
-        })
+        }])
         .select()
         .single();
 
@@ -368,11 +383,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // Save current state
-  const saveCurrentState = async (force: boolean = false) => {
+  const saveCurrentSession = async (force: boolean = false) => {
     if (!currentSession) return;
 
     try {
-      if (!isSaving) setIsSaving(true);
+      if (!saving) setSaving(true);
       // Gather richer state from localStorage (graceful fallbacks)
       const idea = localStorage.getItem('userIdea') || '';
       const answers = localStorage.getItem('userAnswers');
@@ -424,7 +439,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const { error } = await supabase
         .from('brainstorming_sessions')
         .update({
-          state: currentState,
+          state: currentState as any,
           activity_log: updatedActivityLog,
           last_accessed: new Date().toISOString(),
         })
@@ -441,7 +456,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     finally {
       // Slight delay to prevent flicker
-      setTimeout(() => setIsSaving(false), 250);
+      setTimeout(() => setSaving(false), 250);
     }
   };
 
@@ -452,7 +467,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const scheduleSave = () => {
       if (interactionSaveTimeout.current) clearTimeout(interactionSaveTimeout.current);
       interactionSaveTimeout.current = setTimeout(() => {
-        saveCurrentState();
+        saveCurrentSession();
       }, 1500);
     };
 
@@ -461,7 +476,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       events.forEach(evt => window.removeEventListener(evt, scheduleSave));
     };
-  }, [currentSession, saveCurrentState]);
+  }, [currentSession, saveCurrentSession]);
 
   // Log activity
   const logActivity = (activity: any) => {
@@ -480,7 +495,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!currentSession) return;
 
     const interval = setInterval(() => {
-      saveCurrentState();
+      saveCurrentSession();
     }, 30000);
 
     return () => clearInterval(interval);
@@ -490,7 +505,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (currentSession) {
-        saveCurrentState();
+        saveCurrentSession();
       }
     };
 
@@ -545,7 +560,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         sessions,
         currentSession,
         loading,
-        saving: isSaving,
+        saving,
+        loadSessions,
         createSession,
         loadSession,
         deleteSession,
