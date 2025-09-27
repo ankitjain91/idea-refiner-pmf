@@ -864,8 +864,8 @@ export default function LandingPage() {
                 style={{ transformStyle: "preserve-3d" }}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 animate-pulse`} />
-                <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300 backdrop-blur-xl hover:shadow-[0_30px_60px_rgba(100,150,255,0.4)]">
-                  <CardContent className="p-8">
+                <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300 backdrop-blur-xl hover:shadow-[0_30px_60px_rgba(100,150,255,0.4)] h-full">
+                  <CardContent className="p-8 h-full flex flex-col">
                     <FloatingElement delay={idx * 0.5}>
                       <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(100,150,255,0.2)]">
                         <feature.icon className="w-7 h-7 text-primary" />
@@ -877,7 +877,7 @@ export default function LandingPage() {
                         {feature.badge}
                       </Badge>
                     )}
-                    <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+                    <p className="text-gray-400 leading-relaxed flex-1">{feature.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>
