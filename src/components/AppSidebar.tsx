@@ -62,7 +62,9 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       <SidebarHeader className="border-b p-2 sm:p-4">
         {isOpen && (
           <div className="flex items-center justify-between">
-            <h2 className="text-base sm:text-lg font-semibold truncate">smoothbrains.ai ©</h2>
+            <h2 className="text-base sm:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent tracking-tight">
+              SmoothBrains ©
+            </h2>
           </div>
         )}
       </SidebarHeader>
