@@ -1646,18 +1646,9 @@ User submission: """${messageText}"""`;
               {currentSession?.is_anonymous && (
                 <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
               )}
-              {responseMode === 'summary' && (
-                <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded fluid-text-xs font-medium inline-flex items-center gap-1">
-                  <ListMinus className="w-3 h-3" />
-                  Summary
-                </span>
-              )}
-              {responseMode === 'verbose' && (
-                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded fluid-text-xs font-medium inline-flex items-center gap-1">
-                  <Layers className="w-3 h-3" />
-                  Detailed
-                </span>
-              )}
+              <span className="text-[0.65rem] uppercase tracking-wide font-medium text-muted-foreground">
+                {responseMode === 'summary' ? 'Summary' : 'Detailed'} Mode
+              </span>
             </p>
             {currentIdea && (
               <p className="fluid-text-xs text-primary font-medium mt-1 max-w-[320px] break-words" title={currentIdea}>
@@ -1667,68 +1658,43 @@ User submission: """${messageText}"""`;
           </div>
         </div>
           <div className="flex items-center fluid-gap">
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={responseMode === 'summary' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setResponseMode('summary');
-                      if (!anonymous) localStorage.setItem('responseMode', 'summary');
-                    }}
-                    className="h-8 w-8 p-0 transition-all duration-200"
-                  >
-                    <ListMinus className={cn(
-                      "h-4 w-4 transition-colors",
-                      responseMode === 'summary' ? 'text-primary-foreground' : 'text-muted-foreground'
-                    )} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <div className="flex items-start gap-2">
-                    <ListMinus className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                    <p className="fluid-text-xs leading-relaxed">Summary mode: Get concise, focused responses that hit the key points</p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={responseMode === 'summary' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setResponseMode('summary');
+                  if (!anonymous) localStorage.setItem('responseMode', 'summary');
+                }}
+                className="h-8 px-3 transition-all duration-200 text-xs font-medium"
+              >
+                Summary
+              </Button>
               
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={responseMode === 'verbose' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setResponseMode('verbose');
-                      if (!anonymous) localStorage.setItem('responseMode', 'verbose');
-                    }}
-                    className="h-8 w-8 p-0 transition-all duration-200"
-                  >
-                    <Layers className={cn(
-                      "h-4 w-4 transition-colors",
-                      responseMode === 'verbose' ? 'text-primary-foreground' : 'text-muted-foreground'
-                    )} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <div className="flex items-start gap-2">
-                    <Layers className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <p className="fluid-text-xs leading-relaxed">Verbose mode: Get detailed, comprehensive analysis with deep insights</p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </div>          <Button
-            variant="ghost"
-            size="icon"
-            onClick={resetChat}
-            title="Start new analysis"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
+              <Button
+                variant={responseMode === 'verbose' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setResponseMode('verbose');
+                  if (!anonymous) localStorage.setItem('responseMode', 'verbose');
+                }}
+                className="h-8 px-3 transition-all duration-200 text-xs font-medium"
+              >
+                Detailed
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={resetChat}
+              title="Start new analysis"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
 
     {/* Messages Area */}
     <ScrollArea className="flex-1 relative">

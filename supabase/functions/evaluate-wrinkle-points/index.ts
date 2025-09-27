@@ -37,16 +37,18 @@ EVALUATE THE USER'S INPUT BASED ON:
 5. Problem-solving - Did they address challenges or opportunities?
 
 SCORING RULES (based on USER'S input quality):
-- Exceptional insights with data/evidence: +5 to +8 points
-- Strong strategic thinking with specifics: +3 to +5 points
-- Good elaboration and refinement: +2 to +3 points
-- Basic contribution: +0.5 to +2 points
-- Vague or minimal input: +0.25 to +0.5 points
-- Off-topic or no value: -0.5 to -2 points
+- Exceptional insights with data/evidence: +3.0 to +5.0 points
+- Strong strategic thinking with specifics: +2.0 to +3.0 points
+- Good elaboration and refinement: +1.0 to +2.0 points
+- Basic contribution: +0.5 to +1.0 points
+- Minimal input but trying: +0.1 to +0.5 points
+- Even for off-topic: +0.1 points minimum (encouraging engagement)
+
+ALWAYS return positive points (minimum 0.1). Use decimals for nuance.
 
 Return ONLY a JSON object like this:
 {
-  "pointChange": 3,
+  "pointChange": 1.5,
   "explanation": "Good market validation insight - shows deeper understanding of customer needs"
 }
 
@@ -82,14 +84,18 @@ BE STRICT. Higher point totals should get fewer points for the same quality of t
       throw new Error('No content in OpenAI response');
     }
 
-    // Parse the JSON response
+    // Parse the JSON response and ensure positive points
     let evaluation;
     try {
       evaluation = JSON.parse(content);
+      // Ensure points are always positive
+      if (evaluation.pointChange <= 0) {
+        evaluation.pointChange = 0.1;
+      }
     } catch (parseError) {
-      // Fallback if JSON parsing fails
+      // Fallback if JSON parsing fails - always positive
       evaluation = {
-        pointChange: Math.floor(Math.random() * 3) + 1,
+        pointChange: (Math.random() * 0.9) + 0.1, // 0.1 to 1.0
         explanation: 'Making progress with your idea!'
       };
     }
@@ -107,9 +113,9 @@ BE STRICT. Higher point totals should get fewer points for the same quality of t
   } catch (error) {
     console.error('Error evaluating wrinkle points:', error);
     
-    // Fallback evaluation
+    // Fallback evaluation - always positive
     const fallbackEvaluation = {
-      pointChange: Math.floor(Math.random() * 3) + 1,
+      pointChange: (Math.random() * 0.9) + 0.1, // 0.1 to 1.0
       explanation: 'Brain processing your idea refinement!'
     };
 
