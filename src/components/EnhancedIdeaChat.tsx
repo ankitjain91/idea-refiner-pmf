@@ -209,16 +209,60 @@ What's your startup idea?`,
           {message.type === 'bot' && (
             <motion.div 
               className="flex-shrink-0"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 500, delay: 0.1 }}
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ 
+                scale: 1, 
+                rotate: 0,
+                transition: {
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20,
+                  delay: 0.1
+                }
+              }}
             >
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full animate-pulse" />
-                <div className="relative h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-                  <Bot className="h-5 w-5 text-primary" />
+              <motion.div 
+                className="relative"
+                animate={message.isTyping ? {
+                  rotate: [0, 5, -5, 5, 0],
+                  transition: {
+                    duration: 0.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
+                } : {}}
+              >
+                <motion.div 
+                  className="absolute inset-0 bg-primary/20 blur-lg rounded-full"
+                  animate={message.isTyping ? {
+                    scale: [1, 1.2, 1],
+                    opacity: [0.5, 0.8, 0.5]
+                  } : {}}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                <div className="relative h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20 backdrop-blur-sm">
+                  {message.isTyping ? (
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 0.6,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Brain className="h-5 w-5 text-primary" />
+                    </motion.div>
+                  ) : (
+                    <Bot className="h-5 w-5 text-primary" />
+                  )}
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           )}
 
@@ -426,10 +470,15 @@ What's your startup idea?`,
     // If we have not yet validated an idea, attempt validation first before normal flow.
     if (!hasValidIdea) {
       try {
-        // Quick heuristic pre-filter: must have some structure before we even ask model.
-        const heuristicLooksLikeIdea = isIdeaDescription(messageText);
-        const validationPrompt = `You are a STRICT startup idea validator. Determine if the user submission is a CONCRETE startup idea (must specify: target user or segment, a real painful problem or workflow friction, and a hint of the proposed solution or wedge). If it is vague (e.g. 'an AI app to help everyone be productive'), purely aspirational, joke content, or missing key specifics, mark it invalid.
-Respond ONLY with minified JSON: {"valid": true|false, "reason": "short reason why or what is missing", "improvementHints": ["array of 2-4 very tactical improvement prompts the user can answer" ]}.
+        // More lenient heuristic check - allow some flexibility
+        const heuristicLooksLikeIdea = messageText.length > 30 && 
+          (messageText.includes('build') || messageText.includes('create') || 
+           messageText.includes('help') || messageText.includes('solve') ||
+           messageText.includes('automate') || messageText.includes('platform') ||
+           messageText.includes('tool') || messageText.includes('app'));
+        
+        const validationPrompt = `You are a helpful startup idea validator. Determine if the user submission contains a startup idea with reasonable specificity. Be LENIENT - accept ideas that show genuine effort even if not perfectly detailed. Look for: some indication of target users, a problem they face, and a solution approach. If it's clearly a joke, gibberish, or completely unrelated to business ideas, mark invalid.
+Respond ONLY with minified JSON: {"valid": true|false, "reason": "short encouraging feedback", "improvementHints": ["array of 2-3 helpful questions to refine further"]}.
 User submission: """${messageText}"""`;
 
         const { data: validationData, error: validationError } = await supabase.functions.invoke('idea-chat', {
@@ -448,7 +497,8 @@ User submission: """${messageText}"""`;
           console.warn('Failed to parse validation JSON, fallback to heuristic', e);
         }
 
-        const isValid = parsed.valid === true && heuristicLooksLikeIdea;
+        // Be more lenient - accept if either validation passes
+        const isValid = parsed.valid === true || (heuristicLooksLikeIdea && parsed.valid !== false);
 
         if (!isValid) {
           const funnyLines = [
@@ -636,12 +686,23 @@ User submission: """${messageText}"""`;
         // Extract suggestions if they're in the response
         let suggestions = data.suggestions || [];
         
-        // Generate AI-powered suggestions with explanations
+        // Generate contextual AI-powered suggestions
         try {
+          // Determine if bot is asking questions or providing answers
+          const isBotAsking = formattedContent.includes('?') || 
+                             formattedContent.toLowerCase().includes('what') ||
+                             formattedContent.toLowerCase().includes('how') ||
+                             formattedContent.toLowerCase().includes('why') ||
+                             formattedContent.toLowerCase().includes('when') ||
+                             formattedContent.toLowerCase().includes('describe');
+          
+          // Generate suggestions that are contextually appropriate
+          const suggestionType = isBotAsking ? 'answers' : 'followup_questions';
+          
           const { data: suggestionData } = await supabase.functions.invoke('generate-suggestions', {
             body: { 
               question: formattedContent,
-              ideaDescription: messages.find(m => m.type === 'user')?.content || messageText,
+              ideaDescription: currentIdea || messageText,
               previousAnswers: messages.reduce((acc, msg, idx) => {
                 if (msg.type === 'user' && idx > 0) {
                   const prevBot = messages[idx - 1];
@@ -653,19 +714,40 @@ User submission: """${messageText}"""`;
                 return acc;
               }, {} as Record<string, string>),
               includeExplanations: true,
-              responseMode: responseMode
+              responseMode: responseMode,
+              suggestionType: suggestionType,
+              contextualMode: true
             }
           });
+          
           if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
             suggestions = suggestionData.suggestions.map((suggestion: any) => ({
               ...suggestion,
+              text: typeof suggestion === 'string' ? suggestion : suggestion.text,
               explanation: suggestion.explanation || generateSuggestionExplanation(suggestion.text || suggestion)
             }));
           }
         } catch (error) {
           console.error('Error getting AI suggestions:', error);
-          // Fallback: generate basic suggestions with explanations
-          suggestions = generateFallbackSuggestions(formattedContent, responseMode);
+          // Fallback: generate contextually appropriate suggestions
+          const isBotAsking = formattedContent.includes('?');
+          if (isBotAsking) {
+            // Bot is asking - provide potential answers
+            suggestions = [
+              "My target users face this problem daily when they...",
+              "The current manual workaround involves [specific steps]...",
+              "I've validated this pain point by talking to [number] potential customers",
+              "The unique insight I have is based on my experience with..."
+            ];
+          } else {
+            // Bot is answering - provide follow-up questions
+            suggestions = [
+              "How would this scale with 1000+ users?",
+              "What's the competitive moat here?",
+              "Can you elaborate on the pricing strategy?",
+              "What's the customer acquisition strategy?"
+            ];
+          }
         }
         
         // Generate static suggestion explanation
@@ -730,21 +812,65 @@ const ChatMessageItem = useMemo(() => {
           message.type === 'user' ? 'justify-end' : 'justify-start'
         )}
       >
-        {message.type === 'bot' && (
-          <motion.div 
-            className="flex-shrink-0"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, delay: 0.1 }}
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full animate-pulse" />
-              <div className="relative h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-                <Bot className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-          </motion.div>
-        )}
+          {message.type === 'bot' && (
+            <motion.div 
+              className="flex-shrink-0"
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ 
+                scale: 1, 
+                rotate: 0,
+                transition: {
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20,
+                  delay: 0.1
+                }
+              }}
+            >
+              <motion.div 
+                className="relative"
+                animate={message.isTyping ? {
+                  rotate: [0, 5, -5, 5, 0],
+                  transition: {
+                    duration: 0.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
+                } : {}}
+              >
+                <motion.div 
+                  className="absolute inset-0 bg-primary/20 blur-lg rounded-full"
+                  animate={message.isTyping ? {
+                    scale: [1, 1.2, 1],
+                    opacity: [0.5, 0.8, 0.5]
+                  } : {}}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                <div className="relative h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20 backdrop-blur-sm">
+                  {message.isTyping ? (
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 0.6,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Brain className="h-5 w-5 text-primary" />
+                    </motion.div>
+                  ) : (
+                    <Bot className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
 
         <div className={cn(
           "w-full sm:max-w-[85%] lg:max-w-[75%] space-y-2 sm:space-y-3 min-w-0",
@@ -951,7 +1077,8 @@ User submission: """${messageText}"""`;
           console.warn('Failed to parse validation JSON, fallback to heuristic', e);
         }
 
-        const isValid = parsed.valid === true && heuristicLooksLikeIdea;
+        // Be more lenient - accept if either validation passes
+        const isValid = parsed.valid === true || (heuristicLooksLikeIdea && parsed.valid !== false);
 
         if (!isValid) {
           const funnyLines = [

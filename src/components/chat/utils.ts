@@ -107,52 +107,9 @@ export const generateSuggestionExplanation = (suggestionText: string): string =>
   return generalExplanations[Math.floor(Math.random() * generalExplanations.length)];
 };
 
-// Helper function to generate fallback suggestions with explanations
-export const generateFallbackSuggestions = (content: string, mode: ResponseMode): SuggestionItem[] => {
-  const contentLower = content.toLowerCase();
-  
-  // If no real idea yet, push for one
-  if (!contentLower.includes('app') && !contentLower.includes('platform') && !contentLower.includes('service') && !contentLower.includes('business')) {
-    return [
-      {
-        text: 'I want to build an app that helps people with [specific problem]',
-        explanation: 'Start with a real problem you want to solve'
-      },
-      {
-        text: 'My business idea is a platform for [target audience] to [main benefit]',
-        explanation: 'Define your target audience and core value proposition'
-      },
-      {
-        text: 'I noticed [pain point] in daily life and want to create [solution]',
-        explanation: 'Personal observations often lead to the best business ideas'
-      }
-    ];
-  }
-  
-  // If they have an idea but it's vague, push for details
-  const detailSuggestions: SuggestionItem[] = [
-    {
-      text: 'Who exactly is my target customer and what keeps them up at night?',
-      explanation: 'Deep customer understanding is the foundation of successful businesses'
-    },
-    {
-      text: 'What is the biggest pain point my idea solves that nobody else addresses?',
-      explanation: 'Finding your unique angle separates you from generic solutions'
-    },
-    {
-      text: 'How would someone use my product in their daily routine?',
-      explanation: 'User flow understanding helps identify real-world adoption challenges'
-    },
-    {
-      text: 'What would make someone choose my solution over doing nothing?',
-      explanation: 'Often your biggest competitor is the status quo, not other products'
-    }
-  ];
-  
-  return mode === 'summary' ? detailSuggestions.slice(0, 2) : detailSuggestions;
-};
+// Removed duplicate - using the better contextual version defined later in this file
 
-// Helper function to detect if text looks like an idea description
+// Helper function to detect if text looks like an idea description (more lenient)
 export const isIdeaDescription = (text: string): boolean => {
   if (text.length <= 20) return false;
   
@@ -160,17 +117,22 @@ export const isIdeaDescription = (text: string): boolean => {
   const trickery = detectTrickery(text);
   if (trickery.isTricky) return false;
   
-  // Must not start with question words
-  if (text.toLowerCase().match(/^(what|how|why|when|where|can|should|would|could|tell me|explain)/)) {
+  // Must not start with pure question words (but allow "I want to...")
+  if (text.toLowerCase().match(/^(what is|how do|why should|when will|where can|tell me|explain)/)) {
     return false;
   }
   
-  // Must contain business/product indicators
-  const businessWords = ['app', 'platform', 'service', 'product', 'business', 'startup', 'company', 'tool', 'system', 'website', 'application', 'marketplace', 'solution'];
+  // More lenient business/product indicators
+  const businessWords = [
+    'app', 'platform', 'service', 'product', 'business', 'startup', 'company', 
+    'tool', 'system', 'website', 'application', 'marketplace', 'solution',
+    'build', 'create', 'help', 'solve', 'automate', 'connect', 'manage',
+    'for', 'that', 'helps', 'enables', 'allows', 'makes'
+  ];
   const hasBusinessContext = businessWords.some(word => text.toLowerCase().includes(word));
   
-  // Must be substantial (more than just "I have an idea for X")
-  const isSubstantial = text.split(' ').length >= 8;
+  // More lenient - accept shorter but focused descriptions
+  const isSubstantial = text.split(' ').length >= 5;
   
   return hasBusinessContext && isSubstantial;
 };
@@ -345,6 +307,91 @@ export const detectTrickery = (text: string): { isTricky: boolean; response: str
   }
   
   return { isTricky: false, response: '' };
+};
+
+// Generate contextually appropriate fallback suggestions
+export const generateFallbackSuggestions = (botMessage: string, responseMode: ResponseMode): any[] => {
+  const lowerMessage = botMessage.toLowerCase();
+  const isBotAsking = botMessage.includes('?') || 
+                       lowerMessage.includes('what') ||
+                       lowerMessage.includes('how') ||
+                       lowerMessage.includes('why') ||
+                       lowerMessage.includes('describe') ||
+                       lowerMessage.includes('tell me');
+  
+  // If bot is asking a question, provide answer suggestions
+  if (isBotAsking) {
+    if (lowerMessage.includes('target') || lowerMessage.includes('who')) {
+      return [
+        "Small business owners with 10-50 employees struggling with inventory",
+        "Healthcare professionals who spend 3+ hours on documentation",
+        "Remote engineering teams that lose context between meetings",
+        "E-commerce retailers manually tracking multi-channel sales"
+      ];
+    }
+    
+    if (lowerMessage.includes('problem') || lowerMessage.includes('pain')) {
+      return [
+        "They waste 3+ hours daily copying data between systems",
+        "Current tools require 5 different logins and don't sync",
+        "They're losing $50K/month to inventory mismatches",
+        "Teams redo work because context isn't captured properly"
+      ];
+    }
+    
+    if (lowerMessage.includes('solution') || lowerMessage.includes('how')) {
+      return [
+        "We automate the data flow with smart API connectors",
+        "Single dashboard that unifies all their tools",
+        "AI predicts issues before they become problems",
+        "Real-time sync keeps everyone on the same page"
+      ];
+    }
+    
+    // Generic answers for bot questions
+    return [
+      "Based on my experience in the industry for 5 years",
+      "I've validated this with 20+ customer interviews",
+      "The data shows a 40% efficiency improvement",
+      "Our unique approach uses proprietary algorithms"
+    ];
+  }
+  
+  // If bot is providing information, offer follow-up questions
+  if (lowerMessage.includes('market') || lowerMessage.includes('opportunity')) {
+    return [
+      "How big is the total addressable market?",
+      "What's the growth rate in this sector?",
+      "Who are the main competitors?",
+      "What regulatory challenges exist?"
+    ];
+  }
+  
+  if (lowerMessage.includes('customer') || lowerMessage.includes('user')) {
+    return [
+      "How will you reach these customers cost-effectively?",
+      "What's their willingness to pay?",
+      "How long is the typical sales cycle?",
+      "What's the customer lifetime value?"
+    ];
+  }
+  
+  if (lowerMessage.includes('revenue') || lowerMessage.includes('monetiz')) {
+    return [
+      "What's the pricing sweet spot based on research?",
+      "How does this compare to alternatives?",
+      "What's the path to $1M ARR?",
+      "Will you offer annual discounts?"
+    ];
+  }
+  
+  // Default follow-up questions
+  return [
+    "What makes this defensible long-term?",
+    "How will you validate product-market fit?",
+    "What's the 6-month roadmap?",
+    "What are the key success metrics?"
+  ];
 };
 
 // Helper function to generate brain-themed explanations for suggestions
