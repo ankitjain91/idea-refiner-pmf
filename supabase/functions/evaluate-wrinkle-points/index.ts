@@ -15,34 +15,34 @@ serve(async (req) => {
   }
 
   try {
-    const { userMessage, botResponse, conversationHistory, currentWrinklePoints } = await req.json();
+    const { userMessage, currentIdea, conversationHistory, currentWrinklePoints } = await req.json();
 
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
-    const evaluationPrompt = `You are a brain wrinkle evaluator for an idea brainstorming session. Your job is to evaluate how many wrinkle points this conversation turn deserves.
+    const evaluationPrompt = `You are a brain wrinkle evaluator. Evaluate the QUALITY of the USER'S MESSAGE, not the bot's response.
 
 CONTEXT:
 - User currently has ${currentWrinklePoints} wrinkle points
-- User message: "${userMessage}"
-- Bot response: "${botResponse}"
+- User's current idea: "${currentIdea || 'Not yet defined'}"
+- User's message to evaluate: "${userMessage}"
 - Recent conversation: ${JSON.stringify(conversationHistory)}
 
-SCORING RULES:
-- Points get HARDER to earn as the total increases (diminishing returns)
-- Early ideas (0-10 points): Easy to get 3-8 points for any decent thinking
-- Developing ideas (11-50 points): Need good insights, 2-6 points typically
-- Mature ideas (51-100 points): Only exceptional refinements get 3-5 points
-- Advanced ideas (100+ points): Very rare to get more than 2-3 points
-- The higher the current points, the more demanding you become
+EVALUATE THE USER'S INPUT BASED ON:
+1. Specificity - Did they provide concrete details, numbers, examples?
+2. Strategic thinking - Did they show business acumen, market understanding?
+3. Evidence/validation - Did they mention research, testing, customer feedback?
+4. Depth of refinement - How much did they improve or elaborate on the idea?
+5. Problem-solving - Did they address challenges or opportunities?
 
-POINT VALUES:
-- Exceptional breakthrough thinking: +5 to +8 points (very rare at high levels)
-- Good refinement/insight: +2 to +5 points (gets harder as points increase)
-- Basic progress: +1 to +3 points (diminishes significantly at high levels)
-- Vague/unclear response: -1 to -3 points
-- Going backwards/confusion: -3 to -5 points
+SCORING RULES (based on USER'S input quality):
+- Exceptional insights with data/evidence: +5 to +8 points
+- Strong strategic thinking with specifics: +3 to +5 points
+- Good elaboration and refinement: +2 to +3 points
+- Basic contribution: +0.5 to +2 points
+- Vague or minimal input: +0.25 to +0.5 points
+- Off-topic or no value: -0.5 to -2 points
 
 Return ONLY a JSON object like this:
 {

@@ -762,15 +762,15 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
 
       // Don't remove typing indicator yet - keep it visible until response is ready
 
-      // Use ChatGPT to evaluate wrinkle points for this conversation turn
-  let pointChange = 0;
+      // Evaluate wrinkle points based on USER's input quality
+      let pointChange = 0;
       let pointsExplanation = '';
       
       try {
         const { data: evaluationData } = await supabase.functions.invoke('evaluate-wrinkle-points', {
           body: { 
             userMessage: messageText,
-            botResponse: data.response || 'AI response processing...',
+            currentIdea: currentIdea,
             conversationHistory: conversationHistory.slice(-4), // Last 4 messages for context
             currentWrinklePoints: wrinklePoints
           }
@@ -782,21 +782,25 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         }
       } catch (error) {
         console.error('Error evaluating wrinkle points:', error);
-        // Fallback to simple evaluation
-        const isRefinement = data?.content && (
-          data.content.includes('refined') || 
-          data.content.includes('improved') || 
-          data.content.includes('better') ||
-          data.content.includes('enhanced') ||
-          data.content.includes('clarified')
-        );
+        // Fallback: evaluate based on USER's message quality
+        const userWords = messageText.toLowerCase().split(' ');
+        const hasSpecifics = /\d+|\$|%|users?|customers?|revenue|cost|price/i.test(messageText);
+        const hasStrategy = /strategy|plan|approach|method|process|system/i.test(messageText);
+        const hasEvidence = /validated|tested|research|data|feedback|survey/i.test(messageText);
+        const isDetailed = messageText.length > 100;
         
-        if (isRefinement) {
-          pointChange = (Math.random() * 2) + 3; // 3.00 - 5.00
-          pointsExplanation = 'Good refinement detected!';
+        if (hasSpecifics && hasStrategy) {
+          pointChange = (Math.random() * 2) + 4; // 4.00 - 6.00
+          pointsExplanation = 'Excellent specificity and strategic thinking!';
+        } else if (hasEvidence || isDetailed) {
+          pointChange = (Math.random() * 2) + 2.5; // 2.50 - 4.50
+          pointsExplanation = 'Good depth and evidence in your response!';
+        } else if (messageText.length > 50) {
+          pointChange = (Math.random() * 1.5) + 1; // 1.00 - 2.50
+          pointsExplanation = 'Contributing to the discussion!';
         } else {
-          pointChange = (Math.random() * 1.5) + 0.75; // 0.75 - 2.25
-          pointsExplanation = 'Making progress!';
+          pointChange = (Math.random() * 0.5) + 0.25; // 0.25 - 0.75
+          pointsExplanation = 'Keep adding more detail for more wrinkles!';
         }
       }
 
