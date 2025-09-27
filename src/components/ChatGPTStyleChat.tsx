@@ -1441,10 +1441,11 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
           responseContent = `Great idea! Let me help you explore "${idea}". What specific aspects would you like to refine or discuss?`;
         }
         
-        // Build concise content (<=240 chars) and ensure emoji prefix
-        let concise = (responseContent || `Exploring "${idea}"—where refine?`).trim();
-        if (concise.length > 240) concise = concise.slice(0,237).trimEnd() + '…';
-        if (!/^([\p{Emoji}\p{Extended_Pictographic}])/u.test(concise)) concise = '💬 ' + concise;
+        
+        // Use full response content without truncation
+        let fullContent = (responseContent || `Let's explore your idea: "${idea}". What specific aspects would you like to discuss or refine?`).trim();
+        // Ensure emoji prefix for visual consistency
+        if (!/^([\p{Emoji}\p{Extended_Pictographic}])/u.test(fullContent)) fullContent = '💬 ' + fullContent;
         // Normalize & enrich suggestions
         const normalized = (responseSuggestions || []).map(String)
           .map(s => s.replace(/^[-•\d\.\s]+/, '').trim())
@@ -1464,7 +1465,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         const botMessage: Message = {
           id: `msg-${Date.now()}-bot`,
           type: 'bot',
-          content: concise,
+          content: fullContent,
           timestamp: new Date(),
           suggestions: sprinkled.length ? sprinkled : fallback
         };
@@ -1614,11 +1615,10 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
             responseContent = 'I understand. Let me help you explore that further.';
           }
           
-          if (!responseContent) responseContent = 'Refinement ready.';
-          // Concise + emoji
-          let concise = responseContent.trim();
-            if (concise.length > 260) concise = concise.slice(0,257).trimEnd() + '…';
-            if (!/^([\p{Emoji}\p{Extended_Pictographic}])/u.test(concise)) concise = '🤖 ' + concise;
+          if (!responseContent) responseContent = 'Let me help you explore and refine your idea further.';
+          // Use full response without truncation, just add emoji for visual consistency
+          let fullContent = responseContent.trim();
+          if (!/^([\p{Emoji}\p{Extended_Pictographic}])/u.test(fullContent)) fullContent = '🤖 ' + fullContent;
           const norm = (responseSuggestions || []).map(String)
             .map(s => s.replace(/^[-•\d\.\s]+/, '').trim())
             .filter(s => s)
@@ -1637,7 +1637,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
           const botMessage: Message = {
             id: `msg-${Date.now()}-bot`,
             type: 'bot',
-            content: concise,
+            content: fullContent,
             timestamp: new Date(),
             suggestions: sprinkled.length ? sprinkled : fallback2
           };
