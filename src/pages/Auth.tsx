@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Sparkles, Zap, Loader2 } from "lucide-react";
+import { Brain, Sparkles, Zap, Loader2, CheckCircle, AlertCircle, Cpu, Bot, Rocket, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
@@ -21,6 +21,9 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [wrinkleCount, setWrinkleCount] = useState(0);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [emailValid, setEmailValid] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -33,10 +36,26 @@ export default function AuthPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setWrinkleCount(prev => (prev + 1) % 100);
-    }, 3000);
+      setWrinkleCount(prev => (prev + Math.floor(Math.random() * 5) + 1));
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    // Calculate password strength
+    let strength = 0;
+    if (password.length >= 6) strength += 25;
+    if (password.length >= 8) strength += 25;
+    if (/[A-Z]/.test(password)) strength += 25;
+    if (/[0-9]/.test(password)) strength += 25;
+    setPasswordStrength(strength);
+  }, [password]);
+
+  useEffect(() => {
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    setEmailValid(emailRegex.test(email));
+  }, [email]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,95 +118,161 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(var(--primary),0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(var(--primary),0.03)_1px,transparent_1px)] bg-[size:40px_40px] animate-grid-move" />
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background/90 to-background animate-gradient" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(var(--primary),0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(var(--primary),0.02)_1px,transparent_1px)] bg-[size:50px_50px] animate-grid-move" />
       
-      {/* Floating wrinkles */}
+      {/* Neural network connections */}
+      <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="neural" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+            <circle cx="50" cy="50" r="1" fill="currentColor" className="text-primary animate-pulse" />
+            <line x1="0" y1="50" x2="100" y2="50" stroke="currentColor" strokeWidth="0.5" className="text-primary/50" />
+            <line x1="50" y1="0" x2="50" y2="100" stroke="currentColor" strokeWidth="0.5" className="text-primary/50" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#neural)" />
+      </svg>
+      
+      {/* Floating AI elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(5)].map((_, i) => (
+        {[Brain, Cpu, Bot, Sparkles, Zap].map((Icon, i) => (
           <div
             key={i}
-            className="absolute animate-float opacity-20"
+            className="absolute animate-float"
             style={{
-              left: `${20 + i * 15}%`,
-              top: `${10 + i * 12}%`,
-              animationDelay: `${i * 0.5}s`,
-              animationDuration: `${15 + i * 2}s`,
+              left: `${15 + i * 18}%`,
+              top: `${5 + i * 15}%`,
+              animationDelay: `${i * 0.7}s`,
+              animationDuration: `${20 + i * 3}s`,
+              opacity: 0.1 + (i * 0.02),
             }}
           >
-            <Brain className="w-12 h-12 text-primary" />
+            <Icon className="w-16 h-16 text-primary" />
           </div>
         ))}
       </div>
 
-      <div className="relative flex flex-col items-center justify-center min-h-screen p-4">
+      {/* Glowing orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+
+      <div className="relative flex flex-col items-center justify-center min-h-screen p-4 z-10">
         {/* Header Branding */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-12 animate-fade-in">
+          <div className="relative">
+            <div className="absolute inset-0 blur-3xl bg-primary/30 rounded-full animate-pulse" />
+            <div className="relative flex items-center justify-center gap-4 mb-6">
+              <Brain className="w-16 h-16 text-primary animate-pulse drop-shadow-glow" />
+              <h1 className="text-7xl font-orbitron font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/70 to-primary/50 drop-shadow-2xl animate-scale-in">
+                SmoothBrains
+              </h1>
+            </div>
+          </div>
+          
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Brain className="w-12 h-12 text-primary animate-pulse" />
-            <h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
-              SmoothBrains
-            </h1>
+            <div className="h-px w-12 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+            <p className="text-sm font-mono tracking-widest text-primary/80 uppercase animate-fade-in" style={{ animationDelay: "0.2s" }}>
+              GPT-4 Powered Intelligence
+            </p>
+            <div className="h-px w-12 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           </div>
-          <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
-            <Sparkles className="w-4 h-4" />
-            <p className="text-sm font-mono tracking-wide">GPT-POWERED IDEA VALIDATION</p>
-            <Sparkles className="w-4 h-4" />
+          
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground/60 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+            <span className="px-2 py-1 rounded-full bg-primary/5 border border-primary/10">AI Neural Engine</span>
+            <span className="px-2 py-1 rounded-full bg-primary/5 border border-primary/10">Machine Learning</span>
+            <span className="px-2 py-1 rounded-full bg-primary/5 border border-primary/10">Deep Analysis</span>
+            <span className="px-2 py-1 rounded-full bg-primary/5 border border-primary/10">Real-time Validation</span>
           </div>
-          <p className="text-xs text-muted-foreground/60">
-            AI-Enhanced • Machine Learning • Neural Networks • Deep Analysis
-          </p>
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-              <span className="text-xs text-primary">Wrinkles Generated: {wrinkleCount}</span>
+          
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <div className="px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 backdrop-blur-sm animate-pulse">
+              <div className="flex items-center gap-2">
+                <Bot className="w-4 h-4 text-primary" />
+                <span className="text-xs font-mono text-primary">Neural Activity: {wrinkleCount.toLocaleString()} wrinkles</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Auth Card */}
-        <Card className="w-full max-w-md border-primary/20 bg-card/95 backdrop-blur-sm">
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        <Card className="w-full max-w-md border-primary/30 bg-card/80 backdrop-blur-md shadow-2xl shadow-primary/10 animate-scale-in relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+          
+          <Tabs defaultValue="signin" className="w-full relative">
+            <TabsList className="grid w-full grid-cols-2 bg-background/50 backdrop-blur-sm">
+              <TabsTrigger value="signin" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all">
+                <Rocket className="w-4 h-4 mr-2" />
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary transition-all">
+                <Brain className="w-4 h-4 mr-2" />
+                Sign Up
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin" className="p-6">
-              <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="brain@smoothbrains.ai"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
+                  <Label htmlFor="signin-email" className="text-sm font-mono text-muted-foreground">Neural ID (Email)</Label>
+                  <div className="relative">
+                    <Input
+                      id="signin-email"
+                      type="email"
+                      placeholder="brain@smoothbrains.ai"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setIsTyping(true);
+                        setTimeout(() => setIsTyping(false), 500);
+                      }}
+                      required
+                      disabled={loading}
+                      className="pr-10 font-mono transition-all hover:border-primary/50 focus:border-primary"
+                    />
+                    {emailValid && (
+                      <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500 animate-scale-in" />
+                    )}
+                  </div>
                 </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
+                  <Label htmlFor="signin-password" className="text-sm font-mono text-muted-foreground">Access Code</Label>
+                  <div className="relative">
+                    <Input
+                      id="signin-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setIsTyping(true);
+                        setTimeout(() => setIsTyping(false), 500);
+                      }}
+                      required
+                      disabled={loading}
+                      className="pr-10 font-mono transition-all hover:border-primary/50 focus:border-primary"
+                    />
+                    {password.length >= 6 && (
+                      <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500 animate-scale-in" />
+                    )}
+                  </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 font-orbitron font-bold tracking-wider bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5" 
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating Wrinkles...
+                      <span className="animate-pulse">Initializing Neural Link...</span>
                     </>
                   ) : (
                     <>
-                      <Zap className="mr-2 h-4 w-4" />
-                      Access Neural Network
+                      <Rocket className="mr-2 h-5 w-5" />
+                      Launch Neural Interface
+                      <ChevronRight className="ml-2 h-4 w-4 animate-pulse" />
                     </>
                   )}
                 </Button>
@@ -195,55 +280,129 @@ export default function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup" className="p-6">
-              <form onSubmit={handleSignUp} className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="brain@smoothbrains.ai"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
+                  <Label htmlFor="signup-email" className="text-sm font-mono text-muted-foreground">Create Neural ID</Label>
+                  <div className="relative">
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="your.brain@smoothbrains.ai"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setIsTyping(true);
+                        setTimeout(() => setIsTyping(false), 500);
+                      }}
+                      required
+                      disabled={loading}
+                      className="pr-10 font-mono transition-all hover:border-primary/50 focus:border-primary"
+                    />
+                    {emailValid && (
+                      <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500 animate-scale-in" />
+                    )}
+                  </div>
                 </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
+                  <Label htmlFor="signup-password" className="text-sm font-mono text-muted-foreground">Set Access Code</Label>
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setIsTyping(true);
+                        setTimeout(() => setIsTyping(false), 500);
+                      }}
+                      required
+                      disabled={loading}
+                      className="pr-10 font-mono transition-all hover:border-primary/50 focus:border-primary"
+                    />
+                    {password.length > 0 && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {password.length < 6 ? (
+                          <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4 text-green-500 animate-scale-in" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Password Strength Indicator */}
+                  {password.length > 0 && (
+                    <div className="space-y-1 animate-fade-in">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-mono">Encryption Strength</span>
+                        <span className="font-mono">{passwordStrength}%</span>
+                      </div>
+                      <div className="h-1 bg-background rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-500"
+                          style={{ width: `${passwordStrength}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 font-orbitron font-bold tracking-wider bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5" 
+                  disabled={loading || !emailValid || password.length < 6}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Initializing Brain...
+                      <span className="animate-pulse">Creating Neural Pathways...</span>
                     </>
                   ) : (
                     <>
-                      <Brain className="mr-2 h-4 w-4" />
-                      Join SmoothBrains
+                      <Brain className="mr-2 h-5 w-5 animate-pulse" />
+                      Initialize Brain
+                      <ChevronRight className="ml-2 h-4 w-4 animate-pulse" />
                     </>
                   )}
                 </Button>
-                <p className="text-xs text-center text-muted-foreground mt-4">
-                  By signing up, you're ready to validate ideas with AI-powered insights
-                </p>
+                
+                <div className="text-center space-y-2 mt-4">
+                  <p className="text-xs text-muted-foreground/60 font-mono">
+                    Join the neural network of innovators
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs">
+                    <span className="text-primary animate-pulse">●</span>
+                    <span className="text-muted-foreground">GPT-4 Integration Active</span>
+                    <span className="text-primary animate-pulse">●</span>
+                  </div>
+                </div>
               </form>
             </TabsContent>
           </Tabs>
         </Card>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-muted-foreground">
-            Powered by GPT-4 • Advanced Neural Processing • Real-time Analysis
+        <div className="mt-12 text-center space-y-4 animate-fade-in" style={{ animationDelay: "0.6s" }}>
+          <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground/60">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-3 h-3 animate-pulse" />
+              <span className="font-mono">GPT-4 Turbo</span>
+            </div>
+            <div className="h-3 w-px bg-muted-foreground/20" />
+            <div className="flex items-center gap-2">
+              <Bot className="w-3 h-3 animate-pulse" />
+              <span className="font-mono">Neural Processing</span>
+            </div>
+            <div className="h-3 w-px bg-muted-foreground/20" />
+            <div className="flex items-center gap-2">
+              <Zap className="w-3 h-3 animate-pulse" />
+              <span className="font-mono">Real-time Analysis</span>
+            </div>
+          </div>
+          
+          <p className="text-xs text-muted-foreground/40 font-mono">
+            {isTyping ? "Neural activity detected..." : "System ready for neural interface"}
           </p>
         </div>
       </div>

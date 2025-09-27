@@ -24,7 +24,8 @@ export default {
       fontFamily: {
         sans: ["-apple-system", "BlinkMacSystemFont", "Inter", "system-ui", "sans-serif"],
         display: ["-apple-system", "BlinkMacSystemFont", "Inter", "system-ui", "sans-serif"],
-        mono: ["SF Mono", "Monaco", "Courier New", "monospace"],
+        mono: ["Space Mono", "SF Mono", "Monaco", "Courier New", "monospace"],
+        orbitron: ["Orbitron", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
