@@ -23,6 +23,8 @@ const APP_LOCALSTORAGE_KEYS = [
   'currentSessionTitle',
   'pmfCurrentIdea',
   'authSnapshot',
+  'currentAnonymousSession', // Clear anonymous session data
+  'pmf.session.decisionMade' // Clear session decision state
 ];
 
 const Logout = () => {

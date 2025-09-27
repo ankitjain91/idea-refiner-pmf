@@ -113,16 +113,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setSessions([]);
-        // Check for anonymous session
-        const anonymousSession = localStorage.getItem('currentAnonymousSession');
-        if (anonymousSession && !currentSession) {
-          try {
-            const parsed = JSON.parse(anonymousSession);
-            setCurrentSession(parsed);
-          } catch (e) {
-            console.error('Error parsing anonymous session:', e);
-          }
-        }
+        // Don't load anonymous sessions for non-authenticated state
+        setCurrentSession(null);
         return;
       }
 
@@ -421,23 +413,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Initialize session on mount - check for existing session
   useEffect(() => {
     const initializeSession = async () => {
-      // First, check for stored session ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Clear anonymous session data if user is not authenticated
+      if (!user) {
+        localStorage.removeItem('currentSessionId');
+        localStorage.removeItem('currentAnonymousSession');
+        setCurrentSession(null);
+        setSessions([]);
+        return;
+      }
+      
+      // For authenticated users, check for stored session
       const storedSessionId = localStorage.getItem('currentSessionId');
       
       if (storedSessionId) {
-        // Check if it's an anonymous session
+        // Never load anonymous sessions for authenticated users
         if (storedSessionId.startsWith('anon-')) {
-          const anonymousSession = localStorage.getItem('currentAnonymousSession');
-          if (anonymousSession) {
-            try {
-              const parsed = JSON.parse(anonymousSession);
-              setCurrentSession(parsed);
-              console.log('Loaded anonymous session:', parsed.name);
-              return;
-            } catch (e) {
-              console.error('Error parsing anonymous session:', e);
-            }
-          }
+          // Clear anonymous session data
+          localStorage.removeItem('currentSessionId');
+          localStorage.removeItem('currentAnonymousSession');
         } else {
           // Try to load authenticated session
           try {
@@ -451,8 +446,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
       
-      // If no stored session, just load the sessions list (don't auto-select)
-      // User will choose via SessionPicker dialog
+      // Load all sessions for authenticated user
       await loadSessions();
     };
     
