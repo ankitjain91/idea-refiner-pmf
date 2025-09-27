@@ -48,6 +48,22 @@ const Dashboard = () => {
     try { localStorage.setItem('dashboardAppBarCollapsed', String(appBarCollapsed)); } catch {}
   }, [appBarCollapsed]);
 
+  // Check for analysis data and redirect if not present
+  useEffect(() => {
+    if (!loading && user && !sessionLoading) {
+      // Check for analysis data
+      const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted);
+      const idea = localStorage.getItem(LS_KEYS.userIdea);
+      const metadata = localStorage.getItem(LS_KEYS.ideaMetadata);
+      
+      // If no analysis data or no idea, redirect to ideachat
+      if (!analysisCompleted || analysisCompleted !== 'true' || !idea || !metadata) {
+        console.log('No analysis data found, redirecting to ideachat');
+        navigate('/ideachat', { replace: true });
+      }
+    }
+  }, [loading, user, sessionLoading, navigate]);
+
   const PRODUCT_FACTS = [
     'Ideas with clear niche focus often reach first 100 users 2x faster.',
     'Refining positioning early can reduce wasted feature dev by ~30%.',
