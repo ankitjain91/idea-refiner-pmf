@@ -208,49 +208,29 @@ const IdeaChatPage = () => {
           <div className="flex items-center gap-3">
             <div>
               <h1
-                className={cn('text-lg font-semibold cursor-pointer flex items-center gap-3 group', sessionReloading && 'opacity-70')}
-                title={currentSession ? `Reload session: ${currentSession.name}` : 'No session yet'}
-                onClick={async () => {
-                  if (!currentSession) return;
-                  try {
-                    setSessionReloading(true);
-                    await loadSession(currentSession.id);
-                    setChatKey(k => k + 1);
-                  } finally {
-                    setTimeout(() => setSessionReloading(false), 600);
-                  }
-                }}
+                className={cn('text-lg font-semibold flex items-center gap-3', sessionReloading && 'opacity-70')}
               >
                 <span className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-yellow-400" />
                   <span>{currentSession?.name || 'Idea Chat'}</span>
-                  <span
-                    className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium relative gap-1 transition-all duration-200"
-                    title={chatMode === 'idea' ? 'Idea Mode' : chatMode === 'refine' ? 'Refinement Mode' : 'Analysis Mode'}
-                  >
-                    {chatMode === 'idea' && <Lightbulb className='h-3.5 w-3.5 text-yellow-400' />}
-                    {chatMode === 'refine' && <Sparkles className='h-3.5 w-3.5 text-primary' />}
-                    {chatMode === 'analysis' && <BarChart className='h-3.5 w-3.5 text-primary' />}
-                    <span className="hidden sm:inline">{chatMode === 'idea' ? 'Idea' : chatMode === 'refine' ? 'Refine' : 'Analyze'}</span>
-                  </span>
+                  {currentSession && (
+                    <span className='ml-2 inline-flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground'>
+                      {isSaving ? (
+                        <>
+                          <Loader2 className='h-3 w-3 animate-spin' /> Saving…
+                        </>
+                      ) : lastSavedAt ? (
+                        <>
+                          <span className='inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse' />
+                          Saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </>
+                      ) : null}
+                    </span>
+                  )}
                 </span>
                 {sessionReloading && <Loader2 className='h-4 w-4 animate-spin text-primary' />}
               </h1>
-              <p className='text-xs text-muted-foreground'>Brainstorm · Refine · Analyze
-                {currentSession && (
-                  <span className='ml-2 inline-flex items-center gap-1 text-[10px] tracking-wide'>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className='h-3 w-3 animate-spin' /> Saving…
-                      </>
-                    ) : lastSavedAt ? (
-                      <>
-                        <span className='inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse' />
-                        Saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </>
-                    ) : null}
-                  </span>
-                )}
-              </p>
+              <p className='text-xs text-muted-foreground'>Brainstorm · Refine · Analyze</p>
             </div>
           </div>
             <div className='flex items-center gap-2'>
@@ -287,18 +267,32 @@ const IdeaChatPage = () => {
             </div>
           </div>
           {/* Idea focus utility bar */}
-          <div className="flex items-center gap-2 text-[11px] flex-wrap">
+          <div className="flex items-center gap-3 text-[11px] flex-wrap">
             <Button
-              size="icon"
+              size="sm"
               variant="outline"
-              className='h-7 w-7 shrink-0'
-              onClick={() => window.dispatchEvent(new Event('chat:reset'))}
-              aria-label='Reset brainstorming'
-              title='Reset'
+              className='h-8 px-3 text-[11px] gap-1.5 border-muted-foreground/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:border-muted-foreground/40 transition-all duration-200'
+              onClick={() => {
+                if (window.confirm('Are you sure you want to reset? This will clear your current conversation and start fresh.')) {
+                  window.dispatchEvent(new Event('chat:reset'));
+                }
+              }}
+              title='Start fresh with new idea'
             >
               <RotateCcw className='h-3.5 w-3.5' />
+              <span className="hidden sm:inline">Reset</span>
             </Button>
-            <AIQnAToggle />
+            <Button
+              size="sm"
+              variant="default"
+              className="h-8 px-3 text-[11px] gap-1.5 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 shadow-sm hover:shadow-md transition-all duration-200 font-medium text-white"
+              onClick={() => window.dispatchEvent(new CustomEvent('analysis:openBrief'))}
+              title="Run comprehensive PMF analysis"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
+              <span className="hidden sm:inline">Start Analysis</span>
+              <span className="sm:hidden">Analyze</span>
+            </Button>
             <DynamicStatusBar />
           </div>
         </div>

@@ -174,13 +174,13 @@ ${webData ? `Market Context:
 - Key Competitors: ${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Various'}
 - Market Growth: ${webData.raw?.growthRate}% annually` : ''}
 
-Generate 4 natural follow-up questions that:
+Generate 4 helpful tips or insights that:
 1. Build on what was just discussed
-2. Help explore the idea deeper
-3. Are specific and actionable
-4. Maximum 10 words each
+2. Provide actionable advice
+3. Are specific and practical
+4. Maximum 12 words each
 
-Return ONLY a JSON array of 4 strings.`;
+Return ONLY a JSON array of 4 tip statements (not questions).`;
   }
 
   try {
@@ -393,10 +393,10 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
             JSON.stringify({ 
               response: `I've analyzed "${message}". Let me help you refine your idea further.`,
               suggestions: [
-                `Tell me more about your target audience`,
-                `What problem does this solve?`,
-                `How will you monetize this?`,
-                `Who are your main competitors?`
+                `Research your target audience deeply`,
+                `Focus on one specific problem first`,
+                `Test pricing with early customers`,
+                `Study your top 3 competitors closely`
               ]
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -453,10 +453,10 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         JSON.stringify({ 
           response: aiResponse || `Let me help you analyze ${idea} with real market data.`,
           suggestions: contextualSuggestions || [
-            `Tell me more about the specific use case`,
-            `What's your unique advantage here?`,
-            `How will you reach these customers?`,
-            `What's the MVP feature set?`
+            `Focus on your most valuable use case`,
+            `Identify your unique competitive edge`,
+            `Start with one marketing channel`,
+            `Build only essential features first`
           ],
           metadata: {
             questionContext: currentQuestion,
@@ -498,21 +498,22 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
     // Generate contextual suggestions based on the AI response
     let suggestions = [];
     try {
-      // Generate suggestions that are contextual to the AI response
+      // Generate suggestions that are contextual helpful tips/information instead of questions
       const suggestionPrompt = `Based on this response: "${aiResponse.slice(0, 500)}..."
       
-      Generate 4 short, contextual follow-up questions or prompts that the user might want to explore next.
-      Make them specific to what was just discussed.
+      Generate 4 short, helpful tips, insights, or actionable advice related to what was just discussed.
+      These should be informational statements that provide value, NOT questions for the user to answer.
+      Make them specific and practical.
       Return ONLY a JSON array of strings, no explanation.
       
-      Example format: ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3", "Follow-up question 4"]`;
+      Example format: ["Consider validating with 10 target users first", "Freemium models work well for this market", "Focus on mobile-first experience", "Start with one core feature"]`;
       
       try {
         const suggestionData = await openAIChatRequest({
           model: 'gpt-4o-mini',
           messages: [
-            { role: 'system', content: 'Return 2 follow-up questions as JSON: {"suggestions": ["Q1", "Q2"]}' },
-            { role: 'user', content: `Suggest 2 questions for: ${idea || message}`.slice(0, 200) }
+            { role: 'system', content: 'Return 2 helpful tips/insights as JSON: {"suggestions": ["Tip1", "Tip2"]}' },
+            { role: 'user', content: `Provide 2 helpful tips for: ${idea || message}`.slice(0, 200) }
           ],
           max_tokens: 60,
           temperature: 0.35,
@@ -532,10 +533,10 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         if (refinementMode && idea) {
           // Refinement mode fallbacks
           suggestions = [
-            `What specific problem does this solve?`,
-            `Who would be the ideal first customer?`,
-            `How would this generate revenue?`,
-            `What makes this different from existing solutions?`
+            `Start by interviewing 5-10 potential users`,
+            `Focus on one specific user segment first`,
+            `Test your core assumption before building`,
+            `Consider the simplest viable solution`
           ];
         } else if (!idea) {
           // Default suggestions for new users
@@ -548,20 +549,20 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
         } else {
           // Generic fallbacks
           suggestions = [
-            `Tell me more about the target market`,
-            `What are the main challenges?`,
-            `How will you validate this idea?`,
-            `What's your competitive advantage?`
+            `Research your market size and trends`,
+            `Start with a simple MVP to test demand`,
+            `Focus on solving one problem really well`,
+            `Talk to potential customers early and often`
           ];
         }
       }
     } catch (suggestionError) {
       console.error('Error generating suggestions:', suggestionError);
       suggestions = [
-        "Tell me more about your idea",
-        "What problem are you solving?",
-        "Who is your target customer?",
-        "What's your business model?"
+        "Start by defining your core problem clearly",
+        "Interview potential customers early",
+        "Focus on one target segment initially",
+        "Test your business model assumptions"
       ];
     }
     

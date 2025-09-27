@@ -17,7 +17,8 @@ import {
   Play,
   RefreshCw,
   Brain,
-  RotateCcw
+  RotateCcw,
+  Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -280,7 +281,7 @@ export default function ChatGPTStyleChat({
     }
     if (suggestion === 'Run HyperFlux Analysis') {
       if (!brief.problem || !brief.targetUser) {
-        const warn: Message = { id: `msg-brief-warn-${Date.now()}`, type: 'system', content: 'Need problem and target user before running analysis. Start Brief Q&A to fill them in.', timestamp: new Date() };
+        const warn: Message = { id: `msg-brief-warn-${Date.now()}`, type: 'system', content: '🤔 I need to know a bit more before we can run the analysis! Let\'s start the Brief Q&A to fill in what problem you\'re solving and who you\'re helping.', timestamp: new Date() };
         setMessages(prev => [...prev, warn]);
       } else {
         runBriefAnalysis();
@@ -311,13 +312,13 @@ export default function ChatGPTStyleChat({
       const resetMsg: Message = {
         id: `msg-reset-${Date.now()}`,
         type: 'bot',
-        content: "Let's start fresh! Share your new product idea and I'll help you refine and analyze it.",
+        content: "Let's try something new! Share any product or service idea you have and I'll help you think it through step by step.",
         timestamp: new Date(),
         suggestions: [
-          "AI-powered mental health app",
-          "Sustainable fashion marketplace",
-          "Remote work collaboration tool",
-          "Educational platform for seniors"
+          "💡 Think about problems you face daily",
+          "💡 Look for gaps in existing solutions",
+          "💡 Consider what would save you time/money",
+          "💡 Start with your own experience and needs"
         ]
       };
       setMessages([resetMsg]);
@@ -563,7 +564,7 @@ export default function ChatGPTStyleChat({
       const welcomeMessage: Message = {
         id: `msg-welcome-${Date.now()}`,
         type: 'system',
-        content: "👋 Let's brainstorm a brilliant product to analyze. Pick one of the AI-suggested ideas below or type your own to begin refining.",
+        content: "👋 Hi there! I'm excited to help you explore your product idea! You can pick one of the suggestions below to get started, or just tell me about any idea that's on your mind - even if it's just a rough thought!",
         timestamp: new Date(),
         suggestions: generateRandomSuggestions()
       };
@@ -637,7 +638,7 @@ export default function ChatGPTStyleChat({
     const welcomeMessage: Message = {
       id: `msg-welcome-${Date.now()}`,
       type: 'system',
-      content: "🧼 Fresh start! Let's brainstorm a new product. Pick a suggestion or type your own idea to begin.",
+      content: "🌟 Fresh start, here we go! What's a new idea you'd like to explore? It could be anything - an app, a service, or even just something you wish existed!",
       timestamp: new Date(),
       suggestions: generateRandomSuggestions()
     };
@@ -713,7 +714,7 @@ export default function ChatGPTStyleChat({
     try {
       const result: AnalysisResult = await runEnterpriseAnalysis({ brief, idea: currentIdea || brief.problem }, (update) => {
         setAnalysisProgress(Math.min(98, Math.max(5, update.pct)));
-        setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: `${update.phase === 'validate' ? 'Validating brief...' : update.phase === 'fetch-model' ? 'Generating model insight...' : update.phase === 'structure' ? 'Structuring findings...' : update.phase === 'finalize' ? 'Finalizing results...' : 'Processing...'}\n${update.note ? '💡 ' + update.note : ''}` } : m));
+        setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: `${update.phase === 'validate' ? 'Checking your idea details...' : update.phase === 'fetch-model' ? 'Getting smart insights...' : update.phase === 'structure' ? 'Organizing the findings...' : update.phase === 'finalize' ? 'Putting it all together...' : 'Working on it...'}\n${update.note ? '💡 ' + update.note : ''}` } : m));
       });
 
       const pmfScore = result.pmfAnalysis?.pmfScore ?? 0;
@@ -746,8 +747,8 @@ export default function ChatGPTStyleChat({
       // Don't auto-show dashboard, wait for user to click "Show Dashboard"
     } catch (e) {
       console.error('Enterprise analysis failed', e);
-      toast({ title: 'Analysis failed', description: 'Pipeline error. Please retry.' });
-      setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: '❌ Analysis pipeline failed. Please adjust brief and retry.' } : m));
+      toast({ title: 'Analysis ran into trouble', description: 'Something went sideways! Let\'s try running the analysis again. 🔄' });
+      setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: '😔 The analysis couldn\'t complete this time. Could you try tweaking your brief details and running it again?' } : m));
     } finally {
       setAnalysisProgress(100);
       setTimeout(() => {
@@ -826,16 +827,16 @@ export default function ChatGPTStyleChat({
         (input.includes(' ') || input.length > 20);
       if (!looksLikeIdea) {
         const funnyResponses = [
-          "🎭 Nice try, but that's not an idea! That's like calling a potato a spaceship. Give me a real product idea!",
-          "🤔 Hmm, that doesn't smell like an idea... it smells like... *sniff sniff*... procrastination! Come on, hit me with your best shot!",
-          "🎪 Ladies and gentlemen, we have a trickster in the house! But I'm not falling for it. Give me a REAL idea, not whatever that was!",
-          "🚨 IDEA POLICE HERE! That's not an idea, that's just words pretending to be an idea. Try again with something that actually solves a problem!",
-          "🦄 I asked for an idea, not a unicorn's sneeze! Come on, give me something with substance - like 'an app that...' or 'a platform for...'",
-          "🎮 Error 404: Idea not found! You've entered the cheat code for 'no effort'. Please insert a real product idea to continue!",
-          "🍕 That's about as much of an idea as pineapple is a pizza topping (controversial, I know). Give me something real to work with!",
-          "🤖 Beep boop! My idea detector is showing... nothing. Absolutely nothing. It's flatter than a pancake. Feed me a real idea!",
-          "🎯 You missed the target by... oh, about a mile. That's not an idea, that's just keyboard gymnastics. Try again with an actual concept!",
-          "🧙‍♂️ My crystal ball shows... cloudy with a chance of 'that's not an idea'. Cast a better spell and give me something innovative!"
+          "😊 I'd love to help, but I need a bit more to work with! Could you describe a product or service idea you'd like to explore?",
+          "🤔 That's a good start, but I'm looking for a product idea! What's something you think people would find useful?",
+          "💡 Let's try this: think of a problem you or others face daily. What could solve that problem? That's your idea!",
+          "🌟 I'm excited to help you brainstorm! Could you share a product or service concept you'd like to develop?",
+          "🚀 Ready to dive in! What's a business idea that's been on your mind? Even a rough concept works!",
+          "✨ Think of something like 'an app that helps people...' or 'a service for...' - what comes to mind?",
+          "� What problem do you see around you that needs solving? That could be your next big idea!",
+          "💭 Every great business starts with solving a real problem. What's something that frustrates you or others?",
+          "🔥 I can sense you have ideas brewing! What's something you wish existed to make life easier?",
+          "� Let your creativity flow! What's a product or service you think the world needs?"
         ];
         const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
         const validationMessage: Message = {
@@ -844,10 +845,10 @@ export default function ChatGPTStyleChat({
           content: randomResponse,
           timestamp: new Date(),
           suggestions: [
-            "AI-powered personal finance assistant",
-            "Sustainable fashion marketplace",
-            "Mental health support platform",
-            "Smart home automation for elderly"
+            "💡 Start with a problem you personally experience",
+            "💡 Talk to 10 people who might use your solution",
+            "💡 Focus on one specific user group initially",
+            "💡 Keep your first version simple and focused"
           ]
         };
         setMessages(prev => [...prev, validationMessage]);
@@ -888,7 +889,9 @@ export default function ChatGPTStyleChat({
               content: m.content
             })),
             idea: currentIdea || input,
-            refinementMode: true
+            refinementMode: true,
+            userFriendlyMode: true,
+            systemPrompt: "You are a friendly business advisor helping someone refine their product idea. Use simple, everyday language that anyone can understand. Avoid technical jargon, complex business terms, or industry acronyms. Be encouraging and practical. Focus on real-world examples and clear explanations. Ask follow-up questions to help them think through their idea step by step."
           }
         });
 
@@ -925,7 +928,7 @@ export default function ChatGPTStyleChat({
           // Validate we have content
           if (!responseContent || responseContent.trim() === '') {
             console.error('Empty response content:', data);
-            responseContent = "I understand. Let me help you refine your idea further.";
+            responseContent = "That's interesting! Let me help you think through this idea. What's the main problem your product would solve for people?";
           }
           
           const botMessage: Message = {
@@ -948,7 +951,7 @@ export default function ChatGPTStyleChat({
         const errorMessage: Message = {
           id: `msg-error-${Date.now()}`,
           type: 'bot',
-          content: "I apologize, I'm having trouble processing your request. Please try again.",
+          content: "Hmm, that didn't work quite right! 🤔 Could you try rephrasing your idea? I'm here to help!",
           timestamp: new Date()
         };
         
@@ -1026,8 +1029,8 @@ export default function ChatGPTStyleChat({
     } catch (error) {
       console.error('Chat error:', error);
       toast({
-        title: "Error",
-        description: "Failed to get response. Please try again.",
+        title: "Oops!",
+        description: "Couldn't get a response right now. Let's give it another shot! 🔄",
         variant: "destructive"
       });
     } finally {
@@ -1094,13 +1097,13 @@ export default function ChatGPTStyleChat({
     const need = (k: keyof typeof brief) => !(brief as any)[k]?.trim();
     // Base question templates (without numbering)
     const templates: Record<string, { question: string; required?: boolean; key: keyof typeof brief; weight: number }> = {
-      problem: { key: 'problem', question: 'What specific core problem are you solving?', required: true, weight: 100 },
-      targetUser: { key: 'targetUser', question: 'Who exactly is the primary target user? Be specific (segment / role / niche).', required: true, weight: 95 },
-      differentiation: { key: 'differentiation', question: 'What is your unique differentiation versus existing alternatives?', weight: /competitor|alternative|unique|differen|moat/.test(convoText) ? 90 : 60 },
-      alternatives: { key: 'alternatives', question: 'How do users address this problem today (current workaround / competitor)?', weight: /competitor|workaround|current|today/.test(convoText) ? 70 : 55 },
-      monetization: { key: 'monetization', question: 'How will this make money (pricing model / revenue path)?', weight: /price|pricing|moneti|revenue|subscription|paid|plan/.test(convoText) ? 85 : 50 },
-      scenario: { key: 'scenario', question: 'Describe a primary real-world usage scenario (when, where, how).', weight: /use case|scenario|workflow|flow|journey|example/.test(convoText) ? 65 : 45 },
-      successMetric: { key: 'successMetric', question: 'What early metric would signal real traction?', weight: /metric|kpi|measure|retention|activation|engagement|conversion/.test(convoText) ? 75 : 40 }
+      problem: { key: 'problem', question: 'What problem does your idea solve? Tell me about the frustration or need people have.', required: true, weight: 100 },
+      targetUser: { key: 'targetUser', question: 'Who would use this? Describe the person who has this problem - their job, situation, or what makes them different.', required: true, weight: 95 },
+      differentiation: { key: 'differentiation', question: 'What makes your idea different or better than what already exists? What\'s your special sauce?', weight: /competitor|alternative|unique|differen|moat/.test(convoText) ? 90 : 60 },
+      alternatives: { key: 'alternatives', question: 'How do people deal with this problem right now? What are they using or doing as a workaround?', weight: /competitor|workaround|current|today/.test(convoText) ? 70 : 55 },
+      monetization: { key: 'monetization', question: 'How would you make money from this? Would people pay per use, monthly, or something else?', weight: /price|pricing|moneti|revenue|subscription|paid|plan/.test(convoText) ? 85 : 50 },
+      scenario: { key: 'scenario', question: 'Walk me through how someone would actually use this. When would they need it and what would they do?', weight: /use case|scenario|workflow|flow|journey|example/.test(convoText) ? 65 : 45 },
+      successMetric: { key: 'successMetric', question: 'How would you know if this is working? What would show you that people actually want and use it?', weight: /metric|kpi|measure|retention|activation|engagement|conversion/.test(convoText) ? 75 : 40 }
     };
     // Collect, filter already provided, order by: required first then weight desc
     const ordered = Object.values(templates)
@@ -1250,7 +1253,7 @@ These should be ANSWERS the user would select, not questions. Be extremely speci
     const questionMsg: Message = {
       id: `msg-brief-q-${Date.now()}-${index}`,
       type: 'bot',
-      content: `🤔 ${q.question}${q.required ? ' (required)' : ''}${challengeSuffix}`,
+      content: `🤔 ${q.question}${q.required ? ' (we need this one!)' : ''}${challengeSuffix}`,
       timestamp: new Date(),
       suggestions: [...augmented, 'Regenerate answers', 'Skip', 'Cancel'],
       metadata: { briefQuestionKey: q.key, briefQuestionIndex: index }
@@ -1507,9 +1510,9 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
       
       if (!looksLikeIdea) {
         const funnyResponses = [
-          "🎭 Nice try, but that's not an idea! That's like calling a potato a spaceship. Give me a real product idea!",
-          "🤔 Hmm, that doesn't smell like an idea... it smells like... *sniff sniff*... procrastination! Come on, hit me with your best shot!",
-          "🎪 Ladies and gentlemen, we have a trickster in the house! But I'm not falling for it. Give me a REAL idea, not whatever that was!"
+          "😊 I'd love to help, but I need a bit more to work with! Could you describe a product or service idea you'd like to explore?",
+          "🤔 That's a good start, but I'm looking for a product idea! What's something you think people would find useful?",
+          "💡 Let's try this: think of a problem you or others face daily. What could solve that problem? That's your idea!"
         ];
         
         const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
@@ -1533,7 +1536,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         const validationMessage: Message = {
           id: `msg-validation-${Date.now()}`,
           type: 'bot',
-          content: '🛑 ' + randomResponse,
+          content: randomResponse,
           timestamp: new Date(),
           suggestions: [
             '✨ AI finance coach',
@@ -1655,7 +1658,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         const errorMessage: Message = {
           id: `msg-error-${Date.now()}`,
           type: 'bot',
-          content: "I apologize, I'm having trouble processing your request. Please try again.",
+          content: "Oops, something didn't work there! 😅 Let's try again - maybe rephrase your idea or question?",
           timestamp: new Date()
         };
         
@@ -1670,82 +1673,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
 
   return (
     <div ref={chatContainerRef} className={cn("flex flex-col h-full bg-background relative", className)}>
-      {/* Unified top header with primary actions */}
-      <div className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 py-2">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="flex flex-col leading-tight">
-            <span className="text-xs font-medium text-muted-foreground">
-              {modeRef.current === 'analysis' ? 'Analysis Mode' : modeRef.current === 'refine' ? 'Refinement Mode' : 'Idea Mode'}
-            </span>
-            {currentIdea && (
-              <span className="text-[11px] truncate max-w-[220px] text-muted-foreground/80" title={currentIdea}>
-                {currentIdea}
-              </span>
-            )}
-          </div>
-          <div className="ml-auto flex gap-2">
-            {/* Start / Cancel Analysis or Q&A */}
-            {currentIdea && !isAnalyzing && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={startAnalysis}
-                className="h-8 px-3 text-[11px] gap-1.5 shadow-sm bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary"
-              >
-                <Brain className="h-3.5 w-3.5" />
-                {isBriefQAMode ? 'Cancel Q&A' : 'Start Analysis'}
-              </Button>
-            )}
-            {/* Reset */}
-            {(currentIdea || messages.length > 1) && !isBriefQAMode && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setCurrentIdea('');
-                  setAnalysisProgress(0);
-                  setIsAnalyzing(false);
-                  setIsRefinementMode(true);
-                  setShowStartAnalysisButton(false);
-                  setIsBriefQAMode(false);
-                  setBrief({
-                    problem: '',
-                    targetUser: '',
-                    differentiation: '',
-                    alternatives: '',
-                    monetization: '',
-                    scenario: '',
-                    successMetric: ''
-                  });
-                  const resetMsg: Message = {
-                    id: `msg-reset-${Date.now()}`,
-                    type: 'bot',
-                    content: "Let's start fresh! Share your new product idea and I'll help you refine and analyze it.",
-                    timestamp: new Date(),
-                    suggestions: [
-                      "AI-powered mental health app",
-                      "Sustainable fashion marketplace",
-                      "Remote work collaboration tool",
-                      "Educational platform for seniors"
-                    ]
-                  };
-                  setMessages([resetMsg]);
-                  toast({
-                    title: "Chat Reset",
-                    description: "Ready for a new idea!",
-                  });
-                  emitMode('idea');
-                }}
-                className="h-8 px-2 sm:px-3 text-[11px] gap-1 shadow-sm hover:bg-destructive/10 hover:text-destructive"
-              >
-                <RotateCcw className="h-3 w-3" />
-                <span className="hidden sm:inline">Reset</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-  {/* Header with Progress */}
+      {/* Header with Progress */}
             {isAnalyzing && (
               <div className="border-b p-3 bg-muted/10">
                 <div className="max-w-3xl mx-auto">
@@ -1910,11 +1838,15 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
                     </div>
                     
                     {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                          <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-                          AI-Powered Suggestions:
-                        </p>
+                      <div className="mt-4 p-3 rounded-xl bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/40 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/10 border border-indigo-200/50 dark:border-indigo-800/30 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-sm">
+                            <Sparkles className="h-3.5 w-3.5 text-white animate-pulse" />
+                          </div>
+                          <p className="text-xs font-semibold text-indigo-800 dark:text-indigo-200 tracking-wide uppercase">
+                            ✨ AI-Powered Suggestions
+                          </p>
+                        </div>
                         <SuggestionList
                           suggestions={msg.suggestions.map((s, idx) => ({
                             id: `${msg.id}-sugg-${idx}`,
@@ -1967,7 +1899,6 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
               className="flex-1"
               disabled={isLoading}
             />
-            {/* Removed AI button - now in top bar */}
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}

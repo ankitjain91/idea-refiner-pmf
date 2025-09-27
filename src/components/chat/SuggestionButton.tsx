@@ -24,12 +24,12 @@ export const SuggestionButton: React.FC<SuggestionButtonProps> = ({ text, catego
     <button
       type="button"
       onClick={() => onSelect(text)}
-      className="group relative w-full text-left rounded-md border bg-muted/40 hover:bg-muted/70 transition-colors px-3 py-2 text-sm leading-snug focus:outline-none focus-visible:ring-2 ring-offset-1 ring-primary/40 whitespace-normal break-words"
+      className="group relative w-full text-left rounded-lg border border-indigo-200/60 dark:border-indigo-700/40 bg-white/80 dark:bg-indigo-950/20 hover:bg-indigo-50/90 dark:hover:bg-indigo-900/30 hover:border-indigo-300/80 dark:hover:border-indigo-600/60 transition-all duration-200 px-3 py-2.5 text-sm leading-snug focus:outline-none focus-visible:ring-2 ring-offset-1 ring-indigo-400/60 whitespace-normal break-words shadow-sm hover:shadow-md"
     >
       <div className="flex flex-col gap-1 pr-7">{/* space for copy icon */}
         <HighlightedText text={text} />
         {category && (
-          <span className="self-start inline-flex items-center rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+          <span className="self-start inline-flex items-center rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-800/50 dark:to-purple-800/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase shadow-sm">
             {category}
           </span>
         )}
