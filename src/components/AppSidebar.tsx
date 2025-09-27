@@ -122,24 +122,27 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
   <SidebarContent className="flex flex-col soft-scroll">
         {/* Brainstorming Sessions - takes available space */}
         <SidebarGroup className="flex-1">
-          <div className="px-3 pt-2">
+          <div className="px-3 pt-2 space-y-2">
             {isOpen && (
-              <div className="relative group">
-                <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search"
-                  className="w-full text-[12px] pl-6 pr-2 py-1.5 rounded-md bg-muted/40 focus:bg-background/80 border border-transparent focus:border-border outline-none transition-colors"
-                />
-                <button
-                  onClick={() => setCreating(c => !c)}
-                  aria-label="New session"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 inline-flex items-center justify-center rounded hover:bg-muted/70 transition-colors"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
+              <>
+                <div className="relative group">
+                  <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
+                  <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Search"
+                    className="w-full text-[12px] pl-6 pr-8 py-1.5 rounded-md bg-muted/40 focus:bg-background/80 border border-transparent focus:border-border outline-none transition-colors"
+                  />
+                  <button
+                    onClick={() => setCreating(c => !c)}
+                    aria-label="New session"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 inline-flex items-center justify-center rounded hover:bg-muted/70 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+                <DeleteSessionsButton />
+              </>
             )}
           </div>
           <SidebarGroupContent className="mt-2">
@@ -289,12 +292,7 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
 
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-2 space-y-2">
-        {isOpen && (
-          <div className="px-2">
-            <DeleteSessionsButton />
-          </div>
-        )}
+      <SidebarFooter className="border-t p-2">
         {isOpen && currentSession && (
           <div className="text-[11px] text-muted-foreground truncate max-w-[180px] flex items-center gap-2">
             <span className="inline-flex items-center gap-1">

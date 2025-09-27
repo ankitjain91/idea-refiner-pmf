@@ -52,12 +52,12 @@ export function DeleteSessionsButton() {
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button 
-          variant="destructive" 
+          variant="outline" 
           size="sm"
-          className="gap-2"
+          className="w-full gap-2 text-xs h-7"
         >
-          <Trash2 className="h-4 w-4" />
-          Delete All Sessions
+          <Trash2 className="h-3 w-3" />
+          Clear All Sessions
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
