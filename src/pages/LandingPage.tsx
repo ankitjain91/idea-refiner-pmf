@@ -443,28 +443,8 @@ export default function LandingPage() {
         className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-xl border-b border-primary/10"
       >
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="relative"
-            >
-              <div className="absolute inset-0 bg-primary/30 blur-xl" />
-              <Brain className="w-12 h-12 text-primary relative" />
-            </motion.div>
-            <div className="flex flex-col">
-              <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent tracking-tight">
-                SmoothBrains
-              </h1>
-              <p className="text-xs md:text-sm text-gray-500 font-mono uppercase tracking-wider mt-1">
-                Neural Validation Engine
-              </p>
-            </div>
-            <Badge className="ml-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 text-xs animate-pulse hidden md:inline-flex">
-              BETA
-            </Badge>
-          </div>
-          <div className="flex items-center gap-4">
+          {/* Sign In Button - Left */}
+          <div className="flex-1">
             <Button
               variant="ghost"
               size="sm"
@@ -476,6 +456,35 @@ export default function LandingPage() {
             >
               Sign In
             </Button>
+          </div>
+
+          {/* Centered Logo */}
+          <div className="flex items-center gap-3">
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="relative"
+            >
+              <div className="absolute inset-0 bg-primary/20 blur-xl" />
+              <Brain className="w-12 h-12 text-primary relative" />
+            </motion.div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent tracking-tight">
+                  SmoothBrains
+                </h1>
+                <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">
+                  beta
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mt-1">
+                Neural Validation Engine
+              </p>
+            </div>
+          </div>
+
+          {/* Get Started Button - Right */}
+          <div className="flex-1 flex justify-end">
             <Button
               size="sm"
               onClick={() => {
