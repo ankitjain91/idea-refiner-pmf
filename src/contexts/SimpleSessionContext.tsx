@@ -8,6 +8,7 @@ interface SessionData {
   analysisData: any;
   pmfScore?: number;
   analysisCompleted: boolean;
+  wrinklePoints?: number;
   lastActivity: string;
 }
 
@@ -62,11 +63,25 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Get current session data from localStorage and component state
   const getCurrentSessionData = useCallback((): SessionData => {
     try {
-      const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-      const currentIdea = localStorage.getItem(LS_KEYS.userIdea) || '';
+      // Try to get EnhancedIdeaChat messages first (main chat interface)
+      const enhancedMessages = localStorage.getItem('enhancedIdeaChatMessages');
+      let chatHistory = [];
+      
+      if (enhancedMessages) {
+        chatHistory = JSON.parse(enhancedMessages);
+      } else {
+        // Fallback to legacy chatHistory
+        chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+      }
+      
+      // Also check for currentIdea from EnhancedIdeaChat
+      const currentIdea = localStorage.getItem('currentIdea') || localStorage.getItem(LS_KEYS.userIdea) || '';
       const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
       const pmfScore = parseInt(localStorage.getItem(LS_KEYS.pmfScore) || '0');
       const analysisData = JSON.parse(localStorage.getItem(LS_KEYS.ideaMetadata) || '{}');
+      
+      // Get wrinkle points if available
+      const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
 
       return {
         chatHistory,
@@ -74,6 +89,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         analysisData,
         pmfScore: isNaN(pmfScore) ? 0 : pmfScore,
         analysisCompleted,
+        wrinklePoints: isNaN(wrinklePoints) ? 0 : wrinklePoints,
         lastActivity: new Date().toISOString()
       };
     } catch (error) {
@@ -84,6 +100,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         analysisData: {},
         pmfScore: 0,
         analysisCompleted: false,
+        wrinklePoints: 0,
         lastActivity: new Date().toISOString()
       };
     }
@@ -250,12 +267,20 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 
       // Restore session data to localStorage
+      // Store in both locations for compatibility
       localStorage.setItem('chatHistory', JSON.stringify(session.data.chatHistory));
+      localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(session.data.chatHistory));
       localStorage.setItem(LS_KEYS.userIdea, session.data.currentIdea);
+      localStorage.setItem('currentIdea', session.data.currentIdea);
       localStorage.setItem(LS_KEYS.pmfScore, String(session.data.pmfScore || 0));
       localStorage.setItem(LS_KEYS.analysisCompleted, session.data.analysisCompleted ? 'true' : 'false');
       localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(session.data.analysisData));
       localStorage.setItem('currentSessionId', sessionId);
+      
+      // Restore wrinkle points if available
+      if (session.data.wrinklePoints !== undefined) {
+        localStorage.setItem('wrinklePoints', String(session.data.wrinklePoints));
+      }
 
       // Update last accessed time
       await supabase

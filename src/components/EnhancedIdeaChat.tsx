@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { LS_KEYS } from '@/lib/storage-keys';
 
 // Import refactored components and utilities
 import { Message, ResponseMode, SuggestionItem } from './chat/types';
@@ -60,6 +61,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   sessionName = 'New Chat Session'
 }) => {
   // State management
+  const { currentSession, saveCurrentSession } = useSession();
+  const [anonymous, setAnonymous] = useState(false);
+  const isDefaultSessionName = !currentSession?.name;
+  const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
+  
   const [responseMode, setResponseMode] = useState<ResponseMode>(() => {
     try {
       return (localStorage.getItem('responseMode') as ResponseMode) || 'verbose';
@@ -68,22 +74,46 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   });
   
-  const [currentIdea, setCurrentIdea] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Restore state from localStorage for authenticated sessions
+  const [currentIdea, setCurrentIdea] = useState<string>(() => {
+    if (!anonymous) {
+      return localStorage.getItem('currentIdea') || '';
+    }
+    return '';
+  });
+  
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (!anonymous) {
+      const stored = localStorage.getItem('enhancedIdeaChatMessages');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error('Error parsing stored messages:', e);
+        }
+      }
+    }
+    return [];
+  });
+  
+  const [wrinklePoints, setWrinklePoints] = useState(() => {
+    if (!anonymous) {
+      const stored = localStorage.getItem('wrinklePoints');
+      if (stored) {
+        return parseInt(stored) || 0;
+      }
+    }
+    return 0;
+  });
   
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationStarted, setConversationStarted] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
-  const [wrinklePoints, setWrinklePoints] = useState(0); // can now store decimals
   const [hoveringBrain, setHoveringBrain] = useState(false);
   const [hasValidIdea, setHasValidIdea] = useState(false);
   const [persistenceLevel, setPersistenceLevel] = useState(0);
   const [offTopicAttempts, setOffTopicAttempts] = useState(0);
-  const { currentSession } = useSession();
-  const [anonymous, setAnonymous] = useState(false);
-  const isDefaultSessionName = !currentSession?.name;
-  const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
 
   // Derived: wrinkle tier + dynamic tooltip messaging
   const wrinkleTier = useMemo(() => {
@@ -162,10 +192,40 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, []);
 
-  // Initialize welcome message with random ideas
+  // Initialize welcome message with random ideas or restore from session
   useEffect(() => {
     const initializeChat = async () => {
+      // If we have a session but no messages, check if we need to restore from localStorage
       if (currentSession?.name && messages.length === 0) {
+        // For authenticated users, check if there are stored messages to restore
+        if (!anonymous) {
+          const storedMessages = localStorage.getItem('enhancedIdeaChatMessages');
+          const storedIdea = localStorage.getItem('currentIdea');
+          const storedWrinkles = localStorage.getItem('wrinklePoints');
+          
+          if (storedMessages) {
+            try {
+              const parsedMessages = JSON.parse(storedMessages);
+              if (parsedMessages.length > 0) {
+                // Restore the conversation
+                setMessages(parsedMessages);
+                if (storedIdea) {
+                  setCurrentIdea(storedIdea);
+                  setHasValidIdea(true);
+                  setConversationStarted(true);
+                }
+                if (storedWrinkles) {
+                  setWrinklePoints(parseInt(storedWrinkles) || 0);
+                }
+                return; // Don't show welcome message if restoring
+              }
+            } catch (e) {
+              console.error('Error restoring messages:', e);
+            }
+          }
+        }
+        
+        // No stored messages, show welcome
         // Fetch random ideas from database
         const randomIdeas = await fetchRandomIdeas();
         
@@ -195,8 +255,36 @@ What's your startup idea?`,
     };
     
     initializeChat();
-  }, [currentSession?.name, messages.length, fetchRandomIdeas]);
+  }, [currentSession?.name, anonymous, fetchRandomIdeas]);
 
+  // Persist messages for authenticated users
+  useEffect(() => {
+    if (!anonymous && messages.length > 0) {
+      localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(messages));
+      // Trigger session save
+      window.dispatchEvent(new Event('chat:activity'));
+    }
+  }, [messages, anonymous]);
+  
+  // Persist current idea for authenticated users
+  useEffect(() => {
+    if (!anonymous && currentIdea) {
+      localStorage.setItem('currentIdea', currentIdea);
+      localStorage.setItem(LS_KEYS.userIdea, currentIdea);
+      // Trigger session save
+      window.dispatchEvent(new Event('chat:activity'));
+    }
+  }, [currentIdea, anonymous]);
+  
+  // Persist wrinkle points for authenticated users
+  useEffect(() => {
+    if (!anonymous) {
+      localStorage.setItem('wrinklePoints', String(wrinklePoints));
+      // Trigger session save
+      window.dispatchEvent(new Event('chat:activity'));
+    }
+  }, [wrinklePoints, anonymous]);
+  
   useEffect(() => {
     if (!anonymous) {
       localStorage.setItem('responseMode', responseMode);
@@ -1099,6 +1187,14 @@ const ChatMessageItem = useMemo(() => {
   return React.memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
 }, []);
   const resetChatHandler = useCallback(async () => {
+    // Clear persisted state for authenticated users
+    if (!anonymous) {
+      localStorage.removeItem('enhancedIdeaChatMessages');
+      localStorage.removeItem('currentIdea');
+      localStorage.removeItem('wrinklePoints');
+      localStorage.removeItem(LS_KEYS.userIdea);
+    }
+    
     // Fetch new random ideas for the reset
     const randomIdeas = await fetchRandomIdeas();
     const suggestions = randomIdeas && randomIdeas.length > 0 
@@ -1131,7 +1227,7 @@ Focus on: WHO has WHAT problem and your solution approach.`,
     setAnonymous(false);
     setOffTopicAttempts(0);
     onReset?.();
-  }, [onReset, fetchRandomIdeas]);
+  }, [onReset, fetchRandomIdeas, anonymous]);
 
   const handleSuggestionClickHandler = useCallback((suggestionText: string) => {
     setInput(suggestionText);
