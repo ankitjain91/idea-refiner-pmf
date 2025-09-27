@@ -685,11 +685,14 @@ The 'suggestions' are tough follow-up questions or defensive responses the USER 
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
         temperature: refinementMode ? 0.7 : 0.75,
-        max_tokens: 650,
+        max_tokens: responseMode === 'summary' ? 200 : 650,  // Limit tokens for summary mode
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: responseMode === 'summary' 
+            ? `${systemPrompt}\n\nCRITICAL: Keep responses EXTREMELY BRIEF (under 50 words). Focus on ONE key insight or challenge. Be direct and punchy.`
+            : systemPrompt 
+          },
           ...conversationHistory.slice(-2),
-          { role: 'user', content: `Context Idea: ${idea || '(not provided yet)'}\nMode: ${refinementMode ? 'REFINEMENT' : 'BRAINSTORM'}\nUser Message: ${message}\nProvide JSON now.` }
+          { role: 'user', content: `Context Idea: ${idea || '(not provided yet)'}\nMode: ${refinementMode ? 'REFINEMENT' : 'BRAINSTORM'}\n${responseMode === 'summary' ? 'ULTRA-BRIEF RESPONSE (under 50 words):' : 'User Message:'} ${message}\nProvide JSON now.` }
         ]
       });
       const content = combined.choices?.[0]?.message?.content || '{}';
@@ -699,6 +702,14 @@ The 'suggestions' are tough follow-up questions or defensive responses the USER 
     }
 
     let aiResponse: string = modelJson?.response || 'Let me push you to get more specific—what real evidence backs this direction?';
+    
+    // Apply additional summarization for summary mode
+    if (responseMode === 'summary' && aiResponse.length > 150) {
+      // Extract the most important sentence or two
+      const sentences = aiResponse.split(/[.!?]+/).filter(s => s.trim());
+      aiResponse = sentences.slice(0, 2).join('. ') + '.';
+    }
+    
     let suggestions: string[] = Array.isArray(modelJson?.suggestions) ? modelJson.suggestions.slice(0,4).map((s: any)=>String(s)) : [];
 
     // Fallback suggestions if model didn't supply or parsing failed
