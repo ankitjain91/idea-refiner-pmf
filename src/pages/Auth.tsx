@@ -80,6 +80,7 @@ export default function AuthPage() {
         description: "Check your email to confirm your account.",
       });
       
+      console.log('[Auth] Sign up successful, navigating to /ideachat with showSessionPicker: true');
       // Navigate to ideachat with session picker state
       navigate("/ideachat", { state: { showSessionPicker: true } });
     } catch (error: any) {
@@ -107,6 +108,7 @@ export default function AuthPage() {
 
       if (error) throw error;
 
+      console.log('[Auth] Sign in successful, navigating to /ideachat with showSessionPicker: true');
       navigate("/ideachat", { state: { showSessionPicker: true } });
     } catch (error: any) {
       toast({

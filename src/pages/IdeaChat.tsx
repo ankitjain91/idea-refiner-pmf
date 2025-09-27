@@ -32,23 +32,37 @@ const IdeaChatPage = () => {
   });
   // Session picker overlay state - check if we should show it from navigation state
   const [showSessionPicker, setShowSessionPicker] = useState(() => {
-    return location.state?.showSessionPicker || false;
+    console.log('[IdeaChat] Initial state - showSessionPicker from location:', location.state?.showSessionPicker);
+    console.log('[IdeaChat] Current session:', currentSession);
+    console.log('[IdeaChat] Sessions list:', sessions);
+    // Always show picker if no current session for authenticated users
+    return location.state?.showSessionPicker || (!currentSession && user);
   });
   
   // Track if user came from auth (login/signup)
   const [requireSessionSelection, setRequireSessionSelection] = useState(() => {
-    return location.state?.showSessionPicker || false;
+    return location.state?.showSessionPicker || (!currentSession && user);
   });
   
-  // Watch for navigation state changes
+  // Watch for navigation state changes and ensure session picker shows when needed
   useEffect(() => {
+    console.log('[IdeaChat] useEffect - checking session picker state');
+    console.log('[IdeaChat] location.state:', location.state);
+    console.log('[IdeaChat] currentSession:', currentSession);
+    console.log('[IdeaChat] user:', user);
+    
     if (location.state?.showSessionPicker) {
       setShowSessionPicker(true);
       setRequireSessionSelection(true);
       // Clear the state to prevent re-opening on refresh
       navigate(location.pathname, { replace: true, state: {} });
+    } else if (user && !currentSession && !sessionLoading) {
+      // Force session picker if user is authenticated but no session is selected
+      console.log('[IdeaChat] No session selected, forcing session picker');
+      setShowSessionPicker(true);
+      setRequireSessionSelection(true);
     }
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, navigate, currentSession, user, sessionLoading]);
   const sessionDecisionKey = 'pmf.session.decisionMade';
   const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);

@@ -414,9 +414,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const initializeSession = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('[SessionContext] Initializing session, user:', user?.email);
       
       // Clear anonymous session data if user is not authenticated
       if (!user) {
+        console.log('[SessionContext] No user, clearing all session data');
         localStorage.removeItem('currentSessionId');
         localStorage.removeItem('currentAnonymousSession');
         setCurrentSession(null);
@@ -426,10 +428,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       // For authenticated users, clear any stored session to force selection
       const storedSessionId = localStorage.getItem('currentSessionId');
+      console.log('[SessionContext] Stored session ID:', storedSessionId);
       
       if (storedSessionId) {
         // Always clear stored session IDs on initialization
         // This forces users to select a session via the picker
+        console.log('[SessionContext] Clearing stored session to force picker');
         localStorage.removeItem('currentSessionId');
         localStorage.removeItem('currentAnonymousSession');
       }

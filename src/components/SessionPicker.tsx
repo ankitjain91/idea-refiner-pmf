@@ -35,6 +35,8 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  
+  console.log('[SessionPicker] Render - open:', open, 'user:', user?.email, 'allowClose:', allowClose);
 
   const generateFunName = () => {
     const adjectives = ['Brilliant', 'Creative', 'Innovative', 'Strategic', 'Visionary', 'Bold', 'Clever', 'Dynamic', 'Epic', 'Fresh'];
