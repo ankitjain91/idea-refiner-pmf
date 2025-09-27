@@ -2,6 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
+import { useSession } from "@/contexts/SessionContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,11 +11,23 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) => {
   const { user, session, loading, initialized, refreshSession } = useAuth();
+  const { sessions, createSession } = useSession();
   const location = useLocation();
   
-  // Remove artificial bootstrap delay; rely solely on auth loading state
-  // This prevents premature redirects on hard refresh
-  
+  // Create a new session if user is authenticated but has no sessions
+  useEffect(() => {
+    const ensureSession = async () => {
+      if (user && initialized && !loading && sessions.length === 0) {
+        try {
+          await createSession("New Session");
+        } catch (error) {
+          console.error("Error creating initial session:", error);
+        }
+      }
+    };
+    
+    ensureSession();
+  }, [user, initialized, loading, sessions.length, createSession]);
 
   useEffect(() => {
     // Check token validity on mount and route changes

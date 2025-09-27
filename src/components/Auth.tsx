@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Loader2, LogIn, UserPlus, Chrome, Twitter, Facebook } from "lucide-reac
 import { Separator } from "@/components/ui/separator";
 import { authSchema } from "@/lib/validation";
 import { z } from "zod";
+import { useNavigate } from "react-router-dom";
+import { useSession } from "@/contexts/SessionContext";
 
 
 export default function Auth() {
@@ -17,6 +19,33 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { createSession } = useSession();
+  
+  // Create a new session after successful authentication
+  const handleAuthSuccess = async () => {
+    try {
+      // Create new session
+      await createSession("New Session");
+      // Navigate to dashboard
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      console.error("Error creating session after auth:", error);
+      // Still navigate to dashboard even if session creation fails
+      navigate('/dashboard', { replace: true });
+    }
+  };
+  
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        handleAuthSuccess();
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +147,8 @@ export default function Auth() {
           description: error.message,
           variant: "destructive",
         });
+      } else {
+        // Sign in successful - auth state listener will handle the rest
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
