@@ -213,24 +213,29 @@ export default function ChatGPTStyleChat({
         setMessages(prev => [...prev, cancelMsg]);
         return;
       }
-      const skip = lower === 'skip';
-      const qKey = msg.metadata.briefQuestionKey as keyof typeof brief;
-      if (!skip) {
-        setBrief(b => ({ ...b, [qKey]: suggestion }));
-        const vague = isVagueAnswer(suggestion);
-        vagueAnswerCountsRef.current[qKey] = (vagueAnswerCountsRef.current[qKey] || 0) + (vague ? 1 : 0);
-        const userEcho: Message = { id: `msg-brief-answer-${Date.now()}`, type: 'user', content: suggestion, timestamp: new Date() };
-        setMessages(prev => [...prev, userEcho]);
+      if (lower === 'skip') {
+        const nextIdx = (msg.metadata.briefQuestionIndex ?? 0) + 1;
+        setBriefQuestionIndex(nextIdx);
+        if (nextIdx >= briefQuestionsRef.current.length) {
+          summarizeBriefAndOfferAnalysis();
+          setIsBriefQAMode(false);
+        } else {
+          askBriefQuestionWithFreshFetch(nextIdx, undefined);
+        }
+        return;
       }
-      const nextIdx = (msg.metadata.briefQuestionIndex ?? 0) + 1;
-      setBriefQuestionIndex(nextIdx);
-      if (nextIdx >= briefQuestionsRef.current.length) {
-        summarizeBriefAndOfferAnalysis();
-        setIsBriefQAMode(false);
-      } else {
-        // prefetch for next question
-        askBriefQuestionWithFreshFetch(nextIdx, undefined);
+      if (suggestion === 'Regenerate answers' && msg.metadata?.briefQuestionKey) {
+        const field = msg.metadata.briefQuestionKey as string;
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: true, suggestions: undefined } : m));
+        fetchContextualBriefSuggestions([field]).then(newSug => {
+          const arr = (newSug[field] || []).slice(0,4);
+          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: false, suggestions: [...arr, 'Regenerate answers', 'Skip', 'Cancel'] } : m));
+        });
+        return;
       }
+      // Default during Brief Q&A: place suggestion into input and wait for user to send
+      setInput(suggestion);
+      inputRef.current?.focus();
       return;
     }
     // Handle special action suggestions
@@ -347,8 +352,9 @@ export default function ChatGPTStyleChat({
       setMessages([resetMsg]);
       return;
     }
-    // Default: treat as normal suggestion click
-    handleSuggestionClick(suggestion);
+    // Default: populate input; user sends explicitly
+    setInput(suggestion);
+    inputRef.current?.focus();
   };
 
   useEffect(() => {
@@ -1490,10 +1496,13 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
   };
 
   const handleSuggestionClick = async (suggestion: string) => {
+    // Populate input and wait for explicit send; do NOT auto-send to server
+    setInput(suggestion);
+    inputRef.current?.focus();
+    return;
+    // --- legacy auto-send logic below (kept for reference) ---
     // Prevent duplicate processing
     if (isLoading) return;
-    
-    // Always create user message with consistent animation
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
       type: 'user',
