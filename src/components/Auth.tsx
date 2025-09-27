@@ -27,12 +27,12 @@ export default function Auth() {
     try {
       // Create new session
       await createSession("New Session");
-      // Navigate to dashboard
-      navigate('/dashboard', { replace: true });
+      // Navigate to ideachat
+      navigate('/ideachat', { replace: true });
     } catch (error) {
       console.error("Error creating session after auth:", error);
-      // Still navigate to dashboard even if session creation fails
-      navigate('/dashboard', { replace: true });
+      // Still navigate to ideachat even if session creation fails
+      navigate('/ideachat', { replace: true });
     }
   };
   
