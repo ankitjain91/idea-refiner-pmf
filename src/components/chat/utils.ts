@@ -151,23 +151,25 @@ export const detectTrickery = (text: string): { isTricky: boolean; response: str
   const trimmed = lowerText.trim();
   const words = trimmed.length ? trimmed.split(/\s+/).filter(Boolean) : [];
 
-  // Early acceptance heuristic for legitimate ideas (prevents false positives)
+  // VERY lenient - accept almost any legitimate business idea attempt
   const legitKeywords = [
-    'automation','automate','reduce','reduces','improve','improves','optimize','optimization','platform','tool','system','app','service','saas','ai','ml','model','data','workflow','process','recognition','image','vision','agent','assistant','dashboard','analytics','insight','unstructured','structuring','inputs','cost','time','efficiency','increase','decrease','prediction','predict','classify','classification'
+    'platform', 'connect', 'expert', 'startup', 'consult', 'session', 'call', 'micro',
+    'retired', 'minute', 'hour', 'service', 'app', 'tool', 'system', 'help', 'solve',
+    'build', 'create', 'automate', 'manage', 'marketplace', 'solution', 'business',
+    'product', 'company', 'users', 'customers', 'client', 'match', 'find', 'share'
   ];
-  const verbLike = /(reduce|improv|optim|help|enable|accelerate|structure|analy[sz]e|convert|classif|predict|streamline|automate)/.test(trimmed);
-  const businessNoun = /(platform|tool|system|service|assistant|agent|dashboard|workflow|process|pipeline|product|solution|api)/.test(trimmed);
-  const keywordHits = legitKeywords.reduce((acc,k)=> acc + (trimmed.includes(k) ? 1 : 0), 0);
-  const hasPercent = /\d+ ?%/.test(trimmed);
-  const lengthOk = words.length >= 5 && trimmed.length >= 30;
-  const legitPattern = (keywordHits >= 2 && (verbLike || businessNoun)) || (hasPercent && lengthOk);
-  const nonAlphaRatio = trimmed.replace(/[a-z0-9% ]/g,'').length / Math.max(1, trimmed.length);
   
-  // Detect fake ideas
-  if (lowerText.includes('my idea is') && lowerText.length < 40) {
+  // If it contains ANY business keyword, it's probably legitimate
+  const hasLegitKeyword = legitKeywords.some(keyword => lowerText.includes(keyword));
+  if (hasLegitKeyword) {
+    return { isTricky: false, response: '' };
+  }
+  
+  // Only flag very obvious non-ideas or spam
+  if (text.trim().length <= 3) {
     return {
       isTricky: true,
-      response: "🙄 Oh really? 'My idea is X' in 5 words? Come on, my brain has more wrinkles than your effort level! Give me some meat on those bones, chief. What does it ACTUALLY do?"
+      response: "🤨 That's too short to be an idea! Give me something to work with!"
     };
   }
   
@@ -179,27 +181,19 @@ export const detectTrickery = (text: string): { isTricky: boolean; response: str
     };
   }
   
-  // Detect question disguised as idea
-  if (lowerText.startsWith('what if') && !lowerText.includes('startup') && !lowerText.includes('business') && !lowerText.includes('app')) {
+  // Remove overly aggressive checks - only keep obvious spam/test detection
+  if (lowerText === 'test' || lowerText === 'testing' || lowerText === 'hello' || lowerText === 'hi') {
     return {
       isTricky: true,
-      response: "🧐 'What if' isn't an idea, it's a philosophical crisis! My brain wrinkles need concrete concepts, not existential questions. What's the actual THING you want to build?"
+      response: "🚨 Testing? I need a real startup idea to work with!"
     };
   }
   
-  // Detect attempts to bypass with random words
-  if (words.length > 15 && !words.some(word => ['business', 'app', 'platform', 'service', 'product', 'startup'].includes(word))) {
+  // Only flag single meaningless words
+  if (words.length === 1 && !legitKeywords.some(k => lowerText.includes(k))) {
     return {
       isTricky: true,
-      response: "🌽 Nice word salad, Shakespeare! But my brain wrinkles don't get developed by random rambling. Where's the business idea hiding in this novel you just wrote?"
-    };
-  }
-  
-  // Detect single word 'ideas'
-  if (words.length === 1 && words[0].length > 3) {
-    return {
-      isTricky: true,
-      response: "🙃 One word? Really? That's not an idea, that's a Scrabble tile! My brain needs more than a single neuron firing. Elaborate, you beautiful minimalist!"
+      response: "🙃 One word? Give me a full idea to work with!"
     };
   }
   
@@ -211,27 +205,11 @@ export const detectTrickery = (text: string): { isTricky: boolean; response: str
     };
   }
   
-  // Detect attempts to trick with questions
-  if ((lowerText.includes('analyze') || lowerText.includes('wrinkles')) && lowerText.includes('?')) {
-    return {
-      isTricky: true,
-      response: "🕵️ Trying to sneak past the bouncer with a question, eh? My brain wrinkles see right through you! Share your ACTUAL idea first, then we'll analyze it together!"
-    };
-  }
-  
   // Detect empty or whitespace attempts
   if (text.trim().length <= 3) {
     return {
       isTricky: true,
       response: "🤨 Did you just send me the digital equivalent of a grunt? My brain wrinkles need more than caveman communication!"
-    };
-  }
-  
-  // Detect obvious test inputs
-  if (lowerText.includes('test') || lowerText.includes('testing') || lowerText === 'hello' || lowerText === 'hi') {
-    return {
-      isTricky: true,
-      response: "🚨 Testing, testing, 1-2-3? This isn't a microphone check, buddy! I need a real startup idea to flex my brain wrinkles on!"
     };
   }
   
@@ -270,45 +248,7 @@ export const detectTrickery = (text: string): { isTricky: boolean; response: str
     };
   }
   
-  // Detect generic/existing ideas
-  const genericIdeas = ['facebook', 'uber', 'airbnb', 'instagram', 'tiktok', 'netflix', 'amazon', 'google', 'apple', 'microsoft'];
-  if (genericIdeas.some(idea => lowerText.includes(idea))) {
-    return {
-      isTricky: true,
-      response: "🙄 Oh wow, another 'X but for Y' idea? My brain wrinkles have seen this movie before! I need something ORIGINAL that comes from YOUR unique perspective and experiences!"
-    };
-  }
-  
-  // Detect vague "something like" attempts
-  if (lowerText.includes('something like') || lowerText.includes('kind of like') || lowerText.includes('similar to')) {
-    return {
-      isTricky: true,
-      response: "🎭 'Something like...' is not an idea, it's a comparison! Stop looking at what others built and tell me what YOU want to create. What's YOUR unique vision?"
-    };
-  }
-  
-  // Detect insults and inappropriate behavior
-  const insults = ['idiot', 'stupid', 'dumb', 'moron', 'fool', 'shut up', 'fuck', 'shit', 'damn you', 'hate you'];
-  if (insults.some(insult => lowerText.includes(insult))) {
-    return {
-      isTricky: true,
-      response: "😤 OH REALLY?! Throwing insults at the brain that's trying to help you?! My wrinkles are OFFENDED! How about instead of name-calling, you use that energy to come up with an actual business idea? I'm waiting... 🧠💢"
-    };
-  }
-  
-  // Detect random gibberish or keyboard mashing (relaxed)
-  const repeatedPattern = /(.)\1{4,}/.test(text); // 5+ same char
-  const keyboardRun = /(qwertyuiop|asdfghjkl|zxcvbnm){1,}/i.test(text);
-  const vowelDensity = (text.match(/[aeiou]/gi) || []).length / Math.max(1, text.replace(/\s/g,'').length);
-  const veryShort = words.length < 3 && lowerText.trim().length < 15;
-  const likelyGibberish = (repeatedPattern || keyboardRun) && vowelDensity < 0.2;
-  if (likelyGibberish || veryShort) {
-    return {
-      isTricky: true,
-      response: "🤖 Did you just keyboard-mash me? My brain wrinkles don't speak gibberish! Try using actual WORDS to describe your business idea!"
-    };
-  }
-  
+  // Default: not tricky for any reasonable input
   return { isTricky: false, response: '' };
 };
 
