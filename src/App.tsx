@@ -14,12 +14,11 @@ import GlobalAlertCenter from "@/components/feedback/GlobalAlertCenter";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
-import Index from "./pages/Index";
+import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import IdeaChat from "./pages/EnhancedIdeaChatPage";
 import IdeaJournal from "./pages/IdeaJournal";
 import Pricing from "./pages/Pricing";
-import AuthPage from "./pages/Auth";
 import Settings from "./pages/Settings";
 import Logout from "./pages/Logout";
 import NotFound from "./pages/NotFound";
@@ -43,7 +42,7 @@ const RouteTransitionWrapper = () => {
         className="flex-1 flex flex-col"
       >
         <Routes location={location}>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/logout" element={<Logout />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

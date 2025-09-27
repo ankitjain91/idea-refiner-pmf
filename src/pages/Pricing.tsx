@@ -30,9 +30,8 @@ export default function PricingPage() {
           description: "Please sign in to subscribe. Redirecting to login...",
           variant: "destructive",
         });
-        setLoadingPlan(null);
         setTimeout(() => {
-          navigate('/auth', { state: { from: { pathname: '/pricing' } } });
+          navigate('/', { state: { from: { pathname: '/pricing' }, openAuthModal: true } });
         }, 1500);
         return;
       }

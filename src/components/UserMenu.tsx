@@ -35,7 +35,7 @@ export const UserMenu = () => {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate('/auth', { state: { from: location } })}
+        onClick={() => navigate('/', { state: { from: location, openAuthModal: true } })}
       >
         Sign In
       </Button>

@@ -285,7 +285,7 @@ export default function LandingPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: `${window.location.origin}${redirectPath || '/auth'}`
+          redirectTo: `${window.location.origin}${redirectPath || '/'}`
         }
       });
       if (error) throw error;
@@ -344,7 +344,7 @@ export default function LandingPage() {
         email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
+          emailRedirectTo: `${window.location.origin}/`,
         },
       });
 

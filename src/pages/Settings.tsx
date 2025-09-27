@@ -71,8 +71,8 @@ export default function Settings() {
     // Don't navigate if still loading
     if (authLoading) return;
     
-    if (!user) {
-      navigate("/auth", { state: { from: { pathname: "/settings" } } });
+  if (!user) {
+      navigate("/", { state: { from: { pathname: "/settings" }, openAuthModal: true } });
     } else {
       loadProfile();
     }

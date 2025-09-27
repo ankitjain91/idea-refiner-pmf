@@ -234,7 +234,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         message: 'Please sign in again to continue',
         scope: 'auth',
       });
-      navigate('/auth', { state: { from: location } });
+      navigate('/', { state: { from: location, openAuthModal: true } });
     }
   };
 

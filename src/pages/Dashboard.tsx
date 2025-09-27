@@ -39,7 +39,7 @@ const Dashboard = () => {
 
   // Redirect unauthenticated
   useEffect(() => {
-    if (!loading && !user) navigate('/auth');
+    if (!loading && !user) navigate('/', { state: { from: { pathname: '/dashboard' }, openAuthModal: true } });
   }, [user, loading, navigate]);
 
   if (loading || !ready) {

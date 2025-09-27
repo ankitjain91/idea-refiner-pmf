@@ -18,10 +18,10 @@ const EnhancedIdeaChatPage = () => {
   const [showSessionPicker, setShowSessionPicker] = useState(false);
   const navigate = useNavigate();
 
-  // Always redirect to auth if not logged in - no anonymous sessions allowed
+  // Always redirect to login modal if not logged in - no anonymous sessions allowed
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate('/', { state: { from: { pathname: '/ideachat' }, openAuthModal: true } });
     }
   }, [authLoading, user, navigate]);
 

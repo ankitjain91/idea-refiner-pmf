@@ -111,7 +111,7 @@ const IdeaJournal = () => {
   );
 
   if (!user) {
-    navigate('/auth');
+    navigate('/', { state: { from: { pathname: '/ideajournal' }, openAuthModal: true } });
     return null;
   }
 
