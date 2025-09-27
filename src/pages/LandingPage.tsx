@@ -423,8 +423,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-black overflow-x-hidden">
-      {/* Wrinkle Points Counter */}
-      <WrinkleCounter points={wrinklePoints} />
+      {/* Futuristic Grid Background */}
       
       {/* Futuristic Grid Background */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(100,150,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(100,150,255,0.01)_1px,transparent_1px)] bg-[size:100px_100px] pointer-events-none" />
