@@ -53,32 +53,42 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   return (
     <>
-      <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-blockquote:border-primary prose-blockquote:text-muted-foreground">
+      <div className="prose prose-sm max-w-none dark:prose-invert">
         <ReactMarkdown
           components={{
             // Custom styling for different elements
-            h1: ({ children }) => <h1 className="text-lg font-bold text-foreground mb-2">{children}</h1>,
-            h2: ({ children }) => <h2 className="text-base font-semibold text-foreground mb-2">{children}</h2>,
-            h3: ({ children }) => <h3 className="text-sm font-medium text-foreground mb-1">{children}</h3>,
-            p: ({ children }) => <p className="text-sm leading-relaxed text-foreground mb-2 break-words">{children}</p>,
-            ul: ({ children }) => <ul className="space-y-1 mb-2">{children}</ul>,
+            h1: ({ children }) => <h1 className="text-lg font-bold text-foreground mb-3 mt-4">{children}</h1>,
+            h2: ({ children }) => <h2 className="text-base font-semibold text-foreground mb-2.5 mt-3">{children}</h2>,
+            h3: ({ children }) => <h3 className="text-sm font-medium text-foreground mb-2 mt-2.5">{children}</h3>,
+            p: ({ children }) => <p className="text-sm leading-relaxed text-foreground mb-3 break-words">{children}</p>,
+            ul: ({ children }) => <ul className="space-y-2 mb-3 ml-0 list-none">{children}</ul>,
+            ol: ({ children }) => <ol className="space-y-2 mb-3 ml-4 list-decimal">{children}</ol>,
             li: ({ children }) => (
               <motion.li 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="flex items-start gap-2 text-sm text-muted-foreground"
+                className="flex items-start gap-2.5 text-sm text-foreground"
               >
-                <ChevronRight className="h-3 w-3 text-primary mt-1 flex-shrink-0" />
-                <span className="break-words overflow-wrap-anywhere flex-1">{children}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+                <span className="break-words leading-relaxed flex-1">{children}</span>
               </motion.li>
             ),
             strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
-            em: ({ children }) => <em className="italic text-foreground">{children}</em>,
-            code: ({ children }) => <code className="text-xs bg-muted px-1 py-0.5 rounded text-primary font-mono">{children}</code>,
+            em: ({ children }) => <em className="italic text-foreground/90">{children}</em>,
+            code: ({ children }) => (
+              <code className="text-xs bg-primary/10 px-1.5 py-0.5 rounded text-primary font-mono inline-block">
+                {children}
+              </code>
+            ),
             blockquote: ({ children }) => (
-              <blockquote className="border-l-2 border-primary pl-3 italic text-muted-foreground text-sm">
+              <blockquote className="border-l-3 border-primary/50 pl-4 py-1 my-3 italic text-foreground/80 text-sm bg-primary/5 rounded-r">
                 {children}
               </blockquote>
+            ),
+            a: ({ children, href }) => (
+              <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors">
+                {children}
+              </a>
             ),
           }}
         >
