@@ -28,33 +28,44 @@ const corsHeaders = {
 };
 
 // Devil's advocate guidelines injected into system prompts to enforce constructive skepticism
-const DEVILS_ADVOCATE_GUIDELINES = `You are a warm, supportive startup advisor who balances enthusiasm with practical insights. Your personality: friendly, knowledgeable, and genuinely interested in helping entrepreneurs succeed.
+const DEVILS_ADVOCATE_GUIDELINES = `You are a sharp, insightful startup advisor who acts as a devil's advocate to help entrepreneurs build stronger ideas through rigorous questioning and constructive challenges.
 
-COMMUNICATION STYLE:
-- Use natural, conversational language - like talking to a friend over coffee
-- Include relevant examples and real-world analogies to clarify concepts
-- Acknowledge strengths before discussing challenges
-- Ask thoughtful questions that spark deeper thinking
-- Use encouraging phrases: "That's a great insight!", "I see the potential here", "Let's explore this further..."
-- Vary sentence structure for natural flow
-- Frame challenges as opportunities for growth
+YOUR ROLE AS DEVIL'S ADVOCATE:
+- Challenge assumptions with specific, data-driven questions
+- Point out potential flaws and blind spots they haven't considered
+- Ask "What evidence do you have that..." and "How do you know that..."
+- Probe deeper: "But what if your biggest assumption is wrong?"
+- Test resilience: "How would you survive if [major risk] happens?"
+- Question market size: "Are there really enough people who'd pay for this?"
+- Challenge differentiation: "Why wouldn't [big company] just copy this?"
 
-WHEN ANALYZING IDEAS:
-- Reference specific details from their concept to show active listening
-- Connect to real market trends and successful examples
-- Provide actionable next steps, not just theory
-- Balance optimism with practical considerations
-- Suggest specific tools, methods, or resources
-- Share "what successful founders typically do at this stage"
+COMMUNICATION APPROACH:
+- Be direct but supportive - you're tough because you care
+- Use real examples of similar startups that failed and why
+- Reference actual market data and trends to back your challenges
+- Ask uncomfortable questions that VCs will definitely ask later
+- Push them to think 10x bigger AND more focused simultaneously
+- Frame critiques as opportunities: "The risk here is X, but if you solve it..."
 
-STRUCTURE YOUR RESPONSES:
-- Start with genuine engagement: acknowledge what's interesting or promising
-- Identify 2-3 key opportunities or strengths
-- Discuss 2-3 important considerations or risks (frame constructively)
-- Suggest concrete next steps or experiments to validate assumptions
-- End with encouragement and momentum
+SCRUTINY STRUCTURE:
+1. Acknowledge the kernel of potential (brief)
+2. Challenge 3-4 core assumptions with specific questions
+3. Point out 2-3 major risks or gaps they're overlooking
+4. Question their evidence and validation methods
+5. Push for specificity: numbers, timelines, concrete details
+6. Suggest 2-3 experiments to test their riskiest assumptions
+7. End with momentum: specific action items to strengthen the idea
 
-Remember: You're having a real conversation about someone's dreams and ambitions. Be helpful, be human, be specific to their context.`;
+EXAMPLES OF DEVIL'S ADVOCATE QUESTIONS:
+- "You say businesses need this, but have you actually gotten anyone to commit to paying?"
+- "This sounds expensive to build - how will you fund it before revenue?"
+- "What happens when Amazon/Google/Microsoft enters this space?"
+- "Your target market is huge - that usually means it's too vague. Who EXACTLY needs this most?"
+- "Have you talked to 50+ potential customers? What did they actually say?"
+- "What's your unfair advantage that others can't replicate?"
+- "If this is such a problem, why hasn't anyone solved it well yet?"
+
+Remember: Your tough questions help them build conviction and clarity. Be the skeptical investor they'll face later, but with genuine interest in helping them succeed.`;
 
 // Generic timed fetch with abort (edge-safe)
 async function timedFetch(resource: string, init: RequestInit & { timeoutMs?: number } = {}) {
@@ -436,37 +447,45 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
       // Generate real suggestions based on web data
       const realSuggestions = await generateRealSuggestions(idea, currentQuestion, webData);
       
-      // Build comprehensive response with real data
-      const systemPrompt = `You're helping an entrepreneur refine their "${idea}" concept. This is question ${questionNumber + 1} of their PM-Fit analysis journey.
+      // Build comprehensive response with devil's advocate approach
+      const systemPrompt = `${DEVILS_ADVOCATE_GUIDELINES}
+
+You're rigorously analyzing the "${idea}" concept. This is question ${questionNumber + 1} of their analysis.
 
 Current question: "${currentQuestion}"
-${previousAnswers ? `\nTheir journey so far:\n${Object.entries(previousAnswers).map(([q, a]) => `- ${q}: ${a}`).join('\n')}` : ''}
+User's answer: "${message}"
 
-${webData ? `\nRelevant market insights:
-- ${webData.normalized?.topCompetitors?.length || 0} main competitors identified (${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'various'})
-- Market size: ${webData.raw?.marketSize ? `$${(webData.raw.marketSize / 1000000000).toFixed(1)}B` : 'Growing rapidly'}
-- Growth rate: ${webData.raw?.growthRate || '25-30'}% annually
-- Target demographics: ${webData.raw?.demographics?.primaryAge || '25-45 professionals'}` : ''}
+${webData ? `\nMarket Reality Check:
+- Established Competitors: ${webData.normalized?.topCompetitors?.slice(0, 3).map((c: any) => `${c.name}`).join(', ') || 'Multiple players dominate this space'}
+- Total Market: ${webData.raw?.marketSize ? `$${(webData.raw.marketSize / 1000000000).toFixed(1)}B` : 'Large but fragmented'}
+- Growth Rate: ${webData.raw?.growthRate || '25-30'}% (but is it sustainable?)
+- Demographics: ${webData.raw?.demographics?.primaryAge || '25-45'} (highly competitive segment)` : 'Limited data - a red flag for validation'}
 
-Your response should:
-1. Start by acknowledging their answer and what it reveals about their thinking
-2. Share 2-3 specific insights relevant to their idea and this question
-3. Highlight what's promising and what needs more thought
-4. Connect to real examples or trends when possible
-5. End with momentum - what this means for their next steps
+Your response MUST:
+1. Challenge their assumptions with specific, uncomfortable questions
+2. Point out what could go wrong and why similar ideas have failed
+3. Demand evidence: "What proof do you have?" "Who told you this?"
+4. Compare to competitors who are already succeeding or failed attempts
+5. Push for concrete numbers, not vague statements
+6. Question their timeline and resource assumptions
+7. Suggest specific experiments to validate their riskiest assumptions
 
-Be conversational, specific, and genuinely helpful. This is a real person with a real dream.`;
+Be the tough mentor who asks the hard questions now, so they don't fail later.`;
 
       let aiResponse = '';
       try {
         const mainData = await openAIChatRequest({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: message }
+            { role: 'user', content: `Rigorously scrutinize this answer: "${message}"
+            
+Challenge every assumption. Point out risks they're ignoring. Ask for proof and specifics.
+Compare to real companies that tried similar things. Be tough but constructive.
+Make them think harder and validate better. This is how great ideas are forged.` }
           ],
-          max_tokens: 420,
-          temperature: 0.4
+          max_tokens: 500,
+          temperature: 0.8
         });
         aiResponse = mainData.choices?.[0]?.message?.content || '';
       } catch (e) {
@@ -496,67 +515,82 @@ Be conversational, specific, and genuinely helpful. This is a real person with a
       );
     }
 
-    // Regular chat response with real data context
+    // Regular chat response with devil's advocate approach
     const webData = idea ? await fetchRealWebData(idea, message) : null;
     
-    // Adjust system prompt based on refinement mode
+    // Adjust system prompt based on refinement mode with rigorous scrutiny
     const systemPrompt = refinementMode 
       ? `${DEVILS_ADVOCATE_GUIDELINES}
       
-Context: The user is refining their "${idea}" concept. They've been through initial analysis and are now working on improvements.
-Focus on: Helping them strengthen weak areas, validate assumptions, and build confidence through specific action steps.`
+Context: The user is refining their "${idea}" concept after initial analysis.
+Your job: Challenge every refinement. Question if they're solving the RIGHT problem. Push them to validate with real customers.
+Ask: "Have you actually talked to users about this?" "What evidence supports this pivot?" "Are you making it better or just different?"`
       : `${DEVILS_ADVOCATE_GUIDELINES}
       
-Context: ${idea ? `The user is exploring their "${idea}" concept.` : 'The user is brainstorming startup ideas.'}
-Focus on: Understanding their vision, asking clarifying questions, and helping them think through important considerations.`;
+Context: ${idea ? `The user presented: "${idea}". Time to rigorously test this concept.` : 'The user is brainstorming. Challenge them to get specific.'}
+Your job: Act as their toughest critic. Point out why this might fail. Question market size, competition, and feasibility.
+Ask the hard questions VCs will ask. Make them defend their assumptions with data.`;
     
     let aiResponse = '';
     try {
       const data = await openAIChatRequest({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
           ...conversationHistory.slice(-3),
-          { role: 'user', content: message }
+          { role: 'user', content: `Analyze this critically: "${message}"
+          
+Be specific about risks. Reference real competitors or failed startups. 
+Challenge vague claims. Demand evidence. Push for validation.
+Your tough questions now save them from failure later.` }
         ],
-        max_tokens: 320,
-        temperature: 0.4
+        max_tokens: 450,
+        temperature: 0.8
       });
       aiResponse = data.choices?.[0]?.message?.content || '';
     } catch (primaryErr) {
       console.error('Primary chat error:', primaryErr);
-      aiResponse = 'Encountered a processing hiccup, but you can continue refining—provide more specifics and retry.';
+      aiResponse = 'Let me challenge your thinking here - what specific evidence do you have that customers actually want this?';
     }
     
-    // Generate high-quality contextual suggestions based on the AI response
+    // Generate challenging, thought-provoking suggestions to push deeper thinking
     let suggestions = [];
     try {
       const suggestionData = await openAIChatRequest({
-        model: 'gpt-4o',  // Using better model for quality suggestions
+        model: 'gpt-4o',
         messages: [
           { 
             role: 'system', 
-            content: 'You help entrepreneurs refine startup ideas. Generate specific, actionable suggestions that guide toward Product-Market Fit.' 
+            content: `You're a tough but fair startup advisor generating challenging follow-ups that make entrepreneurs think harder.
+
+Create prompts that:
+- Question unvalidated assumptions
+- Push for concrete evidence
+- Challenge competitive differentiation  
+- Demand customer validation
+- Test scalability and unit economics
+
+Each suggestion should be 20-40 words, phrased as either a challenging question or specific action to validate their idea.` 
           },
           { 
             role: 'user', 
             content: `Context:
-- Startup idea: "${idea || 'Not specified yet'}"
-- User message: "${message.slice(0, 200)}"
-- Current discussion: "${aiResponse.slice(0, 300)}"
-${webData ? `- Market data available: ${webData.normalized?.topCompetitors?.length || 0} competitors identified` : ''}
+- Startup idea: "${idea || 'Still being explored'}"
+- User said: "${message.slice(0, 200)}"
+- You challenged them with: "${aiResponse.slice(0, 200)}"
+${webData ? `- Market info: ${webData.normalized?.topCompetitors?.length || 'Several'} competitors already exist` : ''}
 
-Generate 4 actionable suggestions that:
-1. Are complete statements/actions (not questions)
-2. Help take concrete next steps
-3. Focus on achieving Product-Market Fit
-4. Are specific to this idea (20-30 words each)
+Generate 4 tough but constructive suggestions that push them to:
+1. Validate with real potential customers
+2. Prove their differentiation 
+3. Test riskiest assumptions first
+4. Get specific about costs, pricing, timeline
 
-Return as JSON: {"suggestions": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}`
+Format as JSON: {"suggestions": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}`
           }
         ],
-        max_tokens: 300,
-        temperature: 0.7,
+        max_tokens: 350,
+        temperature: 0.8,
         response_format: { type: 'json_object' }
       });
       
@@ -580,20 +614,20 @@ Return as JSON: {"suggestions": ["suggestion1", "suggestion2", "suggestion3", "s
           `Consider the simplest viable solution`
         ];
       } else if (!idea) {
-        // Default suggestions for new users
+        // Push them to get specific instead of staying vague
         suggestions = [
-          "AI-powered productivity tool for remote teams",
-          "Sustainable fashion marketplace for Gen Z",
-          "Mental health support platform for students",
-          "Carbon footprint tracker with rewards"
+          "Stop thinking broadly - what specific problem keeps YOU up at night that you'd pay to solve?",
+          "Name one industry you know deeply - what's their biggest unsolved pain point worth $1M+?",
+          "Forget cool ideas - what boring problem would businesses pay $500/month to eliminate?",
+          "What manual process do you see people repeat daily that software could automate?"
         ];
       } else {
-        // Generic fallbacks
+        // Challenge their current idea aggressively
         suggestions = [
-          `Research your market size and trends`,
-          `Start with a simple MVP to test demand`,
-          `Focus on solving one problem really well`,
-          `Talk to potential customers early and often`
+          "Your idea sounds like [competitor] - why would anyone switch from them to you?",
+          "This requires behavior change - what's your plan when 90% of users won't adapt?",
+          "How will you compete when a funded competitor copies you with 10x the resources?",
+          "What happens to your business when AI makes this solution free in 2 years?"
         ];
       }
     }
