@@ -16,10 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Crown,
   Settings,
-  HelpCircle,
   MessageSquare,
   BookOpen,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { BRAND } from '@/branding';
@@ -27,6 +27,7 @@ import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionCont
 import { SessionPicker } from '@/components/SessionPicker';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import HelpSupport from '@/components/HelpSupport';
 
 interface AppSidebarProps {
   style?: React.CSSProperties;
@@ -44,6 +45,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
   const isOpen = open !== false;
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const [showHelp, setShowHelp] = useState(false);
 
   const mainNav = [
     { title: "Idea Chat", url: "/ideachat", icon: MessageSquare },
@@ -51,7 +53,6 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
     { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
-    { title: "Help & Support", url: "#", icon: HelpCircle, action: "help" },
   ];
 
   const getNavClass = ({ isActive }: { isActive: boolean }) =>
@@ -78,31 +79,11 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
             <SidebarMenu>
               {mainNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild={!item.action}
-                    onClick={item.action === 'help' ? () => {
-                      const helpBtn = document.querySelector('[data-help-button]') as HTMLButtonElement;
-                      if (helpBtn) helpBtn.click();
-                    } : undefined}
-                  >
-                    {item.action ? (
-                      <button className="flex items-center w-full hover:bg-muted/50 rounded-md px-2 py-1.5">
-                        <item.icon className="mr-2 h-4 w-4 flex-shrink-0" />
-                        {isOpen && (
-                          <span className={cn(
-                            "text-sm leading-tight",
-                            item.action === 'new-smoothbrain' && 'font-bold text-blue-700 dark:text-blue-400'
-                          )}>
-                            {item.title}
-                          </span>
-                        )}
-                      </button>
-                    ) : (
-                      <NavLink to={item.url} end className={getNavClass}>
-                        <item.icon className="mr-2 h-4 w-4 flex-shrink-0" />
-                        {isOpen && <span className="text-sm leading-tight">{item.title}</span>}
-                      </NavLink>
-                    )}
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} end className={getNavClass}>
+                      <item.icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                      {isOpen && <span className="text-sm leading-tight">{item.title}</span>}
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -110,6 +91,21 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* Help & Support Button - Above Footer */}
+      <div className="border-t px-2 sm:px-3 py-2">
+        <SidebarMenuButton
+          onClick={() => setShowHelp(true)}
+          className="w-full hover:bg-muted/50 rounded-md px-2 py-1.5"
+        >
+          <Sparkles className="mr-2 h-4 w-4 flex-shrink-0 text-primary" />
+          {isOpen && (
+            <span className="text-sm leading-tight">
+              Chat with Site Guru 🎉
+            </span>
+          )}
+        </SidebarMenuButton>
+      </div>
 
       <SidebarFooter className="border-t p-2 sm:p-3">
         {isOpen && user && (
@@ -126,6 +122,9 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
           </div>
         )}
       </SidebarFooter>
+      
+      {/* Help Support Dialog */}
+      <HelpSupport open={showHelp} onOpenChange={setShowHelp} />
     </Sidebar>
   );
 }
