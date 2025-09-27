@@ -312,8 +312,10 @@ const IdeaChatPage = () => {
         <div className='flex-1 relative p-2'>
           {showOverlayLoader && <EngagingLoader active={true} scope='dashboard' />}
           <SessionPicker 
-            open={showSessionPicker && !currentSession} 
+            open={showSessionPicker} 
             onSessionSelected={() => setShowSessionPicker(false)}
+            allowClose={true}
+            onClose={() => setShowSessionPicker(false)}
           />
           <div className='absolute inset-0 flex flex-col'>
             <Suspense fallback={<div className='flex-1 flex items-center justify-center'><Loader2 className='h-6 w-6 animate-spin' /></div>}>
