@@ -4,17 +4,19 @@ import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { UserMenu } from '@/components/UserMenu';
-import { Loader2, FolderOpen } from 'lucide-react';
+import { Loader2, FolderOpen, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DynamicStatusBar } from './DynamicStatusBar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SessionPicker } from '@/components/SessionPicker';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 import EnhancedIdeaChat from '@/components/EnhancedIdeaChat';
 
 const EnhancedIdeaChatPage = () => {
   const { user, loading: authLoading } = useAuth();
-  const { currentSession, saving } = useSession();
+  const { currentSession, saving, setAutoSaveEnabled, autoSaveEnabled } = useSession();
   const [showSessionPicker, setShowSessionPicker] = useState(false);
   const navigate = useNavigate();
 
@@ -68,26 +70,32 @@ const EnhancedIdeaChatPage = () => {
         <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center gap-4">
             <div className="flex flex-col">
-              <h1 className="text-sm sm:text-lg font-semibold flex items-center gap-1 sm:gap-2">
-                {currentSession && (
-                  <span className="text-xs sm:text-sm text-foreground">
-                    {currentSession.name}
-                    {saving && (
-                      <span className="text-xs text-blue-500 ml-1">Saving...</span>
-                    )}
-                  </span>
-                )}
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Refine · Analyze · Iterate
-                {currentSession && (
-                  <span className="ml-2 text-green-600">✓ Auto-saving</span>
-                )}
-              </p>
+            <h1 className="text-sm sm:text-lg font-semibold flex items-center gap-1 sm:gap-2">
+              {currentSession && (
+                <span className="text-xs sm:text-sm text-foreground">
+                  {currentSession.name}
+                </span>
+              )}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Refine · Analyze · Iterate
+            </p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="auto-save" className="text-xs flex items-center gap-1 cursor-pointer">
+                <Save className="w-3 h-3" />
+                <span className="hidden sm:inline">Auto-save</span>
+              </Label>
+              <Switch
+                id="auto-save"
+                checked={autoSaveEnabled}
+                onCheckedChange={setAutoSaveEnabled}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
             <Button
               variant="ghost"
               size="sm"

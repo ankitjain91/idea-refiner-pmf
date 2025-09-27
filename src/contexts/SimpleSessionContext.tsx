@@ -28,6 +28,10 @@ interface SessionContextType {
   loading: boolean;
   saving: boolean;
   
+  // Auto-save control
+  autoSaveEnabled: boolean;
+  setAutoSaveEnabled: (enabled: boolean) => void;
+  
   // Core actions
   loadSessions: () => Promise<void>;
   createSession: (name: string, anonymous?: boolean) => Promise<void>;
@@ -55,6 +59,12 @@ export const useSession = () => {
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sessions, setSessions] = useState<BrainstormingSession[]>([]);
   const [currentSession, setCurrentSession] = useState<BrainstormingSession | null>(null);
+  
+  // Auto-save state (default to ON)
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
+    const saved = localStorage.getItem('autoSaveEnabled');
+    return saved === null ? true : saved === 'true';
+  });
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -288,9 +298,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  // Save current session data to database (skip anonymous sessions)
+  // Save current session data to database (skip anonymous sessions or when auto-save is disabled)
   const saveCurrentSession = useCallback(async () => {
     if (!currentSession || saving) return;
+    
+    // Don't save if auto-save is disabled
+    if (!autoSaveEnabled) {
+      return;
+    }
     
     // Don't save anonymous sessions to database
     if (currentSession.is_anonymous) {
@@ -324,7 +339,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally {
       setSaving(false);
     }
-  }, [currentSession, saving, getCurrentSessionData]);
+  }, [currentSession, saving, getCurrentSessionData, autoSaveEnabled]);
 
   // Delete a session
   const deleteSession = useCallback(async (sessionId: string) => {
@@ -525,6 +540,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     currentSession,
     loading,
     saving,
+    autoSaveEnabled,
+    setAutoSaveEnabled: (enabled: boolean) => {
+      setAutoSaveEnabled(enabled);
+      localStorage.setItem('autoSaveEnabled', enabled.toString());
+    },
     loadSessions,
     createSession,
     loadSession,
