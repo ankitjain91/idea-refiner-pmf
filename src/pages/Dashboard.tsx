@@ -59,7 +59,39 @@ const Dashboard = () => {
       // If no analysis data or no idea, redirect to ideachat
       if (!analysisCompleted || analysisCompleted !== 'true' || !idea || !metadata) {
         console.log('No analysis data found, redirecting to ideachat');
-        navigate('/ideachat', { replace: true });
+        // Small delay to prevent race conditions
+        setTimeout(() => {
+          navigate('/ideachat', { replace: true });
+        }, 100);
+      } else {
+        // We have analysis data, load it immediately
+        try {
+          const parsedMetadata = JSON.parse(metadata);
+          const answers = localStorage.getItem(LS_KEYS.userAnswers);
+          const pmfAnalysisData = localStorage.getItem('pmfAnalysisData');
+          
+          let fullMetadata: any = parsedMetadata;
+          if (pmfAnalysisData) {
+            try {
+              const pmfData = JSON.parse(pmfAnalysisData);
+              fullMetadata = { ...fullMetadata, ...pmfData };
+            } catch (e) {
+              console.error('Error parsing PMF data:', e);
+            }
+          }
+          
+          if (answers) {
+            try {
+              fullMetadata.answers = JSON.parse(answers);
+            } catch (e) {
+              fullMetadata.answers = {};
+            }
+          }
+          
+          setAnalysisData({ idea, metadata: fullMetadata });
+        } catch (e) {
+          console.error('Error loading analysis data:', e);
+        }
       }
     }
   }, [loading, user, sessionLoading, navigate]);
@@ -195,7 +227,7 @@ const Dashboard = () => {
       const idea = localStorage.getItem('userIdea');
       const answers = localStorage.getItem('userAnswers');
       const metadata = localStorage.getItem('ideaMetadata');
-  const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted);
+      const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted);
       
       if (sessionId && sessionId !== currentSessionId) {
         setCurrentSessionId(sessionId);
@@ -204,14 +236,27 @@ const Dashboard = () => {
           const parsedAnswers = answers ? JSON.parse(answers) : {};
           const parsedMetadata = metadata ? JSON.parse(metadata) : {};
           
-          // Check for PMF analysis data from StreamlinedPMFChat
+          // Get PMF analysis data from various sources
           const pmfAnalysisData = localStorage.getItem('pmfAnalysisData');
-          const fullMetadata = pmfAnalysisData 
-            ? { ...parsedMetadata, ...JSON.parse(pmfAnalysisData), answers: parsedAnswers }
-            : { ...parsedMetadata, answers: parsedAnswers };
+          const pmfCurrentIdea = localStorage.getItem('pmfCurrentIdea');
+          
+          // Merge all metadata sources
+          let fullMetadata = { ...parsedMetadata };
+          
+          if (pmfAnalysisData) {
+            try {
+              const pmfData = JSON.parse(pmfAnalysisData);
+              fullMetadata = { ...fullMetadata, ...pmfData };
+            } catch (e) {
+              console.error('Error parsing PMF analysis data:', e);
+            }
+          }
+          
+          // Ensure answers are included
+          fullMetadata.answers = parsedAnswers;
           
           setAnalysisData({ 
-            idea, 
+            idea: pmfCurrentIdea || idea || '', 
             metadata: fullMetadata
           });
           // analysis data will trigger display automatically in analysis-only layout
@@ -253,22 +298,45 @@ const Dashboard = () => {
       restoreState(currentSession);
       
       // Check if we have analysis data to show
-  const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted);
+      const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted);
       if (analysisCompleted === 'true') {
-        const idea = localStorage.getItem('userIdea');
-        const answers = localStorage.getItem('userAnswers');
-        const metadata = localStorage.getItem('ideaMetadata');
+        const idea = localStorage.getItem(LS_KEYS.userIdea) || localStorage.getItem('userIdea');
+        const answers = localStorage.getItem(LS_KEYS.userAnswers) || localStorage.getItem('userAnswers');
+        const metadata = localStorage.getItem(LS_KEYS.ideaMetadata) || localStorage.getItem('ideaMetadata');
         const pmfAnalysisData = localStorage.getItem('pmfAnalysisData');
+        const pmfCurrentIdea = localStorage.getItem('pmfCurrentIdea');
         
-        const fullMetadata = pmfAnalysisData 
-          ? { ...JSON.parse(metadata || '{}'), ...JSON.parse(pmfAnalysisData), answers: JSON.parse(answers || '{}') }
-          : { ...JSON.parse(metadata || '{}'), answers: JSON.parse(answers || '{}') };
+        let fullMetadata: any = {};
+        
+        // Parse metadata safely
+        try {
+          fullMetadata = metadata ? JSON.parse(metadata) : {};
+        } catch (e) {
+          console.error('Error parsing metadata:', e);
+        }
+        
+        // Parse PMF analysis data if available
+        if (pmfAnalysisData) {
+          try {
+            const pmfData = JSON.parse(pmfAnalysisData);
+            fullMetadata = { ...fullMetadata, ...pmfData };
+          } catch (e) {
+            console.error('Error parsing PMF analysis data:', e);
+          }
+        }
+        
+        // Parse and include answers
+        try {
+          fullMetadata.answers = answers ? JSON.parse(answers) : {};
+        } catch (e) {
+          console.error('Error parsing answers:', e);
+          fullMetadata.answers = {};
+        }
         
         setAnalysisData({ 
-          idea: idea || '', 
+          idea: pmfCurrentIdea || idea || 'Unknown Idea', 
           metadata: fullMetadata
         });
-  // analysis-only layout picks up analysisData automatically
       }
     }
   }, [currentSession, currentSessionId, restoreState]);
@@ -292,9 +360,9 @@ const Dashboard = () => {
   const handleAnalysisReady = (idea: string, metadata: any) => {
     setAnalysisData({ idea, metadata });
     localStorage.setItem('pmfCurrentIdea', idea);
-    localStorage.setItem('userAnswers', JSON.stringify(metadata.answers || {}));
-    localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
-  localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
+    localStorage.setItem('userAnswers', JSON.stringify(metadata?.answers || {}));
+    localStorage.setItem('ideaMetadata', JSON.stringify(metadata || {}));
+    localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
     if (currentSession) saveState(true);
   };
 

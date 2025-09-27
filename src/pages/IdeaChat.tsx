@@ -141,10 +141,20 @@ const IdeaChatPage = () => {
   // Removed auto-create session on refresh to satisfy requirement
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
-    // Chat component already stores needed localStorage artifacts
-    // After analysis we navigate user to dashboard to view results
+    // Store all necessary data for dashboard
+    localStorage.setItem('pmfCurrentIdea', idea);
+    localStorage.setItem(LS_KEYS.userIdea, idea);
+    localStorage.setItem(LS_KEYS.userAnswers, JSON.stringify(metadata?.answers || {}));
+    localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata || {}));
+    localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
+    
+    if (metadata?.pmfAnalysis) {
+      localStorage.setItem('pmfAnalysisData', JSON.stringify(metadata.pmfAnalysis));
+    }
+    
+    // Notify and navigate
     try {
-      window.dispatchEvent(new CustomEvent('analysis:completed', { detail: { idea } }));
+      window.dispatchEvent(new CustomEvent('analysis:completed', { detail: { idea, metadata } }));
     } catch {}
     navigate('/dashboard');
   };

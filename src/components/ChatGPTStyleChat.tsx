@@ -203,10 +203,17 @@ export default function ChatGPTStyleChat({
       if (analysisMsg?.pmfAnalysis && onAnalysisReady) {
         const analysisData = {
           idea: currentIdea,
-          answers: undefined,
+          answers: brief || {},
           pmfAnalysis: analysisMsg.pmfAnalysis,
           timestamp: new Date().toISOString()
         };
+        // Save to localStorage for dashboard to pick up
+        localStorage.setItem('pmfCurrentIdea', currentIdea);
+        localStorage.setItem('userAnswers', JSON.stringify(brief || {}));
+        localStorage.setItem('pmfAnalysisData', JSON.stringify(analysisMsg.pmfAnalysis));
+        localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(analysisMsg.pmfAnalysis));
+        localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
+        
         onAnalysisReady(currentIdea, analysisData);
       } else {
         // No analysis data available
@@ -730,10 +737,13 @@ export default function ChatGPTStyleChat({
       setMessages(prev => [...prev, completion]);
       localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
       localStorage.setItem(LS_KEYS.pmfScore, String(pmfScore));
+      localStorage.setItem(LS_KEYS.userIdea, currentIdea);
+      localStorage.setItem(LS_KEYS.userAnswers, JSON.stringify(brief));
       setAnalysisCompletedFlag(true);
-      const metadata = { ...result.pmfAnalysis, meta: result.meta };
+      const metadata = { ...result.pmfAnalysis, meta: result.meta, answers: brief };
       localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata));
-      // Don't auto-show dashboard, wait for user to click "Show Dashboard"
+      localStorage.setItem('pmfAnalysisData', JSON.stringify(result.pmfAnalysis));
+      // Don't auto-show dashboard, wait for user to click "View Dashboard"
     } catch (e) {
       console.error('Enterprise analysis failed', e);
       toast({ title: 'Analysis ran into trouble', description: 'Something went sideways! Let\'s try running the analysis again. 🔄' });

@@ -39,7 +39,49 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchDashboardInsights(0);
+    if (idea && idea !== 'Unknown Idea' && idea.length > 3) {
+      // Check for existing analysis data first
+      const existingMetadata = localStorage.getItem('ideaMetadata') || localStorage.getItem('pmf.analysis.metadata');
+      const existingPMFData = localStorage.getItem('pmfAnalysisData');
+      
+      if (existingPMFData) {
+        try {
+          const pmfData = JSON.parse(existingPMFData);
+          if (pmfData.pmfScore !== undefined) {
+            // Format the insights properly
+            const formattedInsights = {
+              pmfScore: pmfData.pmfScore || 0,
+              viabilityLevel: pmfData.viabilityLevel || 'Unknown',
+              keyStrengths: pmfData.keyStrengths || [],
+              improvements: pmfData.improvements || [],
+              quickWins: pmfData.quickWins || [],
+              metrics: pmfData.metrics || {
+                marketSize: { label: 'Market Size', value: 'Unknown', trend: 'neutral' },
+                competition: { label: 'Competition', value: 'Unknown', trend: 'neutral' },
+                differentiation: { label: 'Differentiation', value: 'Unknown', trend: 'neutral' }
+              },
+              competitors: pmfData.competitors || [],
+              channels: pmfData.channels || [],
+              growthData: pmfData.growthData || [],
+              realSearchData: pmfData.realSearchData || marketData
+            };
+            
+            setInsights(formattedInsights);
+            setMarketData(pmfData.realSearchData || pmfData.marketData);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Error loading existing PMF data:', e);
+        }
+      }
+      
+      // No existing data or error loading it, fetch new
+      fetchDashboardInsights(0);
+    } else {
+      setLoading(false);
+      console.log('No valid idea provided to dashboard');
+    }
   }, [idea, userAnswers]);
 
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
