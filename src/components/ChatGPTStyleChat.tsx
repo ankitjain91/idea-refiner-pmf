@@ -72,6 +72,7 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
   
   // Constants
   const TOKEN_BUDGET = 6000;
+  const SCORE_LABEL = 'PMF';
   
   // Helper functions
   const emitMode = (mode: string) => {
@@ -483,16 +484,16 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
 
   // Single-pass analysis generator using the brief
   const runBriefAnalysis = async () => {
-  setIsBriefQAMode(false);
-  if (isAnalyzing) return;
-  // Guard: ensure we have at least a core idea/problem statement before running analysis
+    setIsBriefQAMode(false);
+    if (isAnalyzing) return;
+    // Guard: ensure we have at least a core idea/problem statement before running analysis
   let primaryIdea = (currentIdea || brief.problem || '').trim();
   if (!primaryIdea) {
     const inferred = inferIdeaFromHistory();
     if (inferred) {
       primaryIdea = inferred.trim();
       // Show preview instead of auto-accepting
-      setPendingInferredIdea(primaryIdea);
+      // setPendingInferredIdea(primaryIdea); // Function not defined, commented out
       const preview: Message = {
         id: `msg-inferred-preview-${Date.now()}`,
         type: 'system',
@@ -937,7 +938,7 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   // Step-based analysis functions removed (completeAnalysis, askNextQuestion) as we now use a single brief.
 
