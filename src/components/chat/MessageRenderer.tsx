@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { ChevronRight, Lightbulb, ArrowRight } from 'lucide-react';
+import { ChevronRight, Lightbulb, ArrowRight, RefreshCw, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Message, ResponseMode } from './types';
 import { generateSuggestionExplanation, generateBrainExplanation } from './utils';
@@ -12,13 +12,15 @@ interface MessageRendererProps {
   responseMode: ResponseMode;
   onSendMessage: (message: string) => void;
   onSuggestionClick?: (suggestion: string) => void;
+  onRetry?: (message: Message) => void;
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
   message, 
   responseMode, 
   onSendMessage,
-  onSuggestionClick 
+  onSuggestionClick,
+  onRetry 
 }) => {
   // Handle typing indicator
   if (message.isTyping) {
@@ -49,6 +51,32 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   // Handle PMF analysis
   if (message.pmfAnalysis) {
     return <PMFAnalysisCard analysis={message.pmfAnalysis} />;
+  }
+  
+  // Handle error messages with retry button
+  if (message.isError) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-2 text-destructive">
+          <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Connection Error</p>
+            <p className="text-sm opacity-90 mt-1">{message.content}</p>
+          </div>
+        </div>
+        {onRetry && (
+          <Button
+            onClick={() => onRetry(message)}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </Button>
+        )}
+      </div>
+    );
   }
 
   return (

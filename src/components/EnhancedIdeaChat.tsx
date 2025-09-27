@@ -1029,13 +1029,23 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       }
     } catch (error) {
       console.error('Error:', error);
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
-      setIsTyping(false);
-      toast({
-        title: "Connection Error",
-        description: "Failed to get AI response. Please try again.",
-        variant: "destructive"
+      
+      // Remove typing indicator and add error message
+      setMessages(prev => {
+        const filtered = prev.filter(msg => !msg.isTyping);
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          type: 'bot',
+          content: "I encountered an error processing your request. Please try again.",
+          timestamp: new Date(),
+          isError: true,
+          originalUserMessage: messageText, // Store the message for retry
+          suggestions: []
+        };
+        return [...filtered, errorMessage];
       });
+      
+      setIsTyping(false);
     }
   }; // Properly close the sendMessageHandler function
 
@@ -1058,7 +1068,8 @@ const ChatMessageItem = useMemo(() => {
     responseMode: ResponseMode;
     sendMessage: (m?: string) => void;
     handleSuggestionClick: (s: string) => void;
-  }> = ({ message, responseMode, sendMessage, handleSuggestionClick }) => {
+    retryMessage: (msg: Message) => void;
+  }> = ({ message, responseMode, sendMessage, handleSuggestionClick, retryMessage }) => {
     return (
       <motion.div
         layout
@@ -1159,6 +1170,7 @@ const ChatMessageItem = useMemo(() => {
                     responseMode={responseMode}
                     onSendMessage={sendMessage}
                     onSuggestionClick={handleSuggestionClick}
+                    onRetry={retryMessage}
                   />
                 )}
               </div>
@@ -1226,8 +1238,30 @@ Focus on: WHO has WHAT problem and your solution approach.`,
     setHasValidIdea(false);
     setAnonymous(false);
     setOffTopicAttempts(0);
-    onReset?.();
+      onReset?.();
   }, [onReset, fetchRandomIdeas, anonymous]);
+  
+  // Add retry handler for failed messages
+  const retryMessageHandler = useCallback((failedMessage: Message) => {
+    if (failedMessage.originalUserMessage) {
+      // Remove the error message
+      setMessages(prev => prev.filter(msg => msg.id !== failedMessage.id));
+      
+      // Resend the original message
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: failedMessage.originalUserMessage,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
+      
+      // Trigger the send logic again
+      setTimeout(() => {
+        sendMessageHandler(failedMessage.originalUserMessage);
+      }, 100);
+    }
+  }, []);
 
   const handleSuggestionClickHandler = useCallback((suggestionText: string) => {
     setInput(suggestionText);
@@ -1707,6 +1741,7 @@ User submission: """${messageText}"""`;
               responseMode={responseMode}
               sendMessage={sendMessageHandler}
               handleSuggestionClick={handleSuggestionClickHandler}
+              retryMessage={retryMessageHandler}
             />
           ))}
         </AnimatePresence>

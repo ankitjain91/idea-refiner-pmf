@@ -9,6 +9,8 @@ export interface Message {
   pointsEarned?: number;
   pointsExplanation?: string;
   suggestionExplanation?: string;
+  isError?: boolean;
+  originalUserMessage?: string; // Store the user message that triggered this bot response
 }
 
 export interface EnhancedIdeaChatProps {
