@@ -159,7 +159,7 @@ export default function AuthPage() {
 
       <div className="relative flex flex-col items-center justify-center min-h-screen p-4 z-10">
         {/* Header Branding */}
-        <div className="text-center mb-12 animate-fade-in">
+        <div className="text-center mb-8 animate-fade-in">
           <div className="relative">
             <div className="absolute inset-0 blur-3xl bg-primary/30 rounded-full animate-pulse" />
             <div className="relative flex items-center justify-center gap-4 mb-6">
@@ -189,8 +189,51 @@ export default function AuthPage() {
             <div className="px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 backdrop-blur-sm animate-pulse">
               <div className="flex items-center gap-2">
                 <Bot className="w-4 h-4 text-primary" />
-                <span className="text-xs font-mono text-primary">Neural Activity: {wrinkleCount.toLocaleString()} wrinkles</span>
+                <span className="text-xs font-mono text-primary">Neural Activity: {wrinkleCount.toLocaleString()} wrinkles eliminated</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pricing Cards */}
+        <div className="w-full max-w-4xl mb-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+          <h2 className="text-2xl font-orbitron font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">
+            Choose Your Brain Smoothness Level
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-lg border border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/30 transition-all">
+              <h3 className="font-bold text-lg mb-2">🧩 Smooth Starter</h3>
+              <p className="text-2xl font-bold mb-2">$9<span className="text-sm text-muted-foreground">/mo</span></p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• 100 brain smoothings/month</li>
+                <li>• Basic wrinkle detection</li>
+                <li>• Gentle brain massage</li>
+              </ul>
+            </div>
+            
+            <div className="p-4 rounded-lg border-2 border-primary bg-primary/5 backdrop-blur-sm relative transform hover:scale-105 transition-all">
+              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-2 py-0.5 rounded text-xs font-semibold">
+                SILKY SMOOTH
+              </div>
+              <h3 className="font-bold text-lg mb-2">🚀 Wrinkle Eraser</h3>
+              <p className="text-2xl font-bold mb-2">$29<span className="text-sm text-muted-foreground">/mo</span></p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Unlimited brain polishing</li>
+                <li>• Advanced wrinkle removal</li>
+                <li>• Priority smoothing queue</li>
+                <li>• Custom brain reports</li>
+              </ul>
+            </div>
+            
+            <div className="p-4 rounded-lg border border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/30 transition-all">
+              <h3 className="font-bold text-lg mb-2">🏆 Galaxy Brain</h3>
+              <p className="text-2xl font-bold mb-2">$99<span className="text-sm text-muted-foreground">/mo</span></p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Everything in Wrinkle Eraser</li>
+                <li>• Quantum brain smoothing</li>
+                <li>• Personal brain butler</li>
+                <li>• Direct neural API</li>
+              </ul>
             </div>
           </div>
         </div>

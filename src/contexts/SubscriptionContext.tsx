@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const SUBSCRIPTION_TIERS = {
   free: {
-    name: '🧠 Smooth Starter',
+    name: '🧠 Baby Brain',
     product_id: null,
     price_id: null,
     price: null,
@@ -22,7 +22,7 @@ export const SUBSCRIPTION_TIERS = {
     }
   },
   basic: {
-    name: '🧩 Wrinkle Worthy',
+    name: '🧩 Smooth Starter',
     product_id: 'prod_T7Cs2e5UUZ0eov',
     price_id: 'price_1SAySTJtb0GRtBUmTWxAeuKJ',
     price: '$9/month',
@@ -39,7 +39,7 @@ export const SUBSCRIPTION_TIERS = {
     }
   },
   pro: {
-    name: '🚀 Big Brain Energy',
+    name: '🚀 Wrinkle Eraser',
     product_id: 'prod_T7CsnetIz8NE1N',
     price_id: 'price_1SAySeJtb0GRtBUmYQ36t8rG',
     price: '$29/month',
@@ -56,7 +56,7 @@ export const SUBSCRIPTION_TIERS = {
     }
   },
   enterprise: {
-    name: '🏆 Galaxy Brain Elite',
+    name: '🏆 Galaxy Brain',
     product_id: 'prod_T7CsCuGP8R6RrO',
     price_id: 'price_1SAySoJtb0GRtBUm7TgSNxQt',
     price: '$99/month',
