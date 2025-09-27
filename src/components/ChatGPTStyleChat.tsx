@@ -57,6 +57,7 @@ export default function ChatGPTStyleChat({
   const [currentIdea, setCurrentIdea] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisCompletedFlag, setAnalysisCompletedFlag] = useState(() => localStorage.getItem(LS_KEYS.analysisCompleted) === 'true');
+  const [typingStatus, setTypingStatus] = useState<string>('');
   // Brief fields (two required: problem, targetUser; others optional)
   const [brief, setBrief] = useState<BriefFields>({
     problem: '', targetUser: '', differentiation: '', alternatives: '', monetization: '', scenario: '', successMetric: ''
@@ -1397,6 +1398,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
 
   const handleSuggestionRefinement = async (idea: string) => {
     setIsLoading(true);
+    setTypingStatus('Thinking through your idea...');
     
     // Add loading animation message
     const loadingMessage: Message = {
@@ -1483,6 +1485,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
       setMessages(prev => prev.filter(msg => !msg.isTyping));
     } finally {
       setIsLoading(false);
+      setTypingStatus('');
     }
   };
 
@@ -1518,6 +1521,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
         
         // Add loading animation
+        setTypingStatus('Thinking about your idea...');
         const loadingMessage: Message = {
           id: `msg-loading-${Date.now()}`,
           type: 'bot',
@@ -1532,6 +1536,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         
         // Remove loading and add response
         setMessages(prev => prev.filter(msg => !msg.isTyping));
+        setTypingStatus('');
         
         const validationMessage: Message = {
           id: `msg-validation-${Date.now()}`,
@@ -1564,6 +1569,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
       // During refinement - process as regular message with consistent animation
       setInput('');
       setIsLoading(true);
+      setTypingStatus('Formulating a helpful reply...');
       
       // Add loading animation message
       const loadingMessage: Message = {
@@ -1665,6 +1671,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         setMessages(prev => [...prev, errorMessage]);
       } finally {
         setIsLoading(false);
+        setTypingStatus('');
       }
     }
     
@@ -1802,6 +1809,9 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
                             <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                             <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </div>
+                          {typingStatus && (
+                            <span className="text-xs text-muted-foreground ml-2">{typingStatus}</span>
+                          )}
                         </div>
                       ) : (
                         <div className="text-sm leading-relaxed">
