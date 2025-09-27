@@ -33,33 +33,22 @@ import { useAuth } from '@/contexts/EnhancedAuthContext';
 const RouteTransitionWrapper = () => {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="flex-1 flex flex-col"
-      >
-        <Routes location={location}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/logout" element={<Logout />} />
-          
-          {/* Protected routes with shared layout */}
-          <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/ideachat" element={<IdeaChat />} />
-            <Route path="/ideajournal" element={<IdeaJournal />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/subscription-success" element={<IdeaChat />} />
-          </Route>
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
+    <div className="flex-1 flex flex-col">
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/logout" element={<Logout />} />
+        {/* Protected routes with shared layout */}
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/ideachat" element={<IdeaChat />} />
+          <Route path="/ideajournal" element={<IdeaJournal />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/subscription-success" element={<IdeaChat />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
   );
 };
 
