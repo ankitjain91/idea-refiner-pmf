@@ -1763,6 +1763,8 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
     setResponseMode(mode);
     try {
       localStorage.setItem('responseMode', mode);
+      // Emit event to notify IdeaChat page
+      window.dispatchEvent(new CustomEvent('responseMode:changed', { detail: { mode } }));
     } catch {}
   };
 

@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Lightbulb, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, ArrowRight, Lightbulb, Sparkles, Brain, FileText, List } from 'lucide-react';
 import { DynamicStatusBar } from './DynamicStatusBar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -69,6 +70,15 @@ const IdeaChatPage = () => {
   const sessionDecisionKey = 'pmf.session.decisionMade';
   const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);
+  
+  // Response mode state
+  const [responseMode, setResponseMode] = useState<'summary' | 'verbose'>(() => {
+    try {
+      return (localStorage.getItem('responseMode') as 'summary' | 'verbose') || 'verbose';
+    } catch {
+      return 'verbose';
+    }
+  });
   // Resizable sidebar width (sessions list vs idea chat)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const stored = localStorage.getItem('ideaChatSidebarWidth');
@@ -114,6 +124,21 @@ const IdeaChatPage = () => {
     };
     window.addEventListener('chat:mode', handler as any);
     return () => window.removeEventListener('chat:mode', handler as any);
+  }, []);
+  
+  // Listen for response mode changes from chat component
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.mode) {
+        setResponseMode(detail.mode);
+        try {
+          localStorage.setItem('responseMode', detail.mode);
+        } catch {}
+      }
+    };
+    window.addEventListener('responseMode:changed', handler as any);
+    return () => window.removeEventListener('responseMode:changed', handler as any);
   }, []);
 
   // Listen for analysis completion (custom event + storage changes)
@@ -291,7 +316,7 @@ const IdeaChatPage = () => {
         <div className="flex flex-col gap-1 px-6 py-3 border-b glass-super-surface sticky top-0 z-40">
           <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div>
+            <div className="flex-1">
               <h1
                 className={cn('text-lg font-semibold flex items-center gap-3', sessionReloading && 'opacity-70')}
               >
@@ -308,6 +333,44 @@ const IdeaChatPage = () => {
                   ) : (
                     <span>{currentSession?.name || 'Idea Chat'}</span>
                   )}
+                  
+                  {/* Response Mode Indicator */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge 
+                          variant={responseMode === 'summary' ? 'default' : 'secondary'}
+                          className="ml-2 flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => {
+                            const newMode = responseMode === 'summary' ? 'verbose' : 'summary';
+                            setResponseMode(newMode);
+                            localStorage.setItem('responseMode', newMode);
+                            window.dispatchEvent(new CustomEvent('responseMode:changed', { detail: { mode: newMode } }));
+                          }}
+                        >
+                          {responseMode === 'summary' ? (
+                            <>
+                              <List className="h-3 w-3" />
+                              <span className="text-[10px] font-medium">Summary</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-3 w-3" />
+                              <span className="text-[10px] font-medium">Detailed</span>
+                            </>
+                          )}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">
+                          {responseMode === 'summary' 
+                            ? 'Click for detailed responses' 
+                            : 'Click for concise summaries'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
                   {currentSession && saving && (
                     <span className='ml-2 inline-flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground'>
                       <Loader2 className='h-3 w-3 animate-spin' /> Saving…
