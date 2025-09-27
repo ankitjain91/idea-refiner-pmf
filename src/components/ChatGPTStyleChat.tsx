@@ -940,21 +940,24 @@ export default function ChatGPTStyleChat({
   // Step-based analysis functions removed (completeAnalysis, askNextQuestion) as we now use a single brief.
 
   const startAnalysis = () => {
-    // Button adapts: if Q&A active -> cancel; if required fields ready -> run analysis; else start Q&A
+    // If Q&A is active, cancel it
     if (isBriefQAMode) {
       setIsBriefQAMode(false);
       const cancelMsg: Message = {
         id: `msg-brief-cancel-${Date.now()}`,
         type: 'system',
-        content: '🛑 Brief Q&A cancelled. Type /brief or click Start Brief to begin again.',
+        content: '🛑 Brief Q&A cancelled. Click "Start Analysis" to begin again.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, cancelMsg]);
       return;
     }
+    
+    // If we have enough brief data, run analysis directly
     if (brief.problem && brief.targetUser) {
       runBriefAnalysis();
     } else {
+      // Start brief Q&A to gather information
       startBriefQnA();
     }
   };
@@ -1335,21 +1338,8 @@ Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of up to 5 conc
       setShowStartAnalysisButton(true);
       setInput('');
       
-      // Initialize brief questions and start Q&A immediately after selecting an idea
-      deriveBriefQuestions();
-      await fetchContextualBriefSuggestions();
-      
-      // Start brief Q&A automatically
-      const startMsg: Message = {
-        id: `msg-brief-start-${Date.now()}`,
-        type: 'system',
-        content: `Great choice! Let's gather key details about "${suggestion}" to provide accurate analysis. Answer a few quick questions (or skip any).`,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, startMsg]);
-      setIsBriefQAMode(true);
-      setBriefQuestionIndex(0);
-      briefQuestionsRef.current.length > 0 && askNextBriefQuestion(0);
+      // Stay in refinement mode - just get AI response about the idea
+      await handleSuggestionRefinement(suggestion);
     } else if (isRefinementMode && !isAnalyzing) {
       // During refinement - process as regular message with consistent animation
       setInput('');
@@ -1686,7 +1676,7 @@ Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of up to 5 conc
                 size="sm"
               >
                 <Play className="h-4 w-4" />
-                {isBriefQAMode ? 'Cancel Brief' : (brief.problem && brief.targetUser ? (analysisProgress === 100 ? 'Re-analyze' : 'Run Analysis') : 'Start Brief Q&A')}
+                {isBriefQAMode ? 'Cancel Q&A' : 'Start Analysis'}
               </Button>
             </div>
           )}
