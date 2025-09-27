@@ -16,7 +16,8 @@ import {
   Calendar,
   BarChart3,
   ArrowLeft,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { UserMenu } from '@/components/UserMenu';
@@ -106,6 +107,14 @@ const IdeaJournal = () => {
     setEditName(currentName);
   };
 
+  const generateFunName = () => {
+    const adjectives = ['Creative', 'Bold', 'Innovative', 'Disruptive', 'Strategic', 'Dynamic', 'Visionary', 'Brilliant'];
+    const nouns = ['Venture', 'Concept', 'Breakthrough', 'Solution', 'Revolution', 'Blueprint', 'Framework', 'Initiative'];
+    const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${randomAdj} ${randomNoun}`;
+  };
+
   const filteredSessions = sessions.filter(session =>
     session.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -164,6 +173,14 @@ const IdeaJournal = () => {
                 onChange={(e) => setNewSessionName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
               />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setNewSessionName(generateFunName())}
+                title="Generate a fun name"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
               <Button 
                 onClick={handleCreateSession}
                 disabled={!newSessionName.trim() || isCreating}
