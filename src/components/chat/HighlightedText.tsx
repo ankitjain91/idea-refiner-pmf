@@ -17,9 +17,9 @@ export const HighlightedText: React.FC<{ text: string }> = ({ text }) => {
   }
   if (lastIndex < str.length) parts.push({ v: str.slice(lastIndex), highlight: false });
   return (
-    <span className="inline">
+    <span className="inline break-words whitespace-pre-wrap leading-snug">
       {parts.map((p, i) => p.highlight ? (
-        <span key={i} className="px-1 py-0.5 rounded bg-primary/15 text-primary font-semibold tracking-tight">
+        <span key={i} className="inline-block px-1 rounded bg-primary/15 text-primary font-semibold tracking-tight align-baseline">
           {p.v}
         </span>
       ) : (

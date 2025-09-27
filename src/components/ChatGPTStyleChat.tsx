@@ -23,6 +23,9 @@ import { ChatMessage as Message, BriefFields } from '@/types/chat';
 import { computeEvidenceMetrics, isVagueAnswer } from '@/lib/brief-scoring';
 import { runEnterpriseAnalysis } from '@/lib/analysis-engine';
 import type { AnalysisResult } from '@/types/analysis';
+import { LS_KEYS } from '../lib/../lib/storage-keys';
+import { LS_UI_KEYS } from '../lib/../lib/storage-keys';
+import { buildMarkdownReport, triggerDownload } from '../lib/../lib/export-report';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SessionContext';
@@ -50,13 +53,45 @@ export default function ChatGPTStyleChat({
   const [isLoading, setIsLoading] = useState(false);
   const [currentIdea, setCurrentIdea] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisCompletedFlag, setAnalysisCompletedFlag] = useState(() => localStorage.getItem('analysisCompleted') === 'true');
+  const [analysisCompletedFlag, setAnalysisCompletedFlag] = useState(() => localStorage.getItem(LS_KEYS.analysisCompleted) === 'true');
   // Brief fields (two required: problem, targetUser; others optional)
   const [brief, setBrief] = useState<BriefFields>({
     problem: '', targetUser: '', differentiation: '', alternatives: '', monetization: '', scenario: '', successMetric: ''
   });
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isRefinementMode, setIsRefinementMode] = useState(true);
+  const [isRefinementMode, setIsRefinementMode] = useState(false); // start in idea mode
+  let persistedMode: 'idea'|'refine'|'analysis' = 'idea';
+  try {
+    const stored = localStorage.getItem('chatMode');
+    if (stored === 'refine' || stored === 'analysis' || stored === 'idea') persistedMode = stored;
+  } catch {}
+  const modeRef = useRef<'idea'|'refine'|'analysis'>(persistedMode);
+  let persistedBanner = false;
+  try { persistedBanner = localStorage.getItem('refineBannerShown') === '1'; } catch {}
+  const refinementBannerShownRef = useRef<boolean>(persistedBanner);
+  const emitMode = (mode: 'idea'|'refine'|'analysis') => {
+    modeRef.current = mode;
+    try { localStorage.setItem('chatMode', mode); } catch {}
+    try { window.dispatchEvent(new CustomEvent('chat:mode', { detail: { mode } })); } catch {}
+    if (mode === 'refine' && !refinementBannerShownRef.current) {
+      // Inject subtle one-time banner message
+      refinementBannerShownRef.current = true;
+      try { localStorage.setItem('refineBannerShown', '1'); } catch {}
+      const banner: Message = {
+        id: `msg-refine-banner-${Date.now()}`,
+        type: 'system',
+        content: '✨ Refinement Mode: You can iteratively sharpen positioning, differentiation and monetization before running full analysis. Ask for improvements or start the brief Q&A.',
+        timestamp: new Date(),
+        suggestions: [
+          'Improve differentiation',
+          'Clarify target user',
+          'Start Brief Q&A',
+          'Show examples of strong positioning'
+        ]
+      };
+      setMessages(prev => [ ...prev, banner ]);
+    }
+  };
   const [showStartAnalysisButton, setShowStartAnalysisButton] = useState(false);
   // Deprecated drawer brief form flag (kept for backward compatibility but no longer used)
   const [showBriefForm, setShowBriefForm] = useState(false);
@@ -135,6 +170,17 @@ export default function ChatGPTStyleChat({
     // Handle Brief Q&A suggestion answers inline
     if (isBriefQAMode && msg.metadata?.briefQuestionKey) {
       const lower = suggestion.toLowerCase();
+      if (suggestion === 'Regenerate answers' && msg.metadata?.briefQuestionKey) {
+        const field = msg.metadata.briefQuestionKey as string;
+        // Put question back into loading state briefly
+        const regenId = msg.id + '-regen-' + Date.now();
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: true, suggestions: undefined } : m));
+        fetchContextualBriefSuggestions([field]).then(newSug => {
+          const arr = (newSug[field] || []).slice(0,4);
+          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isTyping: false, suggestions: [...arr, 'Regenerate answers', 'Skip', 'Cancel'] } : m));
+        });
+        return;
+      }
       if (lower === 'cancel') {
         setIsBriefQAMode(false);
         const cancelMsg: Message = { id: `msg-brief-cancel-${Date.now()}`, type: 'system', content: '🛑 Brief Q&A cancelled.', timestamp: new Date() };
@@ -156,7 +202,8 @@ export default function ChatGPTStyleChat({
         summarizeBriefAndOfferAnalysis();
         setIsBriefQAMode(false);
       } else {
-        askNextBriefQuestion(nextIdx);
+        // prefetch for next question
+        askBriefQuestionWithFreshFetch(nextIdx, undefined);
       }
       return;
     }
@@ -171,6 +218,26 @@ export default function ChatGPTStyleChat({
         };
         onAnalysisReady(currentIdea, analysisData);
       }
+      return;
+    }
+    if (suggestion === 'Export report') {
+      const target = msg.pmfAnalysis ? msg : [...messages].reverse().find(m => m.pmfAnalysis) as Message | undefined;
+      if (!target?.pmfAnalysis) return;
+      const result: AnalysisResult = {
+        pmfAnalysis: target.pmfAnalysis,
+        meta: {
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          durationMs: 0,
+          briefSnapshot: brief,
+          validationIssues: [],
+          evidenceScore: 0,
+          weakAreas: [],
+          viabilityLabel: ''
+        }
+      };
+      const md = buildMarkdownReport(result);
+      triggerDownload('pmf-analysis-report.md', md);
       return;
     }
     if (suggestion === "Re-analyze with changes" || suggestion === "Refine this idea further") {
@@ -253,16 +320,21 @@ export default function ChatGPTStyleChat({
 
   // External trigger to open analysis brief (from parent layout / dashboard panel)
   useEffect(() => {
-    // Map legacy external trigger to start inline Q&A
     const openBrief = () => startBriefQnA();
+    const closeBrief = () => { if (isBriefQAMode) { setIsBriefQAMode(false); window.dispatchEvent(new CustomEvent('analysis:briefEnded')); } };
     window.addEventListener('analysis:openBrief', openBrief);
-    return () => window.removeEventListener('analysis:openBrief', openBrief);
-  }, []);
+    window.addEventListener('analysis:closeBrief', closeBrief);
+    return () => {
+      window.removeEventListener('analysis:openBrief', openBrief);
+      window.removeEventListener('analysis:closeBrief', closeBrief);
+    };
+  }, [isBriefQAMode]);
 
   // Fetch AI suggestions for brief fields
   const fetchBriefSuggestions = useCallback(async (force = false, enrich = false) => {
     if (isFetchingBriefSuggestions || (!force && !enrich && briefFetchedRef.current)) return;
     setIsFetchingBriefSuggestions(true);
+    window.dispatchEvent(new CustomEvent('chat:status', { detail: { kind: 'brief-suggestions', message: 'Fetching brief answer suggestions...' } }));
     abortBriefSuggestRef.current?.abort();
     const controller = new AbortController();
     abortBriefSuggestRef.current = controller;
@@ -320,6 +392,7 @@ export default function ChatGPTStyleChat({
       }
     } finally {
       setIsFetchingBriefSuggestions(false);
+      window.dispatchEvent(new CustomEvent('chat:status', { detail: { kind: 'idle', message: '' } }));
     }
   }, [currentIdea, brief, briefSuggestions, isFetchingBriefSuggestions]);
 
@@ -482,6 +555,7 @@ export default function ChatGPTStyleChat({
         suggestions: generateRandomSuggestions()
       };
       setMessages([welcomeMessage]);
+      emitMode(modeRef.current); // restore persisted mode (or idea)
     }
     inputRef.current?.focus();
     initializedRef.current = true;
@@ -540,7 +614,7 @@ export default function ChatGPTStyleChat({
     try {
       localStorage.removeItem('userIdea');
       localStorage.removeItem('chatHistory');
-      localStorage.removeItem('analysisCompleted');
+      localStorage.removeItem(LS_KEYS.analysisCompleted);
       localStorage.removeItem('pmfScore');
       localStorage.removeItem('ideaMetadata');
       localStorage.removeItem('analysisBrief');
@@ -556,8 +630,9 @@ export default function ChatGPTStyleChat({
     };
     setMessages([welcomeMessage]);
     setShowStartAnalysisButton(false);
-    setIsRefinementMode(true);
+    setIsRefinementMode(false);
     setAnalysisProgress(0);
+    emitMode('idea');
   };
 
   // Listen for external idea injection / reset triggers from IdeaChat container UI
@@ -593,7 +668,12 @@ export default function ChatGPTStyleChat({
   }, []);
   // Persist brief
   useEffect(() => {
-    try { localStorage.setItem('analysisBrief', JSON.stringify(brief)); } catch {}
+    try { localStorage.setItem(LS_KEYS.analysisBrief, JSON.stringify(brief)); } catch {}
+    // Broadcast remaining required field count for UI (problem + targetUser currently required)
+    try {
+      const remainingRequired = ['problem','targetUser'].filter(k => !(brief as any)[k]?.trim()).length;
+      window.dispatchEvent(new CustomEvent('analysis:briefState', { detail: { remainingRequired } }));
+    } catch {}
   }, [brief]);
 
   // Single-pass analysis generator using the brief
@@ -602,8 +682,10 @@ export default function ChatGPTStyleChat({
       toast({ title: 'Need more detail', description: 'Provide at least the problem and target user.' });
       return;
     }
-    setIsBriefQAMode(false);
-    setIsAnalyzing(true);
+  setIsBriefQAMode(false);
+  setIsAnalyzing(true);
+  emitMode('analysis');
+  try { window.dispatchEvent(new CustomEvent('analysis:running', { detail: { running: true } })); } catch {}
     setAnalysisProgress(3);
     const analysisStartId = `msg-brief-start-${Date.now()}`;
     const loadingMsg: Message = {
@@ -643,11 +725,11 @@ export default function ChatGPTStyleChat({
         ]
       };
       setMessages(prev => [...prev, completion]);
-      localStorage.setItem('analysisCompleted', 'true');
-      localStorage.setItem('pmfScore', String(pmfScore));
+      localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
+      localStorage.setItem(LS_KEYS.pmfScore, String(pmfScore));
       setAnalysisCompletedFlag(true);
       const metadata = { ...result.pmfAnalysis, meta: result.meta };
-      localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
+      localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata));
       if (onAnalysisReady) onAnalysisReady(currentIdea || brief.problem, metadata);
     } catch (e) {
       console.error('Enterprise analysis failed', e);
@@ -655,7 +737,11 @@ export default function ChatGPTStyleChat({
       setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: '❌ Analysis pipeline failed. Please adjust brief and retry.' } : m));
     } finally {
       setAnalysisProgress(100);
-      setTimeout(() => setIsAnalyzing(false), 500);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        emitMode('refine');
+        try { window.dispatchEvent(new CustomEvent('analysis:running', { detail: { running: false } })); } catch {}
+      }, 500);
     }
   };
 
@@ -719,54 +805,53 @@ export default function ChatGPTStyleChat({
       return;
     }
 
-    // If in refinement mode and not analyzing
-    if (isRefinementMode && !isAnalyzing) {
-      // If this is the first message, validate it's an actual idea
-      if (!currentIdea) {
-        // Simple validation to check if it looks like an idea
-        const looksLikeIdea = input.length > 10 && 
-          !input.match(/^(hi|hello|hey|test|testing|ok|yes|no|help|thanks|bye|good|bad|nice|cool|wow|lol|haha|what|where|when|who|why|how)$/i) &&
-          (input.includes(' ') || input.length > 20);
-        
-        if (!looksLikeIdea) {
-          const funnyResponses = [
-            "🎭 Nice try, but that's not an idea! That's like calling a potato a spaceship. Give me a real product idea!",
-            "🤔 Hmm, that doesn't smell like an idea... it smells like... *sniff sniff*... procrastination! Come on, hit me with your best shot!",
-            "🎪 Ladies and gentlemen, we have a trickster in the house! But I'm not falling for it. Give me a REAL idea, not whatever that was!",
-            "🚨 IDEA POLICE HERE! That's not an idea, that's just words pretending to be an idea. Try again with something that actually solves a problem!",
-            "🦄 I asked for an idea, not a unicorn's sneeze! Come on, give me something with substance - like 'an app that...' or 'a platform for...'",
-            "🎮 Error 404: Idea not found! You've entered the cheat code for 'no effort'. Please insert a real product idea to continue!",
-            "🍕 That's about as much of an idea as pineapple is a pizza topping (controversial, I know). Give me something real to work with!",
-            "🤖 Beep boop! My idea detector is showing... nothing. Absolutely nothing. It's flatter than a pancake. Feed me a real idea!",
-            "🎯 You missed the target by... oh, about a mile. That's not an idea, that's just keyboard gymnastics. Try again with an actual concept!",
-            "🧙‍♂️ My crystal ball shows... cloudy with a chance of 'that's not an idea'. Cast a better spell and give me something innovative!"
-          ];
-          
-          const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
-          
-          const validationMessage: Message = {
-            id: `msg-validation-${Date.now()}`,
-            type: 'bot',
-            content: randomResponse,
-            timestamp: new Date(),
-            suggestions: [
-              "AI-powered personal finance assistant",
-              "Sustainable fashion marketplace",
-              "Mental health support platform",
-              "Smart home automation for elderly"
-            ]
-          };
-          
-          setMessages(prev => [...prev, validationMessage]);
-          setInput('');
-          return;
-        }
-        
-    setCurrentIdea(input);
-    generateTwoWordTitle(input);
-        setShowStartAnalysisButton(true);
+    // Idea intake path (before refinement mode begins)
+    if (!currentIdea && !isAnalyzing) {
+      // Simple validation to check if it looks like an idea
+      const looksLikeIdea = input.length > 10 && 
+        !input.match(/^(hi|hello|hey|test|testing|ok|yes|no|help|thanks|bye|good|bad|nice|cool|wow|lol|haha|what|where|when|who|why|how)$/i) &&
+        (input.includes(' ') || input.length > 20);
+      if (!looksLikeIdea) {
+        const funnyResponses = [
+          "🎭 Nice try, but that's not an idea! That's like calling a potato a spaceship. Give me a real product idea!",
+          "🤔 Hmm, that doesn't smell like an idea... it smells like... *sniff sniff*... procrastination! Come on, hit me with your best shot!",
+          "🎪 Ladies and gentlemen, we have a trickster in the house! But I'm not falling for it. Give me a REAL idea, not whatever that was!",
+          "🚨 IDEA POLICE HERE! That's not an idea, that's just words pretending to be an idea. Try again with something that actually solves a problem!",
+          "🦄 I asked for an idea, not a unicorn's sneeze! Come on, give me something with substance - like 'an app that...' or 'a platform for...'",
+          "🎮 Error 404: Idea not found! You've entered the cheat code for 'no effort'. Please insert a real product idea to continue!",
+          "🍕 That's about as much of an idea as pineapple is a pizza topping (controversial, I know). Give me something real to work with!",
+          "🤖 Beep boop! My idea detector is showing... nothing. Absolutely nothing. It's flatter than a pancake. Feed me a real idea!",
+          "🎯 You missed the target by... oh, about a mile. That's not an idea, that's just keyboard gymnastics. Try again with an actual concept!",
+          "🧙‍♂️ My crystal ball shows... cloudy with a chance of 'that's not an idea'. Cast a better spell and give me something innovative!"
+        ];
+        const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
+        const validationMessage: Message = {
+          id: `msg-validation-${Date.now()}`,
+          type: 'bot',
+          content: randomResponse,
+          timestamp: new Date(),
+          suggestions: [
+            "AI-powered personal finance assistant",
+            "Sustainable fashion marketplace",
+            "Mental health support platform",
+            "Smart home automation for elderly"
+          ]
+        };
+        setMessages(prev => [...prev, validationMessage]);
+        setInput('');
+        return;
       }
-      
+      setCurrentIdea(input);
+      generateTwoWordTitle(input);
+      setShowStartAnalysisButton(true);
+      setIsRefinementMode(true);
+      emitMode('refine');
+      setInput('');
+      return;
+    }
+
+    // Refinement conversational loop
+    if (isRefinementMode && !isAnalyzing) {
       setInput('');
       setIsLoading(true);
       
@@ -968,18 +1053,27 @@ export default function ChatGPTStyleChat({
     setBriefQuestionIndex(0);
     // Derive the most relevant questions now (dynamic ordering, skip filled)
     deriveBriefQuestions();
-    // Generate contextual suggestions derived from prior brainstorming/refinement messages
-    fetchContextualBriefSuggestions();
-    // Intro message
+    try { window.dispatchEvent(new CustomEvent('analysis:briefStarted')); } catch {}
+    try { localStorage.setItem(LS_UI_KEYS.aiQnAToggleActive, 'true'); } catch {}
+    emitMode('refine');
+    // Intro + immediate loading placeholder for first question
     const intro: Message = {
       id: `msg-brief-intro-${Date.now()}`,
       type: 'system',
-      content: `🧪 Let's analyze "${currentIdea || 'your idea'}" in detail. I'll ask targeted questions based on our conversation. You can select from AI suggestions or type your own answers. Type 'skip' to skip any question or 'cancel' to stop.`,
+      content: `� Brief Q&A activated. Probable answers loading…`,
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, intro]);
-    // Trigger first question with contextual suggestions
-    setTimeout(() => askNextBriefQuestion(0), 120);
+    const loadingFirst: Message = {
+      id: `msg-brief-first-loading-${Date.now()}`,
+      type: 'bot',
+      content: '',
+      timestamp: new Date(),
+      isTyping: true,
+      metadata: { briefLoading: true, bootstrap: true }
+    };
+    setMessages(prev => [...prev, intro, loadingFirst]);
+    // Fetch suggestions only for first question's field, then render.
+    setTimeout(() => askBriefQuestionWithFreshFetch(0, loadingFirst.id), 60);
   };
 
   const deriveBriefQuestions = () => {
@@ -1006,9 +1100,10 @@ export default function ChatGPTStyleChat({
     briefQuestionsRef.current = ordered.map(o => ({ key: o.key, question: o.question, required: o.required }));
   };
 
-  const fetchContextualBriefSuggestions = async () => {
+  const fetchContextualBriefSuggestions = async (limitToFields?: string[]): Promise<Record<string,string[]>> => {
     try {
-      const fieldKeys = ['problem','targetUser','differentiation','alternatives','monetization','scenario','successMetric'];
+      const fieldKeysAll = ['problem','targetUser','differentiation','alternatives','monetization','scenario','successMetric'];
+      const fieldKeys = limitToFields && limitToFields.length ? limitToFields : fieldKeysAll;
       const convo = messages
         .filter(m => m.type !== 'system')
         .slice(-30) // last 30 exchanges for better context
@@ -1032,7 +1127,7 @@ Fields to analyze:
 - scenario: Primary use case scenario
 - successMetric: How to measure early success (be specific)
 
-Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of 3-5 specific, actionable answers (max 20 words each).
+Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of 4 specific, actionable answers (max 20 words each).
 These should be ANSWERS the user would select, not questions. Be extremely specific based on the conversation context.`;
 
       const { data, error } = await supabase.functions.invoke('idea-chat', { 
@@ -1064,76 +1159,105 @@ These should be ANSWERS the user would select, not questions. Be extremely speci
               let str = String(s).trim();
               return str && !str.endsWith('?') && str.length > 0;
             })
-            .slice(0, 5);
+            .slice(0, 4);
         }
       });
-      
-      updateBriefSuggestions(merged);
-      briefFetchedRef.current = true;
-      try { 
-        localStorage.setItem('analysisBriefSuggestionsCache', JSON.stringify({ 
-          ts: Date.now(), 
-          data: merged,
-          idea: currentIdea 
-        })); 
-      } catch {}
+      if (!limitToFields) {
+        updateBriefSuggestions(merged);
+        briefFetchedRef.current = true;
+        try { 
+          localStorage.setItem('analysisBriefSuggestionsCache', JSON.stringify({ 
+            ts: Date.now(), 
+            data: merged,
+            idea: currentIdea 
+          })); 
+        } catch {}
+      } else {
+        // Merge partial fetch into existing suggestions
+        updateBriefSuggestions({ ...briefSuggestionsRef.current, ...merged });
+      }
+      return merged;
     } catch (e) {
       console.error('Error fetching contextual suggestions:', e);
       // Fallback to generic suggestions if contextual fetch fails
       try { fetchBriefSuggestions(true); } catch {}
+      return {};
     }
   };
 
-  const askNextBriefQuestion = (index: number) => {
+  // Fetch probable answers FIRST, then show the question (bootstrap + each step)
+  const askBriefQuestionWithFreshFetch = async (index: number, loadingMessageId?: string) => {
     const q = briefQuestionsRef.current[index];
     if (!q || !isBriefQAMode) return;
-    const startTime = Date.now();
-    // Insert a bot typing placeholder immediately so user sees activity
-    const loadingId = `msg-brief-loading-${Date.now()}-${index}`;
-    const loadingMsg: Message = {
-      id: loadingId,
-      type: 'bot',
-      content: '',
-      timestamp: new Date(),
-      isTyping: true,
-      metadata: { briefLoading: true, briefQuestionKey: q.key, briefQuestionIndex: index }
-    };
-    setMessages(prev => [...prev, loadingMsg]);
-
-    const attemptRender = () => {
-      if (!isBriefQAMode) return; // aborted
-  const fieldSuggestions = briefSuggestionsRef.current[q.key] || [];
-      const ready = fieldSuggestions.length > 0 || Date.now() - startTime > 1800; // fallback after 1.8s
-      if (!ready) {
-        setTimeout(attemptRender, 120);
-        return;
-      }
-      const augmented = fieldSuggestions.slice(0,5);
-      const vagueCount = vagueAnswerCountsRef.current[q.key] || 0;
-      const challengeSuffix = vagueCount >= 2 ? ' Please be concrete (add a number, segment, or comparison).' : '';
-      const questionMsg: Message = {
-        id: `msg-brief-q-${Date.now()}-${index}`,
+    const fieldKey = q.key as string;
+    // Insert loading placeholder if not provided
+    let tempId = loadingMessageId;
+    if (!tempId) {
+      tempId = `msg-brief-loading-${Date.now()}-${index}`;
+      const loadingMsg: Message = {
+        id: tempId,
         type: 'bot',
-        content: q.question + (q.required ? ' (required)' : '') + challengeSuffix,
+        content: '',
         timestamp: new Date(),
-        suggestions: [...augmented, 'Skip', 'Cancel'],
-        metadata: { briefQuestionKey: q.key, briefQuestionIndex: index }
+        isTyping: true,
+        metadata: { briefLoading: true, briefQuestionKey: q.key, briefQuestionIndex: index }
       };
-      // Replace loading message with actual question
-      setMessages(prev => prev.map(m => m.id === loadingId ? questionMsg : m));
-      // Fetch incremental per-question refinements
-      fetchPerQuestionSuggestions(q.key, questionMsg.id, augmented);
+      setMessages(prev => [...prev, loadingMsg]);
+    }
+    try {
+      await fetchContextualBriefSuggestions([fieldKey]);
+    } catch (e) {
+      console.warn('Contextual suggestion fetch failed; falling back', e);
+    }
+    if (!isBriefQAMode) return; // aborted mid-fetch
+    let fieldSuggestions = briefSuggestionsRef.current[q.key] || [];
+    // Provide a minimal intelligent fallback if API produced nothing
+    if (!fieldSuggestions.length) {
       if (q.key === 'problem') {
-        const helper: Message = {
-          id: `msg-problem-helper-${Date.now()}`,
-          type: 'system',
-          content: `💡 When stating the core problem, anchor it in: who is blocked, tangible pain (time, cost, accuracy), and current workaround. Optionally hint the solution approach (not features) e.g. "Solo Shopify sellers waste 4-6 hrs weekly fixing mis-synced inventory across channels; current CSV exports are error-prone."`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, helper]);
+        fieldSuggestions = [
+          'Manual process wastes hours weekly',
+          'High churn from poor onboarding',
+          'Fragmented data across tools',
+          'Expensive legacy workflows'
+        ];
+      } else if (q.key === 'targetUser') {
+        fieldSuggestions = [
+          'Solo SaaS founders (ARR < $50k)',
+          'Remote product managers (Series A)',
+          'Indie Shopify sellers (1-3 staff)',
+          'Data analysts in mid-size SaaS'
+        ];
+      } else {
+        fieldSuggestions = ['Needs clarity', 'Early adopters need proof', 'Differentiate vs incumbents', 'Refine positioning'];
       }
+    }
+    const augmented = fieldSuggestions.slice(0,4);
+    const vagueCount = vagueAnswerCountsRef.current[q.key] || 0;
+    const challengeSuffix = vagueCount >= 2 ? ' Please be concrete (add a number, segment, or comparison).' : '';
+    const questionMsg: Message = {
+      id: `msg-brief-q-${Date.now()}-${index}`,
+      type: 'bot',
+      content: `🤔 ${q.question}${q.required ? ' (required)' : ''}${challengeSuffix}`,
+      timestamp: new Date(),
+      suggestions: [...augmented, 'Regenerate answers', 'Skip', 'Cancel'],
+      metadata: { briefQuestionKey: q.key, briefQuestionIndex: index }
     };
-    attemptRender();
+    setMessages(prev => prev.map(m => m.id === tempId ? questionMsg : m));
+    fetchPerQuestionSuggestions(q.key, questionMsg.id, augmented);
+    if (q.key === 'problem') {
+      const helper: Message = {
+        id: `msg-problem-helper-${Date.now()}`,
+        type: 'system',
+        content: `💡 When stating the core problem, anchor it in: who is blocked, tangible pain (time, cost, accuracy), and current workaround. Optionally hint the solution approach (not features) e.g. "Solo Shopify sellers waste 4-6 hrs weekly fixing mis-synced inventory across channels; current CSV exports are error-prone."`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, helper]);
+    }
+  };
+
+  // askNextBriefQuestion now simply delegates to the unified fresh-fetch flow
+  const askNextBriefQuestion = (index: number, existingLoadingId?: string) => {
+    askBriefQuestionWithFreshFetch(index, existingLoadingId);
   };
 
   const fetchPerQuestionSuggestions = async (field: keyof typeof brief, messageId: string, existing: string[]) => {
@@ -1282,9 +1406,8 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
       setMessages(prev => prev.filter(msg => !msg.isTyping));
 
       if (!error && data) {
-        // Handle both string and object responses
         let responseContent = '';
-        let responseSuggestions = [];
+        let responseSuggestions: string[] = [];
         
         try {
           if (typeof data === 'string') {
@@ -1307,17 +1430,32 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
           responseContent = `Great idea! Let me help you explore "${idea}". What specific aspects would you like to refine or discuss?`;
         }
         
+        // Build concise content (<=240 chars) and ensure emoji prefix
+        let concise = (responseContent || `Exploring "${idea}"—where refine?`).trim();
+        if (concise.length > 240) concise = concise.slice(0,237).trimEnd() + '…';
+        if (!/^([\p{Emoji}\p{Extended_Pictographic}])/u.test(concise)) concise = '💬 ' + concise;
+        // Normalize & enrich suggestions
+        const normalized = (responseSuggestions || []).map(String)
+          .map(s => s.replace(/^[-•\d\.\s]+/, '').trim())
+          .filter(s => s)
+          .map(s => s.length > 60 ? s.slice(0,57).trimEnd() + '…' : s)
+          .slice(0,6);
+        const seen: string[] = [];
+        normalized.forEach(s => { if (!seen.some(d => d.toLowerCase() === s.toLowerCase())) seen.push(s); });
+        const seeds = ['✨','🔍','🧠','🚀','🧪','⚡'];
+        const sprinkled = seen.map((s,i) => `${seeds[i % seeds.length]} ${s}`);
+        const fallback = [
+          '✨ Clarify problem',
+          '🔍 Define target user',
+          '🧪 Differentiate more',
+          '🚀 Revenue angle'
+        ];
         const botMessage: Message = {
           id: `msg-${Date.now()}-bot`,
           type: 'bot',
-          content: responseContent || `Great idea! Let me help you explore "${idea}". What specific aspects would you like to refine or discuss?`,
+          content: concise,
           timestamp: new Date(),
-          suggestions: responseSuggestions.length > 0 ? responseSuggestions : [
-            `What problem does ${idea} solve?`,
-            `Who would use ${idea}?`,
-            `How would ${idea} make money?`,
-            `What makes ${idea} unique?`
-          ]
+          suggestions: sprinkled.length ? sprinkled : fallback
         };
         
         setMessages(prev => [...prev, botMessage]);
@@ -1381,13 +1519,13 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         const validationMessage: Message = {
           id: `msg-validation-${Date.now()}`,
           type: 'bot',
-          content: randomResponse,
+          content: '🛑 ' + randomResponse,
           timestamp: new Date(),
           suggestions: [
-            "AI-powered personal finance assistant",
-            "Sustainable fashion marketplace",
-            "Mental health support platform",
-            "Smart home automation for elderly"
+            '✨ AI finance coach',
+            '🌱 Sustainable fashion hub',
+            '🧠 Mental wellness app',
+            '🏠 Smart elder care automation'
           ]
         };
         
@@ -1441,9 +1579,8 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         setMessages(prev => prev.filter(msg => !msg.isTyping));
 
         if (!error && data) {
-          // Handle both string and object responses with better error handling
           let responseContent = '';
-          let responseSuggestions = [];
+          let responseSuggestions: string[] = [];
           
           try {
             if (typeof data === 'string') {
@@ -1466,20 +1603,34 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
             responseContent = 'I understand. Let me help you explore that further.';
           }
           
-          if (responseContent) {
-            const botMessage: Message = {
-              id: `msg-${Date.now()}-bot`,
-              type: 'bot',
-              content: responseContent,
-              timestamp: new Date(),
-              suggestions: responseSuggestions
-            };
-            
-            setMessages(prev => [...prev, botMessage]);
-          } else {
-            console.error('Invalid response structure:', data);
-            throw new Error('Invalid response format');
-          }
+          if (!responseContent) responseContent = 'Refinement ready.';
+          // Concise + emoji
+          let concise = responseContent.trim();
+            if (concise.length > 260) concise = concise.slice(0,257).trimEnd() + '…';
+            if (!/^([\p{Emoji}\p{Extended_Pictographic}])/u.test(concise)) concise = '🤖 ' + concise;
+          const norm = (responseSuggestions || []).map(String)
+            .map(s => s.replace(/^[-•\d\.\s]+/, '').trim())
+            .filter(s => s)
+            .map(s => s.length > 60 ? s.slice(0,57).trimEnd() + '…' : s)
+            .slice(0,6);
+          const ded: string[] = [];
+          norm.forEach(s => { if (!ded.some(d => d.toLowerCase() === s.toLowerCase())) ded.push(s); });
+          const seeds2 = ['💡','🛠️','📊','⚡','🧪','🚀'];
+          const sprinkled = ded.map((s,i) => `${seeds2[i % seeds2.length]} ${s}`);
+          const fallback2 = [
+            '💡 Sharpen problem',
+            '📊 User specifics',
+            '⚡ Monetization angle',
+            '🛠️ Differentiate more'
+          ];
+          const botMessage: Message = {
+            id: `msg-${Date.now()}-bot`,
+            type: 'bot',
+            content: concise,
+            timestamp: new Date(),
+            suggestions: sprinkled.length ? sprinkled : fallback2
+          };
+          setMessages(prev => [...prev, botMessage]);
         } else {
           throw new Error('No data received');
         }
@@ -1698,6 +1849,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
                           }))}
                           onSelect={(suggestion) => handleSuggestionSelection(msg, suggestion)}
                           maxHeight={280}
+                          ideaMode={modeRef.current === 'idea'}
                         />
                       </div>
                     )}

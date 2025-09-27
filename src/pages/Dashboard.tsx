@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { LS_KEYS } from '@/lib/storage-keys';
 import { useNavigate } from "react-router-dom";
 import { Suspense, lazy } from 'react';
 import { UserMenu } from "@/components/UserMenu";
@@ -178,7 +179,7 @@ const Dashboard = () => {
       const idea = localStorage.getItem('userIdea');
       const answers = localStorage.getItem('userAnswers');
       const metadata = localStorage.getItem('ideaMetadata');
-      const analysisCompleted = localStorage.getItem('analysisCompleted');
+  const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted);
       
       if (sessionId && sessionId !== currentSessionId) {
         setCurrentSessionId(sessionId);
@@ -233,7 +234,7 @@ const Dashboard = () => {
       restoreState(currentSession);
       
       // Check if we have analysis data to show
-      const analysisCompleted = localStorage.getItem('analysisCompleted');
+  const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted);
       if (analysisCompleted === 'true') {
         const idea = localStorage.getItem('userIdea');
         const answers = localStorage.getItem('userAnswers');
@@ -272,7 +273,7 @@ const Dashboard = () => {
     localStorage.setItem('pmfCurrentIdea', idea);
     localStorage.setItem('userAnswers', JSON.stringify(metadata.answers || {}));
     localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
-    localStorage.setItem('analysisCompleted', 'true');
+  localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
     if (currentSession) saveState(true);
   };
 

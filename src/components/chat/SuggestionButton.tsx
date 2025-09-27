@@ -24,7 +24,7 @@ export const SuggestionButton: React.FC<SuggestionButtonProps> = ({ text, catego
     <button
       type="button"
       onClick={() => onSelect(text)}
-      className="group relative w-full text-left rounded-md border bg-muted/40 hover:bg-muted/70 transition-colors px-3 py-2 text-sm leading-snug focus:outline-none focus-visible:ring-2 ring-offset-1 ring-primary/40"
+      className="group relative w-full text-left rounded-md border bg-muted/40 hover:bg-muted/70 transition-colors px-3 py-2 text-sm leading-snug focus:outline-none focus-visible:ring-2 ring-offset-1 ring-primary/40 whitespace-normal break-words"
     >
       <div className="flex flex-col gap-1 pr-7">{/* space for copy icon */}
         <HighlightedText text={text} />

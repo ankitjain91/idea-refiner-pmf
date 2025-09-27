@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, ExternalLink, RefreshCw, TrendingUp, Users, DollarSign, Target, Zap, Info, ChevronRight, Clock, BarChart3, Lightbulb, AlertCircle, CheckCircle, Activity, MapPin, Package, Rocket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getOrFetchInsights } from '@/lib/insights-cache';
 import { useToast } from '@/hooks/use-toast';
 import { PMFScoreDisplay } from './dashboard/PMFScoreDisplay';
 import { ScoreCard } from './dashboard/ScoreCard';
@@ -41,68 +42,150 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
     fetchDashboardInsights(0);
   }, [idea, userAnswers]);
 
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const factTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [factIndex, setFactIndex] = useState(0);
+  const FUN_FACTS = [
+    '🦄 Only ~0.5% of startups ever reach a $1B valuation — clarity compounds.',
+    '⚙️ Shaving 30 seconds off a core workflow can 2x perceived product speed.',
+    '🎯 Narrow ICP focus early often improves activation by 20–40%.',
+    '🔁 Users rarely churn for “missing features” – unclear value is the usual root.',
+    '📈 Launch timing matters less than iteration speed post‑launch.',
+    '🧪 PMF signals often appear first in qualitative “unexpected retention” stories.',
+    '💬 Re-using user phrasing in your value prop can lift conversions noticeably.',
+    '🏗️ Overbuilt MVPs delay the learning loop that creates real moat.',
+    '💸 Pricing conversations before code saves months of wasted build.',
+    '🛰️ Side-channel communities (Slack/Discord) surface leading indicators early.',
+    '📊 Instrumenting a single north-star metric reduces roadmap thrash.',
+    '🪄 A crisp “who this is NOT for” accelerates ICP clarity.',
+    '🚀 Fast follow-ups to feedback drive emotional lock-in with early users.'
+  ];
+
+  const visibilityHiddenRef = useRef(false);
+  const loadStartedAtRef = useRef<number | null>(null);
+  const activeFetchIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const vis = () => { visibilityHiddenRef.current = document.hidden; };
+    document.addEventListener('visibilitychange', vis);
+    return () => document.removeEventListener('visibilitychange', vis);
+  }, []);
+
   const fetchDashboardInsights = async (retry = 0) => {
     setLoading(true);
-    setProgress(10);
-
-    // Simulate progress updates
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 10, 90));
-    }, 500);
+    setProgress(8);
+    if (!loadStartedAtRef.current) loadStartedAtRef.current = Date.now();
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = setInterval(() => {
+      setProgress(p => (p < 90 ? Math.min(90, p + 7) : p));
+    }, 650);
+    if (!factTimerRef.current) {
+      factTimerRef.current = setInterval(() => {
+        setFactIndex(i => (i + 1) % FUN_FACTS.length);
+      }, 4200);
+    }
 
     try {
-      const { data, error } = await supabase.functions.invoke('dashboard-insights', {
-        body: { idea, userAnswers },
-      });
-
-      clearInterval(progressInterval);
+      const fetchId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      activeFetchIdRef.current = fetchId;
+      const data = await getOrFetchInsights(
+        idea,
+        userAnswers,
+        async () => {
+          const { data, error } = await supabase.functions.invoke('dashboard-insights', { body: { idea, userAnswers } });
+          if (error) throw error;
+          if (!data?.insights) throw new Error('No insights returned');
+          return data;
+        },
+        (p) => setProgress(p)
+      );
+      if (activeFetchIdRef.current !== fetchId) {
+        // A newer fetch started; discard these results
+        return;
+      }
       setProgress(100);
-
-      if (error) throw error;
-      if (!data?.insights) throw new Error('No insights returned');
-
       setInsights(data.insights);
       setMarketData(data.marketData || data.insights?.realSearchData);
       setLoading(false);
-      // Let progress briefly reach 100% before resetting
-      setTimeout(() => setProgress(0), 300);
+      setTimeout(() => setProgress(0), 400);
+      const duration = loadStartedAtRef.current ? Date.now() - loadStartedAtRef.current : 0;
+      if (visibilityHiddenRef.current) {
+        toast({ title: 'Insights Ready', description: `Dashboard generated in ${(duration/1000).toFixed(1)}s while you were away.` });
+      }
     } catch (err) {
-      clearInterval(progressInterval);
       console.error('Error fetching insights:', err);
-      
-      // Faster retry with reduced delays
-      const delay = Math.min(2000, 500 + (500 * retry));
       setProgress(0);
-      
       if (retry < 3) {
-        toast({
-          title: "Fetching data...",
-          description: `Retrying in ${delay/1000} seconds...`,
-          duration: 2000,
-        });
+        const delay = 500 + retry * 600;
+        toast({ title: 'Retrying…', description: `Re-attempting in ${Math.round(delay/1000)}s`, duration: 1500 });
         setTimeout(() => fetchDashboardInsights(retry + 1), delay);
       } else {
-        toast({
-          title: "Still loading...",
-          description: "The AI is generating comprehensive insights. Please wait...",
-          duration: 3000,
-        });
-        setTimeout(() => fetchDashboardInsights(0), 1000);
+        toast({ title: 'Still generating', description: 'Background generation will continue even if you leave.', duration: 3000 });
       }
+    } finally {
+      // Do NOT clear timers here to allow background progress until resolved (as requested) – only clear on unmount.
     }
   };
 
+  useEffect(() => {
+    return () => {
+      // Allow fetch to continue (we do not abort) but stop local intervals to prevent setState warnings.
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (factTimerRef.current) clearInterval(factTimerRef.current);
+    };
+  }, []);
+
+  // Cached snapshot button availability
+  let cachedSnapshot: any = null;
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('pmf.insights.cache:'));
+    // pick most recent
+    const recent = keys.sort((a,b) => {
+      const ta = JSON.parse(localStorage.getItem(a) || '{}').timestamp || 0;
+      const tb = JSON.parse(localStorage.getItem(b) || '{}').timestamp || 0;
+      return tb - ta;
+    })[0];
+    if (recent) {
+      const parsed = JSON.parse(localStorage.getItem(recent) || '{}');
+      if (parsed.data?.insights) cachedSnapshot = parsed.data;
+    }
+  } catch {}
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4 max-w-md">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-          <h3 className="text-lg font-semibold">Fetching Real-Time Data</h3>
-          <p className="text-sm text-muted-foreground">
-            Analyzing market trends, competitors, and generating actionable insights...
+      <div className="flex items-center justify-center min-h-[420px]">
+        <div className="text-center space-y-5 max-w-lg animate-in fade-in">
+          <div className="relative inline-flex">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <span className="absolute -right-3 -top-2 text-xl animate-bounce">⚙️</span>
+          </div>
+          <h3 className="text-lg font-semibold tracking-tight">Synthesizing Multi-Dimensional PMF Intelligence</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Parsing signals, modeling viability vectors, correlating market language, and assembling actionable growth levers…
           </p>
-          <Progress value={progress} className="w-64 mx-auto" />
-          <p className="text-xs text-muted-foreground">{progress}% Complete</p>
+          <div className="space-y-2">
+            <Progress value={progress} className="w-72 mx-auto" />
+            <p className="text-[11px] font-mono text-muted-foreground">{progress}% • background generation continues if you navigate away</p>
+          </div>
+          <div className="text-xs rounded-md px-3 py-2 bg-muted/40 border inline-flex items-start gap-2 text-left">
+            <span className="text-base">💡</span>
+            <span className="leading-snug whitespace-pre-wrap min-h-[2ch] transition-all">
+              {FUN_FACTS[factIndex]}
+            </span>
+            <button
+              aria-label='Next fact'
+              onClick={() => setFactIndex(i => (i + 1) % FUN_FACTS.length)}
+              className='ml-2 text-[10px] px-1.5 py-0.5 rounded bg-background/60 border hover:bg-background/80 transition-colors'
+            >↻</button>
+          </div>
+          {cachedSnapshot && (
+            <div className='space-y-2'>
+              <button
+                onClick={() => { setInsights(cachedSnapshot.insights); setMarketData(cachedSnapshot.marketData || cachedSnapshot.insights?.realSearchData); setLoading(false); }}
+                className='text-xs underline text-primary hover:text-primary/80'
+              >Load last cached snapshot instantly</button>
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground/70">Caching results for faster revisits…</p>
         </div>
       </div>
     );

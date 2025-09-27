@@ -1,11 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { LS_KEYS } from '@/lib/storage-keys';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SessionContext';
 import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, RotateCcw, Lightbulb, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, RotateCcw, Lightbulb, Sparkles, BarChart } from 'lucide-react';
+import { AIQnAToggle } from '../components/ui/AIQnAToggle';
+import { DynamicStatusBar } from './DynamicStatusBar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -23,8 +26,9 @@ const IdeaChatPage = () => {
   const [showOverlayLoader, setShowOverlayLoader] = useState(false);
   const navigate = useNavigate();
   const [analysisCompleted, setAnalysisCompleted] = useState<boolean>(() => {
-    try { return localStorage.getItem('analysisCompleted') === 'true'; } catch { return false; }
+    try { return localStorage.getItem(LS_KEYS.analysisCompleted) === 'true'; } catch { return false; }
   });
+  const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);
   // Resizable sidebar width (sessions list vs idea chat)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -63,14 +67,24 @@ const IdeaChatPage = () => {
     };
   }, []);
 
+  // Listen for chat mode changes dispatched from Chat component
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.mode) setChatMode(detail.mode);
+    };
+    window.addEventListener('chat:mode', handler as any);
+    return () => window.removeEventListener('chat:mode', handler as any);
+  }, []);
+
   // Listen for analysis completion (custom event + storage changes)
   useEffect(() => {
     const handleAnalysisComplete = () => {
-      try { if (localStorage.getItem('analysisCompleted') === 'true') setAnalysisCompleted(true); } catch {}
+  try { if (localStorage.getItem(LS_KEYS.analysisCompleted) === 'true') setAnalysisCompleted(true); } catch {}
     };
     window.addEventListener('analysis:completed', handleAnalysisComplete as any);
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'analysisCompleted') handleAnalysisComplete();
+  if (e.key === LS_KEYS.analysisCompleted) handleAnalysisComplete();
     };
     window.addEventListener('storage', handleStorage);
     return () => {
@@ -137,7 +151,7 @@ const IdeaChatPage = () => {
 
   const handleNewChat = () => {
     const keys = [
-      'currentSessionId','userIdea','userAnswers','userRefinements','ideaMetadata','pmfCurrentIdea','pmfTabHistory','pmfFeatures','pmfAuthMethod','pmfTheme','pmfScreens','chatHistory','analysisCompleted'
+      'currentSessionId','userIdea','userAnswers','userRefinements','ideaMetadata','pmfCurrentIdea','pmfTabHistory','pmfFeatures','pmfAuthMethod','pmfTheme','pmfScreens','chatHistory',LS_KEYS.analysisCompleted
     ];
     keys.forEach(k => localStorage.removeItem(k));
     setChatKey(k => k + 1);
@@ -211,11 +225,12 @@ const IdeaChatPage = () => {
                   <span>{currentSession?.name || 'Idea Chat'}</span>
                   <span
                     className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium relative gap-1 transition-all duration-200"
-                    title="Idea Mode"
+                    title={chatMode === 'idea' ? 'Idea Mode' : chatMode === 'refine' ? 'Refinement Mode' : 'Analysis Mode'}
                   >
-                    <Lightbulb className='h-3.5 w-3.5 text-yellow-400' />
-                    {/* Text hidden on narrow screens to become icon-only pill */}
-                    <span className="hidden sm:inline">Idea Mode</span>
+                    {chatMode === 'idea' && <Lightbulb className='h-3.5 w-3.5 text-yellow-400' />}
+                    {chatMode === 'refine' && <Sparkles className='h-3.5 w-3.5 text-primary' />}
+                    {chatMode === 'analysis' && <BarChart className='h-3.5 w-3.5 text-primary' />}
+                    <span className="hidden sm:inline">{chatMode === 'idea' ? 'Idea' : chatMode === 'refine' ? 'Refine' : 'Analyze'}</span>
                   </span>
                 </span>
                 {sessionReloading && <Loader2 className='h-4 w-4 animate-spin text-primary' />}
@@ -283,17 +298,8 @@ const IdeaChatPage = () => {
             >
               <RotateCcw className='h-3.5 w-3.5' />
             </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              className='h-7 w-7 shrink-0'
-              onClick={() => window.dispatchEvent(new CustomEvent('analysis:openBrief'))}
-              aria-label='Start Brief'
-              title='Brief'
-            >
-              <Sparkles className='h-3.5 w-3.5' />
-            </Button>
-            <span className='text-muted-foreground hidden sm:inline'>Refine until confident, then analyze.</span>
+            <AIQnAToggle />
+            <DynamicStatusBar />
           </div>
         </div>
         <div className='flex-1 relative p-2'>
@@ -312,3 +318,4 @@ const IdeaChatPage = () => {
 };
 
 export default IdeaChatPage;
+
