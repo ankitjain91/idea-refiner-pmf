@@ -116,8 +116,6 @@ export default function Settings() {
       addAlert({ variant: 'error', title: 'Profile load failed', message: 'Could not load profile data', scope: 'settings' });
     } finally {
       setLoading(false);
-  setInlineError(null);
-  addAlert({ variant: 'success', title: 'Profile saved', message: 'Your profile was updated', scope: 'settings', autoDismissMs: 4000 });
     }
   };
 
@@ -140,6 +138,9 @@ export default function Settings() {
         title: "Success",
         description: "Profile updated successfully",
       });
+      
+      setInlineError(null);
+      addAlert({ variant: 'success', title: 'Profile saved', message: 'Your profile was updated', scope: 'settings', autoDismissMs: 4000 });
     } catch (error) {
       console.error('Error saving profile:', error);
       setInlineError('Failed to save profile');
