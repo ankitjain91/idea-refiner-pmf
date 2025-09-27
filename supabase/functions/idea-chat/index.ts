@@ -326,7 +326,8 @@ serve(async (req) => {
       questionNumber = null,
       generatePMFAnalysis = false,
       refinementMode = false,
-      liveInsights = false
+      liveInsights = false,
+      responseMode = 'verbose'
     } = await req.json();
     
     console.log('Processing request for idea:', idea);
