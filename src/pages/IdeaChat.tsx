@@ -275,7 +275,7 @@ const IdeaChatPage = () => {
               onClick={() => window.dispatchEvent(new CustomEvent('analysis:openBrief'))}
               title="Run comprehensive PMF analysis"
             >
-              <Sparkles className="h-3.5 w-3.5 text-yellow-400 animate-pulse" />
+              <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
               <span className="hidden sm:inline">Start Analysis</span>
               <span className="sm:hidden">Analyze</span>
             </Button>
