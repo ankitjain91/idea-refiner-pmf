@@ -42,7 +42,8 @@ import {
   Layers,
   Trophy,
   Sparkle,
-  Flame
+  Flame,
+  CheckCircle
 } from "lucide-react";
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 
@@ -676,6 +677,206 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="relative py-32 px-4">
+        <div className="max-w-7xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+            className="text-center mb-20"
+          >
+            <Badge className="mb-6 px-4 py-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
+              PRICING
+            </Badge>
+            <h2 className="text-5xl md:text-6xl font-display font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+              Choose Your Brain Smoothness Level
+            </h2>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              From casual smoothbrain to galaxy brain, we've got a plan that fits your neural evolution journey.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Smooth Starter */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300 h-full">
+                <CardHeader className="pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-bold">🧩 Smooth Starter</h3>
+                    <Badge variant="secondary">Basic</Badge>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-primary">$9</span>
+                    <span className="text-gray-500">/month</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">100 brain smoothings/month</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Basic wrinkle detection</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Gentle brain massage</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Email support</span>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full mt-6" 
+                    variant="outline"
+                    onClick={() => {
+                      setIsSignUp(true);
+                      setShowAuthModal(true);
+                    }}
+                  >
+                    Start Smoothing
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Wrinkle Eraser - Most Popular */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="relative"
+            >
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0 px-4 py-1">
+                  MOST POPULAR
+                </Badge>
+              </div>
+              <Card className="relative bg-gradient-to-b from-primary/10 to-gray-950/80 border-primary/50 hover:border-primary transition-all duration-300 h-full transform hover:scale-105">
+                <CardHeader className="pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-bold">🚀 Wrinkle Eraser</h3>
+                    <Badge className="bg-primary/20 text-primary border-primary/30">Pro</Badge>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-primary">$29</span>
+                    <span className="text-gray-500">/month</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Unlimited brain polishing</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Advanced wrinkle removal</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Priority smoothing queue</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Custom brain reports</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">24/7 neural support</span>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full mt-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-[0_0_20px_rgba(100,150,255,0.4)]" 
+                    onClick={() => {
+                      setIsSignUp(true);
+                      setShowAuthModal(true);
+                    }}
+                  >
+                    Go Pro
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Galaxy Brain */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="relative"
+            >
+              <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300 h-full">
+                <CardHeader className="pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-bold">🏆 Galaxy Brain</h3>
+                    <Badge variant="secondary">Enterprise</Badge>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-primary">$99</span>
+                    <span className="text-gray-500">/month</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Everything in Wrinkle Eraser</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Quantum brain smoothing</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Personal brain butler</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">Direct neural API access</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-gray-300">White-glove onboarding</span>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full mt-6" 
+                    variant="outline"
+                    onClick={() => {
+                      setIsSignUp(true);
+                      setShowAuthModal(true);
+                    }}
+                  >
+                    Contact Sales
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="text-center mt-12"
+          >
+            <p className="text-gray-500">
+              All plans include a 7-day free trial. No credit card required.
+            </p>
+          </motion.div>
         </div>
       </section>
 
