@@ -17,7 +17,6 @@ import {
   Play,
   RefreshCw,
   Brain,
-  RotateCcw,
   Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
