@@ -48,6 +48,17 @@ export default function Auth() {
       
       const normalizedEmail = email.trim().toLowerCase();
       
+      // TEMPORARY: Block all users except er.ankitjain91@gmail.com
+      if (normalizedEmail !== 'er.ankitjain91@gmail.com') {
+        toast({
+          title: "Access Restricted",
+          description: "New registrations are temporarily disabled. Please try again later.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
       // Check if user already exists using our database function
       const { data: emailExists, error: checkError } = await supabase.rpc('check_email_exists', {
         email_to_check: normalizedEmail
@@ -127,6 +138,19 @@ export default function Auth() {
       // Validate input
       authSchema.parse({ email, password });
       
+      const normalizedEmail = email.trim().toLowerCase();
+      
+      // TEMPORARY: Block all users except er.ankitjain91@gmail.com
+      if (normalizedEmail !== 'er.ankitjain91@gmail.com') {
+        toast({
+          title: "Access Restricted",
+          description: "Login is temporarily restricted. Please try again later.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -154,23 +178,13 @@ export default function Auth() {
   };
 
   const handleSocialSignIn = async (provider: 'google' | 'twitter' | 'facebook') => {
-    setSocialLoading(provider);
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/`,
-      }
+    // TEMPORARY: Block all social logins
+    toast({
+      title: "Access Restricted", 
+      description: "Social login is temporarily disabled. Please try again later.",
+      variant: "destructive",
     });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      setSocialLoading(null);
-    }
+    return;
   };
 
   return (
