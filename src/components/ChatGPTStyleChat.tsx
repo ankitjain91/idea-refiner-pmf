@@ -14,14 +14,15 @@ import {
   BarChart,
   Sparkles,
   ArrowRight,
-  CheckCircle,
-  Circle,
-  Play
+  Play,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SessionContext';
+import { scheduleIdle } from '@/lib/idle';
 
 interface Message {
   id: string;
@@ -40,13 +41,9 @@ interface ChatGPTStyleChatProps {
   className?: string;
 }
 
-const ANALYSIS_QUESTIONS = [
-  "What problem does your product solve?",
-  "Who is your target audience?",
-  "What's your unique value proposition?",
-  "What's your monetization strategy?",
-  "Who are your main competitors?"
-];
+// Replaced step-based questions with a single detailed brief form
+
+// Removed auto-seed idea pool – now we start with empty idea and AI brainstorming suggestions
 
 export default function ChatGPTStyleChat({ 
   onAnalysisReady, 
@@ -59,16 +56,57 @@ export default function ChatGPTStyleChat({
   const [currentIdea, setCurrentIdea] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [analysisAnswers, setAnalysisAnswers] = useState<Record<string, string>>({});
+  const [analysisCompletedFlag, setAnalysisCompletedFlag] = useState(() => localStorage.getItem('analysisCompleted') === 'true');
+  // Brief fields (two required: problem, targetUser; others optional)
+  const [brief, setBrief] = useState({
+    problem: '',
+    targetUser: '',
+    differentiation: '',
+    alternatives: '',
+    monetization: '',
+    scenario: '',
+    successMetric: ''
+  });
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isRefinementMode, setIsRefinementMode] = useState(true);
   const [showStartAnalysisButton, setShowStartAnalysisButton] = useState(false);
+  const [showBriefForm, setShowBriefForm] = useState(false);
+  const [briefSuggestions, setBriefSuggestions] = useState<Record<string, string[]>>({});
+  const [isFetchingBriefSuggestions, setIsFetchingBriefSuggestions] = useState(false);
+  const briefFetchedRef = useRef(false);
+  const suggestionCycleRef = useRef<NodeJS.Timeout | null>(null);
+  const suggestionBackoffRef = useRef<number>(30000); // start at 30s
+  const suggestionIdleRef = useRef<boolean>(false);
+  const abortBriefSuggestRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const autoSaveRef = useRef<NodeJS.Timeout>();
+  const titleGeneratedRef = useRef(false);
+  const { currentSession, createSession } = useSession();
+  const lastIdeaSignatureRef = useRef<string>('');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
+  const chatRestoredRef = useRef(false);
+  const shuffleCooldownRef = useRef<number>(0); // still used for suggestion shuffle debounce
+
+  const generateTwoWordTitle = useCallback(async (idea: string) => {
+    if (!idea || titleGeneratedRef.current) return;
+    titleGeneratedRef.current = true;
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-session-title', { body: { idea } });
+      if (error) throw error;
+      const finalTitle = (data as any)?.title || 'Idea Session';
+      if (currentSession) {
+        await supabase.from('brainstorming_sessions').update({ name: finalTitle }).eq('id', currentSession.id);
+        localStorage.setItem('currentSessionTitle', finalTitle);
+      }
+    } catch (e) {
+      console.error('Title generation failed', e);
+      titleGeneratedRef.current = false; // allow retry on next idea change
+    }
+  }, [currentSession]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -78,13 +116,239 @@ export default function ChatGPTStyleChat({
     scrollToBottom();
   }, [messages]);
 
+  // External trigger to open analysis brief (from parent layout / dashboard panel)
   useEffect(() => {
-    inputRef.current?.focus();
-    // Create new session on mount
-    if (user) {
-      createNewSession();
+    const openBrief = () => setShowBriefForm(true);
+    window.addEventListener('analysis:openBrief', openBrief);
+    return () => window.removeEventListener('analysis:openBrief', openBrief);
+  }, []);
+
+  // Fetch AI suggestions for brief fields
+  const fetchBriefSuggestions = useCallback(async (force = false, enrich = false) => {
+    if (isFetchingBriefSuggestions || (!force && !enrich && briefFetchedRef.current)) return;
+    setIsFetchingBriefSuggestions(true);
+    abortBriefSuggestRef.current?.abort();
+    const controller = new AbortController();
+    abortBriefSuggestRef.current = controller;
+    try {
+      const fieldKeys = ['problem','targetUser','differentiation','alternatives','monetization','scenario','successMetric'];
+      const existing = briefSuggestions;
+      // Build context for enrichment
+      const contextObj: any = { brief, existingSuggestions: existing };
+      const prompt = enrich
+        ? `Improve & diversify suggestions for product idea: "${currentIdea || brief.problem || 'Unknown'}". Return JSON with keys ${fieldKeys.join(', ')}. Each key: up to 5 concise, non-redundant, high-signal options (max 12 words) prioritizing clarity, specificity, novelty. Avoid duplicates from existingSuggestions. Keep arrays small if high quality cannot be added.`
+        : `Given the product idea: "${currentIdea || brief.problem || 'Unknown'}" generate concise structured suggestions for these fields in JSON with keys ${fieldKeys.join(', ')}. Each key should be an array of 3 short high-signal suggestions (max 12 words each). Focus on clarity and specificity.`;
+      const { data, error } = await supabase.functions.invoke('idea-chat', { body: { message: prompt, suggestionMode: true, context: contextObj } });
+      if (error) throw error;
+      let suggestions: any = {};
+      if (typeof data === 'string') {
+        try { suggestions = JSON.parse(data); } catch { suggestions = {}; }
+      } else if (typeof data === 'object') {
+        suggestions = data.suggestions || data;
+      }
+      const merged: Record<string, string[]> = { ...existing };
+      fieldKeys.forEach(k => {
+        const incoming = suggestions?.[k];
+        if (Array.isArray(incoming)) {
+          const currentSet = new Set((merged[k] || []).map(s => s.trim()));
+            incoming.forEach((raw: any) => {
+              const s = String(raw).trim();
+              if (!s) return;
+              // basic dedupe ignoring case
+              if (![...currentSet].some(existingVal => existingVal.toLowerCase() === s.toLowerCase())) {
+                currentSet.add(s);
+              }
+            });
+          // Keep top 5 (simple heuristic: shorter first then original order)
+          const limited = [...currentSet].sort((a,b) => a.length - b.length).slice(0,5);
+          merged[k] = limited;
+        }
+      });
+      setBriefSuggestions(merged);
+      briefFetchedRef.current = true;
+      // cache
+      try { localStorage.setItem('analysisBriefSuggestionsCache', JSON.stringify({ ts: Date.now(), data: merged })); } catch {}
+      // reset backoff on success if enrichment returned new content
+      if (enrich) {
+        suggestionBackoffRef.current = Math.max(20000, suggestionBackoffRef.current * 0.75); // adaptive shorten a bit
+      } else {
+        suggestionBackoffRef.current = 30000;
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        console.error('Brief suggestions fetch failed', e);
+        // gentle backoff increase on failure
+        suggestionBackoffRef.current = Math.min(90000, suggestionBackoffRef.current * 1.4);
+      }
+    } finally {
+      setIsFetchingBriefSuggestions(false);
     }
-  }, [user]);
+  }, [currentIdea, brief, briefSuggestions, isFetchingBriefSuggestions]);
+
+  // Auto-fetch when brief form first opened
+  useEffect(() => {
+    if (showBriefForm) fetchBriefSuggestions();
+  }, [showBriefForm, fetchBriefSuggestions]);
+
+  // Load cached suggestions (if any) on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('analysisBriefSuggestionsCache');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.data) setBriefSuggestions(parsed.data);
+      }
+    } catch {}
+  }, []);
+
+  // Background enrichment cycle
+  useEffect(() => {
+    if (!showBriefForm || isAnalyzing) {
+      if (suggestionCycleRef.current) {
+        clearTimeout(suggestionCycleRef.current);
+        suggestionCycleRef.current = null;
+      }
+      return;
+    }
+    const schedule = () => {
+      if (!showBriefForm || isAnalyzing) return;
+      suggestionCycleRef.current = setTimeout(async () => {
+        // Only enrich if user hasn't recently typed in a field (heuristic: if problem & targetUser unchanged for cycle)
+        await fetchBriefSuggestions(false, true);
+        schedule();
+      }, suggestionBackoffRef.current);
+    };
+    schedule();
+    return () => {
+      if (suggestionCycleRef.current) clearTimeout(suggestionCycleRef.current);
+    };
+  }, [showBriefForm, isAnalyzing, fetchBriefSuggestions]);
+
+  // Listen for external session load trigger (from sidebar navigation) to rehydrate chat & focus input
+  useEffect(() => {
+    const handleSessionLoaded = () => {
+      const raw = localStorage.getItem('chatHistory');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          const restored: Message[] = parsed.map((m: any) => ({
+            id: m.id || `restored-${Date.now()}-${Math.random()}`,
+            type: m.type || 'bot',
+            content: m.content || '',
+            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            suggestions: m.suggestions,
+            metadata: m.metadata,
+            pmfAnalysis: m.pmfAnalysis,
+          }));
+          setMessages(restored);
+          chatRestoredRef.current = true;
+        } catch {}
+      }
+      const idea = localStorage.getItem('userIdea');
+      if (idea) setCurrentIdea(prev => prev || idea);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    };
+    window.addEventListener('session:loaded', handleSessionLoaded);
+    return () => window.removeEventListener('session:loaded', handleSessionLoaded);
+  }, []);
+
+  // Persist chat messages to localStorage for session autosave integration
+  useEffect(() => {
+    if (messages.length) {
+      const serializable = messages.map(m => ({
+        id: m.id,
+        type: m.type,
+        content: m.content,
+        timestamp: m.timestamp.toISOString(),
+        suggestions: m.suggestions,
+        metadata: m.metadata,
+        pmfAnalysis: m.pmfAnalysis,
+      }));
+      localStorage.setItem('chatHistory', JSON.stringify(serializable));
+    }
+  }, [messages]);
+
+  // Restore chat/history & idea from brainstorming session when it changes
+  useEffect(() => {
+    if (!currentSession?.state) return;
+    const st = currentSession.state as any;
+    const alreadyMeaningful = messages.length > 0; // Prevent overwrite if user already typing / restored
+    if (!alreadyMeaningful && !chatRestoredRef.current && Array.isArray(st.chatHistory) && st.chatHistory.length) {
+      try {
+        const restored: Message[] = st.chatHistory.map((m: any) => ({
+          id: m.id || `restored-${Date.now()}-${Math.random()}`,
+          type: m.type || 'bot',
+          content: m.content || '',
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+          suggestions: m.suggestions,
+          metadata: m.metadata,
+          pmfAnalysis: m.pmfAnalysis,
+        }));
+        setMessages(restored);
+        chatRestoredRef.current = true;
+      } catch {}
+    } else if (!alreadyMeaningful && !chatRestoredRef.current) {
+      const raw = localStorage.getItem('chatHistory');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          const restored: Message[] = parsed.map((m: any) => ({
+            id: m.id,
+            type: m.type,
+            content: m.content,
+            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            suggestions: m.suggestions,
+            metadata: m.metadata,
+            pmfAnalysis: m.pmfAnalysis,
+          }));
+          setMessages(restored);
+          chatRestoredRef.current = true;
+        } catch {}
+      }
+    }
+    if (st.ideaData?.idea && !currentIdea) {
+      setCurrentIdea(st.ideaData.idea);
+    }
+  }, [currentSession]);
+
+  // Persist current idea to localStorage for session recovery & autosave
+  useEffect(() => {
+    if (currentIdea) {
+      localStorage.setItem('userIdea', currentIdea);
+      // Generate title on first meaningful idea OR when idea changes substantially (signature diff)
+      const signature = currentIdea.split(/\s+/).slice(0,12).join(' ').toLowerCase();
+      if (!lastIdeaSignatureRef.current) {
+        lastIdeaSignatureRef.current = signature;
+        scheduleIdle(() => generateTwoWordTitle(currentIdea));
+      } else if (signature !== lastIdeaSignatureRef.current && currentIdea.length > 15) {
+        lastIdeaSignatureRef.current = signature;
+        // Allow regeneration once more by resetting flag
+        titleGeneratedRef.current = false;
+        scheduleIdle(() => generateTwoWordTitle(currentIdea));
+      }
+      try { window.dispatchEvent(new Event('idea:updated')); } catch {}
+    }
+  }, [currentIdea]);
+
+  // Initial focus + inject brainstorming welcome (no automatic idea seeding)
+  useEffect(() => {
+    if (initializedRef.current) return;
+    // If no existing chat history, create a brainstorming intro message
+    const restored = localStorage.getItem('chatHistory');
+    if (!restored && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: `msg-welcome-${Date.now()}`,
+        type: 'system',
+        content: "👋 Let's brainstorm a brilliant product to analyze. Pick one of the AI-suggested ideas below or type your own to begin refining.",
+        timestamp: new Date(),
+        suggestions: generateRandomSuggestions()
+      };
+      setMessages([welcomeMessage]);
+    }
+    inputRef.current?.focus();
+    initializedRef.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentSession]);
 
   // Auto-save session every 5 seconds
   useEffect(() => {
@@ -99,7 +363,7 @@ export default function ChatGPTStyleChat({
         }
       };
     }
-  }, [sessionId, messages, analysisAnswers]);
+  }, [sessionId, messages, brief, analysisProgress]);
 
   const generateRandomSuggestions = () => {
     const allSuggestions = [
@@ -130,49 +394,167 @@ export default function ChatGPTStyleChat({
     return shuffled.slice(0, 4);
   };
 
-  const createNewSession = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('analysis_sessions')
-        .insert({
-          user_id: user.id,
-          session_name: 'New Analysis Session',
-          idea: '',
-          metadata: { 
-            messages: [],
-            analysisAnswers: {},
-            analysisProgress: 0
-          }
-        })
-        .select()
-        .single();
+  // Shuffle brainstorming suggestions (only before an idea is chosen)
+  const shuffleBrainstormIdeas = () => {
+    if (isAnalyzing || currentIdea) return;
+    const now = Date.now();
+    if (now - shuffleCooldownRef.current < 800) return; // debounce
+    shuffleCooldownRef.current = now;
+    setMessages(prev => {
+      if (!prev.length || prev[0].type !== 'system') return prev;
+      const updated = [...prev];
+      updated[0] = { ...updated[0], suggestions: generateRandomSuggestions() };
+      return updated;
+    });
+  };
 
+  // Reset chat but keep same session (clear idea + messages + local storage for chat/idea)
+  const resetChat = () => {
+    if (isAnalyzing) return;
+    setCurrentIdea('');
+    try {
+      localStorage.removeItem('userIdea');
+      localStorage.removeItem('chatHistory');
+      localStorage.removeItem('analysisCompleted');
+      localStorage.removeItem('pmfScore');
+      localStorage.removeItem('ideaMetadata');
+      localStorage.removeItem('analysisBrief');
+      localStorage.removeItem('analysisBriefSuggestionsCache');
+      window.dispatchEvent(new Event('idea:updated'));
+    } catch {}
+    const welcomeMessage: Message = {
+      id: `msg-welcome-${Date.now()}`,
+      type: 'system',
+      content: "🧼 Fresh start! Let's brainstorm a new product. Pick a suggestion or type your own idea to begin.",
+      timestamp: new Date(),
+      suggestions: generateRandomSuggestions()
+    };
+    setMessages([welcomeMessage]);
+    setShowStartAnalysisButton(false);
+    setIsRefinementMode(true);
+    setAnalysisProgress(0);
+  };
+
+  // Listen for external idea injection / reset triggers from IdeaChat container UI
+  useEffect(() => {
+    const handleExternalIdea = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const idea = detail?.idea;
+      if (idea && !currentIdea) {
+        setCurrentIdea(idea);
+        generateTwoWordTitle(idea);
+      }
+    };
+    const handleExternalReset = () => {
+      resetChat();
+    };
+    window.addEventListener('idea:externalSet', handleExternalIdea as any);
+    window.addEventListener('chat:reset', handleExternalReset);
+    return () => {
+      window.removeEventListener('idea:externalSet', handleExternalIdea as any);
+      window.removeEventListener('chat:reset', handleExternalReset);
+    };
+  }, [currentIdea, generateTwoWordTitle]);
+
+  // Load brief from storage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('analysisBrief');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setBrief(prev => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+  }, []);
+  // Persist brief
+  useEffect(() => {
+    try { localStorage.setItem('analysisBrief', JSON.stringify(brief)); } catch {}
+  }, [brief]);
+
+  // Single-pass analysis generator using the brief
+  const runBriefAnalysis = async () => {
+    if (!brief.problem.trim() || !brief.targetUser.trim()) {
+      toast({ title: 'Need more detail', description: 'Provide at least the problem and target user.' });
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisProgress(8);
+    // Remove legacy step metadata
+    try {
+      localStorage.removeItem('analysisCurrentQuestion');
+      localStorage.removeItem('analysisAnswers');
+      localStorage.removeItem('analysisInProgress');
+    } catch {}
+    const progressInterval = setInterval(() => {
+      setAnalysisProgress(p => (p < 92 ? p + Math.random() * 6 : p));
+    }, 600);
+    const loadingMsg: Message = {
+      id: `msg-brief-start-${Date.now()}`,
+      type: 'system',
+      content: 'Generating a comprehensive PM-Fit analysis from your brief...',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, loadingMsg]);
+    try {
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: {
+          message: currentIdea || brief.problem,
+          generatePMFAnalysis: true,
+          analysisContext: { brief }
+        }
+      });
       if (error) throw error;
-      setSessionId(data.id);
-      
-      // Add welcome message with random suggestions
-      const welcomeMessage: Message = {
-        id: `msg-welcome-${Date.now()}`,
+      const pmfScore = data?.pmfAnalysis?.pmfScore || 0;
+      const isGoodScore = pmfScore >= 70;
+      const completionMessage: Message = {
+        id: `msg-brief-complete-${Date.now()}`,
         type: 'system',
-        content: "👋 Welcome! I'm your PM-Fit Analyzer. Share your product idea and I'll help you refine it. When you're ready, we can run a comprehensive analysis to evaluate its market fit potential.",
+        content: `🎯 Analysis complete! Your PM-Fit score is **${pmfScore}/100**.`,
         timestamp: new Date(),
-        suggestions: generateRandomSuggestions()
+        pmfAnalysis: data?.pmfAnalysis,
+        suggestions: isGoodScore ? [
+          'Refine further',
+          'View detailed dashboard',
+          'Export report'
+        ] : [
+          'Improve differentiation',
+          'Clarify target user',
+          'Strengthen monetization'
+        ]
       };
-      setMessages([welcomeMessage]);
-    } catch (error) {
-      console.error('Error creating session:', error);
+      setMessages(prev => [...prev, completionMessage]);
+      localStorage.setItem('analysisCompleted', 'true');
+      localStorage.setItem('pmfScore', String(pmfScore));
+      setAnalysisCompletedFlag(true);
+      // Persist brief into metadata for dashboard
+      const metadata = {
+        brief,
+        pmfScore,
+        pmfAnalysis: data?.pmfAnalysis
+      };
+      localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
+      if (onAnalysisReady) {
+        onAnalysisReady(currentIdea || brief.problem, metadata);
+      }
+    } catch (e) {
+      console.error('Brief analysis failed', e);
+      toast({ title: 'Analysis failed', description: 'Could not generate analysis. Try again.' });
+    } finally {
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
+      setTimeout(() => setIsAnalyzing(false), 600);
     }
   };
+
+  // remove legacy createNewSession (sessions now created explicitly elsewhere)
 
   const saveSession = async () => {
     if (!sessionId || !user) return;
 
     try {
-      const { error } = await supabase
-        .from('analysis_sessions')
-        .update({
+  const { error } = await supabase
+  .from('analysis_sessions')
+  .update({
           metadata: {
             messages: messages.map(m => ({
               id: m.id,
@@ -182,113 +564,23 @@ export default function ChatGPTStyleChat({
               suggestions: m.suggestions || [],
               metadata: m.metadata || {}
             })),
-            analysisAnswers,
-            analysisProgress,
-            currentQuestionIndex
+            brief,
+            analysisProgress
           },
           idea: currentIdea,
           session_name: currentIdea || 'Analysis Session',
           last_accessed: new Date().toISOString()
-        })
-        .eq('id', sessionId);
+  })
+  .eq('id', sessionId);
 
       if (error) throw error;
+  // Removed session save announcement for quieter UX
     } catch (error) {
       console.error('Error saving session:', error);
     }
   };
 
-  const startAnalysis = async (ideaToAnalyze?: string) => {
-    const ideaToUse = ideaToAnalyze || currentIdea;
-    
-    if (!ideaToUse) {
-      toast({
-        title: "No idea provided",
-        description: "Please share your product idea first",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // If we're starting with a new idea, set it as current
-    if (ideaToAnalyze && !currentIdea) {
-      setCurrentIdea(ideaToAnalyze);
-    }
-
-    // Reset analysis state for fresh analysis
-    setIsAnalyzing(true);
-    setIsRefinementMode(false);
-    setShowStartAnalysisButton(false);
-    setCurrentQuestionIndex(0);
-    setAnalysisProgress(0);
-    setAnalysisAnswers({}); // Clear previous answers for fresh analysis
-    
-    // Add loading animation while preparing analysis
-    const loadingMessage: Message = {
-      id: `msg-loading-analysis-${Date.now()}`,
-      type: 'bot',
-      content: '',
-      timestamp: new Date(),
-      isTyping: true
-    };
-    setMessages(prev => [...prev, loadingMessage]);
-    
-    // Get AI-suggested answer for the first question
-    const firstQuestion = ANALYSIS_QUESTIONS[0];
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('idea-chat', {
-        body: { 
-          message: `Help me answer: ${firstQuestion}`,
-          idea: ideaToUse,
-          currentQuestion: firstQuestion,
-          questionNumber: 0,
-          analysisContext: {}
-        }
-      });
-
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
-
-      // Parse suggestions safely
-      let suggestions = [];
-      if (data) {
-        if (typeof data === 'string') {
-          try {
-            const parsed = JSON.parse(data);
-            suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
-          } catch {
-            suggestions = [];
-          }
-        } else if (typeof data === 'object') {
-          suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-        }
-      }
-      
-      const analysisMessage: Message = {
-        id: `msg-analysis-${Date.now()}`,
-        type: 'bot',
-        content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
-        timestamp: new Date(),
-        suggestions: suggestions.length > 0 ? suggestions : undefined
-      };
-      
-      setMessages(prev => [...prev, analysisMessage]);
-    } catch (error) {
-      console.error('Error getting AI suggestions:', error);
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
-      
-      const analysisMessage: Message = {
-        id: `msg-analysis-${Date.now()}`,
-        type: 'bot',
-        content: `Great! Let's analyze "${ideaToUse}". I'll ask you ${ANALYSIS_QUESTIONS.length} key questions to evaluate your product-market fit.\n\n${firstQuestion}`,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, analysisMessage]);
-    }
-  };
+  // Deprecated structured analysis flow removed.
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -301,6 +593,12 @@ export default function ChatGPTStyleChat({
     };
 
     setMessages(prev => [...prev, userMessage]);
+
+    // Lazy-create a session only when user first contributes meaningful content and no session exists yet
+    if (!currentSession && user && messages.filter(m => m.type !== 'system').length === 0) {
+      // Use first 6 words of input as context
+      createSession(input.split(/\s+/).slice(0,6).join(' '));
+    }
     
     // If in refinement mode and not analyzing
     if (isRefinementMode && !isAnalyzing) {
@@ -345,7 +643,8 @@ export default function ChatGPTStyleChat({
           return;
         }
         
-        setCurrentIdea(input);
+    setCurrentIdea(input);
+    generateTwoWordTitle(input);
         setShowStartAnalysisButton(true);
       }
       
@@ -444,63 +743,8 @@ export default function ChatGPTStyleChat({
       return;
     }
 
-    // Handle analysis flow
-    if (isAnalyzing && currentQuestionIndex < ANALYSIS_QUESTIONS.length) {
-      const question = ANALYSIS_QUESTIONS[currentQuestionIndex];
-      setAnalysisAnswers(prev => ({
-        ...prev,
-        [question]: input
-      }));
-      
-      const newProgress = ((currentQuestionIndex + 1) / ANALYSIS_QUESTIONS.length) * 100;
-      setAnalysisProgress(newProgress);
-      
-      if (currentQuestionIndex + 1 < ANALYSIS_QUESTIONS.length) {
-        // Ask next question with AI suggestions
-        setCurrentQuestionIndex(prev => prev + 1);
-        const nextQuestion = ANALYSIS_QUESTIONS[currentQuestionIndex + 1];
-        
-        setInput('');
-        setIsLoading(true);
-        
-        try {
-          const { data, error } = await supabase.functions.invoke('idea-chat', {
-            body: { 
-              message: `Help me answer: ${nextQuestion}`,
-              idea: currentIdea,
-              currentQuestion: nextQuestion,
-              questionNumber: currentQuestionIndex + 1,
-              analysisContext: analysisAnswers
-            }
-          });
-
-          const questionMessage: Message = {
-            id: `msg-question-${Date.now()}`,
-            type: 'bot',
-            content: nextQuestion,
-            timestamp: new Date(),
-            suggestions: data?.suggestions || []
-          };
-          
-          setMessages(prev => [...prev, questionMessage]);
-        } catch (error) {
-          console.error('Error getting suggestions:', error);
-          const questionMessage: Message = {
-            id: `msg-question-${Date.now()}`,
-            type: 'bot',
-            content: nextQuestion,
-            timestamp: new Date()
-          };
-          
-          setMessages(prev => [...prev, questionMessage]);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        // Analysis complete
-        completeAnalysis();
-      }
-      
+    // Legacy step-analysis removed. If analysis is currently generating, ignore additional user input.
+    if (isAnalyzing) {
       setInput('');
       return;
     }
@@ -517,7 +761,7 @@ export default function ChatGPTStyleChat({
             content: m.content
           })),
           idea: currentIdea,
-          analysisContext: analysisAnswers
+          analysisContext: { brief }
         }
       });
 
@@ -574,165 +818,11 @@ export default function ChatGPTStyleChat({
     }
   };
 
-  const completeAnalysis = async () => {
-    setIsAnalyzing(false);
-    setAnalysisProgress(100);
-    
-    // Generate PM-Fit analysis
-    const loadingMsg: Message = {
-      id: `msg-loading-pmf-${Date.now()}`,
-      type: 'bot',
-      content: '',
-      timestamp: new Date(),
-      isTyping: true
-    };
-    setMessages(prev => [...prev, loadingMsg]);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('idea-chat', {
-        body: { 
-          message: currentIdea,
-          generatePMFAnalysis: true,
-          analysisContext: analysisAnswers
-        }
-      });
-      
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
-      
-      if (!error && data) {
-        const pmfScore = data.pmfAnalysis?.pmfScore || 0;
-        const isGoodScore = pmfScore >= 70;
-        
-        const completionMessage: Message = {
-          id: `msg-complete-${Date.now()}`,
-          type: 'system',
-          content: `🎯 Analysis complete! Your PM-Fit score is **${pmfScore}/100**.\n\n${
-            isGoodScore 
-              ? "✨ Great score! Your idea shows strong market potential. You can view the detailed analysis or continue refining for even better results."
-              : `📈 There's room for improvement. ${pmfScore < 40 ? 'Your idea needs significant refinement.' : 'Your idea has potential but could be stronger.'} Let's work on improving it!`
-          }`,
-          timestamp: new Date(),
-          pmfAnalysis: data.pmfAnalysis,
-          suggestions: isGoodScore ? [
-            "View detailed PM-Fit analysis",
-            "Start with a new idea",
-            "Refine this idea further",
-            "Export analysis report"
-          ] : [
-            "Refine my idea based on feedback",
-            "View improvement suggestions",
-            "Re-analyze with changes",
-            "Start fresh with new approach"
-          ]
-        };
-        
-        setMessages(prev => [...prev, completionMessage]);
-        
-        // Show refinement options based on score
-        if (!isGoodScore) {
-          setTimeout(() => {
-            const refinementPrompt: Message = {
-              id: `msg-refine-${Date.now()}`,
-              type: 'bot',
-              content: "Would you like to refine your idea? I can help you improve specific aspects to increase your PM-Fit score.",
-              timestamp: new Date(),
-              suggestions: [
-                "Help me improve the value proposition",
-                "Refine the target audience",
-                "Strengthen the monetization strategy",
-                "Address competitive weaknesses"
-              ]
-            };
-            setMessages(prev => [...prev, refinementPrompt]);
-            setIsRefinementMode(true);
-            setCurrentQuestionIndex(0);
-            setAnalysisAnswers({});
-          }, 1500);
-        }
-        
-        // Only trigger onAnalysisReady if score is good or user explicitly wants to proceed
-        if (isGoodScore && onAnalysisReady) {
-          const analysisData = {
-            idea: currentIdea,
-            answers: analysisAnswers,
-            pmfAnalysis: data.pmfAnalysis,
-            sessionId,
-            timestamp: new Date().toISOString()
-          };
-          
-          onAnalysisReady(currentIdea, analysisData);
-        }
-      }
-    } catch (error) {
-      console.error('Error generating PMF analysis:', error);
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
-      
-      const errorMessage: Message = {
-        id: `msg-error-${Date.now()}`,
-        type: 'system',
-        content: "Failed to generate analysis. Let's continue refining your idea.",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    }
-    
-    // Save final session state
-    await saveSession();
-  };
+  // Step-based analysis functions removed (completeAnalysis, askNextQuestion) as we now use a single brief.
 
-  const askNextQuestion = async (questionIndex: number) => {
-    const nextQuestion = ANALYSIS_QUESTIONS[questionIndex];
-    
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('idea-chat', {
-        body: { 
-          message: `Help me answer: ${nextQuestion}`,
-          idea: currentIdea,
-          currentQuestion: nextQuestion,
-          questionNumber: questionIndex,
-          analysisContext: analysisAnswers
-        }
-      });
-
-      // Parse suggestions safely
-      let suggestions = [];
-      if (data && !error) {
-        if (typeof data === 'string') {
-          try {
-            const parsed = JSON.parse(data);
-            suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
-          } catch {
-            suggestions = [];
-          }
-        } else if (typeof data === 'object') {
-          suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-        }
-      }
-
-      const questionMessage: Message = {
-        id: `msg-question-${Date.now()}`,
-        type: 'bot',
-        content: nextQuestion,
-        timestamp: new Date(),
-        suggestions: suggestions.length > 0 ? suggestions : undefined
-      };
-      
-      setMessages(prev => [...prev, questionMessage]);
-    } catch (error) {
-      console.error('Error getting suggestions:', error);
-      const questionMessage: Message = {
-        id: `msg-question-${Date.now()}`,
-        type: 'bot',
-        content: nextQuestion,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, questionMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+  const startAnalysis = () => {
+    // Toggle brief form visibility. If already generated, allow re-run.
+    setShowBriefForm(prev => !prev);
   };
 
   const handleSuggestionRefinement = async (idea: string) => {
@@ -875,7 +965,11 @@ export default function ChatGPTStyleChat({
         return;
       }
       
-      setCurrentIdea(suggestion);
+  setCurrentIdea(suggestion);
+  generateTwoWordTitle(suggestion);
+      if (!currentSession && user) {
+        createSession(suggestion.split(/\s+/).slice(0,6).join(' '));
+      }
       setShowStartAnalysisButton(true);
       setInput('');
       
@@ -975,141 +1069,48 @@ export default function ChatGPTStyleChat({
       } finally {
         setIsLoading(false);
       }
-    } else if (isAnalyzing) {
-      // During analysis - use the suggestion as the answer with consistent animation
-      const question = ANALYSIS_QUESTIONS[currentQuestionIndex];
-      setAnalysisAnswers(prev => ({
-        ...prev,
-        [question]: suggestion
-      }));
-      
-      const newProgress = ((currentQuestionIndex + 1) / ANALYSIS_QUESTIONS.length) * 100;
-      setAnalysisProgress(newProgress);
-      
-      if (currentQuestionIndex + 1 < ANALYSIS_QUESTIONS.length) {
-        // Ask next question with AI suggestions
-        setCurrentQuestionIndex(prev => prev + 1);
-        const nextQuestion = ANALYSIS_QUESTIONS[currentQuestionIndex + 1];
-        
-        setInput('');
-        setIsLoading(true);
-        
-        // Add loading animation message
-        const loadingMessage: Message = {
-          id: `msg-loading-${Date.now()}`,
-          type: 'bot',
-          content: '',
-          timestamp: new Date(),
-          isTyping: true
-        };
-        setMessages(prev => [...prev, loadingMessage]);
-        
-        // Add natural typing delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        try {
-          const { data, error } = await supabase.functions.invoke('idea-chat', {
-            body: { 
-              message: `Help me answer: ${nextQuestion}`,
-              idea: currentIdea,
-              currentQuestion: nextQuestion,
-              questionNumber: currentQuestionIndex + 1,
-              analysisContext: analysisAnswers
-            }
-          });
-
-          // Remove loading message
-          setMessages(prev => prev.filter(msg => !msg.isTyping));
-
-          const questionMessage: Message = {
-            id: `msg-question-${Date.now()}`,
-            type: 'bot',
-            content: nextQuestion,
-            timestamp: new Date(),
-            suggestions: data?.suggestions || []
-          };
-          
-          setMessages(prev => [...prev, questionMessage]);
-        } catch (error) {
-          console.error('Error getting suggestions:', error);
-          // Remove loading message
-          setMessages(prev => prev.filter(msg => !msg.isTyping));
-          
-          const questionMessage: Message = {
-            id: `msg-question-${Date.now()}`,
-            type: 'bot',
-            content: nextQuestion,
-            timestamp: new Date()
-          };
-          
-          setMessages(prev => [...prev, questionMessage]);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        // Analysis complete with animation
-        setIsLoading(true);
-        
-        // Add completion loading animation
-        const loadingMessage: Message = {
-          id: `msg-loading-complete-${Date.now()}`,
-          type: 'bot',
-          content: '',
-          timestamp: new Date(),
-          isTyping: true
-        };
-        setMessages(prev => [...prev, loadingMessage]);
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Remove loading message
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
-        
-        completeAnalysis();
-        setIsLoading(false);
-      }
     }
     
     setInput('');
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-background", className)}>
+    <div ref={chatContainerRef} className={cn("flex flex-col h-full bg-background relative", className)}>
+      {/* Top-right controls: shuffle (only before idea picked) + reset (always) */}
+      <div className="absolute top-2 right-2 z-30 flex gap-2">
+        {!currentIdea && messages.length === 1 && messages[0]?.type === 'system' && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={shuffleBrainstormIdeas}
+            className="h-8 px-2 text-[11px] gap-1 shadow-sm bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            title="Shuffle brainstorming ideas"
+          >
+            ↺ Shuffle Ideas
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={resetChat}
+          className="h-8 px-2 text-[11px] gap-1 shadow-sm bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          title="Reset chat (keep session)"
+        >
+          <RotateCcw className="h-3.5 w-3.5" /> Reset
+        </Button>
+      </div>
       {/* Header with Progress */}
-      {isAnalyzing && (
-        <div className="border-b p-4 bg-muted/10">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium">Analysis Progress</h3>
-              <span className="text-xs text-muted-foreground">
-                Question {currentQuestionIndex + 1} of {ANALYSIS_QUESTIONS.length}
-              </span>
-            </div>
-            <Progress value={analysisProgress} className="h-2" />
-            <div className="flex gap-2 mt-3">
-              {ANALYSIS_QUESTIONS.map((q, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    "flex items-center gap-1 text-xs",
-                    idx < currentQuestionIndex && "text-primary",
-                    idx === currentQuestionIndex && "text-primary font-medium",
-                    idx > currentQuestionIndex && "text-muted-foreground"
-                  )}
-                >
-                  {idx < currentQuestionIndex ? (
-                    <CheckCircle className="h-3 w-3" />
-                  ) : idx === currentQuestionIndex ? (
-                    <Circle className="h-3 w-3 fill-primary" />
-                  ) : (
-                    <Circle className="h-3 w-3" />
-                  )}
+            {isAnalyzing && (
+              <div className="border-b p-3 bg-muted/10">
+                <div className="max-w-3xl mx-auto">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-sm font-medium">Analyzing Brief</h3>
+                    <span className="text-xs text-muted-foreground">Working…</span>
+                  </div>
+                  <Progress value={analysisProgress} className="h-1.5" />
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            )}
 
       {/* Main Chat Area */}
       <ScrollArea className="flex-1 p-4">
@@ -1275,7 +1276,7 @@ export default function ChatGPTStyleChat({
                                     if (onAnalysisReady) {
                                       const analysisData = {
                                         idea: currentIdea,
-                                        answers: analysisAnswers,
+                                        answers: undefined,
                                         pmfAnalysis: msg.pmfAnalysis,
                                         sessionId,
                                         timestamp: new Date().toISOString()
@@ -1287,8 +1288,7 @@ export default function ChatGPTStyleChat({
                                     setShowStartAnalysisButton(true);
                                     setIsRefinementMode(true);
                                     setIsAnalyzing(false);
-                                    setCurrentQuestionIndex(0);
-                                    setAnalysisAnswers({});
+                                    setAnalysisProgress(0);
                                     const refineMsg: Message = {
                                       id: `msg-refine-${Date.now()}`,
                                       type: 'bot',
@@ -1308,8 +1308,7 @@ export default function ChatGPTStyleChat({
                                   } else if (suggestion === "Start with a new idea" || suggestion === "Start fresh with new approach") {
                                     // Reset everything for a new idea
                                     setCurrentIdea('');
-                                    setAnalysisAnswers({});
-                                    setCurrentQuestionIndex(0);
+                                    setAnalysisProgress(0);
                                     setIsAnalyzing(false);
                                     setIsRefinementMode(true);
                                     setShowStartAnalysisButton(false);
@@ -1383,22 +1382,140 @@ export default function ChatGPTStyleChat({
                 size="sm"
               >
                 <Play className="h-4 w-4" />
-                {analysisProgress === 100 ? 'Re-analyze Idea' : 'Start Analysis'}
+                {showBriefForm ? 'Close Brief' : (analysisProgress === 100 ? 'Re-analyze Idea' : 'Open Analysis Brief')}
               </Button>
             </div>
           )}
-          
-          {/* Current Idea Display */}
-          {currentIdea && (
-            <div className="flex items-center gap-2 mb-2 p-2 bg-muted/50 rounded-lg">
-              <Badge variant="secondary" className="text-xs">
-                Current Idea
-              </Badge>
-              <span className="text-sm text-muted-foreground truncate">
-                {currentIdea}
-              </span>
-            </div>
+
+          {showBriefForm && !isAnalyzing && (
+            <Card className="mb-4 p-4 border-primary/30 bg-card/70 backdrop-blur-sm animate-fade-in">
+              <h3 className="text-sm font-semibold mb-2">Analysis Brief</h3>
+              <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                <p className="text-xs text-muted-foreground">Provide at least the problem and target user. The more detail you add, the better the PM-Fit analysis.</p>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Button variant="outline" size="sm" disabled={isFetchingBriefSuggestions} onClick={() => fetchBriefSuggestions(true)} className="h-7 text-[11px] px-2">
+                    {isFetchingBriefSuggestions ? 'Suggesting…' : 'AI Suggest'}
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Problem (required)</label>
+                  <Input
+                    value={brief.problem}
+                    onChange={(e) => setBrief(b => ({ ...b, problem: e.target.value }))}
+                    placeholder="What problem are you solving?"
+                  />
+                  {briefSuggestions.problem && briefSuggestions.problem.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {briefSuggestions.problem.map((s,i) => (
+                        <button key={i} onClick={() => setBrief(b => ({ ...b, problem: s }))} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors">{s}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Target User (required)</label>
+                  <Input
+                    value={brief.targetUser}
+                    onChange={(e) => setBrief(b => ({ ...b, targetUser: e.target.value }))}
+                    placeholder="Who exactly will use it?"
+                  />
+                  {briefSuggestions.targetUser && briefSuggestions.targetUser.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {briefSuggestions.targetUser.map((s,i) => (
+                        <button key={i} onClick={() => setBrief(b => ({ ...b, targetUser: s }))} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors">{s}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Differentiation</label>
+                  <Input
+                    value={brief.differentiation}
+                    onChange={(e) => setBrief(b => ({ ...b, differentiation: e.target.value }))}
+                    placeholder="What makes it unique?"
+                  />
+                  {briefSuggestions.differentiation && briefSuggestions.differentiation.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {briefSuggestions.differentiation.map((s,i) => (
+                        <button key={i} onClick={() => setBrief(b => ({ ...b, differentiation: s }))} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors">{s}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Alternatives</label>
+                  <Input
+                    value={brief.alternatives}
+                    onChange={(e) => setBrief(b => ({ ...b, alternatives: e.target.value }))}
+                    placeholder="How do people solve it now?"
+                  />
+                  {briefSuggestions.alternatives && briefSuggestions.alternatives.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {briefSuggestions.alternatives.map((s,i) => (
+                        <button key={i} onClick={() => setBrief(b => ({ ...b, alternatives: s }))} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors">{s}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Monetization</label>
+                  <Input
+                    value={brief.monetization}
+                    onChange={(e) => setBrief(b => ({ ...b, monetization: e.target.value }))}
+                    placeholder="How will it make money?"
+                  />
+                  {briefSuggestions.monetization && briefSuggestions.monetization.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {briefSuggestions.monetization.map((s,i) => (
+                        <button key={i} onClick={() => setBrief(b => ({ ...b, monetization: s }))} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors">{s}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Primary Scenario</label>
+                  <Input
+                    value={brief.scenario}
+                    onChange={(e) => setBrief(b => ({ ...b, scenario: e.target.value }))}
+                    placeholder="When & how is it used?"
+                  />
+                  {briefSuggestions.scenario && briefSuggestions.scenario.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {briefSuggestions.scenario.map((s,i) => (
+                        <button key={i} onClick={() => setBrief(b => ({ ...b, scenario: s }))} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors">{s}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs font-medium">Success Metric</label>
+                  <Input
+                    value={brief.successMetric}
+                    onChange={(e) => setBrief(b => ({ ...b, successMetric: e.target.value }))}
+                    placeholder="What metric shows success?"
+                  />
+                  {briefSuggestions.successMetric && briefSuggestions.successMetric.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {briefSuggestions.successMetric.map((s,i) => (
+                        <button key={i} onClick={() => setBrief(b => ({ ...b, successMetric: s }))} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors">{s}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-muted-foreground">We generate a weighted PM-Fit score & improvement suggestions.</p>
+                <Button size="sm" onClick={runBriefAnalysis} disabled={isAnalyzing} className="gap-2">
+                  <BarChart className="h-4 w-4" />
+                  {analysisProgress > 0 && analysisProgress < 100 ? 'Analyzing...' : 'Generate Analysis'}
+                </Button>
+              </div>
+            </Card>
           )}
+          
+          {/* Current idea badge removed per request (idea still tracked internally) */}
 
           <div className="flex gap-2">
             <Input
@@ -1419,20 +1536,24 @@ export default function ChatGPTStyleChat({
             {/* Always visible Analyze button */}
             <Button
               onClick={() => {
-                // Use current input or existing idea for analysis
-                const ideaToAnalyze = currentIdea || input.trim();
-                if (ideaToAnalyze) {
-                  startAnalysis(ideaToAnalyze);
-                  if (input.trim() && !currentIdea) {
-                    setInput('');
-                  }
-                } else {
+                const ideaPresent = currentIdea || input.trim();
+                if (!ideaPresent) {
                   toast({
                     title: "No idea to analyze",
                     description: "Please enter your product idea first",
                     variant: "destructive"
                   });
+                  return;
                 }
+                if (!currentIdea && input.trim()) {
+                  setCurrentIdea(input.trim());
+                  generateTwoWordTitle(input.trim());
+                  if (!currentSession && user) {
+                    createSession(input.trim().split(/\s+/).slice(0,6).join(' '));
+                  }
+                  setInput('');
+                }
+                startAnalysis();
               }}
               disabled={isLoading || (!currentIdea && !input.trim())}
               size="icon"

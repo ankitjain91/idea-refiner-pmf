@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useAlerts } from '@/contexts/AlertContext';
 
 interface SessionState {
   currentPath: string;
@@ -29,8 +29,12 @@ interface SessionContextType {
   createSession: (context?: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
+  renameSession: (sessionId: string, name: string) => Promise<void>;
+  duplicateSession: (sessionId: string) => Promise<void>;
   saveCurrentState: () => Promise<void>;
   logActivity: (activity: any) => void;
+  isSaving: boolean;
+  lastSavedAt: Date | null;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -48,7 +52,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [currentSession, setCurrentSession] = useState<BrainstormingSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [activityBuffer, setActivityBuffer] = useState<any[]>([]);
-  const { toast } = useToast();
+  const interactionSaveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastSerializedStateRef = useRef<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const { addAlert } = useAlerts(); // Will only use for error cases now (silent success UX)
+  const renamingRef = useRef(false);
+  const duplicatingRef = useRef(false);
 
   // Load all sessions for the current user
   const loadSessions = useCallback(async () => {
@@ -83,23 +93,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({
-          title: 'Error',
-          description: 'You must be logged in to create sessions',
-          variant: 'destructive',
-        });
+        addAlert({ variant: 'error', title: 'Not authenticated', message: 'You must be logged in to create sessions', scope: 'session' });
         return;
       }
 
-      // Generate session name using edge function
-      const { data: nameData, error: nameError } = await supabase.functions.invoke(
-        'generate-session-name',
-        {
-          body: { context: context || 'Brainstorming session' }
-        }
-      );
-
-      const sessionName = nameData?.name || 'Session';
+      // Initial provisional session name (context snippet or generic)
+      const provisional = (context || 'Session').split(/\s+/).slice(0,2).join(' ');
+      const sessionName = provisional || 'Session';
 
       // Capture current state
       const currentState: SessionState = {
@@ -133,19 +133,25 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
 
       setCurrentSession(mappedSession);
+  try { localStorage.setItem('currentSessionId', mappedSession.id); } catch {}
       await loadSessions();
+      // If we have richer context, attempt async upgrade to AI-generated two-word title
+      if (context && context.length > 5) {
+        try {
+          const { data: titleData } = await supabase.functions.invoke('generate-session-title', { body: { idea: context } });
+          if (titleData?.title) {
+            await supabase.from('brainstorming_sessions').update({ name: titleData.title }).eq('id', mappedSession.id);
+            setCurrentSession(prev => prev ? { ...prev, name: titleData.title } : prev);
+          }
+        } catch (e) {
+          console.warn('AI title upgrade failed', e);
+        }
+      }
       
-      toast({
-        title: 'Session Created',
-        description: `New session "${sessionName}" has been created`,
-      });
+      // Silent success – no alert
     } catch (error) {
       console.error('Error creating session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create session',
-        variant: 'destructive',
-      });
+      addAlert({ variant: 'error', title: 'Create failed', message: 'Failed to create session', scope: 'session' });
     } finally {
       setLoading(false);
     }
@@ -154,6 +160,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Load a specific session
   const loadSession = async (sessionId: string) => {
     setLoading(true);
+  // Removed loading status announcement
     try {
       const { data, error } = await supabase
         .from('brainstorming_sessions')
@@ -171,21 +178,73 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
 
       setCurrentSession(mappedSession);
+  try { localStorage.setItem('currentSessionId', mappedSession.id); } catch {}
       
       // Restore session state
       const sessionState = mappedSession.state as any;
       if (sessionState) {
-        // Navigate to saved path
-        if (sessionState.currentPath) {
-          window.location.pathname = sessionState.currentPath;
-        }
-        
-        // Restore scroll position
+        // Determine desired path: always prefer dashboard for resumed sessions to show chat immediately
+        const allowedPersistPaths = ['/dashboard'];
+        const candidate = sessionState.currentPath;
+        const desired = allowedPersistPaths.includes(candidate) ? candidate : '/dashboard';
+        try { localStorage.setItem('sessionDesiredPath', desired); } catch {}
+        // Restore scroll position after React layout paint
         if (sessionState.scrollPosition) {
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             window.scrollTo(0, sessionState.scrollPosition);
-          }, 100);
+          });
         }
+        // Rehydrate chat history into localStorage so Chat component can pick it up
+        if (Array.isArray(sessionState.chatHistory)) {
+          try {
+            localStorage.setItem('chatHistory', JSON.stringify(sessionState.chatHistory));
+          } catch {}
+        }
+        if (sessionState.ideaData?.idea) {
+          localStorage.setItem('userIdea', sessionState.ideaData.idea);
+        }
+        // Restore richer idea + analysis state
+        try {
+          if (sessionState.ideaData?.answers) {
+            localStorage.setItem('userAnswers', JSON.stringify(sessionState.ideaData.answers));
+          }
+          if (sessionState.ideaData?.refinements) {
+            localStorage.setItem('userRefinements', JSON.stringify(sessionState.ideaData.refinements));
+          }
+          if (typeof sessionState.ideaData?.pmfScore !== 'undefined') {
+            localStorage.setItem('pmfScore', String(sessionState.ideaData.pmfScore || 0));
+          }
+          if (sessionState.ideaData?.analysisCompleted) {
+            localStorage.setItem('analysisCompleted', 'true');
+          }
+          if (sessionState.analysisData?.metadata) {
+            localStorage.setItem('ideaMetadata', JSON.stringify(sessionState.analysisData.metadata));
+          }
+          if (sessionState.analysisData?.features) {
+            localStorage.setItem('pmfFeatures', JSON.stringify(sessionState.analysisData.features));
+          }
+          if (sessionState.analysisData?.tabHistory) {
+            localStorage.setItem('pmfTabHistory', JSON.stringify(sessionState.analysisData.tabHistory));
+          }
+        } catch (e) {
+          console.warn('Failed to restore full analysis state', e);
+        }
+      }
+
+      // Optionally regenerate a richer composite title if current name is very short or generic
+      try {
+        const currentName = mappedSession.name || '';
+        const tooGeneric = currentName.length < 5 || ['session','ideas','concept','vision','analysis'].includes(currentName.toLowerCase());
+        if (tooGeneric && (sessionState?.chatHistory?.length || 0) > 0) {
+          const transcript = (sessionState.chatHistory as any[]).slice(-25).map(m => `${m.type === 'user' ? 'User' : 'Bot'}: ${m.content}`).join('\n');
+          const { data: compData } = await supabase.functions.invoke('generate-session-composite-name', { body: { transcript } });
+          if (compData?.title) {
+            await supabase.from('brainstorming_sessions').update({ name: compData.title }).eq('id', mappedSession.id);
+            setCurrentSession(prev => prev ? { ...prev, name: compData.title } : prev);
+          }
+        }
+      } catch (e) {
+        console.warn('Composite session name generation failed', e);
       }
 
       // Update last accessed
@@ -194,17 +253,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .update({ last_accessed: new Date().toISOString() })
         .eq('id', sessionId);
 
-      toast({
-        title: 'Session Loaded',
-        description: `Resumed session "${mappedSession.name}"`,
-      });
+      // Silent load – no alert
     } catch (error) {
       console.error('Error loading session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load session',
-        variant: 'destructive',
-      });
+      addAlert({ variant: 'error', title: 'Load failed', message: 'Failed to load session', scope: 'session' });
     } finally {
       setLoading(false);
     }
@@ -222,37 +274,129 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (currentSession?.id === sessionId) {
         setCurrentSession(null);
+        try { localStorage.removeItem('currentSessionId'); } catch {}
       }
       
       await loadSessions();
       
-      toast({
-        title: 'Session Deleted',
-        description: 'The session has been removed',
-      });
+      // Silent delete – no alert
     } catch (error) {
       console.error('Error deleting session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete session',
-        variant: 'destructive',
-      });
+      addAlert({ variant: 'error', title: 'Delete failed', message: 'Failed to delete session', scope: 'session' });
+    }
+  };
+
+  // Rename session
+  const renameSession = async (sessionId: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (renamingRef.current) return;
+    renamingRef.current = true;
+    try {
+      const { error } = await supabase
+        .from('brainstorming_sessions')
+        .update({ name: trimmed, last_accessed: new Date().toISOString() })
+        .eq('id', sessionId);
+      if (error) throw error;
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, name: trimmed } : s));
+      if (currentSession?.id === sessionId) {
+        setCurrentSession(prev => prev ? { ...prev, name: trimmed } : prev);
+      }
+  // Silent rename
+    } catch (e) {
+      console.error('Rename failed', e);
+  addAlert({ variant: 'error', title: 'Rename failed', message: 'Could not rename session', scope: 'session' });
+    } finally {
+      renamingRef.current = false;
+    }
+  };
+
+  // Duplicate session
+  const duplicateSession = async (sessionId: string) => {
+    if (duplicatingRef.current) return;
+    duplicatingRef.current = true;
+    try {
+      const base = sessions.find(s => s.id === sessionId);
+      if (!base) return;
+      const baseName = base.name || 'Session';
+      let candidate = `${baseName} Copy`;
+      let i = 2;
+      const names = new Set(sessions.map(s => s.name));
+      while (names.has(candidate) && i < 50) candidate = `${baseName} Copy ${i++}`;
+      const { data, error } = await supabase
+        .from('brainstorming_sessions')
+        .insert({
+          user_id: base.user_id,
+          name: candidate,
+          state: base.state,
+          activity_log: base.activity_log || [],
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      const mapped = { ...data, state: data.state || {}, activity_log: Array.isArray(data.activity_log) ? data.activity_log : [] };
+      setSessions(prev => [mapped, ...prev]);
+      setCurrentSession(mapped);
+      try { localStorage.setItem('currentSessionId', mapped.id); } catch {}
+  // Silent duplicate
+    } catch (e) {
+      console.error('Duplicate failed', e);
+  addAlert({ variant: 'error', title: 'Duplicate failed', message: 'Could not duplicate session', scope: 'session' });
+    } finally {
+      duplicatingRef.current = false;
     }
   };
 
   // Save current state
-  const saveCurrentState = async () => {
+  const saveCurrentState = async (force: boolean = false) => {
     if (!currentSession) return;
 
     try {
+      if (!isSaving) setIsSaving(true);
+      // Gather richer state from localStorage (graceful fallbacks)
+      const idea = localStorage.getItem('userIdea') || '';
+      const answers = localStorage.getItem('userAnswers');
+      const metadata = localStorage.getItem('ideaMetadata');
+      const refinements = localStorage.getItem('userRefinements');
+      const chatHistory = localStorage.getItem('chatHistory');
+      const pmfFeatures = localStorage.getItem('pmfFeatures');
+      const pmfTabHistory = localStorage.getItem('pmfTabHistory');
+      const analysisCompleted = localStorage.getItem('analysisCompleted') === 'true';
+  const pmfScoreRaw = localStorage.getItem('pmfScore');
+  const pmfScore = pmfScoreRaw ? parseInt(pmfScoreRaw) : 0;
+
+      const parsedAnswers = answers ? JSON.parse(answers) : {};
+      const parsedMetadata = metadata ? JSON.parse(metadata) : {};
+      const parsedRefinements = refinements ? JSON.parse(refinements) : [];
+      const parsedChat = chatHistory ? JSON.parse(chatHistory) : [];
+      const parsedFeatures = pmfFeatures ? JSON.parse(pmfFeatures) : [];
+      const parsedTabHistory = pmfTabHistory ? JSON.parse(pmfTabHistory) : [];
+
       const currentState: SessionState = {
         currentPath: window.location.pathname,
-        chatHistory: [],
-        ideaData: {},
-        analysisData: {},
+        chatHistory: parsedChat,
+        ideaData: {
+          idea,
+          answers: parsedAnswers,
+          refinements: parsedRefinements,
+          analysisCompleted,
+          pmfScore,
+        },
+        analysisData: {
+          metadata: parsedMetadata,
+          features: parsedFeatures,
+          tabHistory: parsedTabHistory
+        },
         scrollPosition: window.scrollY,
         timestamp: new Date().toISOString(),
       };
+
+      // Avoid redundant writes by comparing serialized state hash
+      const serialized = JSON.stringify(currentState);
+      if (!force && serialized === lastSerializedStateRef.current && activityBuffer.length === 0) {
+        return; // No changes
+      }
+      lastSerializedStateRef.current = serialized;
 
       // Merge activity buffer into activity log
       const updatedActivityLog = [...(currentSession.activity_log || []), ...activityBuffer];
@@ -269,11 +413,35 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (error) throw error;
       
       // Clear activity buffer after successful save
-      setActivityBuffer([]);
+      if (activityBuffer.length > 0) setActivityBuffer([]);
+      setLastSavedAt(new Date());
+  // Silence periodic session save announcement
     } catch (error) {
       console.error('Error saving session state:', error);
     }
+    finally {
+      // Slight delay to prevent flicker
+      setTimeout(() => setIsSaving(false), 250);
+    }
   };
+
+  // Debounced interaction-based save
+  useEffect(() => {
+    if (!currentSession) return;
+
+    const scheduleSave = () => {
+      if (interactionSaveTimeout.current) clearTimeout(interactionSaveTimeout.current);
+      interactionSaveTimeout.current = setTimeout(() => {
+        saveCurrentState();
+      }, 1500);
+    };
+
+    const events: (keyof DocumentEventMap)[] = ['click', 'keydown', 'input', 'scroll'];
+    events.forEach(evt => window.addEventListener(evt, scheduleSave, { passive: true }));
+    return () => {
+      events.forEach(evt => window.removeEventListener(evt, scheduleSave));
+    };
+  }, [currentSession, saveCurrentState]);
 
   // Log activity
   const logActivity = (activity: any) => {
@@ -287,7 +455,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setActivityBuffer(prev => [...prev, activityEntry]);
   };
 
-  // Auto-save every 30 seconds if there's an active session
+  // Timed auto-save every 30 seconds as a safety net
   useEffect(() => {
     if (!currentSession) return;
 
@@ -315,6 +483,18 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     loadSessions();
   }, [loadSessions]);
 
+  // Auto-load last active session on initial mount once sessions are fetched
+  useEffect(() => {
+    if (!currentSession && sessions.length > 0) {
+      try {
+        const lastId = localStorage.getItem('currentSessionId');
+        if (lastId && sessions.some(s => s.id === lastId)) {
+          loadSession(lastId);
+        }
+      } catch {}
+    }
+  }, [sessions, currentSession]);
+
   return (
     <SessionContext.Provider
       value={{
@@ -324,8 +504,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         createSession,
         loadSession,
         deleteSession,
+        renameSession,
+        duplicateSession,
         saveCurrentState,
         logActivity,
+        isSaving,
+        lastSavedAt,
       }}
     >
       {children}

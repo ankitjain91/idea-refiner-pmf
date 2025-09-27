@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { UserMenu } from "@/components/UserMenu";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { motion } from "framer-motion";
 
 export default function PricingPage() {
@@ -162,35 +164,27 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-background relative">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
+    <div className="min-h-screen flex w-full bg-background">
+      <AppSidebar />
       
-      {/* Navigation */}
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-4 left-4 z-50"
-      >
-        <Button
-          variant="ghost"
-          onClick={() => navigate(user ? '/dashboard' : '/')}
-          className="gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
-      </motion.div>
+      <div className="flex-1 flex flex-col h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div>
+              <h1 className="text-lg font-semibold">Pricing</h1>
+              <p className="text-xs text-muted-foreground">Choose your subscription plan</p>
+            </div>
+          </div>
+          <UserMenu />
+        </div>
+        
+        <div className="flex-1 overflow-auto bg-gradient-to-br from-primary/5 via-accent/5 to-background relative">
+          {/* Animated background elements */}
+          <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
 
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-4 right-4 z-50"
-      >
-        <UserMenu />
-      </motion.div>
-
-      <div className="container mx-auto px-6 py-24 relative z-10">
+          <div className="container mx-auto px-6 py-24 relative z-10">
         <motion.div 
           initial="initial"
           animate="animate"
@@ -327,6 +321,9 @@ export default function PricingPage() {
                         )}
                       </Button>
                     )}
+                    {loadingPlan === plan.tier && (
+                      <div className="absolute inset-0 rounded-lg pointer-events-none border-2 border-dashed border-primary/30 animate-pulse" />
+                    )}
                   </CardFooter>
                 </Card>
               </motion.div>
@@ -350,6 +347,8 @@ export default function PricingPage() {
             Refresh Status
           </Button>
         </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

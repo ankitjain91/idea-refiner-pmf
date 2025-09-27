@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { debounce } from 'lodash';
 
 interface SessionState {
@@ -16,7 +15,6 @@ interface SessionState {
 }
 
 export const useAutoSaveSession = (sessionId: string | null) => {
-  const { toast } = useToast();
   const stateRef = useRef<SessionState | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -132,11 +130,9 @@ export const useAutoSaveSession = (sessionId: string | null) => {
       }
     }, 100);
 
-    toast({
-      title: 'Session Restored',
-      description: 'Your previous state has been restored',
-    });
-  }, [toast]);
+    // Replaced toast with accessible status announcement only
+    try { window.dispatchEvent(new CustomEvent('status:announce', { detail: 'Session state restored' })); } catch {}
+  }, []);
 
   // Set up event listeners for auto-save
   useEffect(() => {

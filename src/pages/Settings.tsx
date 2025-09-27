@@ -15,8 +15,12 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useAlerts } from "@/contexts/AlertContext";
 import { Loader2, User, CreditCard, Bell, Shield, Globe, Building, MapPin, Link, Twitter, Linkedin, Phone, Mail, Calendar, Check, X, Crown, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { AppSidebar } from "@/components/AppSidebar";
+import { UserMenu } from "@/components/UserMenu";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface ProfileData {
   full_name: string;
@@ -39,6 +43,9 @@ export default function Settings() {
   const { subscription, checkSubscription } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { addAlert } = useAlerts();
+  const [inlineError, setInlineError] = useState<string | null>(null);
+  const [inlineSuccess, setInlineSuccess] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -105,13 +112,12 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('Error loading profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load profile data",
-        variant: "destructive",
-      });
+      setInlineError('Failed to load profile data');
+      addAlert({ variant: 'error', title: 'Profile load failed', message: 'Could not load profile data', scope: 'settings' });
     } finally {
       setLoading(false);
+  setInlineError(null);
+  addAlert({ variant: 'success', title: 'Profile saved', message: 'Your profile was updated', scope: 'settings', autoDismissMs: 4000 });
     }
   };
 
@@ -136,11 +142,9 @@ export default function Settings() {
       });
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save profile",
-        variant: "destructive",
-      });
+      setInlineError('Failed to save profile');
+      setInlineSuccess(null);
+      addAlert({ variant: 'error', title: 'Save failed', message: 'Could not save profile', scope: 'settings' });
     } finally {
       setSaving(false);
     }
@@ -159,11 +163,7 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('Error opening customer portal:', error);
-      toast({
-        title: "Error",
-        description: "Failed to open subscription management",
-        variant: "destructive",
-      });
+      addAlert({ variant: 'error', title: 'Portal error', message: 'Subscription portal failed to open', scope: 'settings' });
     } finally {
       setManagingSubscription(false);
     }
@@ -182,8 +182,19 @@ export default function Settings() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col gap-4 w-full max-w-md px-8">
+          <div className="space-y-2 text-center">
+            <div className="h-6 w-40 mx-auto rounded bg-muted animate-pulse" />
+            <div className="h-3 w-64 mx-auto rounded bg-muted/70 animate-pulse" />
+          </div>
+          <div className="grid gap-3">
+            <div className="h-24 rounded-lg bg-muted animate-pulse" />
+            <div className="h-24 rounded-lg bg-muted animate-pulse" />
+            <div className="h-24 rounded-lg bg-muted animate-pulse" />
+          </div>
+          <p className="text-xs text-muted-foreground text-center tracking-wide">{authLoading ? 'Authenticating…' : 'Loading profile…'}</p>
+        </div>
       </div>
     );
   }
@@ -191,12 +202,45 @@ export default function Settings() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-6xl mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-2">Manage your profile and subscription</p>
+    <div className="min-h-screen flex w-full bg-background">
+      <AppSidebar />
+      <div className="flex-1 flex flex-col h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div>
+              <h1 className="text-lg font-semibold">Settings</h1>
+              <p className="text-xs text-muted-foreground">Manage your profile and subscription</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {saving && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+              </span>
+            )}
+            <UserMenu />
+          </div>
         </div>
+        <div className="flex-1 overflow-auto">
+          <div className="container max-w-6xl mx-auto py-6 px-4 space-y-6">
+            {(inlineError || inlineSuccess) && (
+              <div className="space-y-2" role="status">
+                {inlineError && (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm flex justify-between items-start">
+                    <span className="text-destructive-foreground/90">{inlineError}</span>
+                    <button onClick={() => setInlineError(null)} className="text-xs opacity-70 hover:opacity-100">Dismiss</button>
+                  </div>
+                )}
+                {inlineSuccess && !inlineError && (
+                  <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm flex justify-between items-start">
+                    <span className="text-emerald-900 dark:text-emerald-200">{inlineSuccess}</span>
+                    <button onClick={() => setInlineSuccess(null)} className="text-xs opacity-70 hover:opacity-100">Dismiss</button>
+                  </div>
+                )}
+              </div>
+            )}
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-4">
@@ -623,6 +667,8 @@ export default function Settings() {
             </Card>
           </TabsContent>
         </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -192,6 +192,12 @@ verify_jwt = true
 [functions.generate-session-name]
 verify_jwt = true
 
+[functions.generate-session-title]
+verify_jwt = true
+
+[functions.generate-session-composite-name]
+verify_jwt = true
+
 [functions.idea-chat]
 verify_jwt = true
 

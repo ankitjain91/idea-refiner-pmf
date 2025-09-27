@@ -1,35 +1,146 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import PMFAnalyzer from "@/components/PMFAnalyzer";
-import ChatGPTStyleChat from "@/components/ChatGPTStyleChat";
+import { Suspense, lazy } from 'react';
 import { UserMenu } from "@/components/UserMenu";
 import { AppSidebar } from "@/components/AppSidebar";
-import HelpSupport from "@/components/HelpSupport";
-import EnhancedPMFDashboard from "@/components/EnhancedPMFDashboard";
+import ResizableSplit from '@/components/layout/ResizableSplit';
+const EnhancedPMFDashboard = lazy(() => import('@/components/EnhancedPMFDashboard'));
+const HelpSupport = lazy(() => import('@/components/HelpSupport'));
 
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SessionContext";
 import { useAutoSaveSession } from "@/hooks/useAutoSaveSession";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, BarChart, Sparkles, CheckCircle, HelpCircle } from "lucide-react";
+import { Loader2, BarChart, Sparkles, CheckCircle, HelpCircle, Activity, Brain, Database, CloudDownload, ListChecks, ChevronUp, ChevronDown } from "lucide-react";
+import DashboardRealDataPanel from '@/components/dashboard/DashboardRealDataPanel';
+import EngagingLoader from '@/components/engagement/EngagingLoader';
+import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { currentSession, createSession, sessions } = useSession();
-  const [chatKey, setChatKey] = useState(0);
-  const [showAnalysisDashboard, setShowAnalysisDashboard] = useState(false);
+  const { currentSession, createSession, sessions, loadSession, isSaving, lastSavedAt, loading: sessionLoading } = useSession();
   const [analysisData, setAnalysisData] = useState<any>(null);
-  const [dashboardHeight, setDashboardHeight] = useState("50%");
+  // dashboard panel toggle state replaced by resizable split ratio
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [showHelpSupport, setShowHelpSupport] = useState(false);
   const sessionCreatedRef = useRef(false);
+  const [sessionReloading, setSessionReloading] = useState(false);
+  const [showOverlayLoader, setShowOverlayLoader] = useState(false);
+  const [sessionLoadProgress, setSessionLoadProgress] = useState(0);
+  const [factIndex, setFactIndex] = useState(0);
+  const [loaderDetail, setLoaderDetail] = useState<string>('Initializing');
+  const factIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const stageIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Collapsible App Bar
+  const [appBarCollapsed, setAppBarCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem('dashboardAppBarCollapsed') === 'true'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('dashboardAppBarCollapsed', String(appBarCollapsed)); } catch {}
+  }, [appBarCollapsed]);
+
+  const PRODUCT_FACTS = [
+    'Ideas with clear niche focus often reach first 100 users 2x faster.',
+    'Refining positioning early can reduce wasted feature dev by ~30%.',
+    'Startups that talk to 10 users before building retain 70% more.',
+    'A narrow “who it is NOT for” statement accelerates clarity.',
+    'User phrased problem statements outperform internal phrasing.',
+    'Consistent language in landing + product boosts trust conversion.',
+    'Sharpening value prop copy is often higher ROI than a new feature.',
+    'Early churn reasons inform your next messaging iteration.',
+    'A metric instrumentation plan prevents blind scaling decisions.',
+    '“What surprised you?” is a power user interview question.',
+    'High-friction onboarding can still win if aha-moment is undeniable.',
+    'Retention > Acquisition: PMF signals hide in week 2 usage patterns.',
+    'Users rarely lack features; they lack perceived outcomes.',
+    'Premium features discovered organically convert better than gating.',
+    'A crisp tagline is an artifact of clarity, not a precursor to it.',
+  ];
+
+  const LOAD_STAGES = [
+    { label: 'Validating auth & context', weight: 8, icon: <Activity className='h-3 w-3 text-primary' /> },
+    { label: 'Fetching session record', weight: 22, icon: <Database className='h-3 w-3 text-primary' /> },
+    { label: 'Rehydrating conversation', weight: 18, icon: <Brain className='h-3 w-3 text-primary' /> },
+    { label: 'Restoring idea + metadata', weight: 16, icon: <CloudDownload className='h-3 w-3 text-primary' /> },
+    { label: 'Preparing analysis panels', weight: 14, icon: <BarChart className='h-3 w-3 text-primary' /> },
+    { label: 'Stitching UI layout', weight: 12, icon: <ListChecks className='h-3 w-3 text-primary' /> },
+    { label: 'Finalizing & polishing', weight: 10, icon: <Sparkles className='h-3 w-3 text-primary' /> },
+  ];
+
+  // Simulated progressive loader when session loading flag active
+  useEffect(() => {
+    const active = sessionLoading || sessionReloading;
+    if (active) {
+      // Delay showing overlay to prevent flash on ultra-fast operations
+      const delay = setTimeout(() => setShowOverlayLoader(true), 220);
+      // Reset state
+      setSessionLoadProgress(3);
+      setLoaderDetail('Initializing');
+      let accumulated = 0;
+      const totalWeight = LOAD_STAGES.reduce((a, s) => a + s.weight, 0);
+      // Sequential staged progress
+      let stageIdx = 0;
+      stageIntervalRef.current = setInterval(() => {
+        if (stageIdx < LOAD_STAGES.length) {
+          const stage = LOAD_STAGES[stageIdx];
+            accumulated += stage.weight;
+            setLoaderDetail(stage.label);
+            setSessionLoadProgress(Math.min(97, Math.round((accumulated / totalWeight) * 100)));
+            stageIdx++;
+        }
+      }, 600);
+      // Facts rotation every 5s
+      factIntervalRef.current = setInterval(() => {
+        setFactIndex(prev => (prev + 1) % PRODUCT_FACTS.length);
+      }, 5000);
+    } else {
+      // Complete
+      if (sessionLoadProgress > 0) {
+        setLoaderDetail('Done');
+        setSessionLoadProgress(100);
+        const t = setTimeout(() => {
+          setSessionLoadProgress(0);
+          setLoaderDetail('');
+          setShowOverlayLoader(false);
+        }, 600);
+        return () => clearTimeout(t);
+      }
+      setShowOverlayLoader(false);
+    }
+    return () => {
+      if (factIntervalRef.current) clearInterval(factIntervalRef.current);
+      if (stageIntervalRef.current) clearInterval(stageIntervalRef.current);
+    };
+  }, [sessionLoading, sessionReloading]);
+
+  // Realtime updates: soft-refresh current session data if updated elsewhere
+  useEffect(() => {
+    if (!user || !currentSession) return;
+    const channel = supabase
+      .channel('dashboard-session-watch')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'brainstorming_sessions', filter: `id=eq.${currentSession.id}` },
+        async () => {
+          try {
+            setSessionReloading(true);
+            await loadSession(currentSession.id);
+          } finally {
+            setTimeout(() => setSessionReloading(false), 500);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, currentSession, loadSession]);
   
   // Use auto-save hook
   const { saveState, restoreState } = useAutoSaveSession(currentSession?.id || null);
@@ -44,7 +155,8 @@ const Dashboard = () => {
       // Create session if user starts typing an idea
       if (idea && idea.length > 5) {
         sessionCreatedRef.current = true;
-        await createSession('New idea exploration');
+        const snippet = idea.split(/\s+/).slice(0,6).join(' ');
+        await createSession(snippet);
       }
     };
 
@@ -54,9 +166,42 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [user, currentSession, createSession]);
 
-  // Set up real-time session updates
+  // Set up real-time session updates with fast reload
   useEffect(() => {
     if (!user) return;
+
+    let rafId: number;
+    
+    // Fast state reload using requestAnimationFrame
+    const fastStateReload = () => {
+      const sessionId = localStorage.getItem('currentSessionId');
+      const idea = localStorage.getItem('userIdea');
+      const answers = localStorage.getItem('userAnswers');
+      const metadata = localStorage.getItem('ideaMetadata');
+      const analysisCompleted = localStorage.getItem('analysisCompleted');
+      
+      if (sessionId && sessionId !== currentSessionId) {
+        setCurrentSessionId(sessionId);
+        
+        if (idea && analysisCompleted === 'true') {
+          const parsedAnswers = answers ? JSON.parse(answers) : {};
+          const parsedMetadata = metadata ? JSON.parse(metadata) : {};
+          
+          setAnalysisData({ 
+            idea, 
+            metadata: { 
+              ...parsedMetadata, 
+              answers: parsedAnswers 
+            } 
+          });
+          // analysis data will trigger display automatically in analysis-only layout
+        }
+      }
+      
+      rafId = window.requestAnimationFrame(fastStateReload);
+    };
+    
+    rafId = window.requestAnimationFrame(fastStateReload);
 
     const channel = supabase
       .channel('session-changes')
@@ -76,9 +221,10 @@ const Dashboard = () => {
       .subscribe();
 
     return () => {
+      window.cancelAnimationFrame(rafId);
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, currentSessionId]);
   
   // Restore session state when session changes
   useEffect(() => {
@@ -100,7 +246,7 @@ const Dashboard = () => {
             answers: JSON.parse(answers || '{}') 
           } 
         });
-        setShowAnalysisDashboard(true);
+  // analysis-only layout picks up analysisData automatically
       }
     }
   }, [currentSession, currentSessionId, restoreState]);
@@ -112,43 +258,26 @@ const Dashboard = () => {
     }
   }, [user, loading, navigate]);
 
+  // Navigate to desired path after session load without full reload
+  useEffect(() => {
+    if (!currentSession) return;
+    const desired = '/dashboard'; // force canonical route for session view
+    if (window.location.pathname !== desired) {
+      navigate(desired, { replace: true });
+    }
+  }, [currentSession, navigate]);
+
   const handleAnalysisReady = (idea: string, metadata: any) => {
     setAnalysisData({ idea, metadata });
-    setShowAnalysisDashboard(true);
-    
-    // Store analysis data in localStorage for PMFAnalyzer
     localStorage.setItem('pmfCurrentIdea', idea);
     localStorage.setItem('userAnswers', JSON.stringify(metadata.answers || {}));
     localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
     localStorage.setItem('analysisCompleted', 'true');
-    
-    // Trigger auto-save
-    if (currentSession) {
-      saveState(true);
-    }
+    if (currentSession) saveState(true);
   };
 
   const handleNewChat = () => {
-    // Clear all storage and reset state
-    localStorage.removeItem('currentSessionId');
-    localStorage.removeItem('userIdea');
-    localStorage.removeItem('userAnswers');
-    localStorage.removeItem('userRefinements');
-    localStorage.removeItem('ideaMetadata');
-    localStorage.removeItem('pmfCurrentIdea');
-    localStorage.removeItem('pmfTabHistory');
-    localStorage.removeItem('pmfFeatures');
-    localStorage.removeItem('pmfAuthMethod');
-    localStorage.removeItem('pmfTheme');
-    localStorage.removeItem('pmfScreens');
-    localStorage.removeItem('chatHistory');
-    localStorage.removeItem('analysisCompleted');
-    
-    setChatKey((k) => k + 1);
-    setShowAnalysisDashboard(false);
-    setAnalysisData(null);
-    setDashboardHeight("50%");
-    setCurrentSessionId(null);
+    navigate('/ideachat');
   };
   
   // Show loading while checking auth
@@ -173,149 +302,168 @@ const Dashboard = () => {
   }
   
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="min-h-screen flex w-full bg-background/40 backdrop-fade">
       <AppSidebar onNewChat={handleNewChat} />
       
-      <div className="flex-1 flex flex-col h-screen">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-lg font-semibold">PM-Fit Analyzer</h1>
-              <p className="text-xs text-muted-foreground">
-                {showAnalysisDashboard ? 'Analysis Dashboard' : 'Chat Assistant'}
-              </p>
+      <div className="flex-1 flex flex-col h-screen gap-0">
+        {/* Header with loading bar */}
+        <div
+          className={cn(
+            "flex items-stretch justify-between px-4 sm:px-6 border-b glass-super-surface sticky top-0 z-40 backdrop-fade transition-all duration-300",
+            appBarCollapsed ? 'py-1 h-11' : 'py-3'
+          )}
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <button
+              onClick={() => setAppBarCollapsed(c => !c)}
+              aria-label={appBarCollapsed ? 'Expand app bar' : 'Collapse app bar'}
+              className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-border/50 hover:bg-muted/50 transition-colors"
+            >
+              {appBarCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </button>
+            <div className="flex flex-col flex-1 min-w-0">
+              <div className="group flex items-center gap-2 min-w-0">
+                <h1
+                  className={cn(
+                    'text-sm sm:text-base font-semibold cursor-pointer flex-1 min-w-0 text-glow break-words tracking-tight',
+                    sessionReloading && 'opacity-70'
+                  )}
+                  title={currentSession ? `Click to reload session: ${currentSession.name}` : 'No session yet'}
+                  onClick={async () => {
+                    if (!currentSession) return;
+                    try { setSessionReloading(true); await loadSession(currentSession.id); } finally { setTimeout(() => setSessionReloading(false), 600); }
+                  }}
+                >
+                  <span className="inline-block align-top max-w-full truncate [direction:rtl] [unicode-bidi:plaintext]">
+                    {(currentSession?.name || 'Session')}
+                  </span>
+                  {sessionReloading && <Loader2 className='inline-block ml-1 h-4 w-4 animate-spin text-primary align-middle' />}
+                </h1>
+                {!appBarCollapsed && currentSession && isSaving && (
+                  <Loader2 className='h-3 w-3 animate-spin text-muted-foreground' />
+                )}
+              </div>
+              {!appBarCollapsed && (
+                <p className='text-[11px] sm:text-xs text-muted-foreground mt-0.5'>
+                  Analysis Dashboard
+                  {currentSession && (
+                    <span className='ml-2 inline-flex items-center gap-1 text-[10px] tracking-wide'>
+                      {isSaving ? (
+                        <>
+                          <Loader2 className='h-3 w-3 animate-spin' />
+                          Saving…
+                        </>
+                      ) : lastSavedAt ? (
+                        <>
+                          <span className='inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse' />
+                          Saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </>
+                      ) : null}
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className={cn("flex items-center gap-2 transition-all", appBarCollapsed && 'gap-1')}>
+            {!appBarCollapsed && <ThemeToggle />}
             <Button
-              onClick={() => {
-                setShowAnalysisDashboard(!showAnalysisDashboard);
-                setDashboardHeight("50%");
-              }}
-              variant={showAnalysisDashboard ? "default" : "outline"}
-              size="sm"
-              className="gap-2"
+              onClick={() => navigate('/ideachat')}
+              variant={appBarCollapsed ? 'ghost' : 'outline'}
+              size={appBarCollapsed ? 'icon' : 'sm'}
+              className={cn('gap-2', appBarCollapsed && 'h-7 w-7')}
+              aria-label="Open Idea Chat"
+              title="Open Idea Chat"
             >
-              <BarChart className="h-4 w-4" />
-              {showAnalysisDashboard ? 'Hide' : 'Show'} Dashboard
+              <Brain className="h-4 w-4" />
+              {!appBarCollapsed && <span>Idea Chat</span>}
             </Button>
-            <UserMenu />
+            <div className={cn(appBarCollapsed && 'scale-90 origin-right')}>
+              <UserMenu />
+            </div>
+          </div>
+          {sessionLoadProgress > 0 && (
+            <div className="absolute left-0 bottom-0 w-full h-px overflow-hidden bg-border/40">
+              <div
+                className="h-full bg-primary/70 transition-[width] duration-300 ease-out"
+                style={{ width: `${sessionLoadProgress}%` }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Analysis Only Content */}
+        <div className="flex-1 flex flex-col overflow-hidden relative px-4 py-4 gap-4">
+          {showOverlayLoader && <EngagingLoader active={true} scope='dashboard' />}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 flex-1 overflow-auto">
+            <div className="xl:col-span-2 flex flex-col gap-4">
+              <div className="rounded-xl glass-super-surface elevation-1 p-4 border">
+                <h2 className="text-sm font-semibold mb-1 tracking-wide uppercase text-muted-foreground">Current Session</h2>
+                {currentSession ? (
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium">{currentSession.name}</p>
+                    <p className="text-xs text-muted-foreground">Last accessed: {new Date(currentSession.last_accessed).toLocaleString()}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No session loaded. Start in Idea Chat.</p>
+                )}
+                <div className="mt-3">
+                  <Button size='sm' variant='outline' onClick={() => navigate('/ideachat')}>Open Idea Chat</Button>
+                </div>
+              </div>
+              <div className="rounded-xl glass-super-surface elevation-1 p-4 flex-1 flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-semibold">Analysis Dashboard</h2>
+                  <Button size='sm' variant='ghost' onClick={() => navigate('/ideachat')}>Back to Chat</Button>
+                </div>
+                <div className="flex-1 overflow-auto">
+                  <Suspense fallback={<div className='flex items-center justify-center h-full text-sm text-muted-foreground'>Loading analysis…</div>}>
+                    {analysisData ? (
+                      <EnhancedPMFDashboard idea={analysisData.idea} userAnswers={analysisData.metadata?.answers || {}} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="grid gap-6 w-full max-w-2xl px-6">
+                          <div className="flex flex-col gap-4">
+                            <div className="skeleton h-8 w-64 rounded-md" />
+                            <div className="skeleton h-4 w-96 rounded" />
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="skeleton h-24 rounded-xl" />
+                            <div className="skeleton h-24 rounded-xl" />
+                            <div className="skeleton h-24 rounded-xl" />
+                          </div>
+                          <div className="skeleton h-40 rounded-xl" />
+                          <div className="skeleton h-32 rounded-xl" />
+                          <p className="text-center text-sm text-muted-foreground">Run an analysis in Idea Chat to see insights here.</p>
+                        </div>
+                      </div>
+                    )}
+                  </Suspense>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="rounded-xl glass-super-surface elevation-1 p-4 border">
+                <h2 className="text-sm font-semibold mb-2 uppercase tracking-wide text-muted-foreground">Tips</h2>
+                <ul className="text-xs space-y-2 list-disc pl-4 text-muted-foreground/90">
+                  <li>Refine your idea iteratively—small changes compound.</li>
+                  <li>Capture user phrasing; reuse it in positioning.</li>
+                  <li>Track when clarity increases retention markers.</li>
+                </ul>
+              </div>
+              <DashboardRealDataPanel idea={analysisData?.idea || localStorage.getItem('userIdea') || undefined} />
+              <div className="rounded-xl glass-super-surface elevation-1 p-4 border">
+                <h2 className="text-sm font-semibold mb-2 uppercase tracking-wide text-muted-foreground">Next Actions</h2>
+                <div className="space-y-2 text-xs">
+                  <p>- Run competitor differentiation analysis (coming soon)</p>
+                  <p>- Attach qualitative interview snippets</p>
+                  <p>- Enrich with early adopter segmentation</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-
-        {/* Main Content - Vertical Stack */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          {/* Chat Section - Shrinks/hides when dashboard expands */}
-          <motion.div 
-            className="flex flex-col overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ 
-              opacity: dashboardHeight === "100%" ? 0 : 1,
-              height: dashboardHeight === "100%" ? "0%" : showAnalysisDashboard ? `calc(100% - ${dashboardHeight})` : "100%",
-              display: dashboardHeight === "100%" ? "none" : "flex"
-            }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            <ChatGPTStyleChat 
-              key={chatKey} 
-              onAnalysisReady={handleAnalysisReady}
-              showDashboard={showAnalysisDashboard}
-            />
-          </motion.div>
-
-          {/* Analysis Dashboard - Bottom Panel */}
-          <AnimatePresence>
-            {showAnalysisDashboard && (
-              <motion.div
-                ref={dashboardRef}
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ 
-                  height: dashboardHeight, 
-                  opacity: 1,
-                  position: dashboardHeight === "100%" ? "absolute" : "relative",
-                  top: dashboardHeight === "100%" ? 0 : "auto",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  zIndex: dashboardHeight === "100%" ? 10 : 1
-                }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="border-t bg-background overflow-hidden flex flex-col"
-              >
-                <div className="p-4 border-b bg-background/95 backdrop-blur sticky top-0 z-10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg font-semibold">Analysis Dashboard</h2>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {analysisData 
-                          ? `Real-time insights for: ${analysisData.idea}`
-                          : 'Complete the analysis to see insights'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={analysisData ? "default" : "secondary"} className="gap-1">
-                        <Sparkles className="h-3 w-3" />
-                        {analysisData ? 'Live Analysis' : 'Awaiting Data'}
-                      </Badge>
-                      {dashboardHeight === "100%" && (
-                        <Button
-                          onClick={() => setDashboardHeight("50%")}
-                          size="sm"
-                          variant="default"
-                        >
-                          Show Chat
-                        </Button>
-                      )}
-                      {dashboardHeight === "50%" && (
-                        <Button
-                          onClick={() => setDashboardHeight("100%")}
-                          size="sm"
-                          variant="outline"
-                        >
-                          Full Screen
-                        </Button>
-                      )}
-                      <Button
-                        onClick={() => {
-                          setShowAnalysisDashboard(false);
-                          setDashboardHeight("50%");
-                        }}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Hide Dashboard
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex-1 overflow-auto p-4">
-                  {analysisData ? (
-                    <EnhancedPMFDashboard 
-                      idea={analysisData.idea}
-                      userAnswers={analysisData.metadata?.answers || {}}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center space-y-4 max-w-md">
-                        <BarChart className="h-16 w-16 text-muted-foreground/30 mx-auto" />
-                        <h3 className="text-lg font-medium">Complete Analysis to See Dashboard</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Enter your product idea and complete the 5-question analysis to generate comprehensive insights with real market data and sources.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
       </div>
-      
       {/* Help & Support Chat Window */}
       {showHelpSupport && (
         <motion.div
