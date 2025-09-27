@@ -300,6 +300,36 @@ export type Database = {
           },
         ]
       }
+      startup_idea_suggestions: {
+        Row: {
+          category: string | null
+          created_at: string
+          difficulty_level: string | null
+          id: string
+          idea_text: string
+          is_active: boolean | null
+          target_audience: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          difficulty_level?: string | null
+          id?: string
+          idea_text: string
+          is_active?: boolean | null
+          target_audience?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          difficulty_level?: string | null
+          id?: string
+          idea_text?: string
+          is_active?: boolean | null
+          target_audience?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -407,6 +437,18 @@ export type Database = {
       check_email_exists: {
         Args: { email_to_check: string }
         Returns: boolean
+      }
+      get_random_startup_ideas: {
+        Args: { limit_count?: number }
+        Returns: {
+          category: string | null
+          created_at: string
+          difficulty_level: string | null
+          id: string
+          idea_text: string
+          is_active: boolean | null
+          target_audience: string | null
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
