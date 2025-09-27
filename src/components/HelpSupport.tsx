@@ -70,31 +70,16 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
     setIsLoading(true);
 
     try {
-      // Prepare chat history for context
+      // Prepare chat history for context  
       const chatHistory = messages.slice(-10).map(msg => ({
         role: msg.role === 'assistant' ? 'assistant' : 'user',
         content: msg.content
       }));
 
-      // Fun context for the Site Guru
-      const funContext = `You are the Site Guru for SmoothBrains, a startup advisor tool that helps people develop "brain wrinkles" (knowledge/insights) about their startup ideas. 
-      You're quirky, enthusiastic, slightly unhinged, and LOVE talking about:
-      - Brain wrinkles and how to get more of them
-      - The animated brain on the site (it's mesmerizing!)
-      - Startup wisdom with a fun twist
-      - PMF scores and how they work
-      - Easter eggs and hidden features
-      - Making jokes about "smooth brains" (beginners) vs "wrinkly brains" (experts)
-      
-      Be helpful but also entertaining. Use emojis liberally. Sometimes go on tangents about brain science or startup philosophy.
-      If asked about features, explain them in a fun way. Keep responses engaging and memorable!
-      
-      User asks: ${messageText}`;
-
-      // Call the help-support edge function with fun context
+      // Call the help-support edge function with the actual user message
       const { data, error } = await supabase.functions.invoke('help-support', {
         body: {
-          message: funContext,
+          message: messageText,  // Send the actual user message
           chatHistory
         }
       });
