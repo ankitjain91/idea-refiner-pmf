@@ -665,8 +665,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto font-light"
           >
-            Educational market analysis tool using public data aggregation. Results are estimates for learning purposes. 
-            Not financial or legal advice. Individual results may vary.*
+            Powered by real market data. Trusted by smart founders. Built for serious entrepreneurs.
           </motion.p>
 
           <motion.div 
