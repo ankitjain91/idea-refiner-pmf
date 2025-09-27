@@ -47,9 +47,9 @@ export default function LandingPage() {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
       
-      // If already authenticated, redirect to dashboard
+      // If already authenticated, redirect to where they came from or ideachat
       if (session) {
-        navigate(redirectPath || '/dashboard', { replace: true });
+        navigate(redirectPath || '/ideachat', { replace: true });
       }
     };
     checkAuth();
@@ -58,8 +58,8 @@ export default function LandingPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
       if (event === 'SIGNED_IN' && session) {
-        // Navigate to redirect path or dashboard
-        navigate(redirectPath || '/dashboard', { replace: true });
+        // Navigate to redirect path or ideachat
+        navigate(redirectPath || '/ideachat', { replace: true });
       }
     });
 
