@@ -1,3 +1,4 @@
+import { LS_KEYS } from '@/lib/storage-keys';
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,7 +61,7 @@ const APP_LOCALSTORAGE_KEYS = [
   'userIdea',
   'userAnswers',
   'ideaMetadata',
-  'analysisCompleted',
+  LS_KEYS.analysisCompleted,
   'analysisResults',
   'pmfScore',
   'userRefinements',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +54,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { DashboardCategoryTiles, CategoryTileData } from './DashboardCategoryTiles';
 
 interface PMFDashboardTabsProps {
   idea: string;
@@ -74,6 +75,8 @@ export default function PMFDashboardTabs({
   const [insights, setInsights] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<Record<string, string>>({});
+  const [prefetching, setPrefetching] = useState(false);
+  const [refreshing, setRefreshing] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   const categories = [
@@ -99,6 +102,13 @@ export default function PMFDashboardTabs({
       if (response.error) throw response.error;
       
       setInsights(prev => ({ ...prev, [category]: response.data.insights }));
+      try {
+        const cacheKey = `pmf.insights.${idea}`;
+        const existing = sessionStorage.getItem(cacheKey);
+        const parsed = existing ? JSON.parse(existing) : {};
+        parsed[category] = response.data.insights;
+        sessionStorage.setItem(cacheKey, JSON.stringify(parsed));
+      } catch {}
     } catch (err) {
       console.error(`Error fetching ${category} insights:`, err);
       setError(prev => ({ ...prev, [category]: 'Failed to load insights. Please try again.' }));
@@ -112,12 +122,151 @@ export default function PMFDashboardTabs({
     }
   };
 
+  // Load cached insights first (optimistic) then parallel refresh.
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      const cacheKey = `pmf.insights.${idea}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setInsights(prev => ({ ...parsed }));
+      }
+    } catch {}
+    const prefetch = async () => {
+      setPrefetching(true);
+      const tasks = categories.map(c => fetchInsights(c.key));
+      await Promise.allSettled(tasks);
+      if (!cancelled) setPrefetching(false);
+    };
+    prefetch();
+    return () => { cancelled = true; };
+  }, [idea]);
+
+  const refreshCategory = async (id: string) => {
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return;
+    setRefreshing(prev => ({ ...prev, [cat.key]: true }));
+    try {
+      await fetchInsights(cat.key, true);
+    } finally {
+      setRefreshing(prev => ({ ...prev, [cat.key]: false }));
+    }
+  };
+  // Load data when switching tabs (if not already prefetched / cached)
   useEffect(() => {
     const activeCategory = categories.find(c => c.id === activeTab)?.key;
-    if (activeCategory) {
-      fetchInsights(activeCategory);
-    }
+    if (activeCategory) fetchInsights(activeCategory);
   }, [activeTab, idea]);
+
+  const parseNumber = (str: string): number | null => {
+    if (!str) return null;
+    const m = String(str).replace(/,/g,'').match(/([0-9]+(?:\.[0-9]+)?)/);
+    return m ? parseFloat(m[1]) : null;
+  };
+  const computeHealth = (key: string, data: any): 'good' | 'warn' | 'poor' | 'neutral' => {
+    if (!data) return 'neutral';
+    switch (key) {
+      case 'market_analysis': {
+        const growthStr = data.marketSize?.growth || '';
+        const num = parseNumber(growthStr);
+        if (num == null) return 'neutral';
+        if (num >= 20) return 'good';
+        if (num >= 10) return 'warn';
+        return 'poor';
+      };
+      case 'customer_insights': {
+        const count = (data.segments || []).length;
+        if (count >= 4) return 'good';
+        if (count >= 2) return 'warn';
+        return 'poor';
+      }
+      case 'pain_points': {
+        const pts = data.painPoints || [];
+        const severe = pts.reduce((m: number, p: any) => Math.max(m, p.severity || 0), 0);
+        if (severe >= 8) return 'good';
+        if (severe >= 5) return 'warn';
+        return 'neutral';
+      }
+      case 'monetization': {
+        const ue = data.unitEconomics;
+        const cac = parseNumber(ue?.cac);
+        const ltv = parseNumber(ue?.ltv);
+        if (cac && ltv) {
+          const ratio = ltv / cac;
+          if (ratio >= 3) return 'good';
+          if (ratio >= 1.5) return 'warn';
+          return 'poor';
+        }
+        return 'neutral';
+      }
+      case 'competitive_analysis': {
+        const comps = data.competitors || [];
+        if (comps.length <= 1) return 'good';
+        if (comps.length <= 4) return 'warn';
+        return 'poor';
+      }
+      case 'growth_strategy': {
+        const channels = data.channels || [];
+        if (channels.length >= 4) return 'good';
+        if (channels.length >= 2) return 'warn';
+        return 'neutral';
+      }
+      default:
+        return 'neutral';
+    }
+  };
+
+  const buildSummary = useCallback((key: string, data: any): { value: string; sub?: string } | undefined => {
+    if (!data) return undefined;
+    switch (key) {
+      case 'market_analysis': {
+        const size = data.marketSize?.total || '—';
+        const growth = data.marketSize?.growth || '';
+        return { value: size, sub: growth ? `${growth} CAGR` : undefined };
+      }
+      case 'customer_insights': {
+        const segments = data.segments || [];
+        return { value: `${segments.length} segments`, sub: segments[0]?.name || undefined };
+      }
+      case 'pain_points': {
+        const pts = data.painPoints || [];
+        const severe = pts.reduce((m: number, p: any) => Math.max(m, p.severity || 0), 0);
+        return { value: `${pts.length} pains`, sub: severe ? `Top severity ${severe}/10` : undefined };
+      }
+      case 'monetization': {
+        const pm = data.pricingModels?.[0];
+        const price = pm?.price || '—';
+        const ue = data.unitEconomics;
+        const ratio = ue?.cac && ue?.ltv ? `LTV/CAC ${parseFloat(ue.ltv)/parseFloat(ue.cac)}` : undefined;
+        return { value: price, sub: ratio };
+      }
+      case 'competitive_analysis': {
+        const comps = data.competitors || [];
+        return { value: `${comps.length || 0} competitors` };
+      }
+      case 'growth_strategy': {
+        const channels = data.channels || [];
+        return { value: channels.length ? `${channels.length} channels` : 'Not loaded' };
+      }
+      default:
+        return undefined;
+    }
+  }, []);
+
+  const tiles: CategoryTileData[] = categories.map(c => {
+    const key = c.key;
+    return {
+      id: c.id,
+      label: c.label,
+      icon: c.icon,
+      loading: !!loading[key] || (prefetching && !insights[key] && !error[key]),
+      health: computeHealth(key, insights[key]),
+      refreshing: !!refreshing[key],
+      error: error[key],
+      summary: buildSummary(key, insights[key])
+    };
+  });
 
   const renderLoadingState = (message: string) => (
     <div className="flex flex-col items-center justify-center h-64 space-y-4">
@@ -936,7 +1085,14 @@ export default function PMFDashboardTabs({
 
   return (
     <div className="w-full">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      {/* Category overview tiles */}
+      <DashboardCategoryTiles
+        tiles={tiles}
+        activeId={activeTab}
+        onSelect={(id) => setActiveTab(id)}
+  onRefresh={refreshCategory}
+      />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4">
         <TabsList className="grid w-full grid-cols-6 mb-6">
           {categories.map(cat => (
             <TabsTrigger 

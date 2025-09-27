@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { LS_KEYS } from '@/lib/storage-keys';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -325,7 +326,7 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
       // Store complete analysis data in localStorage for dashboard
       localStorage.setItem('pmfAnalysisData', JSON.stringify(pmfAnalysis));
       localStorage.setItem('userIdea', answers[0] || ideaDescription);
-      localStorage.setItem('analysisCompleted', 'true');
+  try { localStorage.setItem(LS_KEYS.analysisCompleted, 'true'); } catch {}
       
       // Add analysis complete message
       const analysisMessage: Message = {

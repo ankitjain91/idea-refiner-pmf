@@ -31,6 +31,7 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { BRAND } from '@/branding';
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SessionContext";
+import { LS_KEYS } from '@/lib/storage-keys';
 import { useAlerts } from "@/contexts/AlertContext";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +49,12 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
   const isOpen = open !== false;
   const { user } = useAuth();
   const { subscription } = useSubscription();
-  const { sessions, currentSession, createSession, loadSession, deleteSession, renameSession, duplicateSession, isSaving } = useSession();
+  const { sessions, currentSession, createSession, loadSession, deleteSession, renameSession, duplicateSession, isSaving, loading, sessionLoadAttempt } = useSession();
+  
+  // Reusable skeleton component (lightweight) – avoids duplication
+  const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
+    <div className={`relative overflow-hidden bg-muted/40 rounded-md animate-pulse ${className || ''}`}></div>
+  );
   const location = useLocation();
   const navigate = useNavigate();
   const { addAlert } = useAlerts();
@@ -63,7 +69,7 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
   // Real-time updates should be handled by the main content area or context
 
   const resetLocalSessionState = () => {
-    const keys = ['loadedSessionId','currentSessionId','userIdea','userAnswers','userRefinements','ideaMetadata','chatHistory','analysisCompleted','analysisData','pmfScore'];
+  const keys = ['loadedSessionId','currentSessionId','userIdea','userAnswers','userRefinements','ideaMetadata','chatHistory',LS_KEYS.analysisCompleted,'analysisData','pmfScore'];
     keys.forEach(k => localStorage.removeItem(k));
   };
 
@@ -167,6 +173,16 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
                     />
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={handleCreateInline}>Save</Button>
                     <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => { setCreating(false); setNewName(''); }}>Cancel</Button>
+                  </div>
+                )}
+                {loading && sessions.length === 0 && (
+                  <div className="px-2 pb-2 space-y-2">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 px-0.5">
+                      {sessionLoadAttempt > 0 ? `Retrying… (attempt ${sessionLoadAttempt + 1})` : 'Loading sessions…'}
+                    </p>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Skeleton key={i} className="h-8" />
+                    ))}
                   </div>
                 )}
                 {filtered.map((session) => (

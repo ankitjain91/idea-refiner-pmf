@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BRAND, SCORE_LABEL, ANALYSIS_VERB } from '@/branding';
 import ReactMarkdown from 'react-markdown';
 import { Card } from '@/components/ui/card';
@@ -25,14 +26,17 @@ import { ChatMessage as Message, BriefFields } from '@/types/chat';
 import { computeEvidenceMetrics, isVagueAnswer } from '@/lib/brief-scoring';
 import { runEnterpriseAnalysis } from '@/lib/analysis-engine';
 import type { AnalysisResult } from '@/types/analysis';
-import { LS_KEYS } from '../lib/../lib/storage-keys';
-import { LS_UI_KEYS } from '../lib/../lib/storage-keys';
-import { buildMarkdownReport, triggerDownload } from '../lib/../lib/export-report';
+// Normalized import paths
+import { LS_KEYS, LS_UI_KEYS } from '@/lib/storage-keys';
+import { buildMarkdownReport, triggerDownload } from '@/lib/export-report';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SessionContext';
 import { scheduleIdle } from '@/lib/idle';
 import { SuggestionList } from './chat/SuggestionList';
+import { ChatHeader } from './chat/ChatHeader';
+import { MessageBubble } from './chat/MessageBubble';
+import { ChatInputBar } from './chat/ChatInputBar';
 
 
 interface ChatGPTStyleChatProps {
@@ -50,6 +54,7 @@ export default function ChatGPTStyleChat({
   showDashboard = false,
   className
 }: ChatGPTStyleChatProps) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -191,43 +196,36 @@ export default function ChatGPTStyleChat({
   };
 
   // Unified suggestion selection handler (supports actions and defaults)
+  const DASHBOARD_PATTERNS = [/^open dashboard$/i, /^view dashboard$/i, /^go to dashboard$/i, /^show dashboard$/i];
+  const canOpenDashboard = () => {
+    try { return localStorage.getItem(LS_KEYS.analysisCompleted) === 'true'; } catch { return false; }
+  };
+  const triggerDashboardOpen = () => {
+    if (canOpenDashboard()) {
+      navigate('/dashboard');
+    } else {
+      const warn: Message = {
+        id: `msg-dashboard-block-${Date.now()}`,
+        type: 'system',
+        content: '📊 The dashboard unlocks after you run an analysis. Add your idea & brief, then choose Start Analysis.',
+        timestamp: new Date(),
+        suggestions: ['Start Analysis', 'Refine further', 'Improve differentiation']
+      };
+      setMessages(prev => [...prev, warn]);
+    }
+  };
   const handleSuggestionSelection = (msg: Message, suggestion: string) => {
-    // Brief Q&A disabled: always just populate input for user confirmation
-    setInput(suggestion);
-    inputRef.current?.focus();
-    return;
-    // Handle special action suggestions
-    if (suggestion === "View Dashboard" || suggestion === "View detailed HyperFlux analysis") {
-      // Check if we have analysis data
-      const analysisMsg = messages.find(m => m.pmfAnalysis);
-      if (analysisMsg?.pmfAnalysis && onAnalysisReady) {
-        const analysisData = {
-          idea: currentIdea,
-          answers: brief || {},
-          pmfAnalysis: analysisMsg.pmfAnalysis,
-          timestamp: new Date().toISOString()
-        };
-        // Save to localStorage for dashboard to pick up
-        localStorage.setItem('pmfCurrentIdea', currentIdea);
-        localStorage.setItem('userAnswers', JSON.stringify(brief || {}));
-        localStorage.setItem('pmfAnalysisData', JSON.stringify(analysisMsg.pmfAnalysis));
-        localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(analysisMsg.pmfAnalysis));
-        localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
-        
-        onAnalysisReady(currentIdea, analysisData);
-      } else {
-        // No analysis data available
-        const noDataMsg: Message = {
-          id: `msg-no-data-${Date.now()}`,
-          type: 'system',
-          content: '⚠️ No analysis data available. Please run the analysis first.',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, noDataMsg]);
-      }
+    // Strip any leading emoji / decoration for comparison while preserving original for input
+    const normalized = suggestion.trim().replace(/^([\p{Emoji}\p{Extended_Pictographic}]+\s*)/u, '').replace(/^[-•\d\.\s]+/, '').trim();
+
+    // Dashboard open intents
+    if (DASHBOARD_PATTERNS.some(r => r.test(normalized)) || normalized.toLowerCase() === 'open dashboard') {
+      triggerDashboardOpen();
       return;
     }
-    if (suggestion === 'Export report') {
+
+    // Export report (use latest pmfAnalysis containing message or fallback)
+    if (normalized === 'Export report') {
       const target = msg.pmfAnalysis ? msg : [...messages].reverse().find(m => m.pmfAnalysis) as Message | undefined;
       if (!target?.pmfAnalysis) return;
       const result: AnalysisResult = {
@@ -236,7 +234,7 @@ export default function ChatGPTStyleChat({
           startedAt: new Date().toISOString(),
           completedAt: new Date().toISOString(),
           durationMs: 0,
-          briefSnapshot: brief,
+            briefSnapshot: brief,
           validationIssues: [],
           evidenceScore: 0,
           weakAreas: [],
@@ -247,7 +245,8 @@ export default function ChatGPTStyleChat({
       triggerDownload('pmf-analysis-report.md', md);
       return;
     }
-    if (suggestion === "Re-analyze with changes" || suggestion === "Refine this idea further") {
+
+    if (normalized === 'Re-analyze with changes' || normalized === 'Refine this idea further' || normalized === 'Refine further') {
       setShowStartAnalysisButton(true);
       setIsRefinementMode(true);
       setIsAnalyzing(false);
@@ -258,25 +257,28 @@ export default function ChatGPTStyleChat({
         content: `Let's refine your idea to improve the ${SCORE_LABEL}. What specific aspects would you like to enhance?`,
         timestamp: new Date(),
         suggestions: [
-          "Improve the value proposition",
-          "Better define target audience",
-          "Strengthen monetization model",
-          "Differentiate from competitors"
+          'Improve the value proposition',
+          'Better define target audience',
+          'Strengthen monetization model',
+          'Differentiate from competitors'
         ]
       };
       setMessages(prev => [...prev, refineMsg]);
       return;
     }
-    if (suggestion === "Refine my idea based on feedback") {
+
+    if (normalized === 'Refine my idea based on feedback') {
       setIsRefinementMode(true);
-      handleSuggestionClick("Let me refine my idea based on the analysis feedback");
+      handleSuggestionClick('Let me refine my idea based on the analysis feedback');
       return;
     }
-    if (suggestion === 'Run HyperFlux Analysis' || suggestion === 'Start Analysis') {
+
+    if (normalized === 'Run HyperFlux Analysis' || normalized === 'Start Analysis') {
       runBriefAnalysis();
       return;
     }
-    if (suggestion === 'Show live market signals') {
+
+    if (normalized === 'Show live market signals') {
       const already = messages.some(m => m.metadata?.liveDataForIdea === currentIdea);
       if (!already && currentIdea) {
         const liveMsg: Message = {
@@ -290,7 +292,8 @@ export default function ChatGPTStyleChat({
       }
       return;
     }
-    if (suggestion === "Start with a new idea" || suggestion === "Start fresh with new approach") {
+
+    if (normalized === 'Start with a new idea' || normalized === 'Start fresh with new approach') {
       setCurrentIdea('');
       setAnalysisProgress(0);
       setIsAnalyzing(false);
@@ -303,17 +306,18 @@ export default function ChatGPTStyleChat({
         content: "Let's try something new! Share any product or service idea you have and I'll help you think it through step by step.",
         timestamp: new Date(),
         suggestions: [
-          "💡 Think about problems you face daily",
-          "💡 Look for gaps in existing solutions",
-          "💡 Consider what would save you time/money",
-          "💡 Start with your own experience and needs"
+          '💡 Think about problems you face daily',
+          '💡 Look for gaps in existing solutions',
+          '💡 Consider what would save you time/money',
+          '💡 Start with your own experience and needs'
         ]
       };
       setMessages([resetMsg]);
       return;
     }
-    // Default: populate input; user sends explicitly
-    setInput(suggestion);
+
+    // Default: populate input for user to optionally edit/send
+    setInput(suggestion.replace(/^([\p{Emoji}\p{Extended_Pictographic}]+\s*)/u, ''));
     inputRef.current?.focus();
   };
 
@@ -682,10 +686,68 @@ export default function ChatGPTStyleChat({
     } catch {}
   }, [brief]);
 
+  // Attempt to infer an idea from existing chat history (first substantial user message)
+  const inferIdeaFromHistory = useCallback((): string | undefined => {
+    // Walk from most recent backwards to capture the latest substantive idea description
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.type !== 'user') continue;
+      const text = (m.content || '').trim();
+      if (!text) continue;
+      // Skip trivial greetings / thanks
+      if (/^(hi|hello|hey|thanks|thank you|cool|ok|okay|yo)$/i.test(text)) continue;
+      const words = text.split(/\s+/);
+      const longEnough = words.length >= 3 || text.length >= 18; // relaxed threshold
+      const hasVerb = /build|launch|create|make|help|solve|platform|app|tool|service|market|improv/i.test(text);
+      if (longEnough || hasVerb) {
+        return text;
+      }
+    }
+    // Secondary very relaxed pass: any user message > 12 chars with a space
+    const loose = [...messages].filter(m => m.type==='user' && m.content && m.content.length > 12 && m.content.includes(' ')).shift();
+    return loose?.content;
+  }, [messages]);
+
   // Single-pass analysis generator using the brief
   const runBriefAnalysis = async () => {
   setIsBriefQAMode(false);
   if (isAnalyzing) return;
+  // Guard: ensure we have at least a core idea/problem statement before running analysis
+  let primaryIdea = (currentIdea || brief.problem || '').trim();
+  if (!primaryIdea) {
+    const inferred = inferIdeaFromHistory();
+    if (inferred) {
+      primaryIdea = inferred.trim();
+      if (!currentIdea) {
+        setCurrentIdea(primaryIdea);
+      }
+      // Let user know we picked up prior context
+      const notice: Message = {
+        id: `msg-inferred-idea-${Date.now()}`,
+        type: 'system',
+        content: `🔍 Using your earlier idea from this session: “${primaryIdea.slice(0,140)}${primaryIdea.length>140?'…':''}”. If that's not right, type a new idea before re-running.`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, notice]);
+    }
+  }
+  if (!primaryIdea) {
+    const warn: Message = {
+      id: `msg-analysis-missing-idea-${Date.now()}`,
+      type: 'system',
+      content: '📝 I looked for an existing idea in this session but could not find one. Please describe your product idea or the core problem you want to solve before starting the analysis. A single clear sentence helps generate meaningful insights.',
+      timestamp: new Date(),
+      suggestions: [
+        'My idea solves...',
+        'The core problem is...',
+        'Users struggle with...',
+        'I want to help people who...'
+      ]
+    };
+    setMessages(prev => [...prev, warn]);
+    setIsAnalyzing(false);
+    return;
+  }
   setIsAnalyzing(true);
   emitMode('analysis');
   const activatedMsg: Message = {
@@ -708,7 +770,7 @@ export default function ChatGPTStyleChat({
     setMessages(prev => [...prev, loadingMsg]);
 
     try {
-      const result: AnalysisResult = await runEnterpriseAnalysis({ brief, idea: currentIdea || brief.problem || 'Untitled Idea' }, (update) => {
+      const result: AnalysisResult = await runEnterpriseAnalysis({ brief, idea: primaryIdea || 'Untitled Idea' }, (update) => {
         setAnalysisProgress(Math.min(98, Math.max(5, update.pct)));
         setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: `${update.phase === 'validate' ? 'Checking your idea details...' : update.phase === 'fetch-model' ? 'Getting smart insights...' : update.phase === 'structure' ? 'Organizing the findings...' : update.phase === 'finalize' ? 'Putting it all together...' : 'Working on it...'}\n${update.note ? '💡 ' + update.note : ''}` } : m));
       });
@@ -718,11 +780,10 @@ export default function ChatGPTStyleChat({
       const completion: Message = {
         id: `msg-brief-complete-${Date.now()}`,
         type: 'system',
-        content: `🎯 ${SCORE_LABEL} pipeline complete in ${(result.meta.durationMs/1000).toFixed(1)}s. Score: **${pmfScore}/100** (${result.meta.viabilityLabel || 'Unlabeled'}).\nWeak areas: ${result.meta.weakAreas.length ? result.meta.weakAreas.join(', ') : 'None emphasized.'}\n\n**Click "View Dashboard" to see your detailed analysis.**`,
+        content: `🎯 ${SCORE_LABEL} pipeline complete in ${(result.meta.durationMs/1000).toFixed(1)}s. Score: **${pmfScore}/100** (${result.meta.viabilityLabel || 'Unlabeled'}).\nWeak areas: ${result.meta.weakAreas.length ? result.meta.weakAreas.join(', ') : 'None emphasized.'}`,
         timestamp: new Date(),
         pmfAnalysis: result.pmfAnalysis,
         suggestions: good ? [
-          'View Dashboard',
           'Show live market signals',
           'Refine further',
           'Export report'
@@ -730,7 +791,6 @@ export default function ChatGPTStyleChat({
           'Improve differentiation',
           'Clarify target user',
           'Strengthen monetization',
-          'View Dashboard',
           'Show live market signals'
         ]
       };
@@ -742,8 +802,15 @@ export default function ChatGPTStyleChat({
       setAnalysisCompletedFlag(true);
       const metadata = { ...result.pmfAnalysis, meta: result.meta, answers: brief };
       localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata));
-      localStorage.setItem('pmfAnalysisData', JSON.stringify(result.pmfAnalysis));
-      // Don't auto-show dashboard, wait for user to click "View Dashboard"
+      // Inject inline dashboard CTA panel card beneath completion message
+      const dashboardCard: Message = {
+        id: `msg-dashboard-cta-${Date.now()}`,
+        type: 'bot',
+        content: `Your detailed analysis dashboard is ready. It includes score breakdowns, quick wins, improvement levers, market signals and more.\n\nClick below to open it when you're ready.`,
+        timestamp: new Date(),
+        suggestions: ['Open Dashboard', 'Refine further', 'Export report']
+      };
+      setMessages(prev => [...prev, dashboardCard]);
     } catch (e) {
       console.error('Enterprise analysis failed', e);
       toast({ title: 'Analysis ran into trouble', description: 'Something went sideways! Let\'s try running the analysis again. 🔄' });
@@ -766,6 +833,12 @@ export default function ChatGPTStyleChat({
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    const trimmed = input.trim();
+    if (DASHBOARD_PATTERNS.some(r => r.test(trimmed))) {
+      triggerDashboardOpen();
+      setInput('');
+      return;
+    }
 
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -1596,18 +1669,8 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
 
   return (
     <div ref={chatContainerRef} className={cn("flex flex-col h-full bg-background relative", className)}>
-      {/* Header with Progress */}
-            {isAnalyzing && (
-              <div className="border-b p-3 bg-muted/10">
-                <div className="max-w-3xl mx-auto">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-sm font-medium">Analyzing Brief</h3>
-                    <span className="text-xs text-muted-foreground">Working…</span>
-                  </div>
-                  <Progress value={analysisProgress} className="h-1.5" />
-                </div>
-              </div>
-            )}
+      {/* Header with Progress (refactored) */}
+      <ChatHeader isAnalyzing={isAnalyzing} analysisProgress={analysisProgress} />
 
   {/* Main Chat Area */}
   <ScrollArea className="flex-1 p-4">
@@ -1676,170 +1739,35 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
             </div>
           )}
 
-          {messages.map((msg) => (
-            <div
+          {messages.map(msg => (
+            <MessageBubble
               key={msg.id}
-              className={cn(
-                "flex gap-3",
-                msg.type === 'user' && 'justify-end',
-                msg.type === 'system' && 'justify-center'
-              )}
-            >
-              {msg.type === 'system' ? (
-                <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg text-sm max-w-md text-center">
-                  <ReactMarkdown 
-                    className="prose prose-sm dark:prose-invert max-w-none"
-                    components={{
-                      p: ({children}) => <p className="mb-0">{children}</p>,
-                      strong: ({children}) => <strong className="font-semibold">{children}</strong>,
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <>
-                  {msg.type === 'bot' && (
-                    <div className="relative animate-fade-in">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <Bot className="h-5 w-5 text-primary" />
-                      </div>
-                    </div>
-                  )}
-                  <div className={cn(
-                    "max-w-[75%] space-y-2",
-                    msg.type === 'user' ? 'items-end' : 'items-start'
-                  )}>
-                    <div
-                      className={cn(
-                        "rounded-2xl px-5 py-3.5 shadow-md transition-all duration-200",
-                        msg.type === 'user' 
-                          ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground ml-auto' 
-                          : 'bg-card border border-border/50 hover:shadow-lg'
-                      )}
-                    >
-                      {msg.isTyping ? (
-                        <div className="flex items-center gap-2 py-1 animate-fade-in">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                          {typingStatus && (
-                            <span className="text-xs text-muted-foreground ml-2">{typingStatus}</span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-sm leading-relaxed">
-                          {msg.metadata?.liveData ? (
-                            <div className="space-y-3">
-                              <Suspense fallback={<div className='flex items-center gap-2 text-xs text-muted-foreground'><Loader2 className='h-3 w-3 animate-spin' /> Loading live signals…</div>}>
-                                {currentIdea && <LiveDataCards idea={currentIdea} />}
-                              </Suspense>
-                            </div>
-                          ) : (
-                            <ReactMarkdown 
-                              className="prose prose-sm dark:prose-invert max-w-none"
-                              components={{
-                                p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
-                                strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-                                em: ({children}) => <em className="italic">{children}</em>,
-                                ul: ({children}) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-                                ol: ({children}) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-                                li: ({children}) => <li className="mb-1">{children}</li>,
-                                code: ({children}) => <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>,
-                                pre: ({children}) => <pre className="bg-muted p-3 rounded-lg overflow-x-auto mb-2">{children}</pre>,
-                                blockquote: ({children}) => <blockquote className="border-l-2 border-primary pl-4 italic my-2">{children}</blockquote>,
-                                h1: ({children}) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
-                                h2: ({children}) => <h2 className="text-lg font-semibold mb-2">{children}</h2>,
-                                h3: ({children}) => <h3 className="text-base font-semibold mb-1">{children}</h3>,
-                                a: ({children, href}) => <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-                              }}
-                            >
-                              {msg.content}
-                            </ReactMarkdown>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="mt-4 p-3 rounded-xl bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/40 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/10 border border-indigo-200/50 dark:border-indigo-800/30 shadow-sm">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-sm">
-                            <Sparkles className="h-3.5 w-3.5 text-white animate-pulse" />
-                          </div>
-                          <p className="text-xs font-semibold text-indigo-800 dark:text-indigo-200 tracking-wide uppercase">
-                            ✨ AI-Powered Suggestions
-                          </p>
-                        </div>
-                        <SuggestionList
-                          suggestions={msg.suggestions.map((s, idx) => ({
-                            id: `${msg.id}-sugg-${idx}`,
-                            text: s,
-                            category: classifySuggestionCategory(s)
-                          }))}
-                          onSelect={(suggestion) => handleSuggestionSelection(msg, suggestion)}
-                          maxHeight={280}
-                          ideaMode={modeRef.current === 'idea'}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  {msg.type === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                      <User className="h-5 w-5" />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+              msg={msg}
+              typingStatus={typingStatus}
+              classifySuggestionCategory={classifySuggestionCategory}
+              onSelectSuggestion={(s) => handleSuggestionSelection(msg, s)}
+              LiveDataCards={LiveDataCards}
+              currentIdea={currentIdea}
+            />
           ))}
 
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
-  {/* Input Area - Fixed at Bottom */}
+  {/* Input Area - Fixed at Bottom (refactored) */}
   <div className="border-t bg-background p-4">
         <div className="max-w-3xl mx-auto">
-          {/* Analysis action banner removed (moved to top bar) */}
-
-          {/* Drawer brief form removed in favor of inline Q&A */}
-          
-          {/* Current idea badge removed per request (idea still tracked internally) */}
-
-          <div className="flex gap-2">
-            <Input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder={
-                !currentIdea 
-                  ? "Describe your product idea..." 
-                  : isAnalyzing 
-                    ? "Type your answer..." 
-                    : "Ask a follow-up question..."
-              }
-              className="flex-1"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          <ChatInputBar
+            input={input}
+            setInput={setInput}
+            onSend={handleSend}
+            disabled={isLoading}
+            placeholder={!currentIdea ? 'Describe your product idea...' : isAnalyzing ? 'Type your answer...' : 'Ask a follow-up question...'}
+            inputRef={inputRef}
+          />
         </div>
       </div>
-      {/* Legacy brief drawer removed */}
     </div>
   );
 }

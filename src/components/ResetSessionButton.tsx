@@ -29,7 +29,7 @@ export function ResetSessionButton() {
       const keysToRemove = [
         LS_KEYS.analysisBrief,
         LS_KEYS.analysisBriefSuggestionsCache,
-        LS_KEYS.analysisCompleted,
+  LS_KEYS.analysisCompleted,
         LS_KEYS.pmfScore,
         LS_KEYS.ideaMetadata,
         LS_KEYS.currentSessionTitle,

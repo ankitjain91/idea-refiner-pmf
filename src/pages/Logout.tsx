@@ -1,3 +1,4 @@
+import { LS_KEYS } from '@/lib/storage-keys';
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ const APP_LOCALSTORAGE_KEYS = [
   'userIdea',
   'userAnswers',
   'ideaMetadata',
-  'analysisCompleted',
+  LS_KEYS.analysisCompleted,
   'analysisResults',
   'pmfScore',
   'userRefinements',

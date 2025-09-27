@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, RotateCcw, Lightbulb, Sparkles, BarChart } from 'lucide-react';
+import { Loader2, ArrowRight, RotateCcw, Lightbulb, Sparkles, BarChart, Plus, Clock } from 'lucide-react';
 import { AIQnAToggle } from '../components/ui/AIQnAToggle';
 import { DynamicStatusBar } from './DynamicStatusBar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,7 +19,7 @@ const ChatGPTStyleChat = lazy(() => import('@/components/ChatGPTStyleChat'));
 
 const IdeaChatPage = () => {
   const { user, loading: authLoading } = useAuth();
-  const { currentSession, createSession, loadSession, loading: sessionLoading, isSaving, lastSavedAt } = useSession();
+  const { currentSession, createSession, loadSession, loading: sessionLoading, isSaving, lastSavedAt, sessions } = useSession();
   const [chatKey, setChatKey] = useState(0);
   const sessionCreatedRef = useRef(false);
   const [sessionReloading, setSessionReloading] = useState(false);
@@ -28,6 +28,9 @@ const IdeaChatPage = () => {
   const [analysisCompleted, setAnalysisCompleted] = useState<boolean>(() => {
     try { return localStorage.getItem(LS_KEYS.analysisCompleted) === 'true'; } catch { return false; }
   });
+  // Session picker overlay state
+  const [showSessionPicker, setShowSessionPicker] = useState(false);
+  const sessionDecisionKey = 'pmf.session.decisionMade';
   const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);
   // Resizable sidebar width (sessions list vs idea chat)
@@ -139,6 +142,41 @@ const IdeaChatPage = () => {
   }, [sessionLoading, sessionReloading]);
 
   // Removed auto-create session on refresh to satisfy requirement
+  // After login: ensure sessions list is loaded or create new session for current idea if none exists
+  useEffect(() => {
+    if (!user || sessionLoading) return;
+    if (currentSession) return; // already have one
+    const decisionMade = sessionStorage.getItem(sessionDecisionKey);
+    if (!decisionMade && sessions && sessions.length > 0) {
+      // Show picker instead of auto-loading
+      setShowSessionPicker(true);
+      return;
+    }
+    if (!decisionMade && sessions && sessions.length === 0 && !localStorage.getItem('sessionCreateInProgress')) {
+      // No prior sessions; create automatically (first-time user)
+      if (!sessionCreatedRef.current) {
+        sessionCreatedRef.current = true;
+        const idea = localStorage.getItem('userIdea') || '';
+        const context = idea.trim().length > 5 ? idea.split(/\s+/).slice(0,6).join(' ') : 'Idea Session';
+        createSession(context).then(() => sessionStorage.setItem(sessionDecisionKey, 'created')); 
+      }
+    }
+  }, [user, currentSession, sessions, sessionLoading, createSession]);
+
+  const handleSelectExisting = async (id: string) => {
+    await loadSession(id);
+    try { sessionStorage.setItem(sessionDecisionKey, 'selected'); } catch {}
+    setShowSessionPicker(false);
+  };
+
+  const handleCreateNew = async () => {
+    if (localStorage.getItem('sessionCreateInProgress')) return;
+    const idea = localStorage.getItem('userIdea') || '';
+    const context = idea.trim().length > 5 ? idea.split(/\s+/).slice(0,6).join(' ') : 'New Idea Session';
+    await createSession(context);
+    try { sessionStorage.setItem(sessionDecisionKey, 'created'); } catch {}
+    setShowSessionPicker(false);
+  };
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
     // Store all necessary data for dashboard
@@ -245,34 +283,7 @@ const IdeaChatPage = () => {
           </div>
             <div className='flex items-center gap-2'>
               <ThemeToggle />
-              <TooltipProvider delayDuration={50}>
-                <Tooltip open={showDashboardLockedHint} onOpenChange={(o) => { if (!analysisCompleted) setShowDashboardLockedHint(o); }}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant={analysisCompleted ? 'outline' : 'secondary'}
-                      onClick={() => {
-                        if (analysisCompleted) {
-                          navigate('/dashboard');
-                        } else {
-                          setShowDashboardLockedHint(true);
-                          setTimeout(() => setShowDashboardLockedHint(false), 2200);
-                        }
-                      }}
-                      aria-disabled={!analysisCompleted}
-                      className={'gap-1 transition-colors ' + (!analysisCompleted ? 'opacity-50 grayscale' : '')}
-                    >
-                      <ArrowRight className='h-4 w-4' />
-                      <span className='hidden sm:inline'>View Dashboard</span>
-                    </Button>
-                  </TooltipTrigger>
-                  {!analysisCompleted && (
-                    <TooltipContent side="bottom" className="max-w-xs text-xs">
-                      Complete the brief & run analysis to enable the dashboard.
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+              {/* Dashboard button removed – dashboard access now lives inside chat after analysis completion */}
               <UserMenu />
             </div>
           </div>
@@ -294,6 +305,43 @@ const IdeaChatPage = () => {
         </div>
         <div className='flex-1 relative p-2'>
           {showOverlayLoader && <EngagingLoader active={true} scope='dashboard' />}
+          {showSessionPicker && !currentSession && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-background/70">
+              <div className="w-full max-w-lg mx-auto rounded-xl glass-super-surface border p-5 shadow-xl animate-in fade-in slide-in-from-top-4">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-base font-semibold flex items-center gap-2"><Lightbulb className="h-4 w-4 text-yellow-400" /> Pick a Session</h2>
+                    <p className="text-xs text-muted-foreground mt-1">Select a previous brainstorming session or start a fresh one.</p>
+                  </div>
+                </div>
+                <div className="max-h-72 overflow-auto pr-1 space-y-2">
+                  {(!sessions || sessionLoading) && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center"><Loader2 className="h-4 w-4 animate-spin" /> Loading sessions…</div>
+                  )}
+                  {sessions && sessions.length > 0 && sessions.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => handleSelectExisting(s.id)}
+                      className="w-full text-left group rounded-lg border border-border/60 hover:border-primary/50 hover:bg-primary/5 px-3 py-2 transition-colors flex items-center justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate flex items-center gap-2">
+                          <span className="inline-flex h-4 w-4 items-center justify-center rounded-sm bg-primary/15 text-[10px] text-primary group-hover:bg-primary/25">{s.name?.charAt(0) || 'S'}</span>
+                          <span className="truncate max-w-[240px]" title={s.name}>{s.name || 'Untitled Session'}</span>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(s.last_accessed).toLocaleString()}</p>
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wide text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between mt-5">
+                  <Button size="sm" variant="outline" onClick={handleCreateNew} className="gap-1"><Plus className="h-3 w-3" /> New Session</Button>
+                  <div className="text-[10px] text-muted-foreground">You can always switch later from the sidebar.</div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className='absolute inset-0 flex flex-col'>
             <Suspense fallback={<div className='flex-1 flex items-center justify-center'><Loader2 className='h-6 w-6 animate-spin' /></div>}>
               <div className='flex-1 m-2 rounded-xl glass-super-surface elevation-1 overflow-hidden'>

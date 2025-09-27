@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { debounce } from 'lodash';
+import { LS_KEYS } from '@/lib/storage-keys';
 
 interface SessionState {
   currentPath: string;
@@ -30,7 +31,7 @@ export const useAutoSaveSession = (sessionId: string | null) => {
         pmfScore: parseInt(localStorage.getItem('pmfScore') || '0'),
       },
       analysisData: {
-        completed: localStorage.getItem('analysisCompleted') === 'true',
+  completed: localStorage.getItem(LS_KEYS.analysisCompleted) === 'true',
         results: JSON.parse(localStorage.getItem('analysisResults') || '{}'),
       },
       scrollPosition: window.scrollY,
@@ -104,7 +105,7 @@ export const useAutoSaveSession = (sessionId: string | null) => {
     }
 
     if (state.analysisData) {
-      localStorage.setItem('analysisCompleted', String(state.analysisData.completed || false));
+  localStorage.setItem(LS_KEYS.analysisCompleted, String(state.analysisData.completed || false));
       localStorage.setItem('analysisResults', JSON.stringify(state.analysisData.results || {}));
     }
 

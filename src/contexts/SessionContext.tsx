@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { LS_KEYS } from '@/lib/storage-keys';
 import { useAlerts } from '@/contexts/AlertContext';
 
 interface SessionState {
@@ -35,6 +36,7 @@ interface SessionContextType {
   logActivity: (activity: any) => void;
   isSaving: boolean;
   lastSavedAt: Date | null;
+  sessionLoadAttempt: number; // 0 = initial, >0 = retries
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -56,12 +58,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const lastSerializedStateRef = useRef<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [sessionLoadAttempt, setSessionLoadAttempt] = useState(0);
   const { addAlert } = useAlerts(); // Will only use for error cases now (silent success UX)
   const renamingRef = useRef(false);
   const duplicatingRef = useRef(false);
 
-  // Load all sessions for the current user
-  const loadSessions = useCallback(async () => {
+  // Load all sessions for the current user with simple exponential backoff on transient/network errors
+  const loadSessions = useCallback(async (attempt: number = 0) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -73,17 +76,28 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .order('last_accessed', { ascending: false });
 
       if (error) throw error;
-      
-      // Map the data to match our interface
+
       const mappedSessions = (data || []).map((session: any) => ({
         ...session,
         state: session.state || {},
         activity_log: Array.isArray(session.activity_log) ? session.activity_log : []
       }));
-      
       setSessions(mappedSessions);
-    } catch (error) {
-      console.error('Error loading sessions:', error);
+      if (attempt !== 0) setSessionLoadAttempt(0); // reset on success
+    } catch (error: any) {
+      const maxRetries = 4; // total attempts = maxRetries + 1
+      const transient = typeof error?.message === 'string' && /fetch|network|timeout|503|502|504/i.test(error.message);
+      if (attempt < maxRetries && transient) {
+        const base = Math.min(8000, 500 * Math.pow(2, attempt));
+        const jitterFactor = 0.7 + Math.random() * 0.6; // 0.7x - 1.3x
+        const delay = Math.floor(base * jitterFactor);
+        const nextAttempt = attempt + 1;
+        setSessionLoadAttempt(nextAttempt); // track for UI
+        console.warn(`loadSessions transient failure – retrying in ${delay}ms (attempt ${nextAttempt}/${maxRetries + 1})`);
+        setTimeout(() => loadSessions(nextAttempt), delay);
+      } else {
+        console.error('Error loading sessions (final):', error);
+      }
     }
   }, []);
 
@@ -96,6 +110,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addAlert({ variant: 'error', title: 'Not authenticated', message: 'You must be logged in to create sessions', scope: 'session' });
         return;
       }
+
+      // Prevent duplicate first-session race across mounts/tabs
+      const flagKey = 'sessionCreateInProgress';
+      try {
+        const existingFlag = localStorage.getItem(flagKey);
+        if (!currentSession && sessions.length === 0 && existingFlag) {
+          // Another create in flight – abort silently
+          return;
+        }
+        localStorage.setItem(flagKey, Date.now().toString());
+      } catch {}
 
       // Initial provisional session name (context snippet or generic)
       const provisional = (context || 'Session').split(/\s+/).slice(0,2).join(' ');
@@ -153,6 +178,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error('Error creating session:', error);
       addAlert({ variant: 'error', title: 'Create failed', message: 'Failed to create session', scope: 'session' });
     } finally {
+      try { localStorage.removeItem('sessionCreateInProgress'); } catch {}
       setLoading(false);
     }
   };
@@ -215,7 +241,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             localStorage.setItem('pmfScore', String(sessionState.ideaData.pmfScore || 0));
           }
           if (sessionState.ideaData?.analysisCompleted) {
-            localStorage.setItem('analysisCompleted', 'true');
+            localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
           }
           if (sessionState.analysisData?.metadata) {
             localStorage.setItem('ideaMetadata', JSON.stringify(sessionState.analysisData.metadata));
@@ -361,7 +387,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const chatHistory = localStorage.getItem('chatHistory');
       const pmfFeatures = localStorage.getItem('pmfFeatures');
       const pmfTabHistory = localStorage.getItem('pmfTabHistory');
-      const analysisCompleted = localStorage.getItem('analysisCompleted') === 'true';
+  const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
   const pmfScoreRaw = localStorage.getItem('pmfScore');
   const pmfScore = pmfScoreRaw ? parseInt(pmfScoreRaw) : 0;
 
@@ -479,43 +505,44 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [currentSession]);
 
   // Load sessions on mount
+  // One-time migration for legacy key -> namespaced key
+  useEffect(() => {
+    try {
+      const legacy = localStorage.getItem('analysisCompleted');
+      const namespaced = localStorage.getItem(LS_KEYS.analysisCompleted);
+      if (legacy && !namespaced) {
+        localStorage.setItem(LS_KEYS.analysisCompleted, legacy);
+        localStorage.removeItem('analysisCompleted');
+      }
+    } catch {}
+  }, []);
+
+  // Load sessions on mount
   useEffect(() => {
     loadSessions();
   }, [loadSessions]);
 
-  // Auto-load last active session or create first session
+  // Re-run session load when auth state changes (fix: sessions missing right after login)
   useEffect(() => {
-    const initializeSession = async () => {
-      // Only proceed if we have loaded sessions and no current session
-      if (!loading && sessions !== undefined && !currentSession) {
-        if (sessions.length > 0) {
-          // Load last active session
-          try {
-            const lastId = localStorage.getItem('currentSessionId');
-            if (lastId && sessions.some(s => s.id === lastId)) {
-              await loadSession(lastId);
-            } else {
-              // Load the first session if no last ID
-              await loadSession(sessions[0].id);
-            }
-          } catch (error) {
-            console.error('Error loading session:', error);
-          }
-        } else {
-          // Create first session only if user is authenticated and has no sessions
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            try {
-              await createSession("My First Session");
-            } catch (error) {
-              console.error('Error creating initial session:', error);
-            }
-          }
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadSessions();
+      }
+    });
+    return () => { listener.subscription.unsubscribe(); };
+  }, [loadSessions]);
+
+  // Only auto-create a first session when user has none; do NOT auto-load existing sessions (picker will handle)
+  useEffect(() => {
+    const maybeCreateInitial = async () => {
+      if (!loading && sessions && sessions.length === 0 && !currentSession) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          try { await createSession('My First Session'); } catch (e) { console.error('Initial session create failed', e); }
         }
       }
     };
-
-    initializeSession();
+    maybeCreateInitial();
   }, [sessions, currentSession, loading]);
 
   return (
@@ -533,6 +560,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         logActivity,
         isSaving,
         lastSavedAt,
+        sessionLoadAttempt,
       }}
     >
       {children}
