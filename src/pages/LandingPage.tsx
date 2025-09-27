@@ -435,11 +435,66 @@ export default function LandingPage() {
         <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-radial from-accent/10 to-transparent blur-3xl" />
       </div>
 
+      {/* Company Name Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-xl border-b border-primary/10"
+      >
+        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="relative"
+            >
+              <div className="absolute inset-0 bg-primary/30 blur-xl" />
+              <Brain className="w-12 h-12 text-primary relative" />
+            </motion.div>
+            <div className="flex flex-col">
+              <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent tracking-tight">
+                SmoothBrains
+              </h1>
+              <p className="text-xs md:text-sm text-gray-500 font-mono uppercase tracking-wider mt-1">
+                Neural Validation Engine
+              </p>
+            </div>
+            <Badge className="ml-2 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 text-xs animate-pulse hidden md:inline-flex">
+              BETA
+            </Badge>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsSignUp(false);
+                setShowAuthModal(true);
+              }}
+              className="hidden md:inline-flex hover:bg-primary/10"
+            >
+              Sign In
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setIsSignUp(true);
+                setShowAuthModal(true);
+              }}
+              className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-[0_0_20px_rgba(100,150,255,0.3)]"
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Hero Section */}
       <motion.section 
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative min-h-screen flex items-center justify-center px-4 py-20"
+        className="relative min-h-screen flex items-center justify-center px-4 py-20 pt-32"
       >
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <motion.div
