@@ -156,55 +156,60 @@ async function generateRealSuggestions(idea: string, question: string, webData: 
   let systemPrompt = '';
   
   if (isAnalysisQuestion) {
-    // Generate answer suggestions for analysis questions
-    systemPrompt = `You are helping someone answer: "${question}" for their startup idea: "${idea}".
+    // Generate natural answer suggestions for analysis questions
+    systemPrompt = `You're helping an entrepreneur thoughtfully answer: "${question}" about their "${idea}" startup.
     
-${webData ? `Market Data Available:
-- Competitors: ${webData.normalized?.topCompetitors?.slice(0, 3).map((c: any) => `${c.name} (${c.pricing})`).join(', ') || 'Various'}
-- Market Size: $${(webData.raw?.marketSize / 1000000).toFixed(0)}M
-- Growth Rate: ${webData.raw?.growthRate}% annually
-- Target Demographics: ${webData.raw?.demographics?.primaryAge || '25-35'} age group
-- Industries: ${webData.raw?.demographics?.industries?.slice(0, 2).join(', ') || 'General'}` : ''}
+${webData ? `Real Market Intelligence:
+- Top Players: ${webData.normalized?.topCompetitors?.slice(0, 3).map((c: any) => `${c.name}`).join(', ') || 'Various established players'}
+- Market Value: Growing $${(webData.raw?.marketSize / 1000000).toFixed(0)}M market
+- Annual Growth: ${webData.raw?.growthRate}% expansion rate
+- Key Demographics: ${webData.raw?.demographics?.primaryAge || '25-45'} professionals
+- Active Sectors: ${webData.raw?.demographics?.industries?.slice(0, 2).join(', ') || 'Technology and services'}` : ''}
 
-Generate 4 specific, actionable answer suggestions for this exact question.
-Each should be a concrete answer they could use, 5-10 words maximum.
+Generate 4 thoughtful, natural-sounding responses they could adapt for their answer.
+Each should be a complete, conversational thought (20-40 words) that sounds like something a real founder would say.
 
-Provide examples style only (do NOT output these examples):
-- Audience: "Tech-savvy millennials in urban areas", "Small business owners under 50"
-- Problems: "Saves 5 hours weekly on planning", "Reduces travel costs by 40%"
-- Monetization: "$29/month subscription with 14-day trial", "Usage-based pricing $0.05 per task"
-- Value prop: "AI-powered at half the price", "Only solution with real-time sync"
-- Competitors: "Competes with Duolingo, 50% cheaper", "Beats X on accuracy and speed"
+Focus on being specific and authentic, not generic. Include real details, numbers, or examples when relevant.
 
-Return ONLY a JSON array of 4 specific answer suggestions relevant to "${idea}".`;
+Examples of the natural style (DO NOT use these):
+- "We're targeting busy parents who spend over 3 hours weekly on meal planning but want healthier options for their families without the stress"
+- "Our platform saves small agencies about 15 hours per month on client reporting, which they can reinvest in strategy and creative work"
+- "We're building a subscription model starting at $49/month for individuals, with team plans at $199 that include collaboration features and priority support"
+
+Generate 4 natural, detailed suggestions specific to "${idea}" and this question.`;
   } else {
-    // Generate follow-up questions for general conversation
-    systemPrompt = `You are helping with a product-market fit conversation about "${idea}".
+    // Generate conversational follow-up insights
+    systemPrompt = `You're having a friendly conversation about the "${idea}" startup concept.
 
-${botResponse ? `The assistant just said: "${botResponse.slice(0, 300)}..."` : `Current topic: "${question}"`}
+${botResponse ? `You just discussed: "${botResponse.slice(0, 300)}..."` : `Current topic: "${question}"`}
 
 ${webData ? `Market Context:
-- Key Competitors: ${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Various'}
-- Market Growth: ${webData.raw?.growthRate}% annually` : ''}
+- Similar Companies: ${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'Various players'}
+- Market Dynamics: ${webData.raw?.growthRate}% annual growth` : ''}
 
-Generate 4 helpful tips or insights that:
-1. Build on what was just discussed
-2. Provide actionable advice
-3. Are specific and practical
-4. Maximum 12 words each
+Generate 4 conversational follow-up thoughts that sound natural and helpful.
+Each should be 20-35 words, like something an experienced advisor would say in conversation.
 
-Return ONLY a JSON array of 4 tip statements (not questions).`;
+Make them specific, actionable insights or thoughtful questions that move the conversation forward.
+Include relevant examples, metrics, or practical tips when possible.
+
+Style examples (DO NOT use these):
+- "Have you considered partnering with existing platforms first to validate demand before building everything from scratch? Many successful startups started this way"
+- "I'd suggest talking to at least 20 potential customers this week about their current pain points - their feedback will be invaluable for your MVP"
+- "What if you focused on just one specific feature that solves 80% of the problem? You can always expand once you have traction"
+
+Generate 4 natural, conversational suggestions specific to "${idea}".`;
   }
 
   try {
       const data = await openAIChatRequest({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
-          { role: 'system', content: 'Return exactly 4 suggestions as a JSON array.' },
+          { role: 'system', content: 'Generate exactly 4 natural, conversational suggestions as a JSON array. Each should be a complete thought that sounds human and helpful.' },
           { role: 'user', content: systemPrompt }
         ],
-        max_tokens: 120,
-        temperature: 0.65
+        max_tokens: 400,
+        temperature: 0.8
       });
       let content = data.choices?.[0]?.message?.content || '';
       
@@ -228,35 +233,35 @@ Return ONLY a JSON array of 4 tip statements (not questions).`;
         }
       } catch (e) {
         console.error('Error parsing suggestions:', e);
-        // Return fallback suggestions based on question type
+        // Return more natural fallback suggestions based on question type
         if (isAnalysisQuestion) {
           if (question.includes("target audience")) {
             return [
-              "Young professionals 25-35 years",
-              "Small business owners nationwide",
-              "Students seeking affordable solutions",
-              "Tech-savvy early adopters"
+              "We're focusing on young professionals aged 25-35 in major cities who value convenience and are early tech adopters",
+              "Our primary market is small business owners with 10-50 employees who need affordable solutions without enterprise complexity",
+              "We're targeting college students and recent grads who need budget-friendly options that still deliver professional results",
+              "Our sweet spot is tech-savvy parents who want to simplify their daily routines while staying connected with family"
             ];
           } else if (question.includes("problem")) {
             return [
-              "Saves time on daily tasks",
-              "Reduces operational costs significantly",
-              "Simplifies complex workflows",
-              "Eliminates manual processes"
+              "We help businesses save at least 10 hours per week on repetitive tasks that currently require manual intervention",
+              "Our solution reduces operational costs by 30-40% through intelligent automation and streamlined workflows",
+              "We're solving the communication gap between remote teams that costs companies thousands in lost productivity monthly",
+              "Our platform eliminates the need for multiple tools by providing an all-in-one solution that actually works"
             ];
           } else if (question.includes("budget")) {
             return [
-              "$5,000 initial investment",
-              "$10,000 for MVP development",
-              "$25,000 seed funding",
-              "$2,000 monthly operations"
+              "We're starting with $5,000 to build an MVP and validate the core concept with real users",
+              "Our budget is $10,000 for initial development plus $2,000 monthly for operations and marketing",
+              "We're raising $25,000 in seed funding to cover six months of development and initial customer acquisition",
+              "We need about $15,000 to launch properly, with half going to product and half to marketing"
             ];
           } else if (question.includes("value proposition")) {
             return [
-              "50% faster than competitors",
-              "AI-powered personalization features",
-              "No technical skills required",
-              "All-in-one integrated solution"
+              "We deliver results 50% faster than traditional solutions while costing half as much through smart automation",
+              "Our AI-powered features provide personalized experiences that competitors can't match at this price point",
+              "Unlike complex enterprise tools, ours requires zero technical skills and can be set up in under 10 minutes",
+              "We're the only solution that combines all these features in one platform without the usual complexity"
             ];
           }
         }

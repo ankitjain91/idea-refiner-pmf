@@ -58,80 +58,80 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
       question: "What's your startup idea? Describe it in a few sentences.",
       placeholder: "E.g., An AI-powered platform that helps small businesses automate their customer service...",
       suggestions: [
-        "AI tool for content creators",
-        "Marketplace for local services",
-        "Health tracking for seniors",
-        "Educational platform for kids"
+        "I'm building an AI-powered tool that helps content creators generate engaging social media posts and schedule them automatically across multiple platforms",
+        "We're creating a marketplace that connects local service providers with customers in their neighborhood, focusing on trust and quality verification",
+        "My idea is a health tracking app specifically designed for seniors, with simplified interfaces and emergency contact features their families can monitor",
+        "I want to build an educational platform that makes learning fun for kids through gamification and personalized learning paths based on their interests"
       ]
     },
     {
       question: "Who is your target audience? Be specific about demographics and needs.",
       placeholder: "E.g., Small business owners aged 30-50 who need affordable automation...",
       suggestions: [
-        "Young professionals 25-35 in urban areas",
-        "Small business owners with 10-50 employees",
-        "Parents with school-age children",
-        "Students and educators in higher education"
+        "Our target is young professionals aged 25-35 living in urban areas who value convenience and are willing to pay premium for time-saving services",
+        "We're focusing on small business owners with 10-50 employees who struggle with managing operations but can't afford enterprise solutions",
+        "My audience is parents with school-age children who want to be involved in their kids' education but need better tools to track progress",
+        "We're targeting university students and educators who need better collaboration tools for remote learning and project management"
       ]
     },
     {
       question: "What specific problem does your product solve?",
       placeholder: "E.g., Businesses waste 20+ hours/week on repetitive customer inquiries...",
       suggestions: [
-        "Saves 10+ hours per week on daily tasks",
-        "Reduces operational costs by 30-50%",
-        "Improves team communication and collaboration",
-        "Enhances productivity and workflow efficiency"
+        "We help businesses save 10+ hours per week by automating repetitive daily tasks that currently require manual intervention and constant oversight",
+        "Our solution reduces operational costs by 30-50% through intelligent resource allocation and eliminating inefficiencies in current workflows",
+        "We solve the communication breakdown between remote teams by providing a unified platform that improves collaboration and reduces miscommunication",
+        "Our platform enhances productivity by streamlining complex workflows into simple, automated processes that anyone can manage without technical expertise"
       ]
     },
     {
       question: "What's your revenue model?",
       placeholder: "E.g., SaaS with tiered pricing starting at $29/month...",
       suggestions: [
-        "SaaS subscription with monthly tiers",
-        "Transaction fees on each sale",
-        "Freemium model with premium features",
-        "One-time purchase with optional upgrades"
+        "We'll use a SaaS subscription model with three tiers - starter at $29/month, professional at $99/month, and enterprise with custom pricing",
+        "Our model charges transaction fees of 2.5% on each sale, similar to payment processors, making it affordable for small businesses to start",
+        "We're going with a freemium model where basic features are free forever, and advanced features start at $19/month per user",
+        "It's a one-time purchase of $299 with optional add-ons and yearly updates available for $49, keeping it simple for customers"
       ]
     },
     {
       question: "Who are your main competitors and how are you different?",
       placeholder: "E.g., Unlike Zendesk which is expensive and complex, we focus on simplicity...",
       suggestions: [
-        "No direct competitors in this niche yet",
-        "Traditional solutions are outdated and expensive",
-        "Similar startups but we have unique features",
-        "Enterprise tools that are too complex for SMBs"
+        "There aren't any direct competitors in this specific niche yet, giving us first-mover advantage to establish market leadership and brand recognition",
+        "Traditional solutions like Salesforce are outdated, expensive, and require months of training - we're modern, affordable, and users can start in minutes",
+        "Similar startups exist but we have unique AI-powered features that give us 10x better accuracy and automation capabilities they can't match",
+        "Enterprise tools like SAP are too complex and expensive for SMBs - we're building specifically for small businesses with simpler needs and budgets"
       ]
     },
     {
       question: "What's your go-to-market strategy?",
       placeholder: "E.g., Content marketing + free trial + referral program...",
       suggestions: [
-        "Content marketing and SEO",
-        "Social media ads and influencers",
-        "Direct B2B sales and partnerships",
-        "Product-led growth with viral features"
+        "We'll focus on content marketing and SEO to build organic traffic, creating valuable resources that establish us as thought leaders in our space",
+        "Our strategy combines targeted social media ads with influencer partnerships in our niche to build credibility and reach our ideal customers quickly",
+        "We're going with direct B2B sales and strategic partnerships with complementary businesses that already serve our target market",
+        "We'll use product-led growth with viral features built-in, encouraging users to invite teammates and share their success stories naturally"
       ]
     },
     {
       question: "What's your unique value proposition?",
       placeholder: "E.g., 50% cheaper, 3x faster implementation, no-code solution...",
       suggestions: [
-        "10x better user experience",
-        "50% lower cost than alternatives",
-        "Innovative AI-powered features",
-        "Focus on underserved niche"
+        "We deliver 10x better user experience through intuitive design and AI assistance, making complex tasks feel effortless compared to clunky alternatives",
+        "Our solution costs 50% less than competitors while delivering more features, achieved through efficient architecture and automation",
+        "We're the only platform with these specific AI-powered features that adapt to each user's behavior and preferences over time",
+        "We exclusively focus on this underserved niche, allowing us to build deeper, more specialized features our broader competitors can't prioritize"
       ]
     },
     {
       question: "What's your timeline and current stage?",
       placeholder: "E.g., MVP ready, launching beta in 2 weeks...",
       suggestions: [
-        "Launching MVP in 3 months",
-        "Building prototype, need 6 weeks",
-        "Beta testing with 50 users now",
-        "Planning phase, validating idea"
+        "We're planning to launch our MVP in 3 months, currently finalizing core features and setting up infrastructure for initial user testing",
+        "Our prototype is in development and needs about 6 weeks to complete, then we'll start onboarding our first beta users for feedback",
+        "We're currently beta testing with 50 users who are providing valuable feedback, planning to open public access within the next month",
+        "We're in the planning and validation phase, conducting customer interviews and market research to ensure we're building the right solution"
       ]
     }
   ];
@@ -378,7 +378,9 @@ Let's dive into your results! 🚀`,
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    // Treat suggestion as an immediate answer to the current step
+    // Set the input field with the suggestion text first
+    setInput(suggestion);
+    // Then process it as user input
     handleStepAnswer(suggestion, currentStep);
   };
 
