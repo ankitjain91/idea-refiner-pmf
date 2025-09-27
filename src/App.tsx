@@ -27,6 +27,7 @@ import StatusAnnouncer from '@/components/accessibility/StatusAnnouncer';
 import CommandPalette from '@/components/CommandPalette';
 import React, { useEffect, useState } from 'react';
 import EngagingLoader from '@/components/engagement/EngagingLoader';
+import { useInitializeIdeas } from '@/hooks/useInitializeIdeas';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 
 const RouteTransitionWrapper = () => {
@@ -73,6 +74,8 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const App = () => {
   const [cmdOpen, setCmdOpen] = useState(false);
+  // Initialize startup ideas in database on app load
+  useInitializeIdeas();
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Cmd/Ctrl + K

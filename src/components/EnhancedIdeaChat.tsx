@@ -143,32 +143,57 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, [messages]);
 
-  // Initialize welcome message when session is available
+  // Fetch random startup ideas from database
+  const fetchRandomIdeas = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_random_startup_ideas', { limit_count: 8 });
+      
+      if (error) {
+        console.error('Error fetching random ideas:', error);
+        return null;
+      }
+      
+      return data?.map((idea: any) => idea.idea_text) || [];
+    } catch (error) {
+      console.error('Error fetching random ideas:', error);
+      return null;
+    }
+  }, []);
+
+  // Initialize welcome message with random ideas
   useEffect(() => {
-    if (currentSession?.name && messages.length === 0) {
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        type: 'bot',
-        content: `🧠 Welcome to ${currentSession.name}! Ready to dive deep into your startup idea? Let's develop some serious brain wrinkles together!
+    const initializeChat = async () => {
+      if (currentSession?.name && messages.length === 0) {
+        // Fetch random ideas from database
+        const randomIdeas = await fetchRandomIdeas();
+        
+        // Use random ideas if available, otherwise use defaults
+        const suggestions = randomIdeas && randomIdeas.length > 0 
+          ? randomIdeas.slice(0, 4)
+          : [
+              "AI-powered mental health companion that detects emotional patterns through voice analysis",
+              "Blockchain-based skill verification platform where professionals earn NFT badges",
+              "Micro-learning app that teaches coding through 5-minute AR puzzles",
+              "Smart grocery list that predicts what you need based on purchase patterns"
+            ];
+        
+        const welcomeMessage: Message = {
+          id: 'welcome',
+          type: 'bot',
+          content: `🧠 Welcome to ${currentSession.name}! Ready to dive deep into your startup idea? Let's develop some serious brain wrinkles together!
 
 Share your business concept and I'll help you refine it with sharp questions, market insights, and strategic analysis. No generic fluff allowed - I'm here to push you toward real product-market fit.
 
 What's your startup idea?`,
-        timestamp: new Date(),
-        suggestions: [
-          "AI-powered mental health companion that detects emotional patterns through voice analysis during daily check-ins",
-          "Blockchain-based skill verification platform where professionals earn NFT badges from peer reviews",
-          "Micro-learning app that teaches coding through 5-minute AR puzzles you solve in physical space",
-          "Carbon credit marketplace for individuals to offset daily activities with verified local green projects",
-          "AI interior designer that generates room layouts from a photo and your Pinterest boards",
-          "Subscription service for renting high-end work equipment (cameras, tools, instruments) by the hour",
-          "Platform connecting retired experts with startups for micro-consulting sessions (15-30 min calls)",
-          "Smart grocery list that predicts what you need based on purchase patterns and recipe history"
-        ]
-      };
-      setMessages([welcomeMessage]);
-    }
-  }, [currentSession?.name, messages.length]);
+          timestamp: new Date(),
+          suggestions
+        };
+        setMessages([welcomeMessage]);
+      }
+    };
+    
+    initializeChat();
+  }, [currentSession?.name, messages.length, fetchRandomIdeas]);
 
   useEffect(() => {
     if (!anonymous) {
