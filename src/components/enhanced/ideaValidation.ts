@@ -30,17 +30,17 @@ export async function validateFirstIdea(messageText: string, wrinklePoints: numb
       ];
       const randomFunny = funnyLines[Math.floor(Math.random()*funnyLines.length)];
       const improvementHints = Array.isArray(parsed.improvementHints) && parsed.improvementHints.length > 0 ? parsed.improvementHints : [
-        'Who EXACTLY (role/segment) has this recurring pain?',
-        'Manual workaround used today?',
-        'Ultra-narrow starting feature?',
-        'Why now / unique data or timing?'
+        'My target users are [role/segment] who face [specific pain]',
+        'They currently solve this by [manual workaround]',
+        'My starting feature will be [ultra-narrow capability]',
+        'This is the right time because [unique insight/timing]'
       ];
       const gateMessage: Message = {
         id: Date.now().toString(),
         type: 'bot',
         content: `🧪 Idea Validation: NOT APPROVED\n\n${randomFunny}\n\nReason: ${parsed.reason || 'Missing concrete target, problem, or wedge.'}\n\nAnswer one of these to refine:\n- ${improvementHints.join('\n- ')}`,
         timestamp: new Date(),
-        suggestions: improvementHints.map(h => `Answer: ${h}`),
+        suggestions: improvementHints.map(h => h.startsWith('My') || h.startsWith('I') || h.startsWith('They') || h.startsWith('This') ? h : `I'll answer: ${h}`),
         pointsEarned: -0.5,
         pointsExplanation: 'No wrinkles granted until a real idea forms.'
       };
@@ -57,10 +57,10 @@ export async function validateFirstIdea(messageText: string, wrinklePoints: numb
       content: '🧪 Idea Validation Glitch: Provide WHO + painful moment + narrow wedge feature.',
       timestamp: new Date(),
       suggestions: [
-        'Target user: [role / segment] facing [specific recurring pain]',
-        'Manual workaround today: [hack / spreadsheet / duct tape]',
-        'Starting wedge feature: [ultra-specific capability]',
-        'Why now / unique insight: [data / behavior / timing]'
+        'My target users are [role/segment] facing [specific recurring pain]',
+        'They currently use [hack/spreadsheet/manual process] to solve this',
+        "I'll start with [ultra-specific capability] as my wedge",
+        'My unique insight is [data/behavior/timing advantage]'
       ],
       pointsEarned: -0.25,
       pointsExplanation: 'Need clearer idea before wrinkling.'

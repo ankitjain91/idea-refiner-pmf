@@ -462,9 +462,9 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         
         const enhancedResponse = enhancedData?.enhancedResponse || trickeryCheck.response;
         const dynamicSuggestions = enhancedData?.suggestions || [
-          "Alright alright, here's my ACTUAL idea this time",
-          "Fine, you caught me - here's what I really want to build",
-          "Okay okay, let me be serious about my startup concept"
+          "Alright, here's my ACTUAL startup idea...",
+          "Fine, let me share my real business concept...",
+          "Okay, I'll be serious - my startup idea is..."
         ];
         
         const saltyMessage: Message = {
@@ -485,17 +485,17 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         // Fallback to escalated responses
         let escalatedResponse = trickeryCheck.response;
         let escalatedSuggestions = [
-          "Alright alright, here's my ACTUAL idea this time",
-          "Fine, you caught me - here's what I really want to build",
-          "Okay okay, let me be serious about my startup concept"
+          "Alright, here's my ACTUAL startup idea...",
+          "Fine, let me share my real business concept...",
+          "Okay, I'll be serious - my startup idea is..."
         ];
         
         if (newPersistenceLevel >= 3) {
           escalatedResponse += " \n\n🤬 SERIOUSLY?! This is attempt #" + newPersistenceLevel + "! My brain wrinkles are getting WRINKLED from frustration! Just give me ONE real idea!";
           escalatedSuggestions = [
-            "FINE! Here's a real business idea I actually want to pursue",
-            "You're right, I'm being ridiculous - here's my genuine concept",
-            "I surrender! Here's what I genuinely want to build"
+            "FINE! Here's my real business idea...",
+            "You're right, I'm being ridiculous - my genuine concept is...",
+            "I surrender! What I genuinely want to build is..."
           ];
         } else if (newPersistenceLevel >= 2) {
           escalatedResponse += " \n\n😤 I'm starting to lose my patience here! This is your second strike!";
@@ -591,10 +591,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         let suggestions = data.suggestions || [];
         if (suggestions.length === 0) {
           suggestions = [
-            "How can I validate this with real customers quickly?",
-            "What's the minimum viable version I could build?",
-            "Who are my direct competitors and how do I differentiate?",
-            "What are the biggest risks and how do I mitigate them?"
+            "I need to validate this with customers by...",
+            "My minimum viable version would include...",
+            "My main competitors are... but I differentiate by...",
+            "The biggest risks are... and I'll mitigate them by..."
           ];
         }
 
@@ -677,10 +677,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
             content: topicCheck.redirect || redirectLines[Math.min(offTopicAttempts, 4)],
             timestamp: new Date(),
             suggestions: [
-              "How can I maximize revenue?",
-              "What's the pricing sweet spot?",
-              "How do I beat competitors?",
-              "What's my growth strategy?"
+              "I can maximize revenue by...",
+              "My pricing strategy will be...",
+              "I'll beat competitors through...",
+              "My growth strategy involves..."
             ],
             pointsEarned: -0.25,
             pointsExplanation: 'Stay focused on profit to earn wrinkles!'
@@ -693,8 +693,14 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
             const finalWarning: Message = {
               id: Date.now().toString() + '_final',
               type: 'bot',
-              content: "🛑 Last chance! I'm here to maximize your startup's profitability. One more off-topic and I stop. What profit-related question can I help with?",
-              timestamp: new Date()
+              content: "🛑 Last chance! I'm here to maximize your startup's profitability. One more off-topic and I stop. What profit-related aspect would you like to explore?",
+              timestamp: new Date(),
+              suggestions: [
+                "I need help with my pricing model",
+                "I want to discuss customer acquisition",
+                "Let me explain my revenue strategy",
+                "I'm thinking about market positioning"
+              ]
             };
             setMessages(prev => [...prev, finalWarning]);
           }
@@ -894,17 +900,17 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
             // Bot is asking - provide potential answers
             suggestions = [
               "My target users face this problem daily when they...",
-              "The current manual workaround involves [specific steps]...",
-              "I've validated this pain point by talking to [number] potential customers",
-              "The unique insight I have is based on my experience with..."
+              "The current manual workaround involves...",
+              "I've validated this with [number] potential customers who said...",
+              "My unique insight is based on..."
             ];
           } else {
             // Bot is answering - provide follow-up questions
             suggestions = [
-              "How would this scale with 1000+ users?",
-              "What's the competitive moat here?",
-              "Can you elaborate on the pricing strategy?",
-              "What's the customer acquisition strategy?"
+              "I plan to scale to 1000+ users by...",
+              "My competitive moat will be...",
+              "My pricing strategy is...",
+              "My customer acquisition strategy involves..."
             ];
           }
         }
