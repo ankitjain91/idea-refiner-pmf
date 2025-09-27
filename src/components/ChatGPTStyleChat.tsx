@@ -1,537 +1,195 @@
-import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
+// Minimal rebuilt ChatGPTStyleChat (v2) under 200 lines
+// Scope: idea intake -> refinement -> optional analysis trigger + derived regeneration.
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BRAND, SCORE_LABEL, ANALYSIS_VERB } from '@/branding';
-import ReactMarkdown from 'react-markdown';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Send, 
-  Bot,
-  User,
-  Loader2,
-  Sparkles,
-  ArrowRight,
-  Play,
-  RefreshCw,
-  Brain,
-  Lightbulb
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage as Message, BriefFields } from '@/types/chat';
-import { computeEvidenceMetrics, isVagueAnswer } from '@/lib/brief-scoring';
+import type { ChatMessage as Message } from '@/types/chat';
 import { runEnterpriseAnalysis } from '@/lib/analysis-engine';
-import type { AnalysisResult } from '@/types/analysis';
-// Normalized import paths
-import { LS_KEYS, LS_UI_KEYS } from '@/lib/storage-keys';
-import { buildMarkdownReport, triggerDownload } from '@/lib/export-report';
+import { derivePersonasAndPains, extractKeywordFrequencies, parsePricingHints } from '@/lib/idea-extraction';
+import { LS_KEYS } from '@/lib/storage-keys';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SessionContext';
-import { scheduleIdle } from '@/lib/idle';
-import { SuggestionList } from './chat/SuggestionList';
+import { cn } from '@/lib/utils';
 import { ChatHeader } from './chat/ChatHeader';
 import { MessageBubble } from './chat/MessageBubble';
 import { ChatInputBar } from './chat/ChatInputBar';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
+interface Props { onAnalysisReady?: (idea: string, metadata: any) => void; showDashboard?: boolean; className?: string; }
 
-interface ChatGPTStyleChatProps {
-  onAnalysisReady?: (idea: string, metadata: any) => void;
-  showDashboard?: boolean;
-  className?: string;
-}
+const estimateTokens = (t: string) => Math.ceil(t.length / 4);
+const MAX_TOKENS = 6000;
+const WELCOME_SUGGESTIONS = [
+  'AI nutrition coach for busy parents',
+  'Marketplace for renting high-end cameras',
+  'Privacy-first personal CRM',
+  'Automated code review assistant'
+];
 
-// Replaced step-based questions with a single detailed brief form
-
-// Removed auto-seed idea pool – now we start with empty idea and AI brainstorming suggestions
-
-export default function ChatGPTStyleChat({ 
-  onAnalysisReady, 
-  showDashboard = false,
-  className
-}: ChatGPTStyleChatProps) {
+export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, className }: Props) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { currentSession, createSession } = useSession();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [currentIdea, setCurrentIdea] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisCompletedFlag, setAnalysisCompletedFlag] = useState(() => localStorage.getItem(LS_KEYS.analysisCompleted) === 'true');
-  const [typingStatus, setTypingStatus] = useState<string>('');
-  // Brief fields (two required: problem, targetUser; others optional)
-  const [brief, setBrief] = useState<BriefFields>({
-    problem: '', targetUser: '', differentiation: '', alternatives: '', monetization: '', scenario: '', successMetric: ''
-  });
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isRefinementMode, setIsRefinementMode] = useState(false); // start in idea mode
-  let persistedMode: 'idea'|'refine'|'analysis' = 'idea';
-  try {
-    const stored = localStorage.getItem('chatMode');
-    if (stored === 'refine' || stored === 'analysis' || stored === 'idea') persistedMode = stored;
-  } catch {}
-  const modeRef = useRef<'idea'|'refine'|'analysis'>(persistedMode);
-  let persistedBanner = false;
-  try { persistedBanner = localStorage.getItem('refineBannerShown') === '1'; } catch {}
-  const refinementBannerShownRef = useRef<boolean>(persistedBanner);
-  const emitMode = (mode: 'idea'|'refine'|'analysis') => {
-    modeRef.current = mode;
-    try { localStorage.setItem('chatMode', mode); } catch {}
-    try { window.dispatchEvent(new CustomEvent('chat:mode', { detail: { mode } })); } catch {}
-    if (mode === 'refine' && !refinementBannerShownRef.current) {
-      // Inject subtle one-time banner message
-      refinementBannerShownRef.current = true;
-      try { localStorage.setItem('refineBannerShown', '1'); } catch {}
-      const banner: Message = {
-        id: `msg-refine-banner-${Date.now()}`,
-        type: 'system',
-        content: '✨ Refinement Mode: You can iteratively sharpen positioning, differentiation and monetization before running full analysis. Ask for improvements or start the analysis.',
-        timestamp: new Date(),
-        suggestions: [
-          'Improve differentiation',
-          'Clarify target user',
-          'Start Analysis',
-          'Show examples of strong positioning'
-        ]
-      };
-      setMessages(prev => [ ...prev, banner ]);
-    }
-  };
-  const [showStartAnalysisButton, setShowStartAnalysisButton] = useState(false);
-  // Deprecated drawer brief form flag (kept for backward compatibility but no longer used)
-  const [showBriefForm, setShowBriefForm] = useState(false);
-  // Inline Q&A brief capture state
-  const [isBriefQAMode, setIsBriefQAMode] = useState(false);
-  const [briefQuestionIndex, setBriefQuestionIndex] = useState(0);
-  // Will be populated dynamically when Q&A starts based on current context
-  const briefQuestionsRef = useRef<Array<{ key: keyof typeof brief; question: string; required?: boolean }>>([]);
-  const [briefSuggestions, setBriefSuggestions] = useState<Record<string, string[]>>({});
-  // Keep a ref in sync to avoid stale closure in polling loops (e.g., askNextBriefQuestion)
-  const briefSuggestionsRef = useRef<Record<string, string[]>>({});
-  const updateBriefSuggestions = (next: Record<string,string[]>) => {
-    briefSuggestionsRef.current = next;
-    setBriefSuggestions(next);
-  };
-  // Evidence coverage & critique state
-  const [evidenceScore, setEvidenceScore] = useState<number>(0); // 0-100 heuristic
-  const [briefWeakAreas, setBriefWeakAreas] = useState<string[]>([]);
-  const positivityUnlockedRef = useRef(false);
-  const vagueAnswerCountsRef = useRef<Record<string, number>>({});
-  const [isFetchingBriefSuggestions, setIsFetchingBriefSuggestions] = useState(false);
-  const briefFetchedRef = useRef(false);
-  const suggestionCycleRef = useRef<NodeJS.Timeout | null>(null);
-  const suggestionBackoffRef = useRef<number>(30000); // start at 30s
-  const suggestionIdleRef = useRef<boolean>(false);
-  const abortBriefSuggestRef = useRef<AbortController | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  // Removed legacy per-component session persistence (handled by SessionContext)
-  const titleGeneratedRef = useRef(false);
-  const { currentSession, createSession } = useSession();
-  const lastIdeaSignatureRef = useRef<string>('');
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const initializedRef = useRef(false);
-  const chatRestoredRef = useRef(false);
-  const shuffleCooldownRef = useRef<number>(0); // still used for suggestion shuffle debounce
-  const LiveDataCards = React.useMemo(() => React.lazy(() => import('./LiveDataCards')), []);
+  const [analysisCompleted, setAnalysisCompleted] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const regenOfferRef = useRef<string>('');
 
-  const generateTwoWordTitle = useCallback(async (idea: string) => {
-    if (!idea || titleGeneratedRef.current) return;
-    titleGeneratedRef.current = true;
+  useEffect(() => {
+    if (!messages.length) {
+      setMessages([{ id: 'welcome', type: 'system', timestamp: new Date(), content: "👋 Welcome! Describe your product idea (or click a suggestion) and we'll refine it together.", suggestions: WELCOME_SUGGESTIONS }]);
+    }
+  }, [messages.length]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const validateIdea = (t: string) => t.split(/\s+/).length > 3 && t.length > 15;
+  const pruneContext = (msgs: Message[]) => {
+    const clone = [...msgs];
+    let total = estimateTokens(clone.map(m => m.content).join('\n'));
+    while (total > MAX_TOKENS && clone.length > 4) {
+      const idx = clone.findIndex(m => m.type !== 'system');
+      if (idx === -1) break; clone.splice(idx,1);
+      total = estimateTokens(clone.map(m => m.content).join('\n'));
+    }
+    return clone;
+  };
+
+  const regenerateDerived = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-session-title', { body: { idea } });
-      if (error) throw error;
-      const finalTitle = (data as any)?.title || 'Idea Session';
-      if (currentSession) {
-        await supabase.from('brainstorming_sessions').update({ name: finalTitle }).eq('id', currentSession.id);
-        localStorage.setItem('currentSessionTitle', finalTitle);
-      }
+      // Use full message objects for derivation helpers
+      const { personas, pains } = derivePersonasAndPains(messages);
+      const { keywords } = extractKeywordFrequencies(messages);
+      const pricing = parsePricingHints(messages);
+      const raw = localStorage.getItem(LS_KEYS.ideaMetadata); const base = raw ? JSON.parse(raw) : {};
+      base.derived = { personas, pains, keywordFrequencies: keywords, pricing };
+      localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(base));
+      localStorage.setItem('pmf.derived.personas', JSON.stringify(personas));
+      localStorage.setItem('pmf.derived.pains', JSON.stringify(pains));
+      localStorage.setItem('pmf.derived.keywords', JSON.stringify(keywords));
+      localStorage.setItem('pmf.derived.pricing', JSON.stringify(pricing));
+      setMessages(p => [...p, { id: `regen-${Date.now()}`, type: 'system', timestamp: new Date(), content: `✅ Updated insights (Personas: ${personas.length}, Keywords: ${keywords.keywords.length}${pricing.avgPrice? ', Avg Price ~$'+Math.round(pricing.avgPrice):''}).`, suggestions: ['Open Dashboard','Refine further'] }]);
+    } catch { toast({ title: 'Regeneration failed', description: 'Could not refresh derived insights.' }); }
+  };
+
+  const runAnalysis = async () => {
+    if (!currentIdea) return; setIsAnalyzing(true); setAnalysisProgress(5);
+    setMessages(p => [...p, { id: `analysis-start-${Date.now()}`, type: 'system', timestamp: new Date(), content: '🔍 Running analysis...' }]);
+    try {
+      const pruned = pruneContext(messages.filter(m => m.type !== 'system'));
+      const ctx = pruned.map(m => m.content).join('\n');
+      // runEnterpriseAnalysis expects options object per signature
+      const result = await runEnterpriseAnalysis(
+        { brief: { problem: currentIdea, targetUser: '', differentiation: '', alternatives: '', monetization: '', scenario: '', successMetric: '' }, idea: currentIdea, conversationContext: ctx },
+        update => setAnalysisProgress(5 + Math.round(update.pct * 0.9))
+      );
+      setAnalysisCompleted(true);
+      setMessages(p => [...p, { id: `analysis-done-${Date.now()}`, type: 'bot', timestamp: new Date(), content: '✅ Analysis ready. View dashboard or keep refining.', suggestions: ['Open Dashboard','Refine further','Export report'] }]);
+      onAnalysisReady?.(currentIdea, result);
     } catch (e) {
-      console.error('Title generation failed', e);
-      titleGeneratedRef.current = false; // allow retry on next idea change
-    }
-  }, [currentSession]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      console.error(e); setMessages(p => [...p, { id: `analysis-fail-${Date.now()}`, type: 'bot', timestamp: new Date(), content: '⚠️ Analysis failed – try again.' }]);
+    } finally { setIsAnalyzing(false); setAnalysisProgress(0); }
   };
 
-  // Typing indicator helpers to ensure visibility for at least a minimal duration
-  const MIN_TYPING_MS = 900;
-  const startTyping = (status: string) => {
-    setTypingStatus(status);
-    const loadingMessage: Message = {
-      id: `msg-typing-${Date.now()}`,
-      type: 'bot',
-      content: '',
-      timestamp: new Date(),
-      isTyping: true
-    };
-    setMessages(prev => [...prev, loadingMessage]);
-    return Date.now();
-  };
-  const stopTyping = async (startedAt: number) => {
-    const elapsed = Date.now() - startedAt;
-    const wait = Math.max(0, MIN_TYPING_MS - elapsed);
-    if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
-    setMessages(prev => prev.filter(msg => !msg.isTyping));
-    setTypingStatus('');
-  };
-
-  // Classify suggestion for badge category (used by modular SuggestionList)
-  const classifySuggestionCategory = (suggestion: string): string | undefined => {
-    const lower = suggestion.toLowerCase();
-    if (lower === 'skip' || lower === 'cancel') return undefined;
-    if (/(analyz|analysis|run|re-analyze|metric|score)/.test(lower)) return 'action';
-    if (/(problem|user|monet|differen|market|signal|scenario|alternative|metric)/.test(lower)) return 'brief';
-    if (/^show |^view |^open /.test(lower)) return 'view';
-    if (/^improve|^refine|^strengthen|^optimi/.test(lower)) return 'refine';
-    if (/(start fresh|new idea)/.test(lower)) return 'reset';
-    return undefined;
-  };
-
-  // Unified suggestion selection handler (supports actions and defaults)
-  const DASHBOARD_PATTERNS = [/^open dashboard$/i, /^view dashboard$/i, /^go to dashboard$/i, /^show dashboard$/i];
-  const canOpenDashboard = () => {
-    try { return localStorage.getItem(LS_KEYS.analysisCompleted) === 'true'; } catch { return false; }
-  };
-  const triggerDashboardOpen = () => {
-    if (canOpenDashboard()) {
-      navigate('/dashboard');
-    } else {
-      const warn: Message = {
-        id: `msg-dashboard-block-${Date.now()}`,
-        type: 'system',
-        content: '📊 The dashboard unlocks after you run an analysis. Add your idea & brief, then choose Start Analysis.',
-        timestamp: new Date(),
-        suggestions: ['Start Analysis', 'Refine further', 'Improve differentiation']
-      };
-      setMessages(prev => [...prev, warn]);
-    }
-  };
-  const handleSuggestionSelection = (msg: Message, suggestion: string) => {
-    // Strip any leading emoji / decoration for comparison while preserving original for input
-    const normalized = suggestion.trim().replace(/^([\p{Emoji}\p{Extended_Pictographic}]+\s*)/u, '').replace(/^[-•\d\.\s]+/, '').trim();
-
-    // Dashboard open intents
-    if (DASHBOARD_PATTERNS.some(r => r.test(normalized)) || normalized.toLowerCase() === 'open dashboard') {
-      triggerDashboardOpen();
-      return;
-    }
-
-    // Export report (use latest pmfAnalysis containing message or fallback)
-    if (normalized === 'Export report') {
-      const target = msg.pmfAnalysis ? msg : [...messages].reverse().find(m => m.pmfAnalysis) as Message | undefined;
-      if (!target?.pmfAnalysis) return;
-      const result: AnalysisResult = {
-        pmfAnalysis: target.pmfAnalysis,
-        meta: {
-          startedAt: new Date().toISOString(),
-          completedAt: new Date().toISOString(),
-          durationMs: 0,
-            briefSnapshot: brief,
-          validationIssues: [],
-          evidenceScore: 0,
-          weakAreas: [],
-          viabilityLabel: ''
-        }
-      };
-      const md = buildMarkdownReport(result);
-      triggerDownload('pmf-analysis-report.md', md);
-      return;
-    }
-
-    if (normalized === 'Re-analyze with changes' || normalized === 'Refine this idea further' || normalized === 'Refine further') {
-      setShowStartAnalysisButton(true);
-      setIsRefinementMode(true);
-      setIsAnalyzing(false);
-      setAnalysisProgress(0);
-      const refineMsg: Message = {
-        id: `msg-refine-${Date.now()}`,
-        type: 'bot',
-        content: `Let's refine your idea to improve the ${SCORE_LABEL}. What specific aspects would you like to enhance?`,
-        timestamp: new Date(),
-        suggestions: [
-          'Improve the value proposition',
-          'Better define target audience',
-          'Strengthen monetization model',
-          'Differentiate from competitors'
-        ]
-      };
-      setMessages(prev => [...prev, refineMsg]);
-      return;
-    }
-
-    if (normalized === 'Refine my idea based on feedback') {
-      setIsRefinementMode(true);
-      handleSuggestionClick('Let me refine my idea based on the analysis feedback');
-      return;
-    }
-
-    if (normalized === 'Run HyperFlux Analysis' || normalized === 'Start Analysis') {
-      runBriefAnalysis();
-      return;
-    }
-
-    if (normalized === 'Show live market signals') {
-      const already = messages.some(m => m.metadata?.liveDataForIdea === currentIdea);
-      if (!already && currentIdea) {
-        const liveMsg: Message = {
-          id: `msg-live-${Date.now()}`,
-          type: 'bot',
-          content: `📡 Live market signals for **${currentIdea}**`,
-          timestamp: new Date(),
-          metadata: { liveData: true, liveDataForIdea: currentIdea }
-        };
-        setMessages(prev => [...prev, liveMsg]);
-      }
-      return;
-    }
-
-    if (normalized === 'Start with a new idea' || normalized === 'Start fresh with new approach') {
-      setCurrentIdea('');
-      setAnalysisProgress(0);
-      setIsAnalyzing(false);
-      setIsRefinementMode(true);
-      setShowStartAnalysisButton(false);
-      setAnalysisProgress(0);
-      const resetMsg: Message = {
-        id: `msg-reset-${Date.now()}`,
-        type: 'bot',
-        content: "Let's try something new! Share any product or service idea you have and I'll help you think it through step by step.",
-        timestamp: new Date(),
-        suggestions: [
-          '💡 Think about problems you face daily',
-          '💡 Look for gaps in existing solutions',
-          '💡 Consider what would save you time/money',
-          '💡 Start with your own experience and needs'
-        ]
-      };
-      setMessages([resetMsg]);
-      return;
-    }
-
-    // Default: populate input for user to optionally edit/send
-    setInput(suggestion.replace(/^([\p{Emoji}\p{Extended_Pictographic}]+\s*)/u, ''));
-    inputRef.current?.focus();
-  };
-
-  useEffect(() => {
-    // Only scroll to bottom if there are more than 1 message (not just the initial welcome)
-    if (messages.length > 1) {
-      scrollToBottom();
-    }
-  }, [messages]);
-
-  // External trigger to open analysis brief (from parent layout / dashboard panel)
-  useEffect(() => {
-    const openBrief = () => { if (!isAnalyzing) runBriefAnalysis(); };
-    const closeBrief = () => { if (isBriefQAMode) { setIsBriefQAMode(false); window.dispatchEvent(new CustomEvent('analysis:briefEnded')); } };
-    window.addEventListener('analysis:openBrief', openBrief);
-    window.addEventListener('analysis:closeBrief', closeBrief);
-    return () => {
-      window.removeEventListener('analysis:openBrief', openBrief);
-      window.removeEventListener('analysis:closeBrief', closeBrief);
-    };
-  }, [isBriefQAMode, isAnalyzing]);
-
-  // Fetch AI suggestions for brief fields
-  const fetchBriefSuggestions = useCallback(async (force = false, enrich = false) => {
-    if (isFetchingBriefSuggestions || (!force && !enrich && briefFetchedRef.current)) return;
-    setIsFetchingBriefSuggestions(true);
-    window.dispatchEvent(new CustomEvent('chat:status', { detail: { kind: 'brief-suggestions', message: 'Fetching brief answer suggestions...' } }));
-    abortBriefSuggestRef.current?.abort();
-    const controller = new AbortController();
-    abortBriefSuggestRef.current = controller;
+  const sendRefinement = async (text: string) => {
+    setIsLoading(true); const tempId = `typing-${Date.now()}`;
+    setMessages(p => [...p, { id: tempId, type: 'bot', timestamp: new Date(), content: '', isTyping: true } as any]);
     try {
-      const fieldKeys = ['problem','targetUser','differentiation','alternatives','monetization','scenario','successMetric'];
-      const existing = briefSuggestions;
-      // Build context for enrichment
-      const contextObj: any = { brief, existingSuggestions: existing };
-      const prompt = enrich
-        ? `Improve & diversify ANSWER suggestions for product idea: "${currentIdea || brief.problem || 'Unknown'}". Return JSON with keys ${fieldKeys.join(', ')}. Each key: up to 5 concise, non-redundant, high-signal *answer statements* (max 12 words) – NEVER questions, do not end with '?', no generic fluff (avoid 'innovative platform', 'revolutionary'). Prioritize clarity, specificity, novelty. Avoid duplicates from existingSuggestions. Keep arrays small if high quality cannot be added.`
-        : `Given the product idea: "${currentIdea || brief.problem || 'Unknown'}" generate concise structured ANSWER suggestions (NOT questions) for these fields in JSON with keys ${fieldKeys.join(', ')}. Each key should be an array of 3 short, high-signal, declarative answer statements (max 12 words each). No question marks. Focus on clarity + specificity.`;
-      const { data, error } = await supabase.functions.invoke('idea-chat', { body: { message: prompt, suggestionMode: true, context: contextObj } });
-      if (error) throw error;
-      let suggestions: any = {};
-      if (typeof data === 'string') {
-        try { suggestions = JSON.parse(data); } catch { suggestions = {}; }
-      } else if (typeof data === 'object') {
-        suggestions = data.suggestions || data;
+      const { data } = await supabase.functions.invoke('idea-chat', { body: { message: text, refinementMode: true } });
+      let response=''; let sugg: string[] = [];
+      if (data) {
+        if (typeof data === 'string') { try { const parsed = JSON.parse(data); response = parsed.response || parsed.message || data; sugg = parsed.suggestions || []; } catch { response = data; } }
+        else { response = (data as any).response || (data as any).message || ''; sugg = (data as any).suggestions || []; }
       }
-      const merged: Record<string, string[]> = { ...existing };
-      fieldKeys.forEach(k => {
-        const incoming = suggestions?.[k];
-        if (Array.isArray(incoming)) {
-          const currentSet = new Set((merged[k] || []).map(s => s.trim()));
-            incoming.forEach((raw: any) => {
-              let s = String(raw).trim();
-              if (!s) return;
-              if (s.endsWith('?')) s = s.replace(/\?+$/,'').trim();
-              if (/^(what|who|how|why|when|where)\b/i.test(s)) return; // discard questions
-              if (!s) return;
-              if (![...currentSet].some(existingVal => existingVal.toLowerCase() === s.toLowerCase())) {
-                currentSet.add(s);
-              }
-            });
-          // Keep top 5 (simple heuristic: shorter first then original order)
-          const limited = [...currentSet].sort((a,b) => a.length - b.length).slice(0,5);
-          merged[k] = limited;
-        }
-      });
-  updateBriefSuggestions(merged);
-      briefFetchedRef.current = true;
-      // cache
-      try { localStorage.setItem('analysisBriefSuggestionsCache', JSON.stringify({ ts: Date.now(), data: merged })); } catch {}
-      // reset backoff on success if enrichment returned new content
-      if (enrich) {
-        suggestionBackoffRef.current = Math.max(20000, suggestionBackoffRef.current * 0.75); // adaptive shorten a bit
-      } else {
-        suggestionBackoffRef.current = 30000;
-      }
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') {
-        console.error('Brief suggestions fetch failed', e);
-        // gentle backoff increase on failure
-        suggestionBackoffRef.current = Math.min(90000, suggestionBackoffRef.current * 1.4);
-      }
-    } finally {
-      setIsFetchingBriefSuggestions(false);
-      window.dispatchEvent(new CustomEvent('chat:status', { detail: { kind: 'idle', message: '' } }));
+      if (!response) response = "Let's keep refining your idea.";
+      if (!/^[\p{Emoji}\p{Extended_Pictographic}]/u.test(response)) response = '🤖 '+response;
+      setMessages(p => p.filter(m => m.id !== tempId).concat({ id: `bot-${Date.now()}`, type: 'bot', timestamp: new Date(), content: response, suggestions: sugg.slice(0,6) }));
+    } catch { setMessages(p => p.filter(m => m.id !== tempId).concat({ id: `err-${Date.now()}`, type: 'bot', timestamp: new Date(), content: '⚠️ Minor hiccup – try again.' })); }
+    finally { setIsLoading(false); }
+  };
+
+  const maybeOfferRegeneration = (userText: string) => {
+    if (!analysisCompleted || userText.length < 60) return;
+    const last = messages[messages.length-1];
+    if (regenOfferRef.current === last?.id) return;
+    if (messages.some(m => m.content.includes('Regenerate Derived Insights'))) return;
+    regenOfferRef.current = last?.id || '';
+    setMessages(p => [...p, { id: `offer-regen-${Date.now()}`, type: 'system', timestamp: new Date(), content: '🧠 New context detected. Refresh derived personas, pains, keywords & pricing?', suggestions: ['Regenerate Derived Insights','Ignore'] }]);
+  };
+
+  const handleSend = async () => {
+    const text = input.trim(); if (!text || isLoading) return; setInput('');
+    const userMsg: Message = { id: `u-${Date.now()}`, type: 'user', content: text, timestamp: new Date() };
+    setMessages(p => [...p, userMsg]);
+    if (!currentSession && user) createSession(text.split(/\s+/).slice(0,6).join(' '));
+    if (!currentIdea) {
+      if (!validateIdea(text)) { setMessages(p => [...p, { id: `need-more-${Date.now()}`, type: 'bot', timestamp: new Date(), content: '🧠 Give me a bit more detail about the idea/problem.', suggestions: ['Define target user','Explain problem clearly','Why now?'] }]); return; }
+      setCurrentIdea(text); setMessages(p => [...p, { id: `refine-${Date.now()}`, type: 'system', timestamp: new Date(), content: '✨ Refinement Mode active. Ask for improvements or start analysis when ready.', suggestions: ['Improve differentiation','Clarify target user','Start Analysis'] }]); return;
     }
-  }, [currentIdea, brief, briefSuggestions, isFetchingBriefSuggestions]);
+    maybeOfferRegeneration(text);
+    if (/start analysis/i.test(text) || /run analysis/i.test(text)) { runAnalysis(); return; }
+    await sendRefinement(text);
+  };
 
-  // Auto-fetch when brief form first opened
-  useEffect(() => {
-    if (showBriefForm) fetchBriefSuggestions();
-  }, [showBriefForm, fetchBriefSuggestions]);
+  const handleSuggestion = async (s: string) => {
+    if (s === 'Regenerate Derived Insights') { await regenerateDerived(); return; }
+    if (/Open Dashboard/i.test(s)) { try { window.dispatchEvent(new CustomEvent('dashboard:open')); } catch {} if (showDashboard) navigate('/dashboard'); return; }
+    if (/Start Analysis/i.test(s)) { runAnalysis(); return; }
+    setInput(s.replace(/^[\p{Emoji}\p{Extended_Pictographic}]+\s*/u,'')); inputRef.current?.focus();
+  };
 
-  // Load cached suggestions (if any) on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('analysisBriefSuggestionsCache');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.data) setBriefSuggestions(parsed.data);
-      }
-    } catch {}
-  }, []);
+  const classifySuggestionCategory = () => 'General';
 
-  // Background enrichment cycle
-  useEffect(() => {
-    if (!showBriefForm || isAnalyzing) {
-      if (suggestionCycleRef.current) {
-        clearTimeout(suggestionCycleRef.current);
-        suggestionCycleRef.current = null;
-      }
-      return;
-    }
-    const schedule = () => {
-      if (!showBriefForm || isAnalyzing) return;
-      suggestionCycleRef.current = setTimeout(async () => {
-        // Only enrich if user hasn't recently typed in a field (heuristic: if problem & targetUser unchanged for cycle)
-        await fetchBriefSuggestions(false, true);
-        schedule();
-      }, suggestionBackoffRef.current);
-    };
-    schedule();
-    return () => {
-      if (suggestionCycleRef.current) clearTimeout(suggestionCycleRef.current);
-    };
-  }, [showBriefForm, isAnalyzing, fetchBriefSuggestions]);
-
-  // Listen for external session load trigger (from sidebar navigation) to rehydrate chat & focus input
-  useEffect(() => {
-    const handleSessionLoaded = () => {
-      const raw = localStorage.getItem('chatHistory');
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          const restored: Message[] = parsed.map((m: any) => ({
-            id: m.id || `restored-${Date.now()}-${Math.random()}`,
-            type: m.type || 'bot',
-            content: m.content || '',
-            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
-            suggestions: m.suggestions,
-            metadata: m.metadata,
-            pmfAnalysis: m.pmfAnalysis,
-          }));
-          setMessages(restored);
-          chatRestoredRef.current = true;
-        } catch {}
-      }
-      const idea = localStorage.getItem('userIdea');
-      if (idea) setCurrentIdea(prev => prev || idea);
-      requestAnimationFrame(() => inputRef.current?.focus());
-    };
-    window.addEventListener('session:loaded', handleSessionLoaded);
-    return () => window.removeEventListener('session:loaded', handleSessionLoaded);
-  }, []);
-
-  // Persist chat messages to localStorage for session autosave integration
-  useEffect(() => {
-    if (messages.length) {
-      const serializable = messages.map(m => ({
-        id: m.id,
-        type: m.type,
-        content: m.content,
-        timestamp: m.timestamp.toISOString(),
-        suggestions: m.suggestions,
-        metadata: m.metadata,
-        pmfAnalysis: m.pmfAnalysis,
-      }));
-      localStorage.setItem('chatHistory', JSON.stringify(serializable));
-    }
-  }, [messages]);
-
-  // Restore chat/history & idea from brainstorming session when it changes
-  useEffect(() => {
-    if (!currentSession?.state) return;
-    const st = currentSession.state as any;
-    const alreadyMeaningful = messages.length > 0; // Prevent overwrite if user already typing / restored
-    if (!alreadyMeaningful && !chatRestoredRef.current && Array.isArray(st.chatHistory) && st.chatHistory.length) {
-      try {
-        const restored: Message[] = st.chatHistory.map((m: any) => ({
-          id: m.id || `restored-${Date.now()}-${Math.random()}`,
-          type: m.type || 'bot',
-          content: m.content || '',
-          timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
-          suggestions: m.suggestions,
-          metadata: m.metadata,
-          pmfAnalysis: m.pmfAnalysis,
-        }));
-        setMessages(restored);
-        chatRestoredRef.current = true;
-      } catch {}
-    } else if (!alreadyMeaningful && !chatRestoredRef.current) {
-      const raw = localStorage.getItem('chatHistory');
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          const restored: Message[] = parsed.map((m: any) => ({
-            id: m.id,
-            type: m.type,
-            content: m.content,
-            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
-            suggestions: m.suggestions,
-            metadata: m.metadata,
-            pmfAnalysis: m.pmfAnalysis,
-          }));
-          setMessages(restored);
-          chatRestoredRef.current = true;
-        } catch {}
-      }
-    }
-    if (st.ideaData?.idea && !currentIdea) {
-      setCurrentIdea(st.ideaData.idea);
-    }
-  }, [currentSession]);
-
+  return (
+    <div className={cn('flex flex-col h-full bg-background', className)}>
+      <ChatHeader isAnalyzing={isAnalyzing} analysisProgress={analysisProgress} />
+      <div className="flex-1 p-4 overflow-y-auto space-y-4">
+        {messages.length === 1 && messages[0].id === 'welcome' && (
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-2">Welcome</h2>
+            <p className="text-sm mb-4">{messages[0].content}</p>
+            <div className="grid gap-2">
+              {messages[0].suggestions?.map(s => (
+                <Button key={s} variant="outline" className="justify-start" onClick={() => handleSuggestion(s)}>{s}</Button>
+              ))}
+            </div>
+          </Card>
+        )}
+        {messages.filter(m => m.id !== 'welcome').map(m => (
+          <MessageBubble
+            key={m.id}
+            msg={m}
+            typingStatus={''}
+            classifySuggestionCategory={classifySuggestionCategory}
+            // Provide no-op LiveDataCards to satisfy prop (original component expected it)
+            LiveDataCards={React.lazy(() => Promise.resolve({ default: () => null })) as any}
+            onSelectSuggestion={(s) => handleSuggestion(s)}
+            currentIdea={currentIdea}
+          />
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="border-t bg-background p-4">
+        <ChatInputBar
+          input={input}
+          setInput={setInput}
+          onSend={handleSend}
+          disabled={isLoading}
+          placeholder={!currentIdea ? 'Describe your product idea...' : isAnalyzing ? 'Analyzing...' : 'Refine or ask something...'}
+          inputRef={inputRef}
+        />
+      </div>
+    </div>
+  );
+}
   // Persist current idea to localStorage for session recovery & autosave
   useEffect(() => {
     if (currentIdea) {
@@ -676,6 +334,29 @@ export default function ChatGPTStyleChat({
       }
     } catch {}
   }, []);
+  // Restore prior chat messages (if user reloads before analysis)
+  useEffect(() => {
+    if (chatRestoredRef.current) return;
+    try {
+      const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+      if (raw) {
+        const parsed: Message[] = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) {
+          setMessages(parsed.map(m => ({ ...m, timestamp: m.timestamp ? new Date(m.timestamp) : new Date() })));
+          chatRestoredRef.current = true;
+        }
+      }
+    } catch {}
+  }, []);
+  // Persist chat history (last 200 messages)
+  useEffect(() => {
+    try {
+      const compact = messages.slice(-200).map(m => ({ ...m, timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp }));
+      localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(compact));
+      // Backward compatibility: also write to legacy key used by SessionContext
+      localStorage.setItem('chatHistory', JSON.stringify(compact));
+    } catch {}
+  }, [messages]);
   // Persist brief
   useEffect(() => {
     try { localStorage.setItem(LS_KEYS.analysisBrief, JSON.stringify(brief)); } catch {}
@@ -718,17 +399,18 @@ export default function ChatGPTStyleChat({
     const inferred = inferIdeaFromHistory();
     if (inferred) {
       primaryIdea = inferred.trim();
-      if (!currentIdea) {
-        setCurrentIdea(primaryIdea);
-      }
-      // Let user know we picked up prior context
-      const notice: Message = {
-        id: `msg-inferred-idea-${Date.now()}`,
+      // Show preview instead of auto-accepting
+      setPendingInferredIdea(primaryIdea);
+      const preview: Message = {
+        id: `msg-inferred-preview-${Date.now()}`,
         type: 'system',
-        content: `🔍 Using your earlier idea from this session: “${primaryIdea.slice(0,140)}${primaryIdea.length>140?'…':''}”. If that's not right, type a new idea before re-running.`,
-        timestamp: new Date()
+        content: `🔍 I inferred this idea: “${primaryIdea.slice(0,200)}${primaryIdea.length>200?'…':''}”.\nConfirm or edit before running analysis.`,
+        timestamp: new Date(),
+        suggestions: ['Confirm inferred idea','Edit idea first','Start Analysis']
       };
-      setMessages(prev => [...prev, notice]);
+      setMessages(prev => [...prev, preview]);
+      setIsAnalyzing(false);
+      return; // Wait for user confirmation path
     }
   }
   if (!primaryIdea) {
@@ -770,7 +452,67 @@ export default function ChatGPTStyleChat({
     setMessages(prev => [...prev, loadingMsg]);
 
     try {
-      const result: AnalysisResult = await runEnterpriseAnalysis({ brief, idea: primaryIdea || 'Untitled Idea' }, (update) => {
+      // Build aggregated context string from all prior user messages for richer analysis input
+      // Build enriched context & derived artifacts
+      // Create dual window: recent user lines + mixed role window for deeper nuance
+      const userOnlyLines = messages.filter(m=>m.type==='user').map(m=>m.content?.trim()).filter(Boolean) as string[];
+      const assistantLines = messages.filter(m=>m.type==='bot').map(m=>m.content?.trim()).filter(Boolean) as string[];
+      // Limit to keep payload manageable
+      const recentUser = userOnlyLines.slice(-80);
+      const recentAssistant = assistantLines.slice(-40);
+      // Full mixed window (chronological slice of last 120 messages any type)
+      const mixed = messages.slice(-120).map(m => `${m.type==='user'?'U':'A'}: ${(m.content||'').replace(/\s+/g,' ').trim()}`).filter(l=>l.length>3);
+      // Truncate by character budget (approx) 8000 chars
+      const charBudget = 8000;
+      let used = 0;
+      const prunedMixed: string[] = [];
+      for (const line of mixed) {
+        if (used + line.length + 1 > charBudget) break;
+        prunedMixed.push(line); used += line.length + 1;
+      }
+      let conversationContext = [
+        '# Conversation Context',
+        '## Recent User Statements',
+        ...recentUser.slice(-50).map((c,i)=>`U${i+1}: ${c}`),
+        '## Assistant Responses (sample)',
+        ...recentAssistant.slice(-25).map((c,i)=>`A${i+1}: ${c}`),
+        '## Mixed Window',
+        ...prunedMixed
+      ].join('\n');
+      // Token budget pruning (soft ~6k tokens)
+      const TOKEN_BUDGET = 6000; // adjustable threshold
+      if (estimateTokens(conversationContext) > TOKEN_BUDGET) {
+        // Strategy: progressively drop assistant sample, then oldest user lines, then compress mixed
+        const segments: { label: string; content: string[] }[] = [
+          { label: 'Recent User Statements', content: recentUser.slice(-50) },
+          { label: 'Assistant Responses (sample)', content: recentAssistant.slice(-25) },
+          { label: 'Mixed Window', content: prunedMixed }
+        ];
+        const rebuild = () => [
+          '# Conversation Context',
+          '## Recent User Statements',
+          ...segments[0].content.map((c,i)=>`U${i+1}: ${c}`),
+          '## Assistant Responses (sample)',
+          ...segments[1].content.map((c,i)=>`A${i+1}: ${c}`),
+          '## Mixed Window',
+          ...segments[2].content
+        ].join('\n');
+        let safety = 12;
+        while (estimateTokens(conversationContext = rebuild()) > TOKEN_BUDGET && safety-- > 0) {
+          // Drop assistant lines first
+          if (segments[1].content.length > 5) segments[1].content.splice(0,5);
+          else if (segments[0].content.length > 20) segments[0].content.splice(0,5);
+          else if (segments[2].content.length > 40) segments[2].content.splice(0,10);
+          else break; // can't reduce further without losing recency
+        }
+        if (estimateTokens(conversationContext) > TOKEN_BUDGET) {
+          conversationContext += '\n[Context truncated due to token budget]';
+        }
+      }
+      const { personas, pains } = derivePersonasAndPains(messages);
+      const { keywords } = extractKeywordFrequencies(messages, 40);
+      const pricingHints = parsePricingHints(messages);
+      const result: AnalysisResult = await runEnterpriseAnalysis({ brief, idea: primaryIdea || 'Untitled Idea', conversationContext }, (update) => {
         setAnalysisProgress(Math.min(98, Math.max(5, update.pct)));
         setMessages(prev => prev.map(m => m.id === analysisStartId ? { ...m, content: `${update.phase === 'validate' ? 'Checking your idea details...' : update.phase === 'fetch-model' ? 'Getting smart insights...' : update.phase === 'structure' ? 'Organizing the findings...' : update.phase === 'finalize' ? 'Putting it all together...' : 'Working on it...'}\n${update.note ? '💡 ' + update.note : ''}` } : m));
       });
@@ -797,11 +539,30 @@ export default function ChatGPTStyleChat({
       setMessages(prev => [...prev, completion]);
       localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
       localStorage.setItem(LS_KEYS.pmfScore, String(pmfScore));
-      localStorage.setItem(LS_KEYS.userIdea, currentIdea);
+  // Persist inferred or current idea
+  localStorage.setItem(LS_KEYS.userIdea, primaryIdea || currentIdea);
       localStorage.setItem(LS_KEYS.userAnswers, JSON.stringify(brief));
       setAnalysisCompletedFlag(true);
-      const metadata = { ...result.pmfAnalysis, meta: result.meta, answers: brief };
+      const metadata = { 
+        ...result.pmfAnalysis,
+        meta: result.meta,
+        answers: brief,
+        conversationContext,
+        derived: {
+          personas,
+          pains,
+            keywordFrequencies: keywords,
+          pricing: pricingHints
+        }
+      };
       localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata));
+      // Persist personas & pricing hints separately for quick dashboard access (optional lightweight keys)
+      try {
+        localStorage.setItem('pmf.derived.personas', JSON.stringify(personas));
+        localStorage.setItem('pmf.derived.pains', JSON.stringify(pains));
+        localStorage.setItem('pmf.derived.keywords', JSON.stringify(keywords));
+        localStorage.setItem('pmf.derived.pricing', JSON.stringify(pricingHints));
+      } catch {}
       // Inject inline dashboard CTA panel card beneath completion message
       const dashboardCard: Message = {
         id: `msg-dashboard-cta-${Date.now()}`,
@@ -832,7 +593,7 @@ export default function ChatGPTStyleChat({
   // Deprecated structured analysis flow removed.
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  if (!input.trim() || isLoading) return;
     const trimmed = input.trim();
     if (DASHBOARD_PATTERNS.some(r => r.test(trimmed))) {
       triggerDashboardOpen();
@@ -847,7 +608,7 @@ export default function ChatGPTStyleChat({
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+  setMessages(prev => [...prev, userMessage]);
 
     // Lazy-create a session only when user first contributes meaningful content and no session exists yet
     if (!currentSession && user && messages.filter(m => m.type !== 'system').length === 0) {
@@ -872,10 +633,10 @@ export default function ChatGPTStyleChat({
           "🌟 I'm excited to help you brainstorm! Could you share a product or service concept you'd like to develop?",
           "🚀 Ready to dive in! What's a business idea that's been on your mind? Even a rough concept works!",
           "✨ Think of something like 'an app that helps people...' or 'a service for...' - what comes to mind?",
-          "� What problem do you see around you that needs solving? That could be your next big idea!",
+          "🧩 What problem do you see around you that needs solving? That could be your next big idea!",
           "💭 Every great business starts with solving a real problem. What's something that frustrates you or others?",
           "🔥 I can sense you have ideas brewing! What's something you wish existed to make life easier?",
-          "� Let your creativity flow! What's a product or service you think the world needs?"
+          "🎨 Let your creativity flow! What's a product or service you think the world needs?"
         ];
         const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
         const validationMessage: Message = {
@@ -894,6 +655,24 @@ export default function ChatGPTStyleChat({
         setInput('');
         return;
       }
+    }
+
+    // If user significantly edits conversation (long message) after analysis completed -> offer regenerate derived insights
+    try {
+      if (analysisCompletedFlag && trimmed.length > 60) {
+        const alreadyOffered = messages.some(m => m.content?.includes('Regenerate Derived Insights'));
+        if (!alreadyOffered) {
+          const regenMsg: Message = {
+            id: `msg-offer-regen-${Date.now()}`,
+            type: 'system',
+            content: '🧠 You added substantial new context. Want to refresh personas, pains, keyword frequencies & pricing hints?',
+            timestamp: new Date(),
+            suggestions: ['Regenerate Derived Insights','Ignore']
+          };
+          setMessages(prev => [...prev, regenMsg]);
+        }
+      }
+    } catch {}
       setCurrentIdea(input);
       generateTwoWordTitle(input);
       setShowStartAnalysisButton(true);
