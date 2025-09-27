@@ -974,11 +974,11 @@ export default function ChatGPTStyleChat({
     const intro: Message = {
       id: `msg-brief-intro-${Date.now()}`,
       type: 'system',
-      content: `🧪 Let's capture a concise analysis brief via quick Q&A. Answer or type 'skip'. Type 'cancel' anytime. (${SCORE_LABEL})`,
+      content: `🧪 Let's analyze "${currentIdea || 'your idea'}" in detail. I'll ask targeted questions based on our conversation. You can select from AI suggestions or type your own answers. Type 'skip' to skip any question or 'cancel' to stop.`,
       timestamp: new Date()
     };
     setMessages(prev => [...prev, intro]);
-    // Trigger first question (gated until suggestions ready or timeout)
+    // Trigger first question with contextual suggestions
     setTimeout(() => askNextBriefQuestion(0), 120);
   };
 
@@ -1011,13 +1011,42 @@ export default function ChatGPTStyleChat({
       const fieldKeys = ['problem','targetUser','differentiation','alternatives','monetization','scenario','successMetric'];
       const convo = messages
         .filter(m => m.type !== 'system')
-        .slice(-24) // last 24 exchanges
-        .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content.substring(0, 280) }));
-  const prompt = `You are generating structured, high-signal candidate brief field ANSWERS (never questions) for a startup idea analysis. Idea: "${currentIdea || brief.problem || 'Unknown'}".
-Conversation context (chronological):\n${convo.map(c => `- ${c.role}: ${c.content}`).join('\n')}
+        .slice(-30) // last 30 exchanges for better context
+        .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content.substring(0, 400) }));
+      
+      const prompt = `You are analyzing the conversation about "${currentIdea || brief.problem || 'Unknown'}" to predict the most likely answers for each analysis field.
+      
+Conversation history (chronological):
+${convo.map(c => `- ${c.role}: ${c.content}`).join('\n')}
 
-Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of up to 5 concise, specific, single-sentence, declarative candidate answers (max 18 words each). DO NOT output questions or end any item with '?'. Avoid placeholders, marketing fluff, repetition, or generic phrases like "user-friendly platform". Prefer specificity (niche, segment, measurable outcomes). If insufficient context for a field, return an empty array for that key.`;
-      const { data, error } = await supabase.functions.invoke('idea-chat', { body: { message: prompt, suggestionMode: true, context: { conversation: convo, idea: currentIdea } } });
+Current idea: "${currentIdea}"
+
+For each field below, generate 3-5 highly specific, probable answers based on what has been discussed. These should be complete answers the user would likely choose, not questions.
+
+Fields to analyze:
+- problem: The specific problem being solved (include metrics like time/cost saved)
+- targetUser: The exact target user segment (be specific about demographics/role)
+- differentiation: What makes this unique vs competitors
+- alternatives: Current solutions users use today
+- monetization: How it will make money (include price points)
+- scenario: Primary use case scenario
+- successMetric: How to measure early success (be specific)
+
+Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of 3-5 specific, actionable answers (max 20 words each).
+These should be ANSWERS the user would select, not questions. Be extremely specific based on the conversation context.`;
+
+      const { data, error } = await supabase.functions.invoke('idea-chat', { 
+        body: { 
+          message: prompt, 
+          suggestionMode: true, 
+          context: { 
+            conversation: convo, 
+            idea: currentIdea,
+            analysisMode: true 
+          } 
+        } 
+      });
+      
       if (error) throw error;
       let suggestions: any = {};
       if (typeof data === 'string') {
@@ -1025,26 +1054,31 @@ Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of up to 5 conc
       } else if (typeof data === 'object') {
         suggestions = data.suggestions || data;
       }
-      const merged: Record<string, string[]> = { ...briefSuggestions };
+      
+      const merged: Record<string, string[]> = {};
       fieldKeys.forEach(k => {
         const incoming = suggestions?.[k];
         if (Array.isArray(incoming)) {
-          const currentSet = new Set((merged[k] || []).map(s => s.trim()));
-          incoming.forEach((raw: any) => {
-            let s = String(raw).trim();
-            if (!s) return;
-            if (s.endsWith('?')) s = s.replace(/\?+$/,'').trim();
-            if (/^(what|who|how|why|when|where)\b/i.test(s)) return;
-            if (!s) return;
-            if (![...currentSet].some(e => e.toLowerCase() === s.toLowerCase())) currentSet.add(s);
-          });
-          merged[k] = [...currentSet].slice(0,5);
+          merged[k] = incoming
+            .filter((s: any) => {
+              let str = String(s).trim();
+              return str && !str.endsWith('?') && str.length > 0;
+            })
+            .slice(0, 5);
         }
       });
-  updateBriefSuggestions(merged);
+      
+      updateBriefSuggestions(merged);
       briefFetchedRef.current = true;
-      try { localStorage.setItem('analysisBriefSuggestionsCache', JSON.stringify({ ts: Date.now(), data: merged })); } catch {}
+      try { 
+        localStorage.setItem('analysisBriefSuggestionsCache', JSON.stringify({ 
+          ts: Date.now(), 
+          data: merged,
+          idea: currentIdea 
+        })); 
+      } catch {}
     } catch (e) {
+      console.error('Error fetching contextual suggestions:', e);
       // Fallback to generic suggestions if contextual fetch fails
       try { fetchBriefSuggestions(true); } catch {}
     }
@@ -1106,62 +1140,93 @@ Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of up to 5 conc
     try {
       const convo = messages
         .filter(m => m.type !== 'system')
-        .slice(-30)
-        .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content.substring(0, 400) }));
+        .slice(-40) // More context for better suggestions
+        .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content.substring(0, 500) }));
+      
       const baseIdea = currentIdea || brief.problem || '';
       const currentAnswers = Object.entries(brief)
         .filter(([k,v]) => typeof v === 'string' && v.trim())
         .map(([k,v]) => `${k}: ${v}`)
         .join('\n');
+      
       const fieldLabelMap: Record<string,string> = {
-        problem: 'core problem statement',
-        targetUser: 'precise target user segment',
-        differentiation: 'unique differentiation / unfair advantage',
-        alternatives: 'current alternatives or workarounds',
-        monetization: 'monetization / pricing model',
-        scenario: 'primary usage scenario',
-        successMetric: 'early traction success metric'
+        problem: 'core problem statement with measurable pain points',
+        targetUser: 'precise target user segment with demographics',
+        differentiation: 'unique differentiation or unfair advantage vs competitors',
+        alternatives: 'current alternatives or workarounds users use today',
+        monetization: 'monetization model with specific pricing',
+        scenario: 'primary usage scenario or use case',
+        successMetric: 'early traction metric with specific target'
       };
-  const prompt = `You are assisting a founder refining a startup idea.\nIdea: "${baseIdea}"\nCurrent brief snippets (may be partial):\n${currentAnswers || '(none yet)'}\nConversation context (recent):\n${convo.map(c => `- ${c.role}: ${c.content}`).join('\n')}\n\nGenerate 5 concise, concrete, single-sentence, high-signal candidate ANSWERS (NOT questions) for the ${fieldLabelMap[field] || field}.\nRules:\n- Max 16 words each.\n- Must NOT end with a question mark or be phrased as a question.\n- One sentence each; no comma-spliced multi-clauses pretending to be several sentences.\n- Avoid generic fluff (no 'revolutionary platform', 'cutting-edge', 'next-gen').\n- Prefer specificity: niche, measurable aspect, concrete user pain or metric.\n- No numbering, return as JSON array at top-level.\nIf insufficient context output an empty JSON array [] only.`;
-      const { data, error } = await supabase.functions.invoke('idea-chat', { body: { message: prompt, suggestionMode: true, context: { field, idea: baseIdea } } });
+      
+      const prompt = `Based on our discussion about "${baseIdea}", generate the 5 most probable answers for: ${fieldLabelMap[field] || field}.
+
+Conversation context (recent):
+${convo.slice(-10).map(c => `- ${c.role}: ${c.content}`).join('\n')}
+
+Current brief (may be partial):
+${currentAnswers || '(none yet)'}
+
+Generate 5 highly specific, probable answers based on the conversation. These should be:
+- Complete answers the user would likely select (not questions)
+- Specific with numbers, segments, or comparisons where relevant
+- Based on what has been discussed in the conversation
+- Max 20 words each
+- Actionable and concrete
+
+Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", ...]`;
+
+      const { data, error } = await supabase.functions.invoke('idea-chat', { 
+        body: { 
+          message: prompt, 
+          suggestionMode: true, 
+          context: { 
+            field, 
+            idea: baseIdea,
+            conversation: convo.slice(-5) // Recent context for API
+          } 
+        } 
+      });
+      
       if (error) throw error;
+      
       let suggestions: string[] = [];
       if (typeof data === 'string') {
         try { suggestions = JSON.parse(data); } catch { suggestions = []; }
       } else if (Array.isArray(data)) {
         suggestions = data as string[];
       } else if (data && typeof data === 'object') {
-        // Some edge functions might wrap array
         if (Array.isArray((data as any).suggestions)) suggestions = (data as any).suggestions;
       }
-      // Deduplicate vs existing and keep top 3
+      
+      // Deduplicate and merge with existing
       const merged = [...existing];
       suggestions.forEach(s => {
         let trimmed = String(s).trim();
-        if (!trimmed) return;
-        if (trimmed.endsWith('?')) trimmed = trimmed.replace(/\?+$/,'').trim();
-        if (/^(what|who|how|why|when|where)\b/i.test(trimmed)) return;
-        if (!trimmed) return;
-        if (!merged.some(e => e.toLowerCase() === trimmed.toLowerCase())) merged.push(trimmed);
+        if (!trimmed || trimmed.endsWith('?')) return;
+        if (!merged.some(e => e.toLowerCase() === trimmed.toLowerCase())) {
+          merged.push(trimmed);
+        }
       });
-  const finalList = merged.slice(0,5);
+      
+      const finalList = merged.slice(0, 5);
+      
+      // Update the message with new suggestions
       setMessages(prev => prev.map(m => {
         if (m.id === messageId) {
           return { ...m, suggestions: [...finalList, 'Skip', 'Cancel'] };
         }
         return m;
       }));
-      // Persist into briefSuggestions cache for that field (augment)
-      setBriefSuggestions(prev => {
-        const existingField = prev[field] || [];
-        const add = [...existingField];
-        finalList.forEach(val => {
-          if (!add.some(e => e.toLowerCase() === val.toLowerCase())) add.push(val);
-        });
-        return { ...prev, [field]: add.slice(0,5) };
-      });
+      
+      // Also update the brief suggestions cache
+      setBriefSuggestions(prev => ({
+        ...prev,
+        [field]: finalList
+      }));
     } catch (e) {
-      // Silently ignore; fallback suggestions already present
+      console.error('Error fetching per-question suggestions:', e);
+      // Suggestions already present will remain
     }
   };
 
