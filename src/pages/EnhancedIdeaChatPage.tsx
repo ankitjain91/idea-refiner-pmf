@@ -96,7 +96,6 @@ const EnhancedIdeaChatPage = () => {
                 className="data-[state=checked]:bg-primary"
               />
             </div>
-            <ThemeToggle />
             <UserMenu />
           </div>
         </div>
