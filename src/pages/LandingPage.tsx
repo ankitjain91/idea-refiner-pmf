@@ -172,13 +172,14 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectPath = (location.state as any)?.from?.pathname as string | undefined;
+  const shouldOpenAuthModal = (location.state as any)?.openAuthModal as boolean | undefined;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(shouldOpenAuthModal || false);
   
   // Gamification States
   const [wrinklePoints, setWrinklePoints] = useState(0);
@@ -249,6 +250,16 @@ export default function LandingPage() {
     
     return () => unsubscribe();
   }, [scrollYProgress, achievements, toast]);
+
+  // Open auth modal if navigated from logout
+  useEffect(() => {
+    if (shouldOpenAuthModal) {
+      setShowAuthModal(true);
+      setIsSignUp(false); // Default to sign in after logout
+      // Clear the state to prevent modal from reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [shouldOpenAuthModal]);
 
   useEffect(() => {
     const checkAuth = async () => {

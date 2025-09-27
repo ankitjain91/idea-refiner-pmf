@@ -37,8 +37,8 @@ const Logout = () => {
       // Sign out from Supabase
       await supabase.auth.signOut();
       
-      // Redirect to landing page after logout
-      navigate('/', { replace: true });
+      // Redirect to landing page with state to open auth modal
+      navigate('/', { replace: true, state: { openAuthModal: true } });
     };
     
     handleLogout();
