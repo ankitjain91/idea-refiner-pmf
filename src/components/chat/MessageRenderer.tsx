@@ -125,12 +125,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
       {/* Suggestions */}
       {message.suggestions && message.suggestions.length > 0 && (
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-2 w-full overflow-hidden">
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-wrap gap-1 sm:gap-2"
+            className="flex flex-wrap gap-1 sm:gap-2 w-full"
           >
             {message.suggestions.map((suggestion, idx) => (
               <motion.div
@@ -138,6 +138,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + idx * 0.05 }}
+                className="max-w-full"
               >
                 <Button
                   variant="outline"
@@ -157,10 +158,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       onSendMessage(suggestionText);
                     }
                   }}
-                  className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group touch-manipulation min-h-[32px] px-2 sm:px-3 break-words text-left justify-start"
+                  className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group touch-manipulation min-h-[32px] px-2 sm:px-3 text-left justify-start max-w-full overflow-hidden"
                 >
                   <Lightbulb className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
-                  <span className="break-words">
+                  <span className="truncate block max-w-[calc(100%-2rem)]">
                     {typeof suggestion === 'string' 
                       ? suggestion 
                       : (suggestion && typeof suggestion === 'object' && suggestion.text)
