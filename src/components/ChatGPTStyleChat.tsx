@@ -208,15 +208,26 @@ export default function ChatGPTStyleChat({
       return;
     }
     // Handle special action suggestions
-    if (suggestion === "View detailed HyperFlux analysis" && msg.pmfAnalysis) {
-      if (onAnalysisReady) {
+    if (suggestion === "Show Dashboard" || suggestion === "View detailed HyperFlux analysis") {
+      // Check if we have analysis data
+      const analysisMsg = messages.find(m => m.pmfAnalysis);
+      if (analysisMsg?.pmfAnalysis && onAnalysisReady) {
         const analysisData = {
           idea: currentIdea,
           answers: undefined,
-          pmfAnalysis: msg.pmfAnalysis,
+          pmfAnalysis: analysisMsg.pmfAnalysis,
           timestamp: new Date().toISOString()
         };
         onAnalysisReady(currentIdea, analysisData);
+      } else {
+        // No analysis data available
+        const noDataMsg: Message = {
+          id: `msg-no-data-${Date.now()}`,
+          type: 'system',
+          content: '⚠️ No analysis data available. Please run the analysis first.',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, noDataMsg]);
       }
       return;
     }
@@ -708,11 +719,11 @@ export default function ChatGPTStyleChat({
       const completion: Message = {
         id: `msg-brief-complete-${Date.now()}`,
         type: 'system',
-        content: `🎯 ${SCORE_LABEL} pipeline complete in ${(result.meta.durationMs/1000).toFixed(1)}s. Score: **${pmfScore}/100** (${result.meta.viabilityLabel || 'Unlabeled'}).\nWeak areas: ${result.meta.weakAreas.length ? result.meta.weakAreas.join(', ') : 'None emphasized.'}`,
+        content: `🎯 ${SCORE_LABEL} pipeline complete in ${(result.meta.durationMs/1000).toFixed(1)}s. Score: **${pmfScore}/100** (${result.meta.viabilityLabel || 'Unlabeled'}).\nWeak areas: ${result.meta.weakAreas.length ? result.meta.weakAreas.join(', ') : 'None emphasized.'}\n\n**Click "Show Dashboard" to view your detailed analysis.**`,
         timestamp: new Date(),
         pmfAnalysis: result.pmfAnalysis,
         suggestions: good ? [
-          'View detailed HyperFlux analysis',
+          'Show Dashboard',
           'Show live market signals',
           'Refine further',
           'Export report'
@@ -720,7 +731,7 @@ export default function ChatGPTStyleChat({
           'Improve differentiation',
           'Clarify target user',
           'Strengthen monetization',
-          'View detailed HyperFlux analysis',
+          'Show Dashboard',
           'Show live market signals'
         ]
       };
@@ -730,7 +741,7 @@ export default function ChatGPTStyleChat({
       setAnalysisCompletedFlag(true);
       const metadata = { ...result.pmfAnalysis, meta: result.meta };
       localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata));
-      if (onAnalysisReady) onAnalysisReady(currentIdea || brief.problem, metadata);
+      // Don't auto-show dashboard, wait for user to click "Show Dashboard"
     } catch (e) {
       console.error('Enterprise analysis failed', e);
       toast({ title: 'Analysis failed', description: 'Pipeline error. Please retry.' });
