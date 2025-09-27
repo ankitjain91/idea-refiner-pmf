@@ -1401,13 +1401,6 @@ User submission: """${messageText}"""`;
       </div>
       
       {/* Quick Actions */}
-      {!hasValidIdea && (
-        <div className="text-center mb-2">
-          <p className="fluid-text-xs text-muted-foreground italic">
-            💡 Share your idea first to unlock brain analysis tools
-          </p>
-        </div>
-      )}
       <div className="flex gap-2 mt-3 max-w-4xl mx-auto">
         <motion.div whileHover={hasValidIdea ? { scale: 1.02 } : {}} whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
