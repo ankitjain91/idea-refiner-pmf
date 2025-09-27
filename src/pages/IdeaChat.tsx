@@ -32,16 +32,17 @@ const IdeaChatPage = () => {
   });
   // Session picker overlay state - check if we should show it from navigation state
   const [showSessionPicker, setShowSessionPicker] = useState(() => {
-    console.log('[IdeaChat] Initial state - showSessionPicker from location:', location.state?.showSessionPicker);
+    const fromAuth = location.state?.showSessionPicker;
+    console.log('[IdeaChat] Initial state - showSessionPicker from location:', fromAuth);
     console.log('[IdeaChat] Current session:', currentSession);
     console.log('[IdeaChat] Sessions list:', sessions);
-    // Always show picker if no current session for authenticated users
-    return location.state?.showSessionPicker || (!currentSession && user);
+    // Only show picker if explicitly coming from auth, not on refresh
+    return fromAuth || false;
   });
   
   // Track if user came from auth (login/signup)
   const [requireSessionSelection, setRequireSessionSelection] = useState(() => {
-    return location.state?.showSessionPicker || (!currentSession && user);
+    return location.state?.showSessionPicker || false;
   });
   
   // Watch for navigation state changes and ensure session picker shows when needed
@@ -50,19 +51,21 @@ const IdeaChatPage = () => {
     console.log('[IdeaChat] location.state:', location.state);
     console.log('[IdeaChat] currentSession:', currentSession);
     console.log('[IdeaChat] user:', user);
+    console.log('[IdeaChat] sessionLoading:', sessionLoading);
     
     if (location.state?.showSessionPicker) {
+      // Coming from auth, show the picker
       setShowSessionPicker(true);
       setRequireSessionSelection(true);
       // Clear the state to prevent re-opening on refresh
       navigate(location.pathname, { replace: true, state: {} });
-    } else if (user && !currentSession && !sessionLoading) {
-      // Force session picker if user is authenticated but no session is selected
-      console.log('[IdeaChat] No session selected, forcing session picker');
+    } else if (user && !currentSession && !sessionLoading && sessions.length === 0) {
+      // Only show picker if user has no sessions at all (first time user)
+      console.log('[IdeaChat] User has no sessions, showing session picker');
       setShowSessionPicker(true);
       setRequireSessionSelection(true);
     }
-  }, [location.state, location.pathname, navigate, currentSession, user, sessionLoading]);
+  }, [location.state, location.pathname, navigate, currentSession, user, sessionLoading, sessions.length]);
   const sessionDecisionKey = 'pmf.session.decisionMade';
   const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);

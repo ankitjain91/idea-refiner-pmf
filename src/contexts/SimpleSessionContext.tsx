@@ -426,20 +426,39 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
       
-      // For authenticated users, always start fresh - no auto-loading
-      console.log('[SessionContext] Authenticated user detected, clearing any local session data');
+      // For authenticated users, check if we have a stored session (from before refresh)
+      const storedSessionId = localStorage.getItem('currentSessionId');
+      console.log('[SessionContext] Checking for stored session ID:', storedSessionId);
       
-      // Clear any stored session IDs to ensure fresh start
-      localStorage.removeItem('currentSessionId');
-      localStorage.removeItem('currentAnonymousSession');
+      if (storedSessionId && !storedSessionId.startsWith('anon-')) {
+        // Try to load the stored session (this is a refresh scenario)
+        console.log('[SessionContext] Found stored session, attempting to load:', storedSessionId);
+        try {
+          await loadSession(storedSessionId);
+          console.log('[SessionContext] Successfully loaded stored session');
+          return; // Exit early, we have a session
+        } catch (error) {
+          console.error('[SessionContext] Failed to load stored session:', error);
+          // Clear the invalid session ID
+          localStorage.removeItem('currentSessionId');
+        }
+      } else if (storedSessionId && storedSessionId.startsWith('anon-')) {
+        // Clear anonymous sessions for authenticated users
+        console.log('[SessionContext] Clearing anonymous session for authenticated user');
+        localStorage.removeItem('currentSessionId');
+        localStorage.removeItem('currentAnonymousSession');
+      }
       
-      // Clear any other session-related data that might cause auto-loading
-      localStorage.removeItem('chatHistory');
-      localStorage.removeItem('userIdea');
-      localStorage.removeItem('userAnswers');
-      localStorage.removeItem('ideaMetadata');
+      // Only clear session data if we're coming from a fresh login (no valid stored session)
+      if (!storedSessionId) {
+        console.log('[SessionContext] No stored session, clearing any stale data');
+        localStorage.removeItem('chatHistory');
+        localStorage.removeItem('userIdea');
+        localStorage.removeItem('userAnswers');
+        localStorage.removeItem('ideaMetadata');
+      }
       
-      // Ensure no current session is set
+      // Ensure no current session is set if we couldn't load one
       setCurrentSession(null);
       
       // Load all sessions from database for authenticated user
