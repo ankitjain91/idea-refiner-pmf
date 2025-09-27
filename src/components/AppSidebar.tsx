@@ -62,10 +62,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       <SidebarHeader className="border-b p-2 sm:p-4">
         {isOpen && (
           <div className="flex items-center justify-between">
-            <h2 className="text-base sm:text-lg font-semibold truncate">{BRAND}</h2>
-            <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'} className="text-xs">
-              {SUBSCRIPTION_TIERS[subscription.tier]?.name || subscription.tier}
-            </Badge>
+            <h2 className="text-base sm:text-lg font-semibold truncate">smoothbrains.ai ©</h2>
           </div>
         )}
       </SidebarHeader>
@@ -111,13 +108,18 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-1 sm:p-2">
+      <SidebarFooter className="border-t p-2 sm:p-3">
         {isOpen && user && (
-          <div className="text-[10px] sm:text-[11px] text-muted-foreground truncate max-w-full flex items-center gap-1 sm:gap-2">
-            <span className="inline-flex items-center gap-1">
-              <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-primary animate-pulse" /> 
-            </span>
-            <span className="truncate">Welcome back!</span>
+          <div className="flex flex-col gap-2">
+            <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'} className="text-xs w-fit">
+              {SUBSCRIPTION_TIERS[subscription.tier]?.name || subscription.tier}
+            </Badge>
+            <div className="text-[10px] sm:text-[11px] text-muted-foreground truncate max-w-full flex items-center gap-1 sm:gap-2">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-primary animate-pulse" /> 
+              </span>
+              <span className="truncate">Welcome back!</span>
+            </div>
           </div>
         )}
       </SidebarFooter>
