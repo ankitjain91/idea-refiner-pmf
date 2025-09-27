@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, Moon, Sun, LayoutDashboard, Plus, Settings, HelpCircle } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 import { cn } from '@/lib/utils';
 
 interface Command {

@@ -1,12 +1,31 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Brain, RotateCcw, Play } from 'lucide-react';
+import { ANALYSIS_VERB } from '@/branding';
 
 interface ChatHeaderProps {
   isAnalyzing: boolean;
   analysisProgress: number;
+  onReset?: () => void;
+  onAnalyze?: () => void;
+  canAnalyze?: boolean;
+  responseMode?: 'summary' | 'verbose';
+  onResponseModeChange?: (mode: 'summary' | 'verbose') => void;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({ isAnalyzing, analysisProgress }) => {
+export function ChatHeader({ 
+  isAnalyzing, 
+  analysisProgress, 
+  onReset, 
+  onAnalyze, 
+  canAnalyze = false,
+  responseMode = 'verbose',
+  onResponseModeChange
+}: ChatHeaderProps) {
   if (!isAnalyzing) return null;
   return (
     <div className="border-b p-3 bg-muted/10">

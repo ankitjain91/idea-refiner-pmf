@@ -1,25 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LS_KEYS } from '@/lib/storage-keys';
-import { useAlerts } from '@/contexts/AlertContext';
 
-interface SessionState {
-  currentPath: string;
+interface SessionData {
   chatHistory: any[];
-  ideaData: any;
+  currentIdea: string;
   analysisData: any;
-  scrollPosition: number;
-  timestamp: string;
-  [key: string]: any; // Allow additional properties for JSON compatibility
+  pmfScore?: number;
+  analysisCompleted: boolean;
+  lastActivity: string;
 }
 
 interface BrainstormingSession {
   id: string;
   name: string;
-  state: SessionState | any; // Allow JSON type
-  activity_log: any[];
-  last_accessed: string;
+  data: SessionData;
   created_at: string;
+  updated_at: string;
   user_id?: string;
 }
 
@@ -27,16 +24,20 @@ interface SessionContextType {
   sessions: BrainstormingSession[];
   currentSession: BrainstormingSession | null;
   loading: boolean;
-  createSession: (context?: string) => Promise<void>;
+  saving: boolean;
+  
+  // Core actions
+  loadSessions: () => Promise<void>;
+  createSession: (name: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
+  
+  // Session management
   deleteSession: (sessionId: string) => Promise<void>;
-  renameSession: (sessionId: string, name: string) => Promise<void>;
+  renameSession: (sessionId: string, newName: string) => Promise<void>;
   duplicateSession: (sessionId: string) => Promise<void>;
-  saveCurrentState: () => Promise<void>;
-  logActivity: (activity: any) => void;
-  isSaving: boolean;
-  lastSavedAt: Date | null;
-  sessionLoadAttempt: number; // 0 = initial, >0 = retries
+  
+  // Auto-save (only for non-anonymous sessions)
+  saveCurrentSession: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -101,8 +102,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  // Create a new session
-  const createSession = async (context?: string) => {
+  // Create a new session with mandatory name
+  const createSession = async (name: string) => {
+    if (!name || !name.trim()) {
+      addAlert({ variant: 'error', title: 'Session name required', message: 'Please provide a name for your brainstorm session', scope: 'session' });
+      return;
+    }
+    
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -122,9 +128,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         localStorage.setItem(flagKey, Date.now().toString());
       } catch {}
 
-      // Initial provisional session name (context snippet or generic)
-      const provisional = (context || 'Session').split(/\s+/).slice(0,2).join(' ');
-      const sessionName = provisional || 'Session';
+      // Use provided session name
+      const sessionName = name.trim();
 
       // Capture current state
       const currentState: SessionState = {
@@ -160,18 +165,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setCurrentSession(mappedSession);
   try { localStorage.setItem('currentSessionId', mappedSession.id); } catch {}
       await loadSessions();
-      // If we have richer context, attempt async upgrade to AI-generated two-word title
-      if (context && context.length > 5) {
-        try {
-          const { data: titleData } = await supabase.functions.invoke('generate-session-title', { body: { idea: context } });
-          if (titleData?.title) {
-            await supabase.from('brainstorming_sessions').update({ name: titleData.title }).eq('id', mappedSession.id);
-            setCurrentSession(prev => prev ? { ...prev, name: titleData.title } : prev);
-          }
-        } catch (e) {
-          console.warn('AI title upgrade failed', e);
-        }
-      }
+      // AI title generation can be added later if needed
       
       // Silent success – no alert
     } catch (error) {
@@ -209,8 +203,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Restore session state
       const sessionState = mappedSession.state as any;
       if (sessionState) {
-        // Determine desired path: always prefer dashboard for resumed sessions to show chat immediately
-        const allowedPersistPaths = ['/dashboard'];
+  // Determine desired path: prefer chat route (updated from legacy /dashboard path)
+  const allowedPersistPaths = ['/ideachat','/dashboard'];
         const candidate = sessionState.currentPath;
         const desired = allowedPersistPaths.includes(candidate) ? candidate : '/dashboard';
         try { localStorage.setItem('sessionDesiredPath', desired); } catch {}
@@ -425,7 +419,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastSerializedStateRef.current = serialized;
 
       // Merge activity buffer into activity log
-      const updatedActivityLog = [...(currentSession.activity_log || []), ...activityBuffer];
+      const updatedActivityLog = [...((currentSession as any).activity_log || []), ...activityBuffer];
 
       const { error } = await supabase
         .from('brainstorming_sessions')
@@ -551,16 +545,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         sessions,
         currentSession,
         loading,
+        saving: isSaving,
         createSession,
         loadSession,
         deleteSession,
         renameSession,
         duplicateSession,
-        saveCurrentState,
-        logActivity,
-        isSaving,
-        lastSavedAt,
-        sessionLoadAttempt,
+        saveCurrentSession,
       }}
     >
       {children}

@@ -146,6 +146,22 @@ All colors MUST be HSL.
     font-size: clamp(14px, 1.5vw, 16px);
     line-height: 1.6;
   }
+
+  /* Fluid sizing tokens */
+  :root {
+    --fluid-radius: clamp(.55rem, .4rem + .7vw, 1.1rem);
+    --fluid-avatar: clamp(2.2rem, 1.6rem + 2vw, 3.1rem);
+    --fluid-avatar-sm: clamp(1.8rem, 1.3rem + 1.6vw, 2.4rem);
+    --fluid-gap-xs: clamp(.35rem, .25rem + .4vw, .6rem);
+    --fluid-gap-sm: clamp(.5rem, .35rem + .6vw, .9rem);
+    --fluid-gap-md: clamp(.75rem, .5rem + .9vw, 1.2rem);
+    --fluid-gap-lg: clamp(1rem, .7rem + 1.2vw, 1.6rem);
+    --fluid-pad-xs: clamp(.35rem, .25rem + .4vw, .55rem);
+    --fluid-pad-sm: clamp(.55rem, .4rem + .55vw, .85rem);
+    --fluid-pad-md: clamp(.8rem, .55rem + .8vw, 1.25rem);
+    --fluid-pad-lg: clamp(1.15rem, .75rem + 1.1vw, 1.75rem);
+    --fluid-card-width: min(100%, clamp(640px, 85vw, 1180px));
+  }
   
   h1 {
     @apply font-display font-bold;
@@ -182,6 +198,28 @@ All colors MUST be HSL.
 }
 
 @layer components {
+  /* Fluid typography utility classes mapping to existing scale */
+  .fluid-text-xs { font-size: var(--text-xs); }
+  .fluid-text-sm { font-size: var(--text-sm); }
+  .fluid-text-base { font-size: var(--text-base); }
+  .fluid-text-lg { font-size: var(--text-lg); }
+  .fluid-text-xl { font-size: var(--text-xl); }
+  .fluid-text-2xl { font-size: var(--text-2xl); }
+
+  /* Fluid spacing / layout helpers */
+  .fluid-gap { gap: var(--fluid-gap-sm); }
+  .fluid-gap-lg { gap: var(--fluid-gap-lg); }
+  .fluid-pad-sm { padding: var(--fluid-pad-sm); }
+  .fluid-pad-md { padding: var(--fluid-pad-md); }
+  .fluid-pad-lg { padding: var(--fluid-pad-lg); }
+  .fluid-rounded { border-radius: var(--fluid-radius); }
+  .fluid-avatar { width: var(--fluid-avatar); height: var(--fluid-avatar); }
+  .fluid-avatar-sm { width: var(--fluid-avatar-sm); height: var(--fluid-avatar-sm); }
+  .chat-shell { width: var(--fluid-card-width); margin-inline: auto; }
+  .fluid-button { padding: var(--fluid-pad-xs) var(--fluid-pad-sm); font-size: var(--text-sm); }
+  .fluid-card { padding: var(--fluid-pad-sm); }
+  .fluid-card-md { padding: var(--fluid-pad-md); }
+  .fluid-scroll-area { scroll-padding: var(--fluid-gap-sm); }
   .glass-card {
     @apply relative overflow-hidden rounded-2xl border border-white/10;
     background: linear-gradient(135deg, hsl(217 33% 17% / 0.8), hsl(217 33% 14% / 0.6));
@@ -359,4 +397,42 @@ All colors MUST be HSL.
   .text-glow { text-shadow: 0 0 6px hsl(var(--primary) / 0.6), 0 0 18px hsl(var(--accent) / 0.45); }
   .glass-ring { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 0 0 4px hsl(var(--primary) / 0.08); }
   .backdrop-fade { backdrop-filter: blur(22px) saturate(140%); -webkit-backdrop-filter: blur(22px) saturate(140%); }
+  
+  /* Responsive utilities */
+  .responsive-text { @apply text-sm sm:text-base; }
+  .responsive-padding { @apply p-2 sm:p-4 lg:p-6; }
+  .responsive-margin { @apply m-2 sm:m-4 lg:m-6; }
+  .responsive-gap { @apply gap-2 sm:gap-4 lg:gap-6; }
+  .fluid-container { @apply w-full max-w-none sm:max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto; }
+  .mobile-optimized { @apply text-sm leading-relaxed sm:text-base sm:leading-normal; }
+  
+  /* Better scrolling */
+  .smooth-scroll { scroll-behavior: smooth; overflow-scrolling: touch; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  
+  /* Text wrapping utilities */
+  .text-wrap { word-wrap: break-word; overflow-wrap: break-word; hyphens: auto; }
+  .text-wrap-anywhere { overflow-wrap: anywhere; word-break: break-word; }
+  .prevent-overflow { overflow: hidden; text-overflow: ellipsis; }
+  .preserve-breaks { white-space: pre-wrap; }
+  
+  /* Enhanced text visibility and wrapping */
+  .enhanced-text-render { 
+    word-break: break-word; 
+    overflow-wrap: anywhere; 
+    white-space: pre-wrap; 
+    line-height: 1.5; 
+    max-width: 100%; 
+    width: 100%; 
+    box-sizing: border-box; 
+    color: hsl(var(--foreground));
+  }
+  
+  /* Ensure proper borders are always visible */
+  .border-always-visible { 
+    border-color: hsl(var(--border)) !important; 
+    border-width: 1px !important; 
+    border-style: solid !important;
+  }
 }

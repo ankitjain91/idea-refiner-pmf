@@ -1,14 +1,14 @@
 // Centralized branding constants for user-facing labels
 // Internal variable names (e.g., pmfScore) intentionally preserved for now for backward compatibility.
 
-export const BRAND = 'HyperFlux';
-export const SCORE_LABEL = 'HyperFlux Score';
-export const ANALYZER_LABEL = 'HyperFlux Analyzer';
-export const ADVISOR_LABEL = 'HyperFlux Advisor';
-export const DASHBOARD_LABEL = 'HyperFlux Dashboard';
-export const ANALYSIS_NOUN = 'HyperFlux Analysis';
-export const ANALYSIS_VERB = 'Run HyperFlux Analysis';
-export const IMPROVEMENT_NOUN = 'HyperFlux Optimization';
+export const BRAND = 'SmoothBrains';
+export const SCORE_LABEL = 'SmoothBrains Score';
+export const ANALYZER_LABEL = 'SmoothBrains Analyzer';
+export const ADVISOR_LABEL = 'SmoothBrains Advisor';
+export const DASHBOARD_LABEL = 'SmoothBrains Dashboard';
+export const ANALYSIS_NOUN = 'SmoothBrains Analysis';
+export const ANALYSIS_VERB = 'Run SmoothBrains Analysis';
+export const IMPROVEMENT_NOUN = 'SmoothBrains Optimization';
 
 export const brand = {
   BRAND,

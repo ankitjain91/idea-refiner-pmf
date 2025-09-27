@@ -1,0 +1,9 @@
+{
+  // This file configures the paths Copilot should consider for context.
+  // Only source and public directories are included to improve relevance and performance.
+  // The general './**/*' pattern is avoided to prevent excessive and irrelevant context loading.
+  "include": [
+    "src/**/*",
+    "public/**/*"
+  ]
+}

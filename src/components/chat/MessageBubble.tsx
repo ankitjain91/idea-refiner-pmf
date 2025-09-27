@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Bot, User, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -77,9 +77,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       </Suspense>
                     </div>
                   ) : (
-                    <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
-                      {msg.content}
-                    </ReactMarkdown>
+                    <ExpandableMarkdown msg={msg} />
                   )}
                 </div>
               )}
@@ -113,6 +111,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+};
+
+// Inline helper component to support expand/collapse of truncated concise messages
+const ExpandableMarkdown: React.FC<{ msg: Message }> = ({ msg }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isTruncated = !!msg.metadata?.truncated && !!msg.metadata?.full;
+  const display = expanded && isTruncated ? msg.metadata?.full : msg.content;
+  return (
+    <div className="space-y-2">
+      <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
+        {display}
+      </ReactMarkdown>
+      {isTruncated && (
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          className="text-xs underline text-primary hover:text-primary/80"
+        >
+          {expanded ? 'Collapse' : 'Expand full'}
+        </button>
       )}
     </div>
   );

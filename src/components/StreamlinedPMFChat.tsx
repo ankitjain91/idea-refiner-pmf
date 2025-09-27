@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { LS_KEYS } from '@/lib/storage-keys';
 import { Button } from '@/components/ui/button';
+import AITooltip from './AITooltip';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -150,6 +151,7 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
 
   // Initialize with first question
   useEffect(() => {
@@ -329,18 +331,11 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
   try { localStorage.setItem(LS_KEYS.analysisCompleted, 'true'); } catch {}
       
       // Add analysis complete message
+      const fullAnalysisSummary = `🎯 Fantastic work! Your PM-Fit analysis is complete with a score of ${pmfAnalysis.pmfScore}/100! \n\nI've identified strong market opportunities and key areas for growth. Your dashboard is now loaded with:\n• Real-time market signals and competitor analysis\n• Personalized improvement strategies\n• Growth projections and target demographics\n• Actionable next steps for validation\n\nLet's dive into your results! 🚀`;
       const analysisMessage: Message = {
         id: 'analysis-complete',
         type: 'bot',
-        content: `🎯 Fantastic work! Your PM-Fit analysis is complete with a score of ${pmfAnalysis.pmfScore}/100! 
-
-I've identified strong market opportunities and key areas for growth. Your dashboard is now loaded with:
-• Real-time market signals and competitor analysis
-• Personalized improvement strategies
-• Growth projections and target demographics
-• Actionable next steps for validation
-
-Let's dive into your results! 🚀`,
+        content: fullAnalysisSummary,
         timestamp: new Date()
       };
 
@@ -379,10 +374,11 @@ Let's dive into your results! 🚀`,
         }
       };
       
+      const fullFallback = "🎯 I've completed your PMF analysis! Check out the detailed insights below.";
       const analysisMessage: Message = {
         id: 'analysis-complete',
         type: 'bot',
-        content: "🎯 I've completed your PMF analysis! Check out the detailed insights below.",
+        content: fullFallback,
         timestamp: new Date()
       };
 
@@ -573,7 +569,7 @@ Let's dive into your results! 🚀`,
                 disabled={isAnalyzing}
               />
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -618,5 +614,7 @@ Let's dive into your results! 🚀`,
     </div>
   );
 };
+
+
 
 export default StreamlinedPMFChat;

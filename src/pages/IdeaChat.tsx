@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { LS_KEYS } from '@/lib/storage-keys';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
@@ -13,13 +13,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { motion } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import EngagingLoader from '@/components/engagement/EngagingLoader';
+import { SessionPicker } from '@/components/SessionPicker';
 import { cn } from '@/lib/utils';
 
 const ChatGPTStyleChat = lazy(() => import('@/components/ChatGPTStyleChat'));
 
 const IdeaChatPage = () => {
   const { user, loading: authLoading } = useAuth();
-  const { currentSession, createSession, loadSession, loading: sessionLoading, isSaving, lastSavedAt, sessions } = useSession();
+  const { currentSession, createSession, loadSession, loading: sessionLoading, saving, sessions } = useSession();
   const [chatKey, setChatKey] = useState(0);
   const sessionCreatedRef = useRef(false);
   const [sessionReloading, setSessionReloading] = useState(false);
@@ -99,6 +100,13 @@ const IdeaChatPage = () => {
   // Restore last conversation state if returning from dashboard
   useEffect(() => {
     const fromDash = localStorage.getItem('returnToChat');
+    // If there's a stored desired path (e.g., after session load) and we're not on it, navigate.
+    try {
+      const desired = localStorage.getItem('sessionDesiredPath');
+      if (desired && desired !== window.location.pathname) {
+        navigate(desired, { replace: true });
+      }
+    } catch {}
     if (fromDash === '1') {
       // Clear the flag immediately
       try { localStorage.removeItem('returnToChat'); } catch {}
@@ -185,6 +193,26 @@ const IdeaChatPage = () => {
     localStorage.setItem(LS_KEYS.userAnswers, JSON.stringify(metadata?.answers || {}));
     localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata || {}));
     localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
+    try {
+      // Upgrade existing grant (if any) or create new
+      const raw = localStorage.getItem('dashboardAccessGrant');
+      let grant: any = null;
+      try { grant = raw ? JSON.parse(raw) : null; } catch { grant = null; }
+      const bytes = new Uint8Array(16);
+      window.crypto.getRandomValues(bytes);
+      const newNonce = Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
+      const sessionId = localStorage.getItem('currentSessionId') || null;
+      const expiresMs = Date.now() + 10 * 60 * 1000; // 10 minute validity window
+      const upgraded = {
+        v: 1,
+        state: 'granted',
+        nonce: newNonce,
+        sid: sessionId,
+        ts: Date.now(),
+        exp: expiresMs
+      };
+      localStorage.setItem('dashboardAccessGrant', JSON.stringify(upgraded));
+    } catch {}
     
     if (metadata?.pmfAnalysis) {
       localStorage.setItem('pmfAnalysisData', JSON.stringify(metadata.pmfAnalysis));

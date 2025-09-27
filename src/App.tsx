@@ -7,7 +7,7 @@ import { useLocation, useNavigationType } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/EnhancedAuthContext";
-import { SessionProvider } from "@/contexts/SessionContext";
+import { SessionProvider } from "@/contexts/SimpleSessionContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AlertProvider } from "@/contexts/AlertContext";
 import GlobalAlertCenter from "@/components/feedback/GlobalAlertCenter";
@@ -16,7 +16,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import IdeaChat from "./pages/IdeaChat";
+import IdeaChat from "./pages/EnhancedIdeaChatPage";
+import IdeaJournal from "./pages/IdeaJournal";
 import Pricing from "./pages/Pricing";
 import AuthPage from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -47,6 +48,7 @@ const RouteTransitionWrapper = () => {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/ideachat" element={<ProtectedRoute><IdeaChat /></ProtectedRoute>} />
+          <Route path="/ideajournal" element={<ProtectedRoute><IdeaJournal /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/subscription-success" element={<ProtectedRoute><IdeaChat /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />

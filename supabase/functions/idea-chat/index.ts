@@ -298,7 +298,8 @@ serve(async (req) => {
       currentQuestion = null,
       questionNumber = null,
       generatePMFAnalysis = false,
-      refinementMode = false
+      refinementMode = false,
+      liveInsights = false
     } = await req.json();
     
     console.log('Processing request for idea:', idea);
@@ -308,7 +309,58 @@ serve(async (req) => {
     const envError = validateEnv();
     if (envError) return envError;
 
-    // If generating PMF analysis, create comprehensive analysis with real data
+    // Early path: live insights snapshot (independent of PMF analysis)
+    if (liveInsights) {
+      if (!idea) {
+        return new Response(JSON.stringify({ error: 'idea_required_for_live_insights' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
+      }
+      try {
+        const queries = [
+          'market growth rate',
+          'top competitors funding news',
+          'pricing trends',
+          'user adoption challenges',
+          'emerging risks regulation',
+          'distribution channel shifts'
+        ];
+        const webResults: any[] = [];
+        for (const q of queries) {
+          const r = await fetchRealWebData(idea, q);
+          if (r) webResults.push({ q, data: r });
+        }
+        const condensed = webResults.slice(0,5).map(w => ({
+          q: w.q,
+          competitors: w.data?.normalized?.topCompetitors?.slice(0,3) || [],
+          marketSize: w.data?.raw?.marketSize,
+          growthRate: w.data?.raw?.growthRate,
+          demographics: w.data?.raw?.demographics || null
+        }));
+        const insightPrompt = `You are generating a real-time strategic insight snapshot for the startup idea: "${idea}".
+Aggregate the following partial web intelligence (may be sparse):\n${JSON.stringify(condensed, null, 2)}\n
+Return STRICT JSON with: { "items": [ {"category":"Market|Competitor|Risk|Growth|User|Metric","title":"short title","summary":"1-2 sentence concise actionable insight","confidence":0-100,"freshnessMinutes": number, "sourceHints":["optional short sources"], "suggestedAction":"very short next step" } ], "meta": { "idea":"..." } }.
+Rules:\n- 6 items max (one per category if possible)\n- Be specific, never generic fluff\n- If data weak, still produce hypothesis but lower confidence (<40) and mention evidence gap.`;
+        const ai = await openAIChatRequest({
+          model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
+          temperature: 0.6,
+          max_tokens: 800,
+          messages: [
+            { role: 'system', content: 'Return ONLY valid JSON. No markdown.' },
+            { role: 'user', content: insightPrompt }
+          ]
+        });
+        let content = ai.choices?.[0]?.message?.content || '{}';
+        let parsed: any = safeParseJSON(content) || {};
+        if (!Array.isArray(parsed.items)) parsed.items = [];
+        const now = Date.now();
+        return new Response(JSON.stringify({ liveInsights: { generatedAt: now, ...parsed } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        console.error('Live insights generation failed', e);
+        return new Response(JSON.stringify({ liveInsights: { generatedAt: Date.now(), error: 'live_insights_failed' } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+      }
+    }
+
+  // If generating PMF analysis, create comprehensive analysis with real data
     if (generatePMFAnalysis && message) {
       // Fetch real market data
       const webData = await fetchRealWebData(message, 'market analysis competitors pricing');
@@ -515,128 +567,144 @@ Make them think harder and validate better. This is how great ideas are forged.`
       );
     }
 
-    // Regular chat response with devil's advocate approach
-    const webData = idea ? await fetchRealWebData(idea, message) : null;
-    
-    // Adjust system prompt based on refinement mode with rigorous scrutiny
-    const systemPrompt = refinementMode 
-      ? `${DEVILS_ADVOCATE_GUIDELINES}
-      
-Context: The user is refining their "${idea}" concept after initial analysis.
-Your job: Challenge every refinement. Question if they're solving the RIGHT problem. Push them to validate with real customers.
-Ask: "Have you actually talked to users about this?" "What evidence supports this pivot?" "Are you making it better or just different?"`
-      : `${DEVILS_ADVOCATE_GUIDELINES}
-      
-Context: ${idea ? `The user presented: "${idea}". Time to rigorously test this concept.` : 'The user is brainstorming. Challenge them to get specific.'}
-Your job: Act as their toughest critic. Point out why this might fail. Question market size, competition, and feasibility.
-Ask the hard questions VCs will ask. Make them defend their assumptions with data.`;
-    
-    let aiResponse = '';
-    try {
-      const data = await openAIChatRequest({
-        model: 'gpt-4o',
+    // Regular chat response (optimized): single model call returns response + suggestions JSON for lower latency
+    // Fetch web data in background (best-effort) but do not block main answer
+    const webDataPromise = idea ? fetchRealWebData(idea, message) : Promise.resolve(null);
+    const systemPrompt = `${DEVILS_ADVOCATE_GUIDELINES}
+
+Return ONLY valid JSON with keys: response (string) and suggestions (array of exactly 4 strings). No markdown.
+The 'response' should rigorously challenge assumptions, be concise (<260 words), and end with 1 motivating actionable sentence.
+The 'suggestions' are natural first-person next replies the USER might choose, 18-32 words each, specific, no numbering.`;
+
+    // If client requests streaming (header x-stream: 1), stream tokens progressively
+    const wantsStream = (req.headers.get('x-stream') === '1');
+    if (wantsStream) {
+      const body = {
+        model: 'gpt-4o-mini',
+        stream: true,
+        temperature: refinementMode ? 0.7 : 0.75,
         messages: [
           { role: 'system', content: systemPrompt },
-          ...conversationHistory.slice(-3),
-          { role: 'user', content: `Analyze this critically: "${message}"
-          
-Be specific about risks. Reference real competitors or failed startups. 
-Challenge vague claims. Demand evidence. Push for validation.
-Your tough questions now save them from failure later.` }
-        ],
-        max_tokens: 450,
-        temperature: 0.8
+          ...conversationHistory.slice(-2),
+          { role: 'user', content: `Context Idea: ${idea || '(not provided yet)'}\nMode: ${refinementMode ? 'REFINEMENT' : 'BRAINSTORM'}\nUser Message: ${message}\nRespond conversationally; afterwards emit a JSON block with 4 suggestions.` }
+        ]
+      };
+      const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
       });
-      aiResponse = data.choices?.[0]?.message?.content || '';
-    } catch (primaryErr) {
-      console.error('Primary chat error:', primaryErr);
-      aiResponse = 'Let me challenge your thinking here - what specific evidence do you have that customers actually want this?';
-    }
-    
-    // Generate helpful next-step suggestions for the user
-    let suggestions = [];
-    try {
-      const suggestionData = await openAIChatRequest({
-        model: 'gpt-4o',
-        messages: [
-          { 
-            role: 'system', 
-            content: `Generate natural next-step responses that users can select to continue the conversation.
-
-These should be complete thoughts the user might naturally say next, written from their perspective.
-Focus on moving the conversation forward productively.
-
-Each suggestion should be 20-40 words and sound like something a user would actually type or say.
-They should be responses that help develop their idea further or answer the bot's questions.` 
-          },
-          { 
-            role: 'user', 
-            content: `Context:
-- User's idea: "${idea || 'Still exploring options'}"
-- User just said: "${message.slice(0, 200)}"
-- Bot responded: "${aiResponse.slice(0, 300)}"
-${webData ? `- Market context: ${webData.normalized?.topCompetitors?.length || 'Several'} competitors exist` : ''}
-
-Generate 4 natural responses the user could select as their next message.
-These should be logical next steps in developing their idea, like:
-- Answering questions the bot asked
-- Providing more details about their concept
-- Asking for specific guidance
-- Sharing their thoughts on the feedback
-
-Format as JSON: {"suggestions": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}`
+      if (!upstream.ok || !upstream.body) {
+        return new Response(JSON.stringify({ error: 'Upstream stream failed' }), { status: 500, headers: corsHeaders });
+      }
+      const reader = upstream.body.getReader();
+      const encoder = new TextEncoder();
+      let accumulated = '';
+      let finalResponse = '';
+      // naive suggestion extraction after full content collected
+      const stream = new ReadableStream({
+        async pull(controller) {
+          const { done, value } = await reader.read();
+          if (done) {
+            // Attempt simple suggestions extraction (optional)
+            let suggestions: string[] = [];
+            const match = accumulated.match(/\[(?:"[^"]+"\s*,?\s*){2,6}\]/);
+            if (match) {
+              try { const arr = JSON.parse(match[0]); if (Array.isArray(arr)) suggestions = arr.slice(0,4); } catch {}
+            }
+            const payload = JSON.stringify({ type: 'final', response: finalResponse.trim(), suggestions });
+            controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+            controller.close();
+            return;
           }
-        ],
-        max_tokens: 350,
-        temperature: 0.8,
-        response_format: { type: 'json_object' }
+          const chunk = new TextDecoder().decode(value);
+            accumulated += chunk;
+          // Parse OpenAI stream lines
+          chunk.split('\n').forEach(line => {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.replace('data: ','').trim();
+              if (dataStr === '[DONE]') return; else {
+                try {
+                  const json = JSON.parse(dataStr);
+                  const token = json.choices?.[0]?.delta?.content;
+                  if (token) {
+                    finalResponse += token;
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', token })}\n\n`));
+                  }
+                } catch {}
+              }
+            }
+          });
+        }
       });
-      
-      const suggestionContent = suggestionData.choices?.[0]?.message?.content || '';
-      const parsed = safeParseJSON(suggestionContent);
-      if (parsed?.suggestions && Array.isArray(parsed.suggestions)) {
-        suggestions = parsed.suggestions.slice(0, 4).map((s: any) => String(s));
-      }
-    } catch (suggErr) {
-      console.error('Suggestion generation failed:', suggErr);
+      return new Response(stream, { headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } });
     }
-      
-    // Fallback suggestions if generation fails
-    if (suggestions.length === 0) {
-      if (refinementMode && idea) {
-        // Refinement mode - helpful next steps
-        suggestions = [
-          "I want to focus on the B2B market first since they have bigger budgets and longer contracts",
-          "Let me explain how we'd differentiate from existing solutions through better user experience",
-          "I'm planning to validate this with customer interviews over the next two weeks",
-          "The core value proposition is saving 10+ hours per week on repetitive tasks"
-        ];
-      } else if (!idea) {
-        // Initial idea exploration
-        suggestions = [
-          "I'm exploring an AI tool that helps content creators generate and schedule social media posts",
-          "I want to build a marketplace connecting local service providers with neighborhood customers",
-          "My idea is a health tracking app designed specifically for seniors and their families",
-          "I'm thinking about an educational platform that makes learning fun through gamification"
-        ];
-      } else {
-        // Developing the idea further
-        suggestions = [
-          "Yes, I've validated this problem with 20+ potential customers who all expressed interest",
-          "Our main advantage is focusing exclusively on this niche while competitors try to serve everyone",
-          "I'm planning a freemium model with premium features starting at $19 per month",
-          "Let me share more details about the specific pain points we're addressing"
-        ];
-      }
+
+    let modelJson: any = null;
+    try {
+      const combined = await openAIChatRequest({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        temperature: refinementMode ? 0.7 : 0.75,
+        max_tokens: 650,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...conversationHistory.slice(-2),
+          { role: 'user', content: `Context Idea: ${idea || '(not provided yet)'}\nMode: ${refinementMode ? 'REFINEMENT' : 'BRAINSTORM'}\nUser Message: ${message}\nProvide JSON now.` }
+        ]
+      });
+      const content = combined.choices?.[0]?.message?.content || '{}';
+      modelJson = safeParseJSON(content) || {};
+    } catch (e) {
+      console.error('Optimized combined call failed, falling back:', e);
     }
+
+    let aiResponse: string = modelJson?.response || 'Let me push you to get more specific—what real evidence backs this direction?';
+    let suggestions: string[] = Array.isArray(modelJson?.suggestions) ? modelJson.suggestions.slice(0,4).map((s: any)=>String(s)) : [];
+
+    // Fallback suggestions if model didn't supply or parsing failed
+    if (suggestions.length !== 4) {
+      suggestions = (
+        refinementMode && idea ? [
+          "We've narrowed scope but I can clarify who we serve first to stay focused",
+          "Let me outline evidence I have (or lack) for the core pain assumption",
+          "I want help stress-testing differentiation versus existing serious incumbents",
+          "Can we design a smallest experiment to falsify the riskiest assumption quickly?"
+        ] : !idea ? [
+          "I'm exploring a niche productivity tool for remote engineers focusing on deep work blocks",
+          "Maybe a lightweight AI assistant for indie founders tracking early user feedback",
+          "Considering a marketplace for pre-vetted fractional RevOps experts for SaaS startups",
+          "Thinking about a tool that converts messy founder notes into structured experiments"
+        ] : [
+          "Here's more detail on the specific user segment I'm targeting initially",
+          "Let me gather concrete metrics or anecdotes instead of vague validation",
+          "I should probably run 5 quick interviews—help me frame the key questions",
+          "Let me explain the core value prop in one sharp sentence"
+        ]
+      ).slice(0,4);
+    }
+
+    // Attach (non-blocking) marketData if background fetch resolved in time
+    let marketData: any = null;
+    try {
+      const race = await Promise.race([
+        webDataPromise,
+        new Promise(res => setTimeout(() => res(null), 1200)) // soft cap to avoid latency hit
+      ]);
+      marketData = (race as any)?.normalized || null;
+    } catch {}
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         response: aiResponse,
         suggestions,
         metadata: {
           hasIdea: !!idea,
-          ideaContext: idea,
-          marketData: webData?.normalized || null
+            ideaContext: idea,
+            marketData
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

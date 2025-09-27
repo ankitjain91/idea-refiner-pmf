@@ -31,7 +31,7 @@ import { LS_KEYS, LS_UI_KEYS } from '@/lib/storage-keys';
 import { buildMarkdownReport, triggerDownload } from '@/lib/export-report';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 import { scheduleIdle } from '@/lib/idle';
 import { SuggestionList } from './chat/SuggestionList';
 import { ChatHeader } from './chat/ChatHeader';
@@ -68,6 +68,13 @@ export default function ChatGPTStyleChat({
   });
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isRefinementMode, setIsRefinementMode] = useState(false); // start in idea mode
+  const [responseMode, setResponseMode] = useState<'summary' | 'verbose'>(() => {
+    try {
+      return (localStorage.getItem('responseMode') as 'summary' | 'verbose') || 'verbose';
+    } catch {
+      return 'verbose';
+    }
+  });
   let persistedMode: 'idea'|'refine'|'analysis' = 'idea';
   try {
     const stored = localStorage.getItem('chatMode');
@@ -201,8 +208,22 @@ export default function ChatGPTStyleChat({
     try { return localStorage.getItem(LS_KEYS.analysisCompleted) === 'true'; } catch { return false; }
   };
   const triggerDashboardOpen = () => {
-    if (canOpenDashboard()) {
+    const canOpen = canOpenDashboard();
+    console.log('triggerDashboardOpen - canOpen:', canOpen);
+    console.log('triggerDashboardOpen - analysisCompleted localStorage:', localStorage.getItem(LS_KEYS.analysisCompleted));
+    
+    if (canOpen) {
+      console.log('Navigating to /dashboard');
       navigate('/dashboard');
+      
+      // Add a confirmation message to let user know navigation happened
+      const confirmMsg: Message = {
+        id: `msg-dashboard-open-${Date.now()}`,
+        type: 'system',
+        content: '🎯 Opening your analysis dashboard...',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, confirmMsg]);
     } else {
       const warn: Message = {
         id: `msg-dashboard-block-${Date.now()}`,
@@ -273,7 +294,7 @@ export default function ChatGPTStyleChat({
       return;
     }
 
-    if (normalized === 'Run HyperFlux Analysis' || normalized === 'Start Analysis') {
+  if (normalized === 'Run SmoothBrains Analysis' || normalized === 'Start Analysis') {
       runBriefAnalysis();
       return;
     }
@@ -491,8 +512,8 @@ export default function ChatGPTStyleChat({
 
   // Restore chat/history & idea from brainstorming session when it changes
   useEffect(() => {
-    if (!currentSession?.state) return;
-    const st = currentSession.state as any;
+    if (!currentSession?.data) return;
+    const st = currentSession.data as any;
     const alreadyMeaningful = messages.length > 0; // Prevent overwrite if user already typing / restored
     if (!alreadyMeaningful && !chatRestoredRef.current && Array.isArray(st.chatHistory) && st.chatHistory.length) {
       try {
@@ -688,39 +709,38 @@ export default function ChatGPTStyleChat({
 
   // Attempt to infer an idea from existing chat history (first substantial user message)
   const inferIdeaFromHistory = useCallback((): string | undefined => {
-    // Walk from most recent backwards to capture the latest substantive idea description
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.type !== 'user') continue;
-      const text = (m.content || '').trim();
-      if (!text) continue;
-      // Skip trivial greetings / thanks
-      if (/^(hi|hello|hey|thanks|thank you|cool|ok|okay|yo)$/i.test(text)) continue;
-      const words = text.split(/\s+/);
-      const longEnough = words.length >= 3 || text.length >= 18; // relaxed threshold
-      const hasVerb = /build|launch|create|make|help|solve|platform|app|tool|service|market|improv/i.test(text);
-      if (longEnough || hasVerb) {
-        return text;
-      }
-    }
-    // Secondary very relaxed pass: any user message > 12 chars with a space
-    const loose = [...messages].filter(m => m.type==='user' && m.content && m.content.length > 12 && m.content.includes(' ')).shift();
-    return loose?.content;
+    // Find the longest meaningful user message
+    const candidates = messages
+      .filter(m => m.type === 'user' && m.content?.trim())
+      .map(m => m.content.trim())
+      .filter(text => {
+        // Skip very short or trivial messages
+        if (text.length < 8) return false;
+        if (/^(hi|hello|hey|thanks|thank you|cool|ok|okay|yo|yes|no)$/i.test(text)) return false;
+        return true;
+      })
+      .sort((a, b) => b.length - a.length); // Longest first
+    
+    return candidates[0] || undefined;
   }, [messages]);
 
   // Single-pass analysis generator using the brief
   const runBriefAnalysis = async () => {
   setIsBriefQAMode(false);
   if (isAnalyzing) return;
+  
+  // Debug info
+  console.log('runBriefAnalysis - currentIdea:', currentIdea);
+  console.log('runBriefAnalysis - brief.problem:', brief.problem);
+  console.log('runBriefAnalysis - messages count:', messages.length);
+  
   // Guard: ensure we have at least a core idea/problem statement before running analysis
   let primaryIdea = (currentIdea || brief.problem || '').trim();
   if (!primaryIdea) {
     const inferred = inferIdeaFromHistory();
     if (inferred) {
       primaryIdea = inferred.trim();
-      if (!currentIdea) {
-        setCurrentIdea(primaryIdea);
-      }
+      setCurrentIdea(primaryIdea);
       // Let user know we picked up prior context
       const notice: Message = {
         id: `msg-inferred-idea-${Date.now()}`,
@@ -797,9 +817,17 @@ export default function ChatGPTStyleChat({
       setMessages(prev => [...prev, completion]);
       localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
       localStorage.setItem(LS_KEYS.pmfScore, String(pmfScore));
-      localStorage.setItem(LS_KEYS.userIdea, currentIdea);
+      localStorage.setItem(LS_KEYS.userIdea, primaryIdea || currentIdea); // Use the actual idea that was analyzed
       localStorage.setItem(LS_KEYS.userAnswers, JSON.stringify(brief));
       setAnalysisCompletedFlag(true);
+      
+      // Debug logging for dashboard access
+      console.log('Analysis completed - localStorage set:');
+      console.log('primaryIdea used:', primaryIdea);
+      console.log('currentIdea:', currentIdea);
+      console.log('analysisCompleted:', localStorage.getItem(LS_KEYS.analysisCompleted));
+      console.log('userIdea stored:', localStorage.getItem(LS_KEYS.userIdea));
+      console.log('pmfScore:', localStorage.getItem(LS_KEYS.pmfScore));
       const metadata = { ...result.pmfAnalysis, meta: result.meta, answers: brief };
       localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata));
       // Inject inline dashboard CTA panel card beneath completion message
@@ -848,6 +876,9 @@ export default function ChatGPTStyleChat({
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // Trigger auto-save for authenticated sessions
+    window.dispatchEvent(new CustomEvent('chat:activity'));
 
     // Lazy-create a session only when user first contributes meaningful content and no session exists yet
     if (!currentSession && user && messages.filter(m => m.type !== 'system').length === 0) {
@@ -962,10 +993,13 @@ export default function ChatGPTStyleChat({
             responseContent = "That's interesting! Let me help you think through this idea. What's the main problem your product would solve for people?";
           }
           
+          // Apply summarization if in summary mode
+          const finalContent = await summarizeResponse(responseContent);
+          
           const botMessage: Message = {
             id: `msg-${Date.now()}-bot`,
             type: 'bot',
-            content: responseContent,
+            content: finalContent,
             timestamp: new Date(),
             suggestions: responseSuggestions.length > 0 ? responseSuggestions : undefined
           };
@@ -1046,10 +1080,13 @@ export default function ChatGPTStyleChat({
         responseContent = "Let me help you with that...";
       }
 
+      // Apply summarization if in summary mode
+      const finalContent = await summarizeResponse(responseContent);
+
       const botMessage: Message = {
         id: `msg-${Date.now()}-bot`,
         type: 'bot',
-        content: responseContent,
+        content: finalContent,
         timestamp: new Date(),
         suggestions: suggestions.length > 0 ? suggestions : undefined,
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined
@@ -1402,7 +1439,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
       type: 'system',
       content: summaryContent,
       timestamp: new Date(),
-      suggestions: complete ? ['Run HyperFlux Analysis', 'Refine my idea based on feedback'] : ['Run HyperFlux Analysis', 'Add more detail', 'Refine my idea based on feedback']
+  suggestions: complete ? ['Run SmoothBrains Analysis', 'Refine my idea based on feedback'] : ['Run SmoothBrains Analysis', 'Add more detail', 'Refine my idea based on feedback']
     };
     setMessages(prev => [...prev, summaryMsg]);
   };
@@ -1448,6 +1485,10 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         
         // Use full response content without truncation
         let fullContent = (responseContent || `Let's explore your idea: "${idea}". What specific aspects would you like to discuss or refine?`).trim();
+        
+        // Apply summarization if in summary mode
+        fullContent = await summarizeResponse(fullContent);
+        
         // Ensure emoji prefix for visual consistency
         if (!/^([\p{Emoji}\p{Extended_Pictographic}])/u.test(fullContent)) fullContent = '💬 ' + fullContent;
         // Normalize & enrich suggestions
@@ -1667,13 +1708,124 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
     setInput('');
   };
 
+  const handleReset = () => {
+    // Clear all chat data
+    setMessages([]);
+    setCurrentIdea('');
+    setInput('');
+    setBrief({
+      problem: '', targetUser: '', differentiation: '', alternatives: '', monetization: '', scenario: '', successMetric: ''
+    });
+    setIsAnalyzing(false);
+    setAnalysisProgress(0);
+    setIsRefinementMode(false);
+    setIsBriefQAMode(false);
+    setBriefQuestionIndex(0);
+    setAnalysisCompletedFlag(false);
+    
+    // Clear localStorage
+    localStorage.removeItem(LS_KEYS.userIdea);
+    localStorage.removeItem(LS_KEYS.analysisCompleted);
+    localStorage.removeItem(LS_KEYS.ideaMetadata);
+    localStorage.removeItem('chatMode');
+    localStorage.removeItem('refineBannerShown');
+    
+    // Trigger session reset
+    window.dispatchEvent(new CustomEvent('chat:reset'));
+    
+    // Start fresh with welcome message
+    const welcomeMessage: Message = {
+      id: `msg-welcome-${Date.now()}`,
+      type: 'system',
+      content: `I'm here to help you ${ANALYSIS_VERB.toLowerCase()} your startup idea for Product-Market Fit! 🚀\n\nShare your product concept, and I'll guide you through refining it before running a comprehensive PMF analysis.`,
+      timestamp: new Date(),
+      suggestions: [
+        'AI-powered personal finance app for Gen Z',
+        'Subscription box for sustainable home products',
+        'Remote team collaboration tool with VR integration',
+        'Plant-based protein powder for athletes',
+        'Local food waste reduction marketplace'
+      ]
+    };
+    setMessages([welcomeMessage]);
+  };
+
+  const handleAnalyze = () => {
+    if (!currentIdea.trim()) return;
+    
+    // Trigger analysis
+    emitMode('analysis');
+    runBriefAnalysis();
+    setShowStartAnalysisButton(false);
+  };
+
+  const handleResponseModeChange = (mode: 'summary' | 'verbose') => {
+    setResponseMode(mode);
+    try {
+      localStorage.setItem('responseMode', mode);
+    } catch {}
+  };
+
+  // Check if we can analyze (have an idea)
+  const canAnalyze = currentIdea.trim().length > 0;
+
+  // Function to summarize bot responses when in summary mode
+  const summarizeResponse = async (content: string): Promise<string> => {
+    if (responseMode === 'verbose' || content.length < 200) {
+      return content; // Return original content in verbose mode or if content is short
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('idea-chat', {
+        body: { 
+          message: `Please summarize the following response in exactly 3-4 sentences, keeping the key insights and actionable points:\n\n${content}`,
+          conversationHistory: [],
+          idea: 'summary request',
+          summarize: true
+        }
+      });
+
+      if (!error && data) {
+        let summary = '';
+        if (typeof data === 'string') {
+          try {
+            const parsed = JSON.parse(data);
+            summary = parsed.response || parsed.message || data;
+          } catch {
+            summary = data;
+          }
+        } else if (typeof data === 'object') {
+          summary = data.response || data.message || '';
+        }
+        
+        if (summary && summary.trim()) {
+          return summary.trim();
+        }
+      }
+    } catch (error) {
+      console.error('Error summarizing response:', error);
+    }
+
+    // Fallback: simple truncation if AI summarization fails
+    const sentences = content.split('. ');
+    return sentences.slice(0, 3).join('. ') + (sentences.length > 3 ? '...' : '');
+  };
+
   return (
     <div ref={chatContainerRef} className={cn("flex flex-col h-full bg-background relative", className)}>
       {/* Header with Progress (refactored) */}
-      <ChatHeader isAnalyzing={isAnalyzing} analysisProgress={analysisProgress} />
+      <ChatHeader 
+        isAnalyzing={isAnalyzing} 
+        analysisProgress={analysisProgress}
+        onReset={handleReset}
+        onAnalyze={handleAnalyze}
+        canAnalyze={canAnalyze}
+        responseMode={responseMode}
+        onResponseModeChange={handleResponseModeChange}
+      />
 
   {/* Main Chat Area */}
-  <ScrollArea className="flex-1 p-4">
+  <ScrollArea className="flex-1 min-h-0 p-4">
         <div className="max-w-3xl mx-auto space-y-4 pb-32">
           {/* Welcome Card with Suggestions */}
           {messages.length === 1 && messages[0].type === 'system' && (
@@ -1756,7 +1908,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
       </ScrollArea>
 
   {/* Input Area - Fixed at Bottom (refactored) */}
-  <div className="border-t bg-background p-4">
+  <div className="shrink-0 border-t bg-background p-4">
         <div className="max-w-3xl mx-auto">
           <ChatInputBar
             input={input}

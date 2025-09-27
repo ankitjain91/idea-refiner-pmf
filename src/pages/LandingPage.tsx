@@ -98,6 +98,16 @@ export default function LandingPage() {
       // Normalize email to avoid case-sensitivity issues
       const normalizedEmail = email.trim().toLowerCase();
 
+      // Restrict signups to specific email only
+      if (normalizedEmail !== 'er.ankitjain91@gmail.com') {
+        toast({
+          title: "Access Restricted",
+          description: "Signups are currently limited to invited users only.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Check on server if email already exists (prevents sending confirmation emails)
       const { data: emailExists, error: checkError } = await supabase.rpc('check_email_exists', {
         email_to_check: normalizedEmail,
