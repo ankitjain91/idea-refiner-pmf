@@ -34,6 +34,15 @@ const IdeaChatPage = () => {
   const [showSessionPicker, setShowSessionPicker] = useState(() => {
     return location.state?.showSessionPicker || false;
   });
+  
+  // Watch for navigation state changes
+  useEffect(() => {
+    if (location.state?.showSessionPicker) {
+      setShowSessionPicker(true);
+      // Clear the state to prevent re-opening on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
   const sessionDecisionKey = 'pmf.session.decisionMade';
   const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);
@@ -102,10 +111,6 @@ const IdeaChatPage = () => {
 
   // Restore last conversation state if returning from dashboard  
   useEffect(() => {
-    // Clear navigation state after using it
-    if (location.state?.showSessionPicker) {
-      navigate(location.pathname, { replace: true, state: {} });
-    }
     
     const fromDash = localStorage.getItem('returnToChat');
     // If there's a stored desired path (e.g., after session load) and we're not on it, navigate.
