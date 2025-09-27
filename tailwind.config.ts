@@ -22,9 +22,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Rajdhani", "system-ui", "sans-serif"],
-        display: ["Orbitron", "system-ui", "sans-serif"],
-        mono: ["Space Mono", "monospace"],
+        sans: ["-apple-system", "BlinkMacSystemFont", "Inter", "system-ui", "sans-serif"],
+        display: ["-apple-system", "BlinkMacSystemFont", "Inter", "system-ui", "sans-serif"],
+        mono: ["SF Mono", "Monaco", "Courier New", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
