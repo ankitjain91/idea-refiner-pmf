@@ -330,7 +330,10 @@ export default function ChatGPTStyleChat({
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll to bottom if there are more than 1 message (not just the initial welcome)
+    if (messages.length > 1) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   // External trigger to open analysis brief (from parent layout / dashboard panel)
