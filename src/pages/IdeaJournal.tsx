@@ -116,8 +116,7 @@ const IdeaJournal = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-background via-background to-muted/20">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">

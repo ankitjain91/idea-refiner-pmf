@@ -17,6 +17,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import IdeaChat from "./pages/EnhancedIdeaChatPage";
+import { AppLayout } from "@/components/layout/AppLayout";
 import IdeaJournal from "./pages/IdeaJournal";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
@@ -44,12 +45,17 @@ const RouteTransitionWrapper = () => {
         <Routes location={location}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/logout" element={<Logout />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/ideachat" element={<ProtectedRoute><IdeaChat /></ProtectedRoute>} />
-          <Route path="/ideajournal" element={<ProtectedRoute><IdeaJournal /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/subscription-success" element={<ProtectedRoute><IdeaChat /></ProtectedRoute>} />
+          
+          {/* Protected routes with shared layout */}
+          <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/ideachat" element={<IdeaChat />} />
+            <Route path="/ideajournal" element={<IdeaJournal />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/subscription-success" element={<IdeaChat />} />
+          </Route>
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { LS_KEYS } from '@/lib/storage-keys';
-import { AppSidebar } from '@/components/AppSidebar';
+
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
@@ -59,9 +59,7 @@ const Dashboard = () => {
   const refinements = (metadata?.refinements || []).length;
 
   return (
-    <div className='min-h-screen flex w-full bg-background/40 backdrop-fade'>
-      <AppSidebar />
-      <div className='flex-1 flex flex-col h-screen'>
+    <div className='flex-1 flex flex-col h-full'>
         <div className='flex items-center justify-between px-6 py-4 border-b glass-super-surface'>
           <div className='space-y-1'>
             <h1 className='text-lg font-semibold flex items-center gap-2'><Brain className='h-5 w-5 text-primary' /> Insight Dashboard</h1>
@@ -84,8 +82,7 @@ const Dashboard = () => {
           </div>
           <div className='xl:col-span-2 flex flex-col min-h-[520px]'>
             <AIInsightChat idea={idea} metadata={metadata} planTrigger={planNonce} />
-          </div>
-        </div>
+    </div>
       </div>
     </div>
   );

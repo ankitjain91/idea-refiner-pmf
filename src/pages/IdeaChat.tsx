@@ -3,7 +3,6 @@ import { LS_KEYS } from '@/lib/storage-keys';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { useNavigate } from 'react-router-dom';
-import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -279,42 +278,9 @@ const IdeaChatPage = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex w-full bg-background/40 backdrop-fade overflow-hidden">
-      {/* Resizable Sidebar Wrapper */}
-      <div className="relative flex h-screen" style={{ width: sidebarWidth, transition: draggingRef.current ? 'none' : 'width 140ms ease' }}>
-        <div className="flex-1 h-full border-r glass-super-surface overflow-hidden">
-          <AppSidebar
-            className={autoCollapsed ? 'data-[collapsed=true]:w-[72px]' : ''}
-            style={{
-              width: '100%',
-              transition: draggingRef.current ? 'none' : 'width 140ms ease',
-            }}
-          />
-        </div>
-      </div>
-      {/* Drag Handle sits between sidebar and chat to eliminate gap */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize sessions sidebar"
-        tabIndex={0}
-        onMouseDown={(e) => { draggingRef.current = true; document.body.classList.add('select-none','dragging-col-resize'); e.preventDefault(); }}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowLeft') setSidebarWidth(w => Math.max(w - 16, 160));
-          if (e.key === 'ArrowRight') setSidebarWidth(w => Math.min(w + 16, 520));
-        }}
-        className="relative z-20 h-screen w-1.5 cursor-col-resize group flex items-stretch"
-        style={{
-          // prevent accidental text selection overlay issues
-          background: 'linear-gradient(to bottom, hsl(var(--primary)/0.55), hsl(var(--primary)/0.25))'
-        }}
-      >
-        <div className="flex-1 bg-primary/20 group-hover:bg-primary/30 transition-colors" />
-        <div className="absolute inset-y-0 left-0 right-0 w-full opacity-0 group-hover:opacity-80 transition-opacity" />
-      </div>
-      <div className="flex-1 flex flex-col h-screen">
-        <div className="flex flex-col gap-1 px-6 py-3 border-b glass-super-surface sticky top-0 z-40">
-          <div className="flex items-center justify-between">
+    <div className="flex-1 flex flex-col h-full">
+      <div className="flex flex-col gap-1 px-6 py-3 border-b glass-super-surface sticky top-0 z-40">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <h1
@@ -426,7 +392,6 @@ const IdeaChatPage = () => {
               </div>
             </Suspense>
           </div>
-        </div>
       </div>
     </div>
   );

@@ -202,9 +202,7 @@ export default function Settings() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
-      <AppSidebar />
-      <div className="flex-1 flex flex-col h-screen">
+    <div className="flex-1 flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-3">
@@ -674,7 +672,6 @@ export default function Settings() {
         </Tabs>
           </div>
         </div>
-      </div>
     </div>
   );
 }

@@ -47,7 +47,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
 
   const mainNav = [
     { title: "Idea Chat", url: "/ideachat", icon: MessageSquare },
-    { title: "Idea Journal", url: "/idea-journal", icon: BookOpen },
+    { title: "Idea Journal", url: "/ideajournal", icon: BookOpen },
     { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
