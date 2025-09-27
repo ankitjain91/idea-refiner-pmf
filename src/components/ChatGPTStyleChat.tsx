@@ -157,6 +157,28 @@ export default function ChatGPTStyleChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Typing indicator helpers to ensure visibility for at least a minimal duration
+  const MIN_TYPING_MS = 900;
+  const startTyping = (status: string) => {
+    setTypingStatus(status);
+    const loadingMessage: Message = {
+      id: `msg-typing-${Date.now()}`,
+      type: 'bot',
+      content: '',
+      timestamp: new Date(),
+      isTyping: true
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+    return Date.now();
+  };
+  const stopTyping = async (startedAt: number) => {
+    const elapsed = Date.now() - startedAt;
+    const wait = Math.max(0, MIN_TYPING_MS - elapsed);
+    if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+    setMessages(prev => prev.filter(msg => !msg.isTyping));
+    setTypingStatus('');
+  };
+
   // Classify suggestion for badge category (used by modular SuggestionList)
   const classifySuggestionCategory = (suggestion: string): string | undefined => {
     const lower = suggestion.toLowerCase();
@@ -874,17 +896,7 @@ export default function ChatGPTStyleChat({
     if (isRefinementMode && !isAnalyzing) {
       setInput('');
       setIsLoading(true);
-      setTypingStatus('Formulating a helpful reply...');
-      
-      // Add loading animation message with bot icon showing
-      const loadingMessage: Message = {
-        id: `msg-loading-${Date.now()}`,
-        type: 'bot',
-        content: '',
-        timestamp: new Date(),
-        isTyping: true
-      };
-      setMessages(prev => [...prev, loadingMessage]);
+      const startedAt = startTyping('Formulating a helpful reply...');
       
       try {
         // Get AI response for refinement
@@ -902,8 +914,7 @@ export default function ChatGPTStyleChat({
           }
         });
 
-        // Remove loading message
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        await stopTyping(startedAt);
 
         if (!error && data) {
           // Handle both string and object responses
@@ -952,8 +963,7 @@ export default function ChatGPTStyleChat({
         }
       } catch (error) {
         console.error('Chat error:', error);
-        // Remove loading message
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        await stopTyping(startedAt);
         
         const errorMessage: Message = {
           id: `msg-error-${Date.now()}`,
@@ -1404,18 +1414,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
 
   const handleSuggestionRefinement = async (idea: string) => {
     setIsLoading(true);
-    setTypingStatus('Thinking through your idea...');
-    
-    // Add loading animation message
-    const loadingMessage: Message = {
-      id: `msg-loading-${Date.now()}`,
-      type: 'bot',
-      content: '',
-      timestamp: new Date(),
-      isTyping: true
-    };
-    setMessages(prev => [...prev, loadingMessage]);
-    
+    const startedAt = startTyping('Thinking through your idea...');
     try {
       // Get AI response for refinement
       const { data, error } = await supabase.functions.invoke('idea-chat', {
@@ -1425,9 +1424,6 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
           refinementMode: true
         }
       });
-
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
 
       if (!error && data) {
         let responseContent = '';
@@ -1487,11 +1483,9 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
       }
     } catch (error) {
       console.error('Chat error:', error);
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
     } finally {
+      await stopTyping(startedAt);
       setIsLoading(false);
-      setTypingStatus('');
     }
   };
 
@@ -1526,23 +1520,14 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         
         const randomResponse = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
         
-        // Add loading animation
-        setTypingStatus('Thinking about your idea...');
-        const loadingMessage: Message = {
-          id: `msg-loading-${Date.now()}`,
-          type: 'bot',
-          content: '',
-          timestamp: new Date(),
-          isTyping: true
-        };
-        setMessages(prev => [...prev, loadingMessage]);
+        // Add typing indicator
+        const startedAt = startTyping('Thinking about your idea...');
         
         // Simulate typing delay
         await new Promise(resolve => setTimeout(resolve, 1200));
         
-        // Remove loading and add response
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
-        setTypingStatus('');
+        // Ensure visible for minimum duration then stop
+        await stopTyping(startedAt);
         
         const validationMessage: Message = {
           id: `msg-validation-${Date.now()}`,
