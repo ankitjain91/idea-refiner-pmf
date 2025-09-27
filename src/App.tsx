@@ -44,7 +44,6 @@ const RouteTransitionWrapper = () => {
       >
         <Routes location={location}>
           <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<AuthPage />} />
           <Route path="/logout" element={<Logout />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
