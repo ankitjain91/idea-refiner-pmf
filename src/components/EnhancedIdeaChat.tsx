@@ -19,7 +19,9 @@ import {
   Zap,
   FileText,
   ListMinus,    // Better icon for summary mode
-  Layers        // Better icon for verbose mode
+  Layers,       // Better icon for verbose mode
+  RefreshCw,    // For retry button
+  AlertCircle   // For error indicator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -1023,29 +1025,54 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
           suggestionExplanation: staticSuggestionExplanation
         };
         
-        // Remove typing indicator right before adding the real message
-        setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
+        // Remove typing indicator and clear awaiting response flag on user messages
+        setMessages(prev => {
+          const filtered = prev.filter(msg => !msg.isTyping);
+          // Clear awaitingResponse flag on the last user message
+          const updatedMessages = [...filtered];
+          for (let i = updatedMessages.length - 1; i >= 0; i--) {
+            if (updatedMessages[i].type === 'user' && updatedMessages[i].awaitingResponse) {
+              updatedMessages[i] = {
+                ...updatedMessages[i],
+                awaitingResponse: false
+              };
+              break;
+            }
+          }
+          return [...updatedMessages, botMessage];
+        });
         setIsTyping(false);
       }
     } catch (error) {
       console.error('Error:', error);
       
-      // Remove typing indicator and add error message
+      // Mark the user's message as failed to get response
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.isTyping);
-        const errorMessage: Message = {
-          id: Date.now().toString(),
-          type: 'bot',
-          content: "I encountered an error processing your request. Please try again.",
-          timestamp: new Date(),
-          isError: true,
-          originalUserMessage: messageText, // Store the message for retry
-          suggestions: []
-        };
-        return [...filtered, errorMessage];
+        
+        // Find the last user message and mark it as failed
+        const updatedMessages = [...filtered];
+        for (let i = updatedMessages.length - 1; i >= 0; i--) {
+          if (updatedMessages[i].type === 'user') {
+            updatedMessages[i] = {
+              ...updatedMessages[i],
+              failedToGetResponse: true,
+              awaitingResponse: false
+            };
+            break;
+          }
+        }
+        
+        return updatedMessages;
       });
       
       setIsTyping(false);
+      
+      toast({
+        title: "Connection Error",
+        description: "Failed to get AI response. Click retry on your message to try again.",
+        variant: "destructive"
+      });
     }
   }; // Properly close the sendMessageHandler function
 
@@ -1161,9 +1188,26 @@ const ChatMessageItem = useMemo(() => {
               )}
               <div className="relative">
                 {message.type === 'user' ? (
-                  <div className="text-sm opacity-90 break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full">
-                    {message.content}
-                  </div>
+                  <>
+                    <div className="text-sm opacity-90 break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full">
+                      {message.content}
+                    </div>
+                    {message.failedToGetResponse && (
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                        <span className="text-xs text-destructive">Failed to get response</span>
+                        <Button
+                          onClick={() => retryMessage(message)}
+                          variant="outline"
+                          size="sm"
+                          className="ml-auto h-7 px-2 text-xs flex items-center gap-1"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Retry
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <MessageRenderer 
                     message={message} 
@@ -1243,22 +1287,18 @@ Focus on: WHO has WHAT problem and your solution approach.`,
   
   // Add retry handler for failed messages
   const retryMessageHandler = useCallback((failedMessage: Message) => {
-    if (failedMessage.originalUserMessage) {
-      // Remove the error message
-      setMessages(prev => prev.filter(msg => msg.id !== failedMessage.id));
+    // For user messages that failed to get response
+    if (failedMessage.type === 'user' && failedMessage.failedToGetResponse) {
+      // Clear the failed flag on the message
+      setMessages(prev => prev.map(msg => 
+        msg.id === failedMessage.id 
+          ? { ...msg, failedToGetResponse: false, awaitingResponse: true }
+          : msg
+      ));
       
-      // Resend the original message
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        type: 'user',
-        content: failedMessage.originalUserMessage,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, userMessage]);
-      
-      // Trigger the send logic again
+      // Resend the message
       setTimeout(() => {
-        sendMessageHandler(failedMessage.originalUserMessage);
+        sendMessageHandler(failedMessage.content);
       }, 100);
     }
   }, []);
@@ -1284,7 +1324,8 @@ Focus on: WHO has WHAT problem and your solution approach.`,
       id: Date.now().toString(),
       type: 'user',
       content: messageText,
-      timestamp: new Date()
+      timestamp: new Date(),
+      awaitingResponse: true // Mark as awaiting response
     };
     
     setMessages(prev => [...prev, userMessage]);

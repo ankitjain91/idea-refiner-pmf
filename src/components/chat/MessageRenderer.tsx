@@ -53,7 +53,33 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     return <PMFAnalysisCard analysis={message.pmfAnalysis} />;
   }
   
-  // Handle error messages with retry button
+  // Handle user messages that failed to get response
+  if (message.type === 'user' && message.failedToGetResponse) {
+    return (
+      <div className="space-y-3">
+        <div className="text-sm opacity-90 break-words overflow-wrap-anywhere whitespace-pre-wrap">
+          {message.content}
+        </div>
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <span className="text-xs text-destructive">Failed to get response</span>
+          {onRetry && (
+            <Button
+              onClick={() => onRetry(message)}
+              variant="outline"
+              size="sm"
+              className="ml-2 h-7 px-2 text-xs flex items-center gap-1"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // Handle error messages with retry button (legacy, keeping for backward compatibility)
   if (message.isError) {
     return (
       <div className="space-y-3">
