@@ -54,7 +54,6 @@ export default function ChatGPTStyleChat({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentIdea, setCurrentIdea] = useState('');
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisCompletedFlag, setAnalysisCompletedFlag] = useState(() => localStorage.getItem('analysisCompleted') === 'true');
   // Brief fields (two required: problem, targetUser; others optional)
@@ -82,7 +81,7 @@ export default function ChatGPTStyleChat({
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const autoSaveRef = useRef<NodeJS.Timeout>();
+  // Removed legacy per-component session persistence (handled by SessionContext)
   const titleGeneratedRef = useRef(false);
   const { currentSession, createSession } = useSession();
   const lastIdeaSignatureRef = useRef<string>('');
@@ -350,20 +349,7 @@ export default function ChatGPTStyleChat({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, currentSession]);
 
-  // Auto-save session every 5 seconds
-  useEffect(() => {
-    if (sessionId && messages.length > 0) {
-      autoSaveRef.current = setInterval(() => {
-        saveSession();
-      }, 5000);
-
-      return () => {
-        if (autoSaveRef.current) {
-          clearInterval(autoSaveRef.current);
-        }
-      };
-    }
-  }, [sessionId, messages, brief, analysisProgress]);
+  // Removed legacy auto-save interval (SessionContext centralizes saving)
 
   const generateRandomSuggestions = () => {
     const allSuggestions = [
@@ -548,37 +534,7 @@ export default function ChatGPTStyleChat({
 
   // remove legacy createNewSession (sessions now created explicitly elsewhere)
 
-  const saveSession = async () => {
-    if (!sessionId || !user) return;
-
-    try {
-  const { error } = await supabase
-  .from('analysis_sessions')
-  .update({
-          metadata: {
-            messages: messages.map(m => ({
-              id: m.id,
-              type: m.type,
-              content: m.content,
-              timestamp: m.timestamp.toISOString(),
-              suggestions: m.suggestions || [],
-              metadata: m.metadata || {}
-            })),
-            brief,
-            analysisProgress
-          },
-          idea: currentIdea,
-          session_name: currentIdea || 'Analysis Session',
-          last_accessed: new Date().toISOString()
-  })
-  .eq('id', sessionId);
-
-      if (error) throw error;
-  // Removed session save announcement for quieter UX
-    } catch (error) {
-      console.error('Error saving session:', error);
-    }
-  };
+  // Removed saveSession (redundant)
 
   // Deprecated structured analysis flow removed.
 
@@ -1278,7 +1234,6 @@ export default function ChatGPTStyleChat({
                                         idea: currentIdea,
                                         answers: undefined,
                                         pmfAnalysis: msg.pmfAnalysis,
-                                        sessionId,
                                         timestamp: new Date().toISOString()
                                       };
                                       onAnalysisReady(currentIdea, analysisData);
