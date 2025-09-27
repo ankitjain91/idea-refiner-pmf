@@ -10,8 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { authSchema } from "@/lib/validation";
 import { z } from "zod";
 import { useNavigate } from "react-router-dom";
-import { useSession } from "@/contexts/SimpleSessionContext";
-
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);

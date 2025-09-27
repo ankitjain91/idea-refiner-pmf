@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import type { KeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMemo from 'react';
 import { useSession } from '@/contexts/SimpleSessionContext';
 
 // Import refactored components and utilities
@@ -82,7 +82,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
 
   // Derived: wrinkle tier + dynamic tooltip messaging
-  const wrinkleTier = React.useMemo(() => {
+  const wrinkleTier = useMemo(() => {
     const w = wrinklePoints;
     if (w < 5) return 0; // embryonic
     if (w < 20) return 1; // forming
@@ -101,7 +101,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     'Legendary'
   ][wrinkleTier];
 
-  const dynamicBrainTooltip = React.useMemo(() => {
+  const dynamicBrainTooltip = useMemo(() => {
     if (!hasValidIdea) {
       return 'No valid idea yet. Provide: specific user + painful workflow moment + wedge feature. Wrinkles unlock after validation.';
     }
@@ -187,7 +187,7 @@ What's your startup idea?`,
   }, [messages]);
   
   // Functions
-  const ChatMessageItemMemo = React.useMemo(() => {
+  const ChatMessageItemMemo = useMemo(() => {
     const Item: React.FC<{
       message: Message;
       responseMode: ResponseMode;
@@ -275,7 +275,7 @@ What's your startup idea?`,
         </motion.div>
       );
     };
-    return React.memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
+    return memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
   }, []);
   const resetChat = () => {
     setMessages([]); // No auto-welcome; user must name session then provide idea
@@ -699,7 +699,7 @@ User submission: """${messageText}"""`;
   }; // Properly close the sendMessageHandler function
 
   // Ensure unique variable declarations
-  const handleKeyPress = React.useCallback((e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -711,7 +711,7 @@ User submission: """${messageText}"""`;
 }, [messages]);
 
 // Rename conflicting variables to avoid redeclaration
-const ChatMessageItem = React.useMemo(() => {
+const ChatMessageItem = useMemo(() => {
   const Item: React.FC<{
     message: Message;
     responseMode: ResponseMode;
@@ -801,7 +801,7 @@ const ChatMessageItem = React.useMemo(() => {
   };
   return React.memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
 }, []);
-  const resetChatHandler = React.useCallback(() => {
+  const resetChatHandler = useCallback(() => {
     setMessages([]); // No auto-welcome; user must name session then provide idea
     setInput('');
     setIsTyping(false);
@@ -814,14 +814,14 @@ const ChatMessageItem = React.useMemo(() => {
     onReset?.();
   }, [onReset]);
 
-  const handleSuggestionClickHandler = React.useCallback((suggestionText: string) => {
+  const handleSuggestionClickHandler = useCallback((suggestionText: string) => {
     setInput(suggestionText);
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
   }, []);
 
-  const sendMessageHandler = React.useCallback(async (textToSend?: string) => {
+  const sendMessageHandler = useCallback(async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
     if (!messageText || isTyping) return;
     // Session management is handled by parent component/SessionContext
