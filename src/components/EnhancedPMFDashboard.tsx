@@ -34,6 +34,7 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
   const [metricModalOpen, setMetricModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [marketData, setMarketData] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
       if (!data?.insights) throw new Error('No insights returned');
 
       setInsights(data.insights);
+      setMarketData(data.marketData || data.insights?.realSearchData);
       setLoading(false);
       // Let progress briefly reach 100% before resetting
       setTimeout(() => setProgress(0), 300);
@@ -222,6 +224,74 @@ export default function EnhancedPMFDashboard({ idea, userAnswers }: EnhancedPMFD
           </>
         )}
       </div>
+
+      {/* Real Market Data Section */}
+      {marketData && (
+        <Card className="p-6 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardHeader className="p-0 pb-4">
+            <CardTitle className="flex items-center gap-2">
+              <ExternalLink className="w-5 h-5 text-primary" />
+              Real-Time Market Intelligence
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {marketData.raw?.marketSize && (
+                <div className="bg-background/60 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground mb-1">Market Size</p>
+                  <p className="text-2xl font-bold">${(marketData.raw.marketSize / 1000000000).toFixed(1)}B</p>
+                </div>
+              )}
+              {marketData.raw?.growthRate && (
+                <div className="bg-background/60 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground mb-1">Growth Rate</p>
+                  <p className="text-2xl font-bold">{marketData.raw.growthRate}%</p>
+                  <p className="text-xs text-muted-foreground">annual</p>
+                </div>
+              )}
+              {marketData.raw?.demographics?.primaryAge && (
+                <div className="bg-background/60 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground mb-1">Target Age</p>
+                  <p className="text-2xl font-bold">{marketData.raw.demographics.primaryAge}</p>
+                </div>
+              )}
+            </div>
+            
+            {marketData.normalized?.relatedQueries && marketData.normalized.relatedQueries.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Trending Searches</p>
+                <div className="flex flex-wrap gap-2">
+                  {marketData.normalized.relatedQueries.map((query: string, idx: number) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {query}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {marketData.citations && marketData.citations.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Data Sources</p>
+                <div className="flex flex-wrap gap-2">
+                  {marketData.citations.map((citation: any, idx: number) => (
+                    <a 
+                      key={idx}
+                      href={citation.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      {citation.source}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

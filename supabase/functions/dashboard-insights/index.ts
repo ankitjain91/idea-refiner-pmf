@@ -20,6 +20,28 @@ serve(async (req) => {
       throw new Error('Idea is required');
     }
 
+    // Fetch real market data from search-web edge function
+    let searchData = null;
+    try {
+      const searchResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/search-web`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          query: `${idea} market analysis competitors pricing trends statistics` 
+        }),
+      });
+      
+      if (searchResponse.ok) {
+        searchData = await searchResponse.json();
+        console.log('Search data fetched:', searchData);
+      }
+    } catch (searchError) {
+      console.error('Error fetching search data:', searchError);
+    }
+
     // Call OpenAI to get comprehensive dashboard insights with real data (with retries, no fallback)
     let lastError: unknown = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -39,6 +61,13 @@ serve(async (req) => {
               {
                 role: 'system',
                 content: `You are a product-market fit expert. Generate comprehensive, data-rich insights with detailed explanations.
+                ${searchData ? `Use this REAL market data in your analysis:
+                - Competitors: ${JSON.stringify(searchData.normalized?.topCompetitors || [])}
+                - Market Size: ${searchData.raw?.marketSize || 'Unknown'}
+                - Growth Rate: ${searchData.raw?.growthRate || 'Unknown'}%
+                - Demographics: ${JSON.stringify(searchData.raw?.demographics || {})}
+                - Pricing: ${JSON.stringify(searchData.raw?.pricing || {})}
+                - Search Trends: ${JSON.stringify(searchData.normalized?.relatedQueries || [])}` : ''}
                 Return ONLY valid JSON matching this structure EXACTLY:
                 {
                   "pmfScore": 75,
@@ -391,11 +420,35 @@ serve(async (req) => {
           insights = JSON.parse(candidate);
         }
 
+        // Inject real search data into insights
+        if (searchData) {
+          insights.realSearchData = searchData;
+          
+          // Merge real competitor data if available
+          if (searchData.normalized?.topCompetitors && insights.competitors) {
+            insights.competitors = insights.competitors.map((comp: any, idx: number) => {
+              const realComp = searchData.normalized.topCompetitors[idx];
+              if (realComp) {
+                return {
+                  ...comp,
+                  name: realComp.name || comp.name,
+                  pricing: realComp.pricing || comp.pricing,
+                  funding: realComp.funding || comp.funding,
+                  marketShare: realComp.marketShare || comp.marketShare,
+                  realData: true
+                };
+              }
+              return comp;
+            });
+          }
+        }
+
         console.log('[DASHBOARD-INSIGHTS] Generated comprehensive insights:', {
           pmfScore: insights.pmfScore,
           competitorsCount: insights.competitors?.length,
           quickWinsCount: insights.quickWins?.length,
-          hasRealData: !!insights.marketSize?.sources?.length
+          hasRealData: !!searchData,
+          searchDataIncluded: !!insights.realSearchData
         });
 
         return new Response(
@@ -403,6 +456,7 @@ serve(async (req) => {
             success: true,
             insights,
             timestamp: new Date().toISOString(),
+            marketData: searchData
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

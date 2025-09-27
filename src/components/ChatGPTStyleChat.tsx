@@ -1335,8 +1335,21 @@ Return JSON with keys ${fieldKeys.join(', ')}. Each value: array of up to 5 conc
       setShowStartAnalysisButton(true);
       setInput('');
       
-      // Get AI response about the idea for refinement
-      await handleSuggestionRefinement(suggestion);
+      // Initialize brief questions and start Q&A immediately after selecting an idea
+      deriveBriefQuestions();
+      await fetchContextualBriefSuggestions();
+      
+      // Start brief Q&A automatically
+      const startMsg: Message = {
+        id: `msg-brief-start-${Date.now()}`,
+        type: 'system',
+        content: `Great choice! Let's gather key details about "${suggestion}" to provide accurate analysis. Answer a few quick questions (or skip any).`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, startMsg]);
+      setIsBriefQAMode(true);
+      setBriefQuestionIndex(0);
+      briefQuestionsRef.current.length > 0 && askNextBriefQuestion(0);
     } else if (isRefinementMode && !isAnalyzing) {
       // During refinement - process as regular message with consistent animation
       setInput('');
