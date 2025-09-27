@@ -43,7 +43,8 @@ import {
   Trophy,
   Sparkle,
   Flame,
-  CheckCircle2
+  CheckCircle2,
+  X
 } from "lucide-react";
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 
@@ -1154,14 +1155,22 @@ export default function LandingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4"
-          onClick={() => setShowAuthModal(false)}
         >
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3 }}
-            onClick={(e) => e.stopPropagation()}
+            className="relative"
           >
+            {/* Close button */}
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute -top-2 -right-2 z-10 bg-gray-900/90 hover:bg-gray-800/90 border border-gray-700 rounded-full p-2 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-gray-400 hover:text-white" />
+            </button>
+            
             <Card className="w-full max-w-md bg-gray-950/95 border-gray-800">
               <CardHeader className="space-y-1">
                 <CardTitle className="text-2xl text-center">
