@@ -471,18 +471,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Get Started Button - Right */}
-          <div className="flex-1 flex justify-end">
-            <Button
-              size="sm"
-              onClick={() => {
-                setIsSignUp(true);
-                setShowAuthModal(true);
-              }}
-              className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-[0_0_20px_rgba(100,150,255,0.3)]"
-            >
-              Get Started
-            </Button>
+          {/* Empty right side for balance */}
+          <div className="flex-1">
           </div>
         </div>
       </motion.div>
