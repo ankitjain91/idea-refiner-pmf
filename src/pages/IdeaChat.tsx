@@ -270,20 +270,6 @@ const IdeaChatPage = () => {
           <div className="flex items-center gap-3 text-[11px] flex-wrap">
             <Button
               size="sm"
-              variant="outline"
-              className='h-8 px-3 text-[11px] gap-1.5 border-muted-foreground/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:border-muted-foreground/40 transition-all duration-200'
-              onClick={() => {
-                if (window.confirm('Are you sure you want to reset? This will clear your current conversation and start fresh.')) {
-                  window.dispatchEvent(new Event('chat:reset'));
-                }
-              }}
-              title='Start fresh with new idea'
-            >
-              <RotateCcw className='h-3.5 w-3.5' />
-              <span className="hidden sm:inline">Reset</span>
-            </Button>
-            <Button
-              size="sm"
               variant="default"
               className="h-8 px-3 text-[11px] gap-1.5 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 shadow-sm hover:shadow-md transition-all duration-200 font-medium text-white"
               onClick={() => window.dispatchEvent(new CustomEvent('analysis:openBrief'))}
