@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAlerts } from "@/contexts/AlertContext";
 import { Loader2, User, CreditCard, Bell, Shield, Globe, Building, MapPin, Link, Twitter, Linkedin, Phone, Mail, Calendar, Check, X, Crown, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
-import { AppSidebar } from "@/components/AppSidebar";
+
 import { UserMenu } from "@/components/UserMenu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 

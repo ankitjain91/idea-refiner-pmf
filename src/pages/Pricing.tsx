@@ -9,8 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { UserMenu } from "@/components/UserMenu";
-import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+
+
 import { motion } from "framer-motion";
 
 export default function PricingPage() {
