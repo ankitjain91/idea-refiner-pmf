@@ -194,68 +194,95 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, []);
 
-  // Initialize welcome message with random ideas or restore from session
-  useEffect(() => {
-    const initializeChat = async () => {
-      // If we have a session but no messages, check if we need to restore from localStorage
-      if (currentSession?.name && messages.length === 0) {
-        // For authenticated users, check if there are stored messages to restore
-        if (!anonymous) {
-          const storedMessages = localStorage.getItem('enhancedIdeaChatMessages');
-          const storedIdea = localStorage.getItem('currentIdea');
-          const storedWrinkles = localStorage.getItem('wrinklePoints');
-          
-          if (storedMessages) {
-            try {
-              const parsedMessages = JSON.parse(storedMessages);
-              if (parsedMessages.length > 0) {
-                // Restore the conversation
-                setMessages(parsedMessages);
-                if (storedIdea) {
-                  setCurrentIdea(storedIdea);
-                  setHasValidIdea(true);
-                  setConversationStarted(true);
-                }
-                if (storedWrinkles) {
-                  setWrinklePoints(parseInt(storedWrinkles) || 0);
-                }
-                return; // Don't show welcome message if restoring
+  // Define initializeChat function
+  const initializeChat = useCallback(async () => {
+    // If we have a session but no messages, check if we need to restore from localStorage
+    if (currentSession?.name && messages.length === 0) {
+      // For authenticated users, check if there are stored messages to restore
+      if (!anonymous) {
+        const storedMessages = localStorage.getItem('enhancedIdeaChatMessages');
+        const storedIdea = localStorage.getItem('currentIdea');
+        const storedWrinkles = localStorage.getItem('wrinklePoints');
+        
+        if (storedMessages) {
+          try {
+            const parsedMessages = JSON.parse(storedMessages);
+            if (parsedMessages.length > 0) {
+              // Restore the conversation
+              setMessages(parsedMessages);
+              if (storedIdea) {
+                setCurrentIdea(storedIdea);
+                setHasValidIdea(true);
+                setConversationStarted(true);
               }
-            } catch (e) {
-              console.error('Error restoring messages:', e);
+              if (storedWrinkles) {
+                setWrinklePoints(parseInt(storedWrinkles) || 0);
+              }
+              return; // Don't show welcome message if restoring
             }
+          } catch (e) {
+            console.error('Error restoring messages:', e);
           }
         }
-        
-        // No stored messages, show welcome
-        // Fetch random ideas from database
-        const randomIdeas = await fetchRandomIdeas();
-        
-        // Use random ideas if available, otherwise use defaults
-        const suggestions = randomIdeas && randomIdeas.length > 0 
-          ? randomIdeas.slice(0, 4)
-          : [
-              "AI-powered mental health companion that detects emotional patterns through voice analysis",
-              "Blockchain-based skill verification platform where professionals earn NFT badges",
-              "Micro-learning app that teaches coding through 5-minute AR puzzles",
-              "Smart grocery list that predicts what you need based on purchase patterns"
-            ];
-        
-        const welcomeMessage: Message = {
-          id: 'welcome',
-          type: 'bot',
-          content: `🧠 Welcome to ${currentSession.name}! I'm your profit-focused startup advisor.
+      }
+      
+      // No stored messages, show welcome
+      // Fetch random ideas from database
+      const randomIdeas = await fetchRandomIdeas();
+      
+      // Use random ideas if available, otherwise use defaults
+      const suggestions = randomIdeas && randomIdeas.length > 0 
+        ? randomIdeas.slice(0, 4)
+        : [
+            "AI-powered mental health companion that detects emotional patterns through voice analysis",
+            "Blockchain-based skill verification platform where professionals earn NFT badges",
+            "Micro-learning app that teaches coding through 5-minute AR puzzles",
+            "Smart grocery list that predicts what you need based on purchase patterns"
+          ];
+      
+      const welcomeMessage: Message = {
+        id: 'welcome',
+        type: 'bot',
+        content: `🧠 Welcome to ${currentSession?.name || 'New Session'}! I'm your profit-focused startup advisor.
 
 Share your startup idea and I'll help you maximize its profitability through strategic analysis, market insights, and revenue optimization. Focus on WHO has WHAT problem and HOW you'll solve it profitably.
 
 What's your startup idea?`,
-          timestamp: new Date(),
-          suggestions
-        };
-        setMessages([welcomeMessage]);
-      }
+        timestamp: new Date(),
+        suggestions
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [currentSession?.name, anonymous, fetchRandomIdeas, messages.length]);
+
+  // Listen for session reset event
+  useEffect(() => {
+    const handleSessionReset = () => {
+      // Clear all chat state
+      setMessages([]);
+      setCurrentIdea('');
+      setWrinklePoints(0);
+      setHasValidIdea(false);
+      setConversationStarted(false);
+      setPersistenceLevel(0);
+      setOffTopicAttempts(0);
+      setInput('');
+      
+      // Show welcome message for the new session after a brief delay
+      setTimeout(() => {
+        initializeChat();
+      }, 100);
     };
     
+    window.addEventListener('session:reset', handleSessionReset);
+    
+    return () => {
+      window.removeEventListener('session:reset', handleSessionReset);
+    };
+  }, [initializeChat]);
+
+  // Initialize chat on mount or session change
+  useEffect(() => {
     initializeChat();
   }, [currentSession?.name, anonymous, fetchRandomIdeas]);
 

@@ -170,12 +170,37 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setLoading(true);
     try {
+      // Clear the chat and reset to fresh state
+      const freshSessionData = {
+        chatHistory: [],
+        currentIdea: '',
+        analysisData: {},
+        pmfScore: 0,
+        analysisCompleted: false,
+        lastActivity: new Date().toISOString(),
+        wrinklePoints: 0,
+        tabHistory: []
+      };
+      
+      // Clear localStorage to reset the chat
+      localStorage.removeItem('chatHistory');
+      localStorage.removeItem('enhancedIdeaChatMessages');
+      localStorage.removeItem(LS_KEYS.userIdea);
+      localStorage.removeItem('currentIdea');
+      localStorage.removeItem(LS_KEYS.pmfScore);
+      localStorage.removeItem(LS_KEYS.analysisCompleted);
+      localStorage.removeItem(LS_KEYS.ideaMetadata);
+      localStorage.removeItem('wrinklePoints');
+      
+      // Trigger a custom event to reset the chat component
+      window.dispatchEvent(new CustomEvent('session:reset'));
+      
       if (anonymous) {
         // Create anonymous session (not persisted to database)
         const anonymousSession: BrainstormingSession = {
           id: `anon-${Date.now()}`,
           name: name.trim(),
-          data: getCurrentSessionData(),
+          data: freshSessionData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           is_anonymous: true
@@ -195,15 +220,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!user) {
         throw new Error('Must be logged in to create sessions');
       }
-
-      const sessionData = getCurrentSessionData();
       
       const { data, error } = await supabase
         .from('brainstorming_sessions')
         .insert({
           user_id: user?.id || '',
           name: name,
-          state: sessionData as any
+          state: freshSessionData as any
         })
         .select()
         .single();
@@ -213,7 +236,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const newSession: BrainstormingSession = {
         id: data.id,
         name: data.name.trim(),
-        data: sessionData,
+        data: freshSessionData,
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
