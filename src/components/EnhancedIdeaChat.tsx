@@ -473,18 +473,125 @@ What's your startup idea?`,
       setPersistenceLevel(0);
     }
 
-    // If we have not yet validated an idea, attempt validation first before normal flow.
+    // Once we have a valid idea, skip validation and focus on refinement
+    if (hasValidIdea && currentIdea) {
+      // Add typing indicator immediately for responsiveness
+      const typingMessage: Message = {
+        id: 'typing',
+        type: 'bot',
+        content: '',
+        timestamp: new Date(),
+        isTyping: true
+      };
+      setMessages(prev => [...prev, typingMessage]);
+
+      try {
+        // Build conversation history
+        const conversationHistory = messages
+          .filter(msg => !msg.isTyping)
+          .map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.content
+          }));
+
+        // Always ground the conversation in the established idea for focused refinement
+        const contextualMessage = `CRITICAL CONTEXT: We are refining the specific idea "${currentIdea}". 
+        All responses must focus on making THIS EXACT idea successful. Do not suggest alternatives.
+        Challenge assumptions, identify risks, and push for validation, but always within the scope of improving "${currentIdea}".
+        User says: ${messageText}`;
+
+        const { data, error } = await supabase.functions.invoke('idea-chat', {
+          body: { 
+            message: contextualMessage,
+            conversationHistory,
+            responseMode: responseMode,
+            refinementMode: true, // Always in refinement mode once idea is validated
+            idea: currentIdea
+          }
+        });
+
+        if (error) throw error;
+
+        // Don't remove typing indicator yet - keep it visible until response is ready
+
+        // Use ChatGPT to evaluate wrinkle points
+        let pointChange = 0;
+        let pointsExplanation = '';
+        
+        try {
+          const { data: evaluationData } = await supabase.functions.invoke('evaluate-wrinkle-points', {
+            body: { 
+              userMessage: messageText,
+              botResponse: data.response || 'AI response processing...',
+              conversationHistory: conversationHistory.slice(-4),
+              currentWrinklePoints: wrinklePoints
+            }
+          });
+          
+          if (evaluationData?.pointChange !== undefined) {
+            pointChange = evaluationData.pointChange;
+            pointsExplanation = evaluationData.explanation || '';
+          }
+        } catch (error) {
+          console.error('Error evaluating wrinkle points:', error);
+          pointChange = (Math.random() * 2) + 1; // 1-3 points for refinement
+          pointsExplanation = 'Refining your idea!';
+        }
+
+        // Generate contextual suggestions
+        let suggestions = data.suggestions || [];
+        if (suggestions.length === 0) {
+          suggestions = [
+            "How can I validate this with real customers quickly?",
+            "What's the minimum viable version I could build?",
+            "Who are my direct competitors and how do I differentiate?",
+            "What are the biggest risks and how do I mitigate them?"
+          ];
+        }
+
+        const botMessage: Message = {
+          id: Date.now().toString(),
+          type: 'bot',
+          content: data.response || "Let's continue refining your idea to maximize success.",
+          timestamp: new Date(),
+          suggestions,
+          pointsEarned: pointChange,
+          pointsExplanation: pointsExplanation
+        };
+        
+        // Remove typing indicator right before adding the real message
+        setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
+        setIsTyping(false);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        setIsTyping(false);
+        toast({
+          title: "Connection Error",
+          description: "Failed to get AI response. Please try again.",
+          variant: "destructive"
+        });
+      }
+      
+      return; // Exit early to avoid re-validation
+    }
+
+    // If we don't have a valid idea yet, attempt validation first
     if (!hasValidIdea) {
       try {
-        // More lenient heuristic check - allow some flexibility
-        const heuristicLooksLikeIdea = messageText.length > 30 && 
+        // More lenient heuristic check
+        const heuristicLooksLikeIdea = messageText.length > 25 && 
           (messageText.includes('build') || messageText.includes('create') || 
            messageText.includes('help') || messageText.includes('solve') ||
            messageText.includes('automate') || messageText.includes('platform') ||
-           messageText.includes('tool') || messageText.includes('app'));
+           messageText.includes('tool') || messageText.includes('app') ||
+           messageText.includes('service') || messageText.includes('product') ||
+           messageText.includes('business') || messageText.includes('startup') ||
+           messageText.includes('idea') || messageText.includes('want'));
         
-        const validationPrompt = `You are a helpful startup idea validator. Determine if the user submission contains a startup idea with reasonable specificity. Be LENIENT - accept ideas that show genuine effort even if not perfectly detailed. Look for: some indication of target users, a problem they face, and a solution approach. If it's clearly a joke, gibberish, or completely unrelated to business ideas, mark invalid.
-Respond ONLY with minified JSON: {"valid": true|false, "reason": "short encouraging feedback", "improvementHints": ["array of 2-3 helpful questions to refine further"]}.
+        const validationPrompt = `You are a helpful startup idea validator. Determine if the user submission contains a startup idea. Be VERY LENIENT - accept anything that remotely looks like they're trying to share a business concept.
+Respond ONLY with minified JSON: {"valid": true|false, "reason": "short feedback"}.
 User submission: """${messageText}"""`;
 
         const { data: validationData, error: validationError } = await supabase.functions.invoke('idea-chat', {
@@ -503,7 +610,7 @@ User submission: """${messageText}"""`;
           console.warn('Failed to parse validation JSON, fallback to heuristic', e);
         }
 
-        // Be more lenient - accept if either validation passes
+        // Be very lenient - accept if either validation passes
         const isValid = parsed.valid === true || (heuristicLooksLikeIdea && parsed.valid !== false);
 
         if (!isValid) {
