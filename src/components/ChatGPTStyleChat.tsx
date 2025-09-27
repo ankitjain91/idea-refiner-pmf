@@ -1670,84 +1670,80 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
 
   return (
     <div ref={chatContainerRef} className={cn("flex flex-col h-full bg-background relative", className)}>
-      {/* Top controls bar - responsive layout */}
-      <div className="absolute top-2 right-2 left-2 sm:left-auto z-30 flex gap-2 justify-end flex-wrap">
-        {/* Shuffle button (only before idea picked) */}
-        {!currentIdea && messages.length === 1 && messages[0]?.type === 'system' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={shuffleBrainstormIdeas}
-            className="h-8 px-2 sm:px-3 text-[11px] gap-1 shadow-sm bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 hover:scale-105 transition-all"
-            title="Shuffle brainstorming ideas"
-          >
-            <RefreshCw className="h-3 w-3" />
-            <span className="hidden sm:inline">Shuffle Ideas</span>
-            <span className="sm:hidden">Shuffle</span>
-          </Button>
-        )}
-        
-        {/* AI Analysis button (only when idea is selected) */}
-        {currentIdea && !isAnalyzing && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={startAnalysis}
-            className="h-8 px-3 text-[11px] gap-1.5 shadow-sm bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary hover:scale-105 transition-all"
-            title="Start AI analysis of your idea"
-          >
-            <Brain className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{isBriefQAMode ? 'Cancel Q&A' : 'Start Analysis'}</span>
-            <span className="sm:hidden">Analyze</span>
-          </Button>
-        )}
-        
-        {/* Reset button (when conversation has started) */}
-        {(currentIdea || messages.length > 1) && !isBriefQAMode && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setCurrentIdea('');
-              setAnalysisProgress(0);
-              setIsAnalyzing(false);
-              setIsRefinementMode(true);
-              setShowStartAnalysisButton(false);
-              setIsBriefQAMode(false);
-              setBrief({
-                problem: '',
-                targetUser: '',
-                differentiation: '',
-                alternatives: '',
-                monetization: '',
-                scenario: '',
-                successMetric: ''
-              });
-              const resetMsg: Message = {
-                id: `msg-reset-${Date.now()}`,
-                type: 'bot',
-                content: "Let's start fresh! Share your new product idea and I'll help you refine and analyze it.",
-                timestamp: new Date(),
-                suggestions: [
-                  "AI-powered mental health app",
-                  "Sustainable fashion marketplace",
-                  "Remote work collaboration tool",
-                  "Educational platform for seniors"
-                ]
-              };
-              setMessages([resetMsg]);
-              toast({
-                title: "Chat Reset",
-                description: "Ready for a new idea!",
-              });
-            }}
-            className="h-8 px-2 sm:px-3 text-[11px] gap-1 shadow-sm bg-background/80 backdrop-blur hover:bg-destructive/10 hover:text-destructive hover:scale-105 transition-all"
-            title="Start over with a new idea"
-          >
-            <RotateCcw className="h-3 w-3" />
-            <span className="hidden sm:inline">Reset</span>
-          </Button>
-        )}
+      {/* Unified top header with primary actions */}
+      <div className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 py-2">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          <div className="flex flex-col leading-tight">
+            <span className="text-xs font-medium text-muted-foreground">
+              {modeRef.current === 'analysis' ? 'Analysis Mode' : modeRef.current === 'refine' ? 'Refinement Mode' : 'Idea Mode'}
+            </span>
+            {currentIdea && (
+              <span className="text-[11px] truncate max-w-[220px] text-muted-foreground/80" title={currentIdea}>
+                {currentIdea}
+              </span>
+            )}
+          </div>
+          <div className="ml-auto flex gap-2">
+            {/* Start / Cancel Analysis or Q&A */}
+            {currentIdea && !isAnalyzing && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={startAnalysis}
+                className="h-8 px-3 text-[11px] gap-1.5 shadow-sm bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary"
+              >
+                <Brain className="h-3.5 w-3.5" />
+                {isBriefQAMode ? 'Cancel Q&A' : 'Start Analysis'}
+              </Button>
+            )}
+            {/* Reset */}
+            {(currentIdea || messages.length > 1) && !isBriefQAMode && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setCurrentIdea('');
+                  setAnalysisProgress(0);
+                  setIsAnalyzing(false);
+                  setIsRefinementMode(true);
+                  setShowStartAnalysisButton(false);
+                  setIsBriefQAMode(false);
+                  setBrief({
+                    problem: '',
+                    targetUser: '',
+                    differentiation: '',
+                    alternatives: '',
+                    monetization: '',
+                    scenario: '',
+                    successMetric: ''
+                  });
+                  const resetMsg: Message = {
+                    id: `msg-reset-${Date.now()}`,
+                    type: 'bot',
+                    content: "Let's start fresh! Share your new product idea and I'll help you refine and analyze it.",
+                    timestamp: new Date(),
+                    suggestions: [
+                      "AI-powered mental health app",
+                      "Sustainable fashion marketplace",
+                      "Remote work collaboration tool",
+                      "Educational platform for seniors"
+                    ]
+                  };
+                  setMessages([resetMsg]);
+                  toast({
+                    title: "Chat Reset",
+                    description: "Ready for a new idea!",
+                  });
+                  emitMode('idea');
+                }}
+                className="h-8 px-2 sm:px-3 text-[11px] gap-1 shadow-sm hover:bg-destructive/10 hover:text-destructive"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span className="hidden sm:inline">Reset</span>
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
   {/* Header with Progress */}
             {isAnalyzing && (
