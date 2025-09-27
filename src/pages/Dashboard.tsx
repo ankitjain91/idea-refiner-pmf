@@ -277,6 +277,7 @@ const Dashboard = () => {
   };
 
   const handleNewChat = () => {
+    try { localStorage.setItem('returnToChat', '1'); } catch {}
     navigate('/ideachat');
   };
   
@@ -368,7 +369,7 @@ const Dashboard = () => {
           <div className={cn("flex items-center gap-2 transition-all", appBarCollapsed && 'gap-1')}>
             {!appBarCollapsed && <ThemeToggle />}
             <Button
-              onClick={() => navigate('/ideachat')}
+              onClick={() => { try { localStorage.setItem('returnToChat','1'); } catch {}; navigate('/ideachat'); }}
               variant={appBarCollapsed ? 'ghost' : 'outline'}
               size={appBarCollapsed ? 'icon' : 'sm'}
               className={cn('gap-2', appBarCollapsed && 'h-7 w-7')}
@@ -408,13 +409,13 @@ const Dashboard = () => {
                   <p className="text-sm text-muted-foreground">No session loaded. Start in Idea Chat.</p>
                 )}
                 <div className="mt-3">
-                  <Button size='sm' variant='outline' onClick={() => navigate('/ideachat')}>Open Idea Chat</Button>
+                  <Button size='sm' variant='outline' onClick={() => { try { localStorage.setItem('returnToChat','1'); } catch {}; navigate('/ideachat'); }}>Open Idea Chat</Button>
                 </div>
               </div>
               <div className="rounded-xl glass-super-surface elevation-1 p-4 flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold">Analysis Dashboard</h2>
-                  <Button size='sm' variant='ghost' onClick={() => navigate('/ideachat')}>Back to Chat</Button>
+                  <Button size='sm' variant='ghost' onClick={() => { try { localStorage.setItem('returnToChat','1'); } catch {}; navigate('/ideachat'); }}>Back to Chat</Button>
                 </div>
                 <div className="flex-1 overflow-auto">
                   <Suspense fallback={<div className='flex items-center justify-center h-full text-sm text-muted-foreground'>Loading analysis…</div>}>

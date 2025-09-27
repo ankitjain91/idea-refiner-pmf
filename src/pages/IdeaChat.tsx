@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, RotateCcw, Lightbulb, Plus, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, RotateCcw, Lightbulb, Sparkles } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import EngagingLoader from '@/components/engagement/EngagingLoader';
@@ -21,6 +22,10 @@ const IdeaChatPage = () => {
   const [sessionReloading, setSessionReloading] = useState(false);
   const [showOverlayLoader, setShowOverlayLoader] = useState(false);
   const navigate = useNavigate();
+  const [analysisCompleted, setAnalysisCompleted] = useState<boolean>(() => {
+    try { return localStorage.getItem('analysisCompleted') === 'true'; } catch { return false; }
+  });
+  const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);
   // Resizable sidebar width (sessions list vs idea chat)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const stored = localStorage.getItem('ideaChatSidebarWidth');
@@ -56,6 +61,55 @@ const IdeaChatPage = () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', stop);
     };
+  }, []);
+
+  // Listen for analysis completion (custom event + storage changes)
+  useEffect(() => {
+    const handleAnalysisComplete = () => {
+      try { if (localStorage.getItem('analysisCompleted') === 'true') setAnalysisCompleted(true); } catch {}
+    };
+    window.addEventListener('analysis:completed', handleAnalysisComplete as any);
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'analysisCompleted') handleAnalysisComplete();
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('analysis:completed', handleAnalysisComplete as any);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  // Restore last conversation state if returning from dashboard
+  useEffect(() => {
+    const fromDash = localStorage.getItem('returnToChat');
+    if (fromDash === '1') {
+      // Clear the flag immediately
+      try { localStorage.removeItem('returnToChat'); } catch {}
+      // Attempt to rehydrate session + chat history and idea
+      const storedSessionId = localStorage.getItem('currentSessionId');
+      const chatHistoryRaw = localStorage.getItem('chatHistory');
+      const idea = localStorage.getItem('userIdea');
+      if (storedSessionId && !currentSession) {
+        loadSession(storedSessionId).then(() => {
+          // force rerender of chat component to pick up restored history
+          setChatKey(k => k + 1);
+        }).catch(() => {
+          // fallback: still refresh chat component
+          setChatKey(k => k + 1);
+        });
+      } else if (chatHistoryRaw) {
+        // Just force chat reload so internal effect rehydrates from localStorage
+        setChatKey(k => k + 1);
+      }
+      if (idea && !currentSession) {
+        // Lazy create session if needed when user resumes
+        if (!sessionCreatedRef.current && idea.length > 5) {
+          sessionCreatedRef.current = true;
+          createSession(idea.split(/\s+/).slice(0,6).join(' '));
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Delay overlay loader to avoid flashing on fast operations
@@ -140,7 +194,7 @@ const IdeaChatPage = () => {
           <div className="flex items-center gap-3">
             <div>
               <h1
-                className={cn('text-lg font-semibold cursor-pointer flex items-center gap-2 group', sessionReloading && 'opacity-70')}
+                className={cn('text-lg font-semibold cursor-pointer flex items-center gap-3 group', sessionReloading && 'opacity-70')}
                 title={currentSession ? `Reload session: ${currentSession.name}` : 'No session yet'}
                 onClick={async () => {
                   if (!currentSession) return;
@@ -153,7 +207,17 @@ const IdeaChatPage = () => {
                   }
                 }}
               >
-                {currentSession?.name || 'Idea Chat'}
+                <span className="flex items-center gap-2">
+                  <span>{currentSession?.name || 'Idea Chat'}</span>
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium relative gap-1 transition-all duration-200"
+                    title="Idea Mode"
+                  >
+                    <Lightbulb className='h-3.5 w-3.5 text-yellow-400' />
+                    {/* Text hidden on narrow screens to become icon-only pill */}
+                    <span className="hidden sm:inline">Idea Mode</span>
+                  </span>
+                </span>
                 {sessionReloading && <Loader2 className='h-4 w-4 animate-spin text-primary' />}
               </h1>
               <p className='text-xs text-muted-foreground'>Brainstorm · Refine · Analyze
@@ -176,45 +240,60 @@ const IdeaChatPage = () => {
           </div>
             <div className='flex items-center gap-2'>
               <ThemeToggle />
-              <Button size="sm" variant="outline" onClick={() => navigate('/dashboard')} className="gap-1">
-                View Dashboard <ArrowRight className='h-4 w-4' />
-              </Button>
+              <TooltipProvider delayDuration={50}>
+                <Tooltip open={showDashboardLockedHint} onOpenChange={(o) => { if (!analysisCompleted) setShowDashboardLockedHint(o); }}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={analysisCompleted ? 'outline' : 'secondary'}
+                      onClick={() => {
+                        if (analysisCompleted) {
+                          navigate('/dashboard');
+                        } else {
+                          setShowDashboardLockedHint(true);
+                          setTimeout(() => setShowDashboardLockedHint(false), 2200);
+                        }
+                      }}
+                      aria-disabled={!analysisCompleted}
+                      className={'gap-1 transition-colors ' + (!analysisCompleted ? 'opacity-50 grayscale' : '')}
+                    >
+                      <ArrowRight className='h-4 w-4' />
+                      <span className='hidden sm:inline'>View Dashboard</span>
+                    </Button>
+                  </TooltipTrigger>
+                  {!analysisCompleted && (
+                    <TooltipContent side="bottom" className="max-w-xs text-xs">
+                      Complete the brief & run analysis to enable the dashboard.
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               <UserMenu />
             </div>
           </div>
           {/* Idea focus utility bar */}
-          <div className="flex items-center gap-3 text-[11px] flex-wrap">
-            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary">
-              <Lightbulb className='h-3.5 w-3.5' /> Idea Mode
-            </div>
+          <div className="flex items-center gap-2 text-[11px] flex-wrap">
             <Button
-              size="sm"
+              size="icon"
               variant="outline"
-              className='h-6 px-2 gap-1 text-[11px]'
+              className='h-7 w-7 shrink-0'
               onClick={() => window.dispatchEvent(new Event('chat:reset'))}
-              title='Reset brainstorming'
+              aria-label='Reset brainstorming'
+              title='Reset'
             >
-              <RotateCcw className='h-3 w-3' /> Reset
+              <RotateCcw className='h-3.5 w-3.5' />
             </Button>
             <Button
-              size="sm"
+              size="icon"
               variant="outline"
-              className='h-6 px-2 gap-1 text-[11px]'
-              onClick={() => window.dispatchEvent(new CustomEvent('idea:externalSet', { detail: { idea: '' } }))}
-              title='Clear current idea reference'
-            >
-              <Plus className='h-3 w-3' /> New Idea
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className='h-6 px-2 gap-1 text-[11px]'
+              className='h-7 w-7 shrink-0'
               onClick={() => window.dispatchEvent(new CustomEvent('analysis:openBrief'))}
-              title='Open analysis brief'
+              aria-label='Start Brief'
+              title='Brief'
             >
-              <Sparkles className='h-3 w-3' /> Brief
+              <Sparkles className='h-3.5 w-3.5' />
             </Button>
-            <span className='text-muted-foreground'>Refine until confident, then run analysis.</span>
+            <span className='text-muted-foreground hidden sm:inline'>Refine until confident, then analyze.</span>
           </div>
         </div>
         <div className='flex-1 relative p-2'>

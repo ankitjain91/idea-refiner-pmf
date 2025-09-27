@@ -28,6 +28,7 @@ import {
   Loader2
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
+import { BRAND } from '@/branding';
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SessionContext";
 import { useAlerts } from "@/contexts/AlertContext";
@@ -109,7 +110,7 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
       <SidebarHeader className="border-b p-4">
         {isOpen && (
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">PM-FIT</h2>
+            <h2 className="text-lg font-semibold">{BRAND}</h2>
             <Badge variant={subscription.tier === 'free' ? 'secondary' : 'default'}>
               {subscription.tier}
             </Badge>
