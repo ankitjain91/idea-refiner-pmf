@@ -601,9 +601,7 @@ User submission: """${messageText}"""`;
 
       if (error) throw error;
 
-      // Remove typing indicator
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
-      setIsTyping(false);
+      // Don't remove typing indicator yet - keep it visible until response is ready
 
       // Use ChatGPT to evaluate wrinkle points for this conversation turn
   let pointChange = 0;
@@ -655,7 +653,9 @@ User submission: """${messageText}"""`;
           pmfAnalysis: data.pmfAnalysis
         };
         
-        setMessages(prev => [...prev, analysisMessage]);
+        // Remove typing indicator right before adding the real message
+        setMessages(prev => [...prev.filter(msg => !msg.isTyping), analysisMessage]);
+        setIsTyping(false);
         onAnalysisReady(messageText, data.pmfAnalysis);
       } else {
         // Parse response for better formatting
@@ -772,7 +772,9 @@ User submission: """${messageText}"""`;
           suggestionExplanation: staticSuggestionExplanation
         };
         
-        setMessages(prev => [...prev, botMessage]);
+        // Remove typing indicator right before adding the real message
+        setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
+        setIsTyping(false);
       }
     } catch (error) {
       console.error('Error:', error);
