@@ -47,7 +47,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
 
   const mainNav = [
     { title: "Idea Chat", url: "/ideachat", icon: MessageSquare },
-    { title: "Idea Journal", url: "/ideajournal", icon: BookOpen },
+    { title: "Sessions", url: "/ideajournal", icon: BookOpen },
     { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
     { title: "Settings", url: "/settings", icon: Settings },
     { title: "Pricing", url: "/pricing", icon: Crown },
@@ -61,7 +61,8 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
     <Sidebar collapsible="icon" className={"glass-super-surface elevation-2 backdrop-fade " + (className || '')} style={style}>
       <SidebarHeader className="border-b p-2 sm:p-4">
         {isOpen && (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🧠</span>
             <h2 className="text-base sm:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent tracking-tight">
               SmoothBrains ©
             </h2>
