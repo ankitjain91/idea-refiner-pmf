@@ -553,7 +553,7 @@ Your tough questions now save them from failure later.` }
       aiResponse = 'Let me challenge your thinking here - what specific evidence do you have that customers actually want this?';
     }
     
-    // Generate challenging, thought-provoking suggestions to push deeper thinking
+    // Generate helpful next-step suggestions for the user
     let suggestions = [];
     try {
       const suggestionData = await openAIChatRequest({
@@ -561,30 +561,28 @@ Your tough questions now save them from failure later.` }
         messages: [
           { 
             role: 'system', 
-            content: `You're a tough but fair startup advisor generating challenging follow-ups that make entrepreneurs think harder.
+            content: `Generate natural next-step responses that users can select to continue the conversation.
 
-Create prompts that:
-- Question unvalidated assumptions
-- Push for concrete evidence
-- Challenge competitive differentiation  
-- Demand customer validation
-- Test scalability and unit economics
+These should be complete thoughts the user might naturally say next, written from their perspective.
+Focus on moving the conversation forward productively.
 
-Each suggestion should be 20-40 words, phrased as either a challenging question or specific action to validate their idea.` 
+Each suggestion should be 20-40 words and sound like something a user would actually type or say.
+They should be responses that help develop their idea further or answer the bot's questions.` 
           },
           { 
             role: 'user', 
             content: `Context:
-- Startup idea: "${idea || 'Still being explored'}"
-- User said: "${message.slice(0, 200)}"
-- You challenged them with: "${aiResponse.slice(0, 200)}"
-${webData ? `- Market info: ${webData.normalized?.topCompetitors?.length || 'Several'} competitors already exist` : ''}
+- User's idea: "${idea || 'Still exploring options'}"
+- User just said: "${message.slice(0, 200)}"
+- Bot responded: "${aiResponse.slice(0, 300)}"
+${webData ? `- Market context: ${webData.normalized?.topCompetitors?.length || 'Several'} competitors exist` : ''}
 
-Generate 4 tough but constructive suggestions that push them to:
-1. Validate with real potential customers
-2. Prove their differentiation 
-3. Test riskiest assumptions first
-4. Get specific about costs, pricing, timeline
+Generate 4 natural responses the user could select as their next message.
+These should be logical next steps in developing their idea, like:
+- Answering questions the bot asked
+- Providing more details about their concept
+- Asking for specific guidance
+- Sharing their thoughts on the feedback
 
 Format as JSON: {"suggestions": ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]}`
           }
@@ -606,28 +604,28 @@ Format as JSON: {"suggestions": ["suggestion1", "suggestion2", "suggestion3", "s
     // Fallback suggestions if generation fails
     if (suggestions.length === 0) {
       if (refinementMode && idea) {
-        // Refinement mode fallbacks
+        // Refinement mode - helpful next steps
         suggestions = [
-          `Start by interviewing 5-10 potential users`,
-          `Focus on one specific user segment first`,
-          `Test your core assumption before building`,
-          `Consider the simplest viable solution`
+          "I want to focus on the B2B market first since they have bigger budgets and longer contracts",
+          "Let me explain how we'd differentiate from existing solutions through better user experience",
+          "I'm planning to validate this with customer interviews over the next two weeks",
+          "The core value proposition is saving 10+ hours per week on repetitive tasks"
         ];
       } else if (!idea) {
-        // Push them to get specific instead of staying vague
+        // Initial idea exploration
         suggestions = [
-          "Stop thinking broadly - what specific problem keeps YOU up at night that you'd pay to solve?",
-          "Name one industry you know deeply - what's their biggest unsolved pain point worth $1M+?",
-          "Forget cool ideas - what boring problem would businesses pay $500/month to eliminate?",
-          "What manual process do you see people repeat daily that software could automate?"
+          "I'm exploring an AI tool that helps content creators generate and schedule social media posts",
+          "I want to build a marketplace connecting local service providers with neighborhood customers",
+          "My idea is a health tracking app designed specifically for seniors and their families",
+          "I'm thinking about an educational platform that makes learning fun through gamification"
         ];
       } else {
-        // Challenge their current idea aggressively
+        // Developing the idea further
         suggestions = [
-          "Your idea sounds like [competitor] - why would anyone switch from them to you?",
-          "This requires behavior change - what's your plan when 90% of users won't adapt?",
-          "How will you compete when a funded competitor copies you with 10x the resources?",
-          "What happens to your business when AI makes this solution free in 2 years?"
+          "Yes, I've validated this problem with 20+ potential customers who all expressed interest",
+          "Our main advantage is focusing exclusively on this niche while competitors try to serve everyone",
+          "I'm planning a freemium model with premium features starting at $19 per month",
+          "Let me share more details about the specific pain points we're addressing"
         ];
       }
     }
