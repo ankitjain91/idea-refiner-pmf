@@ -35,6 +35,7 @@ import { useAlerts } from "@/contexts/AlertContext";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { DeleteSessionsButton } from "@/components/DeleteSessionsButton";
+import { ResetSessionButton } from "@/components/ResetSessionButton";
 
 interface AppSidebarProps {
   onNewChat?: () => void;
@@ -141,7 +142,10 @@ export function AppSidebar({ onNewChat, style, className }: AppSidebarProps = {}
                     <Plus className="h-3 w-3" />
                   </button>
                 </div>
-                <DeleteSessionsButton />
+                <div className="flex gap-2">
+                  <ResetSessionButton />
+                  <DeleteSessionsButton />
+                </div>
               </>
             )}
           </div>

@@ -54,10 +54,10 @@ export function DeleteSessionsButton() {
         <Button 
           variant="outline" 
           size="sm"
-          className="w-full gap-2 text-xs h-7"
+          className="flex-1 gap-1 text-xs h-7 px-2"
         >
           <Trash2 className="h-3 w-3" />
-          Clear All Sessions
+          Clear All
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
