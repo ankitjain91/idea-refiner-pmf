@@ -1,12 +1,13 @@
 // Minimal rebuilt ChatGPTStyleChat (v2) under 200 lines
 // Scope: idea intake -> refinement -> optional analysis trigger + derived regeneration.
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { ChatMessage as Message } from '@/types/chat';
+import type { AnalysisResult } from '@/types/analysis';
 import { runEnterpriseAnalysis } from '@/lib/analysis-engine';
 import { derivePersonasAndPains, extractKeywordFrequencies, parsePricingHints } from '@/lib/idea-extraction';
-import { LS_KEYS } from '@/lib/storage-keys';
+import { LS_KEYS, LS_UI_KEYS } from '@/lib/storage-keys';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SessionContext';
@@ -16,6 +17,10 @@ import { MessageBubble } from './chat/MessageBubble';
 import { ChatInputBar } from './chat/ChatInputBar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Bot, ArrowRight, Sparkles } from 'lucide-react';
+import LiveDataCards from './LiveDataCards';
+import { BRAND } from '@/branding';
 
 interface Props { onAnalysisReady?: (idea: string, metadata: any) => void; showDashboard?: boolean; className?: string; }
 
@@ -26,6 +31,13 @@ const WELCOME_SUGGESTIONS = [
   'Marketplace for renting high-end cameras',
   'Privacy-first personal CRM',
   'Automated code review assistant'
+];
+const DASHBOARD_PATTERNS = [
+  /^show\s+dashboard/i,
+  /^view\s+dashboard/i,
+  /^open\s+dashboard/i,
+  /^see\s+(my\s+)?analysis/i,
+  /^dashboard$/i
 ];
 
 export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, className }: Props) {
@@ -40,9 +52,101 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisCompleted, setAnalysisCompleted] = useState(false);
+  const [isBriefQAMode, setIsBriefQAMode] = useState(false);
+  const [briefQuestionIndex, setBriefQuestionIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const regenOfferRef = useRef<string>('');
+  const briefQuestionsRef = useRef<any[]>([]);
+  const briefSuggestionsRef = useRef<Record<string, string[]>>({});
+  const vagueAnswerCountsRef = useRef<Record<string, number>>({});
+  const initializedRef = useRef(false);
+  const modeRef = useRef('idea');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastIdeaSignatureRef = useRef<string>('');
+  const titleGeneratedRef = useRef(false);
+  const [typingStatus, setTypingStatus] = useState('');
+  const [showStartAnalysisButton, setShowStartAnalysisButton] = useState(false);
+  const [isRefinementMode, setIsRefinementMode] = useState(false);
+  const [brief, setBrief] = useState<any>({});
+  
+  // Constants
+  const TOKEN_BUDGET = 6000;
+  
+  // Helper functions
+  const emitMode = (mode: string) => {
+    modeRef.current = mode;
+    try {
+      window.dispatchEvent(new CustomEvent('chatMode:changed', { detail: mode }));
+      localStorage.setItem('chatMode', mode);
+    } catch {}
+  };
+  
+  const validateIdea = (t: string) => t.split(/\s+/).length > 3 && t.length > 15;
+  
+  const scheduleIdle = (callback: () => void) => {
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(callback);
+    } else {
+      setTimeout(callback, 1);
+    }
+  };
+  
+  const startTyping = (status: string) => {
+    setTypingStatus(status);
+    return Date.now();
+  };
+  
+  const classifySuggestionCategory = () => 'General';
+  
+  const triggerDashboardOpen = () => {
+    if (onAnalysisReady) {
+      const analysisData = localStorage.getItem(LS_KEYS.analysisData);
+      if (analysisData) {
+        const parsed = JSON.parse(analysisData);
+        onAnalysisReady(currentIdea || parsed.idea, parsed);
+      }
+    }
+    navigate('/dashboard');
+  };
+  
+  const generateTwoWordTitle = useCallback(async (idea: string) => {
+    if (!idea || titleGeneratedRef.current) return;
+    
+    try {
+      const { data } = await supabase.functions.invoke('generate-session-title', {
+        body: { idea }
+      });
+      
+      if (data?.title) {
+        const title = data.title.trim();
+        localStorage.setItem('sessionTitle', title);
+        window.dispatchEvent(new CustomEvent('sessionTitleGenerated', { detail: title }));
+        titleGeneratedRef.current = true;
+      }
+    } catch (error) {
+      console.error('Error generating title:', error);
+    }
+  }, []);
+  
+  const handleSuggestionSelection = async (msg: Message, suggestion: string) => {
+    if (isLoading) return;
+    
+    // Handle special actions
+    if (suggestion === 'Open Dashboard' || suggestion === 'View Dashboard') {
+      triggerDashboardOpen();
+      return;
+    }
+    
+    if (suggestion === 'Start Analysis') {
+      startAnalysis();
+      return;
+    }
+    
+    // Otherwise treat as regular input
+    setInput(suggestion);
+    await handleSend();
+  };
 
   useEffect(() => {
     if (!messages.length) {
@@ -125,19 +229,7 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
     setMessages(p => [...p, { id: `offer-regen-${Date.now()}`, type: 'system', timestamp: new Date(), content: '🧠 New context detected. Refresh derived personas, pains, keywords & pricing?', suggestions: ['Regenerate Derived Insights','Ignore'] }]);
   };
 
-  const handleSend = async () => {
-    const text = input.trim(); if (!text || isLoading) return; setInput('');
-    const userMsg: Message = { id: `u-${Date.now()}`, type: 'user', content: text, timestamp: new Date() };
-    setMessages(p => [...p, userMsg]);
-    if (!currentSession && user) createSession(text.split(/\s+/).slice(0,6).join(' '));
-    if (!currentIdea) {
-      if (!validateIdea(text)) { setMessages(p => [...p, { id: `need-more-${Date.now()}`, type: 'bot', timestamp: new Date(), content: '🧠 Give me a bit more detail about the idea/problem.', suggestions: ['Define target user','Explain problem clearly','Why now?'] }]); return; }
-      setCurrentIdea(text); setMessages(p => [...p, { id: `refine-${Date.now()}`, type: 'system', timestamp: new Date(), content: '✨ Refinement Mode active. Ask for improvements or start analysis when ready.', suggestions: ['Improve differentiation','Clarify target user','Start Analysis'] }]); return;
-    }
-    maybeOfferRegeneration(text);
-    if (/start analysis/i.test(text) || /run analysis/i.test(text)) { runAnalysis(); return; }
-    await sendRefinement(text);
-  };
+  // Removed duplicate handleSend - the main implementation is below
 
   const handleSuggestion = async (s: string) => {
     if (s === 'Regenerate Derived Insights') { await regenerateDerived(); return; }
@@ -593,7 +685,7 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
   // Deprecated structured analysis flow removed.
 
   const handleSend = async () => {
-  if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading) return;
     const trimmed = input.trim();
     if (DASHBOARD_PATTERNS.some(r => r.test(trimmed))) {
       triggerDashboardOpen();
@@ -608,7 +700,7 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
       timestamp: new Date()
     };
 
-  setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
 
     // Lazy-create a session only when user first contributes meaningful content and no session exists yet
     if (!currentSession && user && messages.filter(m => m.type !== 'system').length === 0) {
@@ -845,7 +937,7 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   // Step-based analysis functions removed (completeAnalysis, askNextQuestion) as we now use a single brief.
 
@@ -907,6 +999,17 @@ export default function ChatGPTStyleChat({ onAnalysisReady, showDashboard, class
     briefQuestionsRef.current = ordered.map(o => ({ key: o.key, question: o.question, required: o.required }));
   };
 
+  const fetchBriefSuggestions = (reset?: boolean) => {
+    // Placeholder for brief suggestions
+    if (reset) {
+      briefSuggestionsRef.current = {};
+    }
+  };
+  
+  const updateBriefSuggestions = (suggestions: Record<string, string[]>) => {
+    briefSuggestionsRef.current = suggestions;
+  };
+  
   const fetchContextualBriefSuggestions = async (limitToFields?: string[]): Promise<Record<string,string[]>> => {
     try {
       const fieldKeysAll = ['problem','targetUser','differentiation','alternatives','monetization','scenario','successMetric'];
@@ -1065,6 +1168,10 @@ These should be ANSWERS the user would select, not questions. Be extremely speci
   // askNextBriefQuestion now simply delegates to the unified fresh-fetch flow
   const askNextBriefQuestion = (index: number, existingLoadingId?: string) => {
     askBriefQuestionWithFreshFetch(index, existingLoadingId);
+  };
+  
+  const summarizeBriefAndOfferAnalysis = () => {
+    // Placeholder for brief summary
   };
 
   const fetchPerQuestionSuggestions = async (field: keyof typeof brief, messageId: string, existing: string[]) => {
