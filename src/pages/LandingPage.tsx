@@ -169,6 +169,49 @@ const BrainProgressBar = ({ level, progress }: { level: number; progress: number
   );
 };
 
+// Typewriter effect hook
+const useTypewriter = (text: string, speed: number = 50) => {
+  const [displayText, setDisplayText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index < text.length) {
+        setDisplayText(text.slice(0, index + 1));
+        index++;
+      } else {
+        setIsTyping(false);
+        clearInterval(timer);
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return { displayText, isTyping };
+};
+
+// Floating animation component
+const FloatingElement = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
+  return (
+    <motion.div
+      animate={{
+        y: [0, -20, 0],
+        rotate: [0, 5, -5, 0],
+      }}
+      transition={{
+        duration: 6,
+        repeat: Infinity,
+        delay,
+        ease: "easeInOut"
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -197,6 +240,26 @@ export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
+  
+  // Typewriter effect for tagline
+  const tagline = "Neural Validation Engine";
+  const { displayText: typewriterText, isTyping } = useTypewriter(tagline, 100);
+
+  // Mouse parallax effect
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = (clientX - left - width / 2) / width;
+    const y = (clientY - top - height / 2) / height;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+  
+  const backgroundX = useTransform(mouseX, [-1, 1], [-30, 30]);
+  const backgroundY = useTransform(mouseY, [-1, 1], [-30, 30]);
 
   // Fun scroll-based wrinkle point accumulation
   useEffect(() => {
@@ -425,13 +488,60 @@ export default function LandingPage() {
     <div className="min-h-screen bg-black overflow-x-hidden">
       {/* Futuristic Grid Background */}
       
-      {/* Futuristic Grid Background */}
-      <div className="fixed inset-0 bg-[linear-gradient(rgba(100,150,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(100,150,255,0.01)_1px,transparent_1px)] bg-[size:100px_100px] pointer-events-none" />
-      
-      {/* Gradient Orbs */}
+      {/* Animated Background Layers */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-radial from-primary/10 to-transparent blur-3xl" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-radial from-accent/10 to-transparent blur-3xl" />
+        {/* Futuristic Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(100,150,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(100,150,255,0.01)_1px,transparent_1px)] bg-[size:100px_100px]" />
+        
+        {/* Animated Gradient Orbs */}
+        <motion.div 
+          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-radial from-primary/20 to-transparent blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 90, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+        <motion.div 
+          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-radial from-accent/20 to-transparent blur-3xl"
+          animate={{
+            scale: [1.2, 1, 1.2],
+            rotate: [0, -90, 0],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+        
+        {/* Floating Particles */}
+        <div className="absolute inset-0">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-primary/30 rounded-full"
+              initial={{
+                x: Math.random() * window.innerWidth,
+                y: window.innerHeight + 100,
+              }}
+              animate={{
+                y: -100,
+                x: Math.random() * window.innerWidth,
+              }}
+              transition={{
+                duration: Math.random() * 20 + 10,
+                repeat: Infinity,
+                delay: Math.random() * 10,
+                ease: "linear"
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Company Name Header */}
@@ -466,7 +576,8 @@ export default function LandingPage() {
                 </span>
               </div>
               <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mt-1">
-                Neural Validation Engine
+                {typewriterText}
+                {isTyping && <span className="animate-pulse">|</span>}
               </p>
             </div>
           </div>
@@ -482,7 +593,16 @@ export default function LandingPage() {
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
         className="relative min-h-screen flex items-center justify-center px-4 py-20 pt-32"
+        onMouseMove={handleMouseMove}
       >
+        {/* Parallax Background Elements */}
+        <motion.div 
+          className="absolute inset-0 pointer-events-none"
+          style={{ x: backgroundX, y: backgroundY }}
+        >
+          <div className="absolute top-20 left-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
+          <div className="absolute bottom-20 right-10 w-48 h-48 bg-accent/10 rounded-full blur-3xl" />
+        </motion.div>
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -490,7 +610,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="mb-6"
           >
-            <Badge className="px-6 py-2 text-xs font-mono tracking-wider bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 text-primary shadow-[0_0_20px_rgba(100,150,255,0.2)]">
+            <Badge className="px-6 py-2 text-xs font-mono tracking-wider bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 text-primary shadow-[0_0_20px_rgba(100,150,255,0.2)] animate-pulse">
               <Sparkles className="w-3 h-3 mr-2" />
               SMOOTHBRAINS NEURAL ENGINE v2.0
             </Badge>
@@ -502,12 +622,29 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-6xl md:text-8xl font-display font-black mb-6 tracking-tight"
           >
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-500">
+            <motion.span 
+              className="block text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-500"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
               VALIDATE YOUR
-            </span>
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent mt-2">
+            </motion.span>
+            <motion.span 
+              className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent mt-2"
+              animate={{
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+              style={{
+                backgroundSize: "200% 200%",
+              }}
+            >
               MILLION DOLLAR IDEA
-            </span>
+            </motion.span>
           </motion.h1>
 
           <motion.p 
@@ -703,15 +840,23 @@ export default function LandingPage() {
                 key={idx}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ 
+                  scale: 1.05,
+                  rotateY: 10,
+                  z: 50
+                }}
                 transition={{ duration: 0.6, delay: idx * 0.1 }}
-                className="relative group"
+                className="relative group transform-gpu"
+                style={{ transformStyle: "preserve-3d" }}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300">
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 animate-pulse`} />
+                <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300 backdrop-blur-xl hover:shadow-[0_30px_60px_rgba(100,150,255,0.4)]">
                   <CardContent className="p-8">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(100,150,255,0.2)]">
-                      <feature.icon className="w-7 h-7 text-primary" />
-                    </div>
+                    <FloatingElement delay={idx * 0.5}>
+                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(100,150,255,0.2)]">
+                        <feature.icon className="w-7 h-7 text-primary" />
+                      </div>
+                    </FloatingElement>
                     <h3 className="text-2xl font-bold mb-3 text-white">{feature.title}</h3>
                     <p className="text-gray-400 leading-relaxed">{feature.description}</p>
                   </CardContent>
@@ -747,10 +892,16 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ 
+                y: -10,
+                rotateX: 5,
+                rotateY: -5,
+              }}
               transition={{ duration: 0.6 }}
-              className="relative"
+              className="relative transform-gpu perspective-1000"
+              style={{ transformStyle: "preserve-3d" }}
             >
-              <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300 h-full">
+              <Card className="relative bg-gray-950/80 border-gray-800 hover:border-primary/30 transition-all duration-300 h-full backdrop-blur-xl hover:shadow-[0_20px_60px_rgba(100,150,255,0.3)]">
                 <CardHeader className="pb-8">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-2xl font-bold">🧩 Smooth Starter</h3>
