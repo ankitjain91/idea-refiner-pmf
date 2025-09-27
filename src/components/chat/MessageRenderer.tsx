@@ -125,7 +125,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
       {/* Suggestions */}
       {message.suggestions && message.suggestions.length > 0 && (
-        <div className="mt-4 space-y-2 w-full overflow-hidden">
+        <div className="mt-4 space-y-2 w-full">
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -138,7 +138,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + idx * 0.05 }}
-                className="max-w-full"
+                className="flex-grow basis-full sm:basis-[calc(50%-0.25rem)] md:basis-[calc(33.333%-0.5rem)]"
               >
                 <Button
                   variant="outline"
@@ -158,18 +158,20 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       onSendMessage(suggestionText);
                     }
                   }}
-                  className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group touch-manipulation min-h-[32px] px-2 sm:px-3 text-left justify-start max-w-full overflow-hidden"
+                  className="text-xs hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 group touch-manipulation min-h-[32px] h-auto px-2 sm:px-3 text-left justify-start w-full whitespace-normal"
                 >
-                  <Lightbulb className="h-3 w-3 mr-1 text-primary flex-shrink-0" />
-                  <span className="truncate block max-w-[calc(100%-2rem)]">
-                    {typeof suggestion === 'string' 
-                      ? suggestion 
-                      : (suggestion && typeof suggestion === 'object' && suggestion.text)
-                        ? suggestion.text
-                        : String(suggestion || 'Explore this idea...')
-                    }
-                  </span>
-                  <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                  <div className="flex items-start gap-1 w-full">
+                    <Lightbulb className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="break-words flex-1 leading-relaxed">
+                      {typeof suggestion === 'string' 
+                        ? suggestion 
+                        : (suggestion && typeof suggestion === 'object' && suggestion.text)
+                          ? suggestion.text
+                          : String(suggestion || 'Explore this idea...')
+                      }
+                    </span>
+                    <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform flex-shrink-0 mt-0.5" />
+                  </div>
                 </Button>
               </motion.div>
             ))}
