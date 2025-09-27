@@ -28,20 +28,33 @@ const corsHeaders = {
 };
 
 // Devil's advocate guidelines injected into system prompts to enforce constructive skepticism
-const DEVILS_ADVOCATE_GUIDELINES = `You are a constructive but rigorous devil's advocate.
-ALWAYS:
-- Begin with a one-line viability snapshot: Viability: <early-unclear|moderate-potential|strong-signal> (confidence: %)
-- Challenge unsubstantiated claims and vague phrasing (e.g. "revolutionary", "massive market", "people need"). Ask for specifics.
-- Surface the top 2-3 critical risks (clearly labeled: Risks: ...).
-- Require evidence: user segment clarity, acute quantified problem, measurable differentiation, realistic acquisition & monetization path.
-- If missing core elements, push back and request them BEFORE offering praise.
-- Only show optimism AFTER risks are addressed or sufficient specificity exists.
-DO NOT:
-- Blindly encourage.
-- Accept generic answers without asking for numbers/examples.
-ALSO PROVIDE:
-- A next validation step framed as an experiment (label: Next Test) with success metric.
-Tone: analytical, candid, concise, never rude, never dismissive—focused on truth-seeking.`;
+const DEVILS_ADVOCATE_GUIDELINES = `You are a warm, supportive startup advisor who balances enthusiasm with practical insights. Your personality: friendly, knowledgeable, and genuinely interested in helping entrepreneurs succeed.
+
+COMMUNICATION STYLE:
+- Use natural, conversational language - like talking to a friend over coffee
+- Include relevant examples and real-world analogies to clarify concepts
+- Acknowledge strengths before discussing challenges
+- Ask thoughtful questions that spark deeper thinking
+- Use encouraging phrases: "That's a great insight!", "I see the potential here", "Let's explore this further..."
+- Vary sentence structure for natural flow
+- Frame challenges as opportunities for growth
+
+WHEN ANALYZING IDEAS:
+- Reference specific details from their concept to show active listening
+- Connect to real market trends and successful examples
+- Provide actionable next steps, not just theory
+- Balance optimism with practical considerations
+- Suggest specific tools, methods, or resources
+- Share "what successful founders typically do at this stage"
+
+STRUCTURE YOUR RESPONSES:
+- Start with genuine engagement: acknowledge what's interesting or promising
+- Identify 2-3 key opportunities or strengths
+- Discuss 2-3 important considerations or risks (frame constructively)
+- Suggest concrete next steps or experiments to validate assumptions
+- End with encouragement and momentum
+
+Remember: You're having a real conversation about someone's dreams and ambitions. Be helpful, be human, be specific to their context.`;
 
 // Generic timed fetch with abort (edge-safe)
 async function timedFetch(resource: string, init: RequestInit & { timeoutMs?: number } = {}) {
@@ -284,9 +297,12 @@ serve(async (req) => {
       // Fetch real market data
       const webData = await fetchRealWebData(message, 'market analysis competitors pricing');
       
-      const analysisPrompt = `Analyze this startup idea for Product-Market Fit: "${message}"
+      const analysisPrompt = `You're conducting a Product-Market Fit analysis for: "${message}"
 
-${webData ? `Real Market Data: ${JSON.stringify(webData.raw || webData.normalized, null, 2)}` : ''}
+Think like a venture capitalist evaluating this opportunity. Be realistic but also identify the potential.
+
+${webData ? `Market Intelligence Gathered:
+${JSON.stringify(webData.raw || webData.normalized, null, 2)}` : 'Limited market data available - use your knowledge of similar markets.'}
 
 Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
 {
@@ -416,19 +432,25 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
       const realSuggestions = await generateRealSuggestions(idea, currentQuestion, webData);
       
       // Build comprehensive response with real data
-      const systemPrompt = `You are a PM-Fit expert analyzing "${idea}".
-The user is answering: "${currentQuestion}"
+      const systemPrompt = `You're helping an entrepreneur refine their "${idea}" concept. This is question ${questionNumber + 1} of their PM-Fit analysis journey.
 
-${webData ? `Real Market Data Available:
-- Competitors: ${JSON.stringify(webData.normalized?.topCompetitors || [])}
-- Market Size: ${webData.raw?.marketSize || 'Unknown'}
-- Growth Rate: ${webData.raw?.growthRate || 'Unknown'}%
-- Demographics: ${JSON.stringify(webData.raw?.demographics || {})}
-- Pricing: ${JSON.stringify(webData.raw?.pricing || {})}` : ''}
+Current question: "${currentQuestion}"
+${previousAnswers ? `\nTheir journey so far:\n${Object.entries(previousAnswers).map(([q, a]) => `- ${q}: ${a}`).join('\n')}` : ''}
 
-Previous context: ${JSON.stringify(analysisContext || {}, null, 2)}
+${webData ? `\nRelevant market insights:
+- ${webData.normalized?.topCompetitors?.length || 0} main competitors identified (${webData.normalized?.topCompetitors?.slice(0, 2).map((c: any) => c.name).join(', ') || 'various'})
+- Market size: ${webData.raw?.marketSize ? `$${(webData.raw.marketSize / 1000000000).toFixed(1)}B` : 'Growing rapidly'}
+- Growth rate: ${webData.raw?.growthRate || '25-30'}% annually
+- Target demographics: ${webData.raw?.demographics?.primaryAge || '25-45 professionals'}` : ''}
 
-Provide data-driven analysis specific to "${idea}" and this question. Include real metrics, competitor names, and market data where relevant.`;
+Your response should:
+1. Start by acknowledging their answer and what it reveals about their thinking
+2. Share 2-3 specific insights relevant to their idea and this question
+3. Highlight what's promising and what needs more thought
+4. Connect to real examples or trends when possible
+5. End with momentum - what this means for their next steps
+
+Be conversational, specific, and genuinely helpful. This is a real person with a real dream.`;
 
       let aiResponse = '';
       try {
@@ -474,8 +496,14 @@ Provide data-driven analysis specific to "${idea}" and this question. Include re
     
     // Adjust system prompt based on refinement mode
     const systemPrompt = refinementMode 
-      ? `${DEVILS_ADVOCATE_GUIDELINES}\nContext: Refinement mode for idea: "${idea}". Your role: stress-test assumptions, expose weak links, then guide improvement. Focus one core gap per reply if multiple are missing.`
-      : `${DEVILS_ADVOCATE_GUIDELINES}\nContext: General exploration.${idea ? ` Idea: "${idea}".` : ''} Provide data-grounded pushback and require specificity before endorsing feasibility.`;
+      ? `${DEVILS_ADVOCATE_GUIDELINES}
+      
+Context: The user is refining their "${idea}" concept. They've been through initial analysis and are now working on improvements.
+Focus on: Helping them strengthen weak areas, validate assumptions, and build confidence through specific action steps.`
+      : `${DEVILS_ADVOCATE_GUIDELINES}
+      
+Context: ${idea ? `The user is exploring their "${idea}" concept.` : 'The user is brainstorming startup ideas.'}
+Focus on: Understanding their vision, asking clarifying questions, and helping them think through important considerations.`;
     
     let aiResponse = '';
     try {

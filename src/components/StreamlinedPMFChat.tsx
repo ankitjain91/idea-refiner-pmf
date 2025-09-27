@@ -300,20 +300,37 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
         }
       };
 
+      // Store complete analysis data in localStorage for dashboard
+      localStorage.setItem('pmfAnalysisData', JSON.stringify(pmfAnalysis));
+      localStorage.setItem('userIdea', answers[0] || ideaDescription);
+      localStorage.setItem('analysisCompleted', 'true');
+      
       // Add analysis complete message
       const analysisMessage: Message = {
         id: 'analysis-complete',
         type: 'bot',
-        content: "🎯 Excellent! I've completed your comprehensive PMF analysis. Your idea shows strong potential with a PM-Fit score of " + pmfAnalysis.pmfScore + "/100. Check out the detailed insights below!",
+        content: `🎯 Fantastic work! Your PM-Fit analysis is complete with a score of ${pmfAnalysis.pmfScore}/100! 
+
+I've identified strong market opportunities and key areas for growth. Your dashboard is now loaded with:
+• Real-time market signals and competitor analysis
+• Personalized improvement strategies
+• Growth projections and target demographics
+• Actionable next steps for validation
+
+Let's dive into your results! 🚀`,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, analysisMessage]);
-      onAnalysisReady(answers[0] || ideaDescription, pmfAnalysis);
+      
+      // Trigger navigation to dashboard with analysis data
+      setTimeout(() => {
+        onAnalysisReady(answers[0] || ideaDescription, pmfAnalysis);
+      }, 1500);
 
       toast({
-        title: "Analysis Complete!",
-        description: `PM-Fit Score: ${pmfAnalysis.pmfScore}/100`,
+        title: "🎉 Analysis Complete!",
+        description: `Your PM-Fit Score: ${pmfAnalysis.pmfScore}/100 - Dashboard ready!`,
       });
 
     } catch (error) {

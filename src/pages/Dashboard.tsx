@@ -188,12 +188,15 @@ const Dashboard = () => {
           const parsedAnswers = answers ? JSON.parse(answers) : {};
           const parsedMetadata = metadata ? JSON.parse(metadata) : {};
           
+          // Check for PMF analysis data from StreamlinedPMFChat
+          const pmfAnalysisData = localStorage.getItem('pmfAnalysisData');
+          const fullMetadata = pmfAnalysisData 
+            ? { ...parsedMetadata, ...JSON.parse(pmfAnalysisData), answers: parsedAnswers }
+            : { ...parsedMetadata, answers: parsedAnswers };
+          
           setAnalysisData({ 
             idea, 
-            metadata: { 
-              ...parsedMetadata, 
-              answers: parsedAnswers 
-            } 
+            metadata: fullMetadata
           });
           // analysis data will trigger display automatically in analysis-only layout
         }
@@ -239,13 +242,15 @@ const Dashboard = () => {
         const idea = localStorage.getItem('userIdea');
         const answers = localStorage.getItem('userAnswers');
         const metadata = localStorage.getItem('ideaMetadata');
+        const pmfAnalysisData = localStorage.getItem('pmfAnalysisData');
+        
+        const fullMetadata = pmfAnalysisData 
+          ? { ...JSON.parse(metadata || '{}'), ...JSON.parse(pmfAnalysisData), answers: JSON.parse(answers || '{}') }
+          : { ...JSON.parse(metadata || '{}'), answers: JSON.parse(answers || '{}') };
         
         setAnalysisData({ 
           idea: idea || '', 
-          metadata: { 
-            ...JSON.parse(metadata || '{}'), 
-            answers: JSON.parse(answers || '{}') 
-          } 
+          metadata: fullMetadata
         });
   // analysis-only layout picks up analysisData automatically
       }
