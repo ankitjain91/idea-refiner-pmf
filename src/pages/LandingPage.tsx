@@ -830,21 +830,24 @@ export default function LandingPage() {
             {[
               {
                 icon: Brain,
-                title: "Neural Analysis",
-                description: "Deep learning models trained on 10M+ successful startups",
-                gradient: "from-blue-500/20 to-purple-500/20"
+                title: "Wrinkle Score™ System",
+                description: "More wrinkles = Higher profit potential. Our AI adds wrinkles as it discovers revenue opportunities.",
+                gradient: "from-blue-500/20 to-purple-500/20",
+                badge: "🧠 +500 wrinkles/analysis"
               },
               {
                 icon: Globe,
-                title: "Real-Time Data",
-                description: "Live market intelligence from Reddit, Twitter, and 100+ sources",
-                gradient: "from-green-500/20 to-blue-500/20"
+                title: "Real-Time Data Mining",
+                description: "Each data point adds wrinkles. More market validation = More brain wrinkles = Better profit signals.",
+                gradient: "from-green-500/20 to-blue-500/20",
+                badge: "📊 +100 wrinkles/source"
               },
               {
                 icon: Target,
-                title: "Precision Targeting",
-                description: "Identify your exact market fit with 92% accuracy",
-                gradient: "from-purple-500/20 to-pink-500/20"
+                title: "Profit Calibration",
+                description: "1000+ wrinkles = Ready to launch. 5000+ wrinkles = VC-ready. 10000+ = Unicorn potential.",
+                gradient: "from-purple-500/20 to-pink-500/20",
+                badge: "🎯 Wrinkle-to-profit ratio"
               }
             ].map((feature, idx) => (
               <motion.div
@@ -869,6 +872,11 @@ export default function LandingPage() {
                       </div>
                     </FloatingElement>
                     <h3 className="text-2xl font-bold mb-3 text-white">{feature.title}</h3>
+                    {feature.badge && (
+                      <Badge className="mb-3 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+                        {feature.badge}
+                      </Badge>
+                    )}
                     <p className="text-gray-400 leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
