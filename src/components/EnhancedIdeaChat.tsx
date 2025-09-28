@@ -1954,15 +1954,6 @@ User submission: """${messageText}"""`;
           <BarChart3 className="h-3 w-3 mr-1.5 text-primary group-hover:scale-110 transition-transform" />
           Dashboard
         </Button>
-        <Button
-          onClick={() => navigate('/realtime')}
-          variant="outline"
-          size="sm"
-          className="fluid-text-xs group hover:bg-primary/10 hover:border-primary/50"
-        >
-          <Brain className="h-3 w-3 mr-1.5 text-primary group-hover:scale-110 transition-transform" />
-          AI Analyzer
-        </Button>
         <motion.div whileHover={hasValidIdea ? { scale: 1.02 } : {}} whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
             variant="outline"
