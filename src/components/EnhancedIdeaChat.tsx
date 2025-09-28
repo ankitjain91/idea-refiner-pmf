@@ -1291,26 +1291,89 @@ const ChatMessageItem = useMemo(() => {
   return React.memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
 }, []);
   const resetChatHandler = useCallback(async () => {
-    // Clear persisted state for authenticated users
-    if (!anonymous) {
-      localStorage.removeItem('enhancedIdeaChatMessages');
-      localStorage.removeItem('currentIdea');
-      localStorage.removeItem('wrinklePoints');
-      localStorage.removeItem(LS_KEYS.userIdea);
-      localStorage.removeItem('conversationHistory');
-      localStorage.removeItem('ideaMetadata');
-      localStorage.removeItem(LS_KEYS.ideaMetadata);
-      localStorage.removeItem(LS_KEYS.analysisCompleted);
-      localStorage.removeItem(LS_KEYS.pmfScore);
-      // Remove session-specific persisted data for this session
-      const sid = currentSession?.id;
-      if (sid) {
-        localStorage.removeItem(`session_${sid}_idea`);
-        localStorage.removeItem(`session_${sid}_metadata`);
-        localStorage.removeItem(`session_${sid}_answers`);
-        localStorage.removeItem(`session_${sid}_conversation`);
+    // Clear ALL persisted state - both generic and session-specific
+    const keysToRemove = [
+      // Chat and idea related
+      'enhancedIdeaChatMessages',
+      'currentIdea',
+      'wrinklePoints',
+      'conversationHistory',
+      'ideaMetadata',
+      'userIdea',
+      'pmf.user.idea',
+      'pmf.user.answers',
+      'pmf.analysis.completed',
+      'pmf.score',
+      'pmf.ideaMetadata',
+      'analysisCompleted',
+      
+      // Dashboard related
+      'dashboardValidation',
+      'dashboardAccessGrant',
+      'showAnalysisDashboard',
+      'currentTab',
+      
+      // Analysis related
+      'analysisResults',
+      'pmfScore',
+      'userRefinements',
+      'pmfFeatures',
+      'pmfTabHistory',
+      
+      // UI state
+      'pmf.ui.returnToChat',
+      
+      // Clear ALL localStorage keys that start with LS_KEYS values
+      LS_KEYS.userIdea,
+      LS_KEYS.ideaMetadata,
+      LS_KEYS.analysisCompleted,
+      LS_KEYS.pmfScore,
+    ];
+    
+    // Remove all generic keys
+    keysToRemove.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.error(`Failed to remove ${key}:`, e);
       }
+    });
+    
+    // Remove ALL session-specific data for the current session
+    const sid = currentSession?.id;
+    if (sid) {
+      // Get all localStorage keys and remove any that contain this session ID
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.includes(sid) || key.includes(`session_${sid}`)) {
+          try {
+            localStorage.removeItem(key);
+          } catch (e) {
+            console.error(`Failed to remove session key ${key}:`, e);
+          }
+        }
+      });
     }
+    
+    // Also clear any keys that start with 'session_' to be thorough
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(key => {
+      if (key.startsWith('session_') || 
+          key.includes('dashboard') || 
+          key.includes('analysis') || 
+          key.includes('pmf') ||
+          key.includes('idea') ||
+          key.includes('wrinkle')) {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          console.error(`Failed to remove key ${key}:`, e);
+        }
+      }
+    });
+    
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('session:fullReset'));
     
     // Fetch new random ideas for the reset
     const randomIdeas = await fetchRandomIdeas();

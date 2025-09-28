@@ -198,6 +198,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem(LS_KEYS.ideaMetadata);
       localStorage.removeItem('wrinklePoints');
       
+      // Clear dashboard specific data
+      localStorage.removeItem('dashboardValidation');
+      localStorage.removeItem('dashboardAccessGrant');
+      localStorage.removeItem('showAnalysisDashboard');
+      localStorage.removeItem('currentTab');
+      localStorage.removeItem('analysisResults');
+      localStorage.removeItem('pmfScore');
+      localStorage.removeItem('userRefinements');
+      localStorage.removeItem('pmfFeatures');
+      localStorage.removeItem('pmfTabHistory');
+      
       // Clear ALL session-specific storage from previous sessions
       const allKeys = Object.keys(localStorage);
       allKeys.forEach(key => {
@@ -319,6 +330,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem('pmf.analysis.completed');
       localStorage.removeItem(LS_KEYS.ideaMetadata);
       localStorage.removeItem('wrinklePoints');
+      
+      // Clear dashboard specific data
+      localStorage.removeItem('dashboardValidation');
+      localStorage.removeItem('dashboardAccessGrant');
+      localStorage.removeItem('showAnalysisDashboard');
+      localStorage.removeItem('currentTab');
+      localStorage.removeItem('analysisResults');
+      localStorage.removeItem('pmfScore');
+      localStorage.removeItem('userRefinements');
+      localStorage.removeItem('pmfFeatures');
+      localStorage.removeItem('pmfTabHistory');
       
       // Clear any session-specific storage from other sessions
       const allKeys = Object.keys(localStorage);

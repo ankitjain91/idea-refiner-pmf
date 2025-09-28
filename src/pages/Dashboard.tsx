@@ -130,6 +130,28 @@ const Dashboard = () => {
   
   // Get suggestions data
   const [suggestions, setSuggestions] = useState<any>(null);
+
+  // Listen for full reset events
+  useEffect(() => {
+    const handleFullReset = () => {
+      // Clear all dashboard state
+      setIdea(null);
+      setShowAnalysis(false);
+      setActiveTab("overview");
+      setSearchQuery("");
+      setAutoRefresh(false);
+      setSuggestions(null);
+      
+      // Force re-render by navigating away and back
+      navigate('/ideachat');
+    };
+    
+    window.addEventListener('session:fullReset', handleFullReset);
+    
+    return () => {
+      window.removeEventListener('session:fullReset', handleFullReset);
+    };
+  }, [navigate]);
   
   useEffect(() => {
     const fetchSuggestions = async () => {
