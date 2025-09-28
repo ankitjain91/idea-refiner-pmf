@@ -23,7 +23,7 @@ import GuidedIdeaWithSuggestions from '@/components/hub/GuidedIdeaWithSuggestion
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { IdeaConfirmationDialog } from '@/components/hub/IdeaConfirmationDialog';
  
- // Tile configurations
+ // Tile configurations - Only Search Trends enabled for now to reduce API requests
 const TILES = [
   {
     id: 'search-trends',
@@ -32,104 +32,105 @@ const TILES = [
     tileType: 'search-trends',
     description: 'Current market interest and rising queries'
   },
-  {
-    id: 'competitor-landscape',
-    title: 'Competitor Landscape',
-    icon: Users,
-    tileType: 'competitor-landscape',
-    description: 'Key players and their positioning'
-  },
-  {
-    id: 'target-audience',
-    title: 'Target Audience Fit',
-    icon: Target,
-    tileType: 'target-audience',
-    description: 'Demographics and segment analysis'
-  },
-  {
-    id: 'pm-fit-score',
-    title: 'PM Fit Score',
-    icon: BarChart3,
-    tileType: 'pm-fit-score',
-    description: 'Product-Market Fit likelihood assessment'
-  },
-  {
-    id: 'market-potential',
-    title: 'Market Potential',
-    icon: DollarSign,
-    tileType: 'market-potential',
-    description: 'TAM, SAM, and SOM estimates'
-  },
-  {
-    id: 'unit-economics',
-    title: 'Unit Economics',
-    icon: Calculator,
-    tileType: 'unit-economics',
-    description: 'CAC and LTV benchmarks'
-  },
-  {
-    id: 'funding-pathways',
-    title: 'Funding Pathways',
-    icon: Briefcase,
-    tileType: 'funding-pathways',
-    description: 'Recent funding rounds and investors'
-  },
-  {
-    id: 'success-stories',
-    title: 'Comparable Success Stories',
-    icon: Trophy,
-    tileType: 'success-stories',
-    description: 'Similar startups that succeeded'
-  },
-  {
-    id: 'roadmap',
-    title: 'Execution Roadmap',
-    icon: Map,
-    tileType: 'roadmap',
-    description: '30/60/90-day action plan'
-  },
-  {
-    id: 'resource-estimator',
-    title: 'Resource Estimator',
-    icon: Calculator,
-    tileType: 'resource-estimator',
-    description: 'Budget, time, and team requirements'
-  },
-  {
-    id: 'risk-matrix',
-    title: 'Risk Matrix',
-    icon: Shield,
-    tileType: 'risk-matrix',
-    description: 'Key risks and mitigation strategies'
-  },
-  {
-    id: 'social-sentiment',
-    title: 'Social Sentiment',
-    icon: MessageSquare,
-    tileType: 'social-sentiment',
-    description: 'Community feedback and discussions'
-  },
-  {
-    id: 'quick-poll',
-    title: 'Validation Questions',
-    icon: Lightbulb,
-    tileType: 'quick-poll',
-    description: 'Poll questions for user validation'
-  },
-  {
-    id: 'partnerships',
-    title: 'Partnership Opportunities',
-    icon: Handshake,
-    tileType: 'partnerships',
-    description: 'Potential partners and integrations'
-  },
-  {
-    id: 'simulations',
-    title: 'What-If Simulations',
-    icon: Zap,
-    tileType: 'simulations',
-    description: 'Impact of strategic changes'
-  }
+  // Other tiles temporarily disabled to reduce API requests
+  // {
+  //   id: 'competitor-landscape',
+  //   title: 'Competitor Landscape',
+  //   icon: Users,
+  //   tileType: 'competitor-landscape',
+  //   description: 'Key players and their positioning'
+  // },
+  // {
+  //   id: 'target-audience',
+  //   title: 'Target Audience Fit',
+  //   icon: Target,
+  //   tileType: 'target-audience',
+  //   description: 'Demographics and segment analysis'
+  // },
+  // {
+  //   id: 'pm-fit-score',
+  //   title: 'PM Fit Score',
+  //   icon: BarChart3,
+  //   tileType: 'pm-fit-score',
+  //   description: 'Product-Market Fit likelihood assessment'
+  // },
+  // {
+  //   id: 'market-potential',
+  //   title: 'Market Potential',
+  //   icon: DollarSign,
+  //   tileType: 'market-potential',
+  //   description: 'TAM, SAM, and SOM estimates'
+  // },
+  // {
+  //   id: 'unit-economics',
+  //   title: 'Unit Economics',
+  //   icon: Calculator,
+  //   tileType: 'unit-economics',
+  //   description: 'CAC and LTV benchmarks'
+  // },
+  // {
+  //   id: 'funding-pathways',
+  //   title: 'Funding Pathways',
+  //   icon: Briefcase,
+  //   tileType: 'funding-pathways',
+  //   description: 'Recent funding rounds and investors'
+  // },
+  // {
+  //   id: 'success-stories',
+  //   title: 'Comparable Success Stories',
+  //   icon: Trophy,
+  //   tileType: 'success-stories',
+  //   description: 'Similar startups that succeeded'
+  // },
+  // {
+  //   id: 'roadmap',
+  //   title: 'Execution Roadmap',
+  //   icon: Map,
+  //   tileType: 'roadmap',
+  //   description: '30/60/90-day action plan'
+  // },
+  // {
+  //   id: 'resource-estimator',
+  //   title: 'Resource Estimator',
+  //   icon: Calculator,
+  //   tileType: 'resource-estimator',
+  //   description: 'Budget, time, and team requirements'
+  // },
+  // {
+  //   id: 'risk-matrix',
+  //   title: 'Risk Matrix',
+  //   icon: Shield,
+  //   tileType: 'risk-matrix',
+  //   description: 'Key risks and mitigation strategies'
+  // },
+  // {
+  //   id: 'social-sentiment',
+  //   title: 'Social Sentiment',
+  //   icon: MessageSquare,
+  //   tileType: 'social-sentiment',
+  //   description: 'Community feedback and discussions'
+  // },
+  // {
+  //   id: 'quick-poll',
+  //   title: 'Validation Questions',
+  //   icon: Lightbulb,
+  //   tileType: 'quick-poll',
+  //   description: 'Poll questions for user validation'
+  // },
+  // {
+  //   id: 'partnerships',
+  //   title: 'Partnership Opportunities',
+  //   icon: Handshake,
+  //   tileType: 'partnerships',
+  //   description: 'Potential partners and integrations'
+  // },
+  // {
+  //   id: 'simulations',
+  //   title: 'What-If Simulations',
+  //   icon: Zap,
+  //   tileType: 'simulations',
+  //   description: 'Impact of strategic changes'
+  // }
 ];
 
 export default function EnterpriseHub() {
