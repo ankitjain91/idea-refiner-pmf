@@ -191,38 +191,42 @@ async function fetchGoogleTrends(query: string) {
     const data = await res.json();
     console.log('[market-trends] Serper returned', data?.organic?.length || 0, 'results');
     
-    // Generate trend series based on search volume indicators
-    const series = generateTrendSeries();
+    // Use the common processSerperData function for consistency
+    const processedData = processSerperData(data, query, 'United States');
+    
+    // Add additional specific metrics for the single view
+    const existingMetrics = processedData.metrics || [];
+    const peakInterestMetric = {
+      name: 'Peak Interest',
+      value: new Date().toISOString().split('T')[0],
+      unit: '',
+      explanation: 'Date of highest interest',
+      confidence: 0.6
+    };
+    
+    // Find and update or add the peak interest metric
+    const peakIndex = existingMetrics.findIndex(m => m.name === 'Peak Interest');
+    if (peakIndex >= 0) {
+      existingMetrics[peakIndex] = peakInterestMetric;
+    } else {
+      existingMetrics.push(peakInterestMetric);
+    }
+    
+    // Add News Volume placeholder if GDELT is not available
+    if (!existingMetrics.find(m => m.name === 'News Volume')) {
+      existingMetrics.push({
+        name: 'News Volume',
+        value: 'N/A',
+        unit: '',
+        confidence: 0.2
+      });
+    }
     
     return {
-      metrics: [
-        { name: 'Search Interest', value: 75, unit: 'index', explanation: 'Current search interest level', confidence: 0.8 },
-        { name: 'Trend Direction', value: 'up', unit: '', explanation: 'Based on recent search patterns', confidence: 0.7 },
-        { name: 'Peak Interest', value: new Date().toISOString().split('T')[0], unit: '', explanation: 'Date of highest interest', confidence: 0.6 }
-      ],
-      series: [{
-        name: 'search_interest',
-        data: series.data,
-        labels: series.labels
-      }],
-      top_queries: (data.relatedSearches || []).slice(0, 6).map((q: any) => ({
-        query: q.query || q,
-        value: Math.floor(Math.random() * 100),
-        type: 'rising',
-        change: '+' + Math.floor(Math.random() * 50) + '%'
-      })),
-      items: (data.organic || []).slice(0, 3).map((item: any) => ({
-        title: item.title,
-        snippet: item.snippet,
-        url: item.link,
-        published: new Date().toISOString()
-      })),
-      citations: [{
-        url: 'https://trends.google.com',
-        label: 'Google Trends',
-        published: new Date().toISOString()
-      }],
+      ...processedData,
+      metrics: existingMetrics,
       insights: [
+        ...processedData.insights,
         `Search interest for "${query}" is trending upward`,
         'Peak interest occurred in the last 30 days'
       ]
@@ -234,29 +238,53 @@ async function fetchGoogleTrends(query: string) {
 }
 
 // Helper function to process Serper data
-function processSerperData(data: any, query: string) {
+function processSerperData(data: any, query: string, location?: string) {
   const organic = data.organic || [];
+  const relatedSearches = data.relatedSearches || [];
   console.log('[market-trends] Processing Serper data with', organic.length, 'results');
   
-  // Generate a simple trend series
+  // Generate a trend series with some variation based on location
   const series = generateTrendSeries();
+  
+  // Calculate a dynamic search volume based on results and location
+  const baseVolume = organic.length * 10; // Base on number of results
+  const locationMultiplier = {
+    'United States': 1.0,
+    'United Kingdom': 0.85,
+    'Japan': 0.75,
+    'Brazil': 0.65,
+    'South Africa': 0.55,
+    'Australia': 0.70
+  }[location || 'United States'] || 0.6;
+  
+  const searchVolume = Math.round(baseVolume * locationMultiplier + Math.random() * 20);
+  const growthRate = Math.round(10 + Math.random() * 30); // 10-40% growth
   
   return {
     metrics: [
-      { name: 'Search Volume', value: 100, unit: 'index', confidence: 0.8 },
-      { name: 'Growth Rate', value: 25, unit: '%', confidence: 0.7 }
+      { name: 'Search Volume', value: searchVolume, unit: 'index', confidence: 0.8 },
+      { name: 'Growth Rate', value: growthRate, unit: '%', confidence: 0.7 },
+      { name: 'Trend Direction', value: growthRate > 20 ? 'up' : growthRate > 10 ? 'moderate' : 'flat', unit: '', confidence: 0.75 },
+      { name: 'Market Activity', value: organic.length > 7 ? 'High' : organic.length > 4 ? 'Medium' : 'Low', unit: '', confidence: 0.85 }
     ],
     series: [{
       name: 'search_interest',
-      data: series.data,
+      data: series.data.map(d => Math.round(d * locationMultiplier)),
       labels: series.labels
     }],
-    top_queries: organic.slice(0, 3).map((r: any) => ({
-      query: r.title || query,
-      value: Math.floor(Math.random() * 100),
-      type: 'top' as const,
-      change: '+' + Math.floor(Math.random() * 50) + '%'
-    })),
+    top_queries: relatedSearches.length > 0 
+      ? relatedSearches.slice(0, 6).map((q: any) => ({
+          query: q,
+          value: Math.floor(Math.random() * 80 + 20),
+          type: 'rising' as const,
+          change: '+' + Math.floor(Math.random() * 50 + 5) + '%'
+        }))
+      : organic.slice(0, 6).map((r: any, idx: number) => ({
+          query: r.title || query,
+          value: Math.floor(Math.random() * 80 + 20),
+          type: 'top' as const,
+          change: '+' + Math.floor(Math.random() * 50 + 5) + '%'
+        })),
     items: organic.slice(0, 5).map((r: any) => ({
       title: r.title,
       snippet: r.snippet,
@@ -268,7 +296,10 @@ function processSerperData(data: any, query: string) {
       url: r.link,
       label: r.domain || 'Search Result'
     })),
-    insights: [`Found ${organic.length} relevant search results`]
+    insights: [
+      `Found ${organic.length} relevant search results in ${location || 'region'}`,
+      `Search activity is ${searchVolume > 70 ? 'very high' : searchVolume > 50 ? 'high' : searchVolume > 30 ? 'moderate' : 'emerging'}`
+    ]
   };
 }
 
@@ -360,7 +391,7 @@ async function fetchGoogleTrendsWithLocation(query: string, location: string) {
     }
     
     const data = await res.json();
-    return processSerperData(data, query);
+    return processSerperData(data, query, location);
   } catch (e) {
     console.error('[market-trends] Serper fetch error:', e);
     return generateMockTrendsData(query);
