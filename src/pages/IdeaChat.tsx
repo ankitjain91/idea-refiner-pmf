@@ -7,6 +7,7 @@ import EngagingLoader from '@/components/engagement/EngagingLoader';
 import { useIdeaChatSession } from '@/hooks/useIdeaChatSession';
 import { useIdeaChatState } from '@/hooks/useIdeaChatState';
 import { handleAnalysisReady } from '@/utils/analysisUtils';
+import { OpenAIBilling } from '@/components/OpenAIBilling';
 
 const ChatGPTStyleChat = lazy(() => import('@/components/ChatGPTStyleChat'));
 

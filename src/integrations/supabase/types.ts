@@ -282,6 +282,36 @@ export type Database = {
           },
         ]
       }
+      openai_usage: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          function_name: string | null
+          id: string
+          model: string
+          tokens_used: number
+          user_id: string | null
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          model: string
+          tokens_used?: number
+          user_id?: string | null
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          model?: string
+          tokens_used?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -561,6 +591,10 @@ export type Database = {
       check_email_exists: {
         Args: { email_to_check: string }
         Returns: boolean
+      }
+      get_openai_total_spend: {
+        Args: { _user_id?: string }
+        Returns: number
       }
       get_random_startup_ideas: {
         Args: { limit_count?: number }

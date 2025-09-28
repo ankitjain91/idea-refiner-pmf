@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserMenu } from '@/components/UserMenu';
 import { DynamicStatusBar } from '@/pages/DynamicStatusBar';
+import { OpenAIBilling } from '@/components/OpenAIBilling';
 import { cn } from '@/lib/utils';
 import type { ResponseMode } from '@/hooks/useIdeaChatState';
 
@@ -93,6 +94,7 @@ export function IdeaChatHeader({
           </div>
         </div>
         <div className='flex items-center gap-2'>
+          <OpenAIBilling />
           <ThemeToggle />
           <UserMenu />
         </div>

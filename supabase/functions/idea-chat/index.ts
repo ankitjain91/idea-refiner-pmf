@@ -1,11 +1,13 @@
 // @ts-nocheck
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // NOTE: This edge function has been hardened for reliability: env validation, retry logic, timeouts, safer JSON parsing.
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 // Centralized environment validation (pre-flight)
 function validateEnv() {
@@ -149,6 +151,40 @@ async function timedFetch(resource: string, init: RequestInit & { timeoutMs?: nu
     return resp;
   } finally {
     clearTimeout(t);
+  }
+}
+
+// Function to calculate and track OpenAI costs
+async function trackOpenAICost(model: string, tokens: number, userId: string, functionName: string = 'idea-chat') {
+  // Cost per 1K tokens (in USD)
+  const costRates: Record<string, number> = {
+    'gpt-4o-mini': 0.000015, // $0.015 per 1K tokens
+    'gpt-4o': 0.00003, // $0.03 per 1K tokens
+    'gpt-3.5-turbo': 0.000002, // $0.002 per 1K tokens
+  };
+  
+  const costPerToken = costRates[model] || costRates['gpt-4o-mini'];
+  const cost = (tokens / 1000) * costPerToken;
+  
+  try {
+    const supabaseService = createClient(
+      SUPABASE_URL!,
+      SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    await supabaseService
+      .from('openai_usage')
+      .insert({
+        user_id: userId,
+        model: model,
+        tokens_used: tokens,
+        cost_usd: cost,
+        function_name: functionName
+      });
+    
+    console.log(`Tracked OpenAI usage: ${model}, ${tokens} tokens, $${cost.toFixed(6)}`);
+  } catch (error) {
+    console.error('Error tracking OpenAI usage:', error);
   }
 }
 
@@ -372,6 +408,19 @@ serve(async (req) => {
   }
 
   try {
+    // Get user ID from request headers
+    const authHeader = req.headers.get('authorization');
+    let userId: string | null = null;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      const supabaseClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+      const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+      if (!error && user) {
+        userId = user.id;
+      }
+    }
+    
     const { 
       message, 
       conversationHistory = [], 
@@ -388,6 +437,7 @@ serve(async (req) => {
     console.log('Processing request for idea:', idea);
     console.log('Current question:', currentQuestion);
     console.log('Generate PMF Analysis:', generatePMFAnalysis);
+    console.log('User ID:', userId);
 
     const envError = validateEnv();
     if (envError) return envError;
