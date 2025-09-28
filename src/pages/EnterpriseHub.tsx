@@ -17,7 +17,7 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
-import GuidedIdeaInput from '@/components/GuidedIdeaInput';
+import GuidedIdeaWithSuggestions from '@/components/hub/GuidedIdeaWithSuggestions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
  
  // Tile configurations
@@ -503,14 +503,14 @@ const handleIdeaSubmit = (idea: string, metadata: any) => {
         </Card>
 
         <Dialog open={showQuestionnaire} onOpenChange={setShowQuestionnaire}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>AI‑Guided Idea Questionnaire</DialogTitle>
               <DialogDescription>
-                Answer a few quick questions to seed the dashboard with contextual AI suggestions.
+                Choose from AI suggestions or create your own startup idea.
               </DialogDescription>
             </DialogHeader>
-            <GuidedIdeaInput onSubmit={handleIdeaSubmit} />
+            <GuidedIdeaWithSuggestions onSubmit={handleIdeaSubmit} />
           </DialogContent>
         </Dialog>
       </div>
