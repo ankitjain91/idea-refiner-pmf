@@ -141,11 +141,26 @@ export default function EnterpriseHub() {
   // Load initial idea from localStorage
   useEffect(() => {
     const storedIdea = localStorage.getItem('userIdea') || localStorage.getItem('currentIdea');
-    if (storedIdea) {
+    const ideaText = localStorage.getItem('ideaText');
+    
+    // Try multiple sources for the idea
+    const ideaToUse = storedIdea || ideaText;
+    
+    console.log('EnterpriseHub - Loading idea from localStorage:', {
+      userIdea: localStorage.getItem('userIdea'),
+      currentIdea: localStorage.getItem('currentIdea'),
+      ideaText: localStorage.getItem('ideaText'),
+      ideaToUse
+    });
+    
+    if (ideaToUse && ideaToUse.trim()) {
       // Extract keywords from idea
-      const keywords = storedIdea.split(' ')
+      const keywords = ideaToUse.split(' ')
         .filter(word => word.length > 3)
         .slice(0, 5);
+      
+      console.log('Extracted keywords:', keywords);
+      
       setFilters(prev => ({
         ...prev,
         idea_keywords: keywords

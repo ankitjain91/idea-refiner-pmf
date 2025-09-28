@@ -383,8 +383,10 @@ What's your startup idea?`,
   // Persist current idea for authenticated users
   useEffect(() => {
     if (!anonymous && currentIdea) {
+      console.log('Persisting current idea:', currentIdea);
       localStorage.setItem('currentIdea', currentIdea);
       localStorage.setItem(LS_KEYS.userIdea, currentIdea);
+      localStorage.setItem('ideaText', currentIdea); // Also save as ideaText
       // Trigger session save
       window.dispatchEvent(new Event('chat:activity'));
     }
@@ -881,8 +883,15 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       generateIdeaSummaryName(ideaPreview);
       
       // Save the idea text to localStorage for dashboard
+      console.log('Saving idea to localStorage:', { 
+        ideaText: messageText, 
+        currentIdea: ideaPreview,
+        userIdea: ideaPreview 
+      });
+      
       localStorage.setItem('ideaText', messageText);
       localStorage.setItem('currentIdea', ideaPreview);
+      localStorage.setItem('userIdea', ideaPreview); // Also save as userIdea for compatibility
 
     }
 
@@ -1621,8 +1630,15 @@ User submission: """${messageText}"""`;
         generateIdeaSummaryName(ideaPreview);
         
         // Save the idea text to localStorage for dashboard
+        console.log('Saving idea to localStorage (validation approved):', { 
+          ideaText: messageText, 
+          currentIdea: ideaPreview,
+          userIdea: ideaPreview 
+        });
+        
         localStorage.setItem('ideaText', messageText);
         localStorage.setItem('currentIdea', ideaPreview);
+        localStorage.setItem('userIdea', ideaPreview); // Also save as userIdea for compatibility
       } catch (e) {
         console.error('Idea validation failed, falling back to heuristic only.', e);
         if (isIdeaDescription(messageText)) {
@@ -1634,8 +1650,15 @@ User submission: """${messageText}"""`;
           generateIdeaSummaryName(ideaPreview);
           
           // Save the idea text to localStorage for dashboard
+          console.log('Saving idea to localStorage (fallback):', { 
+            ideaText: messageText, 
+            currentIdea: ideaPreview,
+            userIdea: ideaPreview 
+          });
+          
           localStorage.setItem('ideaText', messageText);
           localStorage.setItem('currentIdea', ideaPreview);
+          localStorage.setItem('userIdea', ideaPreview); // Also save as userIdea for compatibility
         } else {
           const fallbackGate: Message = {
             id: `bot-fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
