@@ -13,50 +13,50 @@ All colors MUST be HSL.
 /* ----------------------------- */
 @layer base {
   :root {
-    /* Professional Black Theme */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 92%;
-    --card: 0 0% 2%;
-    --card-foreground: 0 0% 92%;
-    --popover: 0 0% 1%;
-    --popover-foreground: 0 0% 92%;
-    --primary: 217 91% 60%;  /* Professional Blue */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 92%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 217 91% 60%;  /* Matching Blue Accent */
-    --accent-foreground: 0 0% 100%;
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-    --warning: 48 96% 53%;
-    --warning-foreground: 0 0% 0%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 217 91% 60%;
+    /* Professional Black Theme - Reduced Contrast */
+    --background: 0 0% 6%;
+    --foreground: 0 0% 78%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 78%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 78%;
+    --primary: 217 60% 50%;  /* Softer Blue */
+    --primary-foreground: 0 0% 95%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 78%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 217 60% 50%;  /* Matching Blue Accent */
+    --accent-foreground: 0 0% 95%;
+    --success: 142 50% 40%;
+    --success-foreground: 0 0% 95%;
+    --warning: 48 70% 45%;
+    --warning-foreground: 0 0% 10%;
+    --destructive: 0 50% 45%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 217 60% 50%;
     --radius: .5rem;
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 6%;
-    --sidebar-accent-foreground: 0 0% 85%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 70%;
+    --sidebar-primary: 217 60% 50%;
+    --sidebar-primary-foreground: 0 0% 95%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 75%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 217 60% 50%;
     /* Professional Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60% / 0.15), transparent);
-    --gradient-accent: linear-gradient(135deg, transparent, hsl(217 91% 60% / 0.1));
-    --gradient-google: linear-gradient(90deg, hsl(217 91% 60%), hsl(217 91% 50%), hsl(217 91% 40%), hsl(217 91% 30%));
-    --gradient-mesh: radial-gradient(at 40% 20%, hsl(217 91% 60% / 0.06) 0px, transparent 50%),radial-gradient(at 80% 0%, hsl(217 91% 60% / 0.04) 0px, transparent 50%),radial-gradient(at 0% 50%, hsl(217 91% 60% / 0.03) 0px, transparent 50%);
-    /* Professional Shadows */
-    --shadow-glow: 0 0 24px rgba(59, 130, 246, 0.1), inset 0 0 20px rgba(0, 0, 0, 0.4);
-    --shadow-glow-primary: 0 0 32px rgba(59, 130, 246, 0.2);
-    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
-    --shadow-hover: 0 8px 32px rgba(59, 130, 246, 0.15);
-    --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.6);
+    --gradient-primary: linear-gradient(135deg, hsl(217 60% 50% / 0.12), transparent);
+    --gradient-accent: linear-gradient(135deg, transparent, hsl(217 60% 50% / 0.08));
+    --gradient-google: linear-gradient(90deg, hsl(217 60% 50%), hsl(217 60% 45%), hsl(217 60% 40%), hsl(217 60% 35%));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(217 60% 50% / 0.04) 0px, transparent 50%),radial-gradient(at 80% 0%, hsl(217 60% 50% / 0.03) 0px, transparent 50%),radial-gradient(at 0% 50%, hsl(217 60% 50% / 0.02) 0px, transparent 50%);
+    /* Softer Shadows */
+    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.06), inset 0 0 20px rgba(0, 0, 0, 0.2);
+    --shadow-glow-primary: 0 0 24px rgba(59, 130, 246, 0.12);
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.2);
+    --shadow-hover: 0 4px 20px rgba(59, 130, 246, 0.08);
+    --shadow-glass: 0 2px 16px rgba(0, 0, 0, 0.3);
     /* Typography Scale */
     --text-xs: clamp(.67rem,.55rem + .35vw,.75rem);
     --text-sm: clamp(.78rem,.6rem + .45vw,.9rem);
@@ -74,63 +74,63 @@ All colors MUST be HSL.
     --spacing-xl: clamp(2rem, 4vw, 3rem);
     --spacing-2xl: clamp(3rem, 6vw, 4.5rem);
     --spacing-3xl: clamp(4.5rem, 8vw, 6rem);
-    --noise-opacity: .015;
-    --glow-primary: 217 91% 60%;
-    --glow-accent: 217 91% 60%;
+    --noise-opacity: .01;
+    --glow-primary: 217 60% 50%;
+    --glow-accent: 217 60% 50%;
     --grid-color: 0 0% 14%;
-    --focus-ring: 217 91% 60%;
-    --surface-glass: 0 0% 3%;
-    --surface-glass-alt: 0 0% 5%;
+    --focus-ring: 217 60% 50%;
+    --surface-glass: 0 0% 7%;
+    --surface-glass-alt: 0 0% 9%;
   }
   .dark {
     /* Same as root for consistent dark theme */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 92%;
-    --card: 0 0% 2%;
-    --card-foreground: 0 0% 92%;
-    --popover: 0 0% 1%;
-    --popover-foreground: 0 0% 92%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 92%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-    --warning: 48 96% 53%;
-    --warning-foreground: 0 0% 0%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 217 91% 60%;
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 6%;
-    --sidebar-accent-foreground: 0 0% 85%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 217 91% 60%;
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60% / 0.15), transparent);
-    --gradient-accent: linear-gradient(135deg, transparent, hsl(217 91% 60% / 0.1));
-    --gradient-google: linear-gradient(90deg, hsl(217 91% 60%), hsl(217 91% 50%), hsl(217 91% 40%), hsl(217 91% 30%));
-    --gradient-mesh: radial-gradient(at 40% 20%, hsl(217 91% 60% / 0.06) 0px, transparent 50%),radial-gradient(at 80% 0%, hsl(217 91% 60% / 0.04) 0px, transparent 50%),radial-gradient(at 0% 50%, hsl(217 91% 60% / 0.03) 0px, transparent 50%);
-    --shadow-glow: 0 0 24px rgba(59, 130, 246, 0.1), inset 0 0 20px rgba(0, 0, 0, 0.4);
-    --shadow-glow-primary: 0 0 32px rgba(59, 130, 246, 0.2);
-    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
-    --shadow-hover: 0 8px 32px rgba(59, 130, 246, 0.15);
-    --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.6);
-    --noise-opacity: .015;
-    --glow-primary: 217 91% 60%;
-    --glow-accent: 217 91% 60%;
+    --background: 0 0% 6%;
+    --foreground: 0 0% 78%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 78%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 78%;
+    --primary: 217 60% 50%;
+    --primary-foreground: 0 0% 95%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 78%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 217 60% 50%;
+    --accent-foreground: 0 0% 95%;
+    --success: 142 50% 40%;
+    --success-foreground: 0 0% 95%;
+    --warning: 48 70% 45%;
+    --warning-foreground: 0 0% 10%;
+    --destructive: 0 50% 45%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 217 60% 50%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 70%;
+    --sidebar-primary: 217 60% 50%;
+    --sidebar-primary-foreground: 0 0% 95%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 75%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 217 60% 50%;
+    --gradient-primary: linear-gradient(135deg, hsl(217 60% 50% / 0.12), transparent);
+    --gradient-accent: linear-gradient(135deg, transparent, hsl(217 60% 50% / 0.08));
+    --gradient-google: linear-gradient(90deg, hsl(217 60% 50%), hsl(217 60% 45%), hsl(217 60% 40%), hsl(217 60% 35%));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(217 60% 50% / 0.04) 0px, transparent 50%),radial-gradient(at 80% 0%, hsl(217 60% 50% / 0.03) 0px, transparent 50%),radial-gradient(at 0% 50%, hsl(217 60% 50% / 0.02) 0px, transparent 50%);
+    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.06), inset 0 0 20px rgba(0, 0, 0, 0.2);
+    --shadow-glow-primary: 0 0 24px rgba(59, 130, 246, 0.12);
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.2);
+    --shadow-hover: 0 4px 20px rgba(59, 130, 246, 0.08);
+    --shadow-glass: 0 2px 16px rgba(0, 0, 0, 0.3);
+    --noise-opacity: .01;
+    --glow-primary: 217 60% 50%;
+    --glow-accent: 217 60% 50%;
     --grid-color: 0 0% 14%;
-    --focus-ring: 217 91% 60%;
-    --surface-glass: 0 0% 3%;
-    --surface-glass-alt: 0 0% 5%;
+    --focus-ring: 217 60% 50%;
+    --surface-glass: 0 0% 7%;
+    --surface-glass-alt: 0 0% 9%;
   }
 }
 
@@ -160,8 +160,8 @@ All colors MUST be HSL.
     position: fixed;
     inset: 0;
     background-image: 
-      linear-gradient(rgba(59, 130, 246, 0.008) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(59, 130, 246, 0.008) 1px, transparent 1px);
+      linear-gradient(rgba(59, 130, 246, 0.004) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.004) 1px, transparent 1px);
     background-size: 100px 100px;
     pointer-events: none;
     z-index: 0;
@@ -427,7 +427,7 @@ All colors MUST be HSL.
   }
   .app-gradient-orbs::before { top:-20vmax; left:-10vmax; background:radial-gradient(circle at 30% 30%, hsl(var(--glow-primary) / 0.55), transparent 60%); }
   .app-gradient-orbs::after { bottom:-25vmax; right:-15vmax; animation-duration:33s; background:radial-gradient(circle at 70% 70%, hsl(var(--glow-accent) / 0.55), transparent 60%); }
-  .glass-super-surface { background: linear-gradient(145deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.7)); backdrop-filter: blur(24px) saturate(140%); -webkit-backdrop-filter: blur(24px) saturate(140%); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.08),0 4px 24px -4px rgba(59, 130, 246, 0.15); }
+  .glass-super-surface { background: linear-gradient(145deg, rgba(10, 10, 10, 0.7), rgba(15, 15, 15, 0.5)); backdrop-filter: blur(20px) saturate(120%); -webkit-backdrop-filter: blur(20px) saturate(120%); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.05),0 2px 12px -2px rgba(59, 130, 246, 0.08); }
   .neo-brut-card { position:relative; border:2px solid hsl(var(--border)); background:hsl(var(--card)); box-shadow:4px 4px 0 hsl(var(--primary) / .4); transition:box-shadow .25s, transform .25s; }
   .neo-brut-card:hover { box-shadow:8px 8px 0 hsl(var(--accent) / .4); transform:translate(-2px,-2px); }
   .aurora-bg { background: radial-gradient(circle at 10% 20%, hsl(var(--primary) / .25), transparent 60%),radial-gradient(circle at 90% 30%, hsl(var(--accent) / .25), transparent 65%),linear-gradient(120deg,hsl(var(--background)),hsl(var(--background))); }
@@ -513,23 +513,23 @@ All colors MUST be HSL.
   
   /* Professional Glass Components */
   .glass-card {
-    @apply bg-black/40 backdrop-blur-xl border-2 border-border/60 rounded-lg;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(5, 5, 5, 0.3));
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.06), inset 0 0 20px rgba(0, 0, 0, 0.3);
+    @apply bg-background/60 backdrop-blur-md border border-border/40 rounded-lg;
+    background: linear-gradient(135deg, rgba(15, 15, 15, 0.4), rgba(20, 20, 20, 0.3));
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.03), inset 0 0 16px rgba(0, 0, 0, 0.1);
   }
   
   .glass-header {
-    @apply bg-black/80 backdrop-blur-2xl border-b-2 border-border/50;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.8));
+    @apply bg-background/80 backdrop-blur-xl border-b border-border/30;
+    background: linear-gradient(135deg, rgba(15, 15, 15, 0.8), rgba(15, 15, 15, 0.7));
   }
   
   .glass-surface {
-    @apply bg-black/30 backdrop-blur-xl border border-border/50;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4));
+    @apply bg-background/40 backdrop-blur-md border border-border/30;
+    background: linear-gradient(135deg, rgba(15, 15, 15, 0.5), rgba(15, 15, 15, 0.3));
   }
   
   .glass-button {
-    @apply bg-muted/30 backdrop-blur-xl border border-border/70 hover:bg-muted/50 hover:border-border/90 transition-all;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(0, 0, 0, 0.2));
+    @apply bg-muted/20 backdrop-blur-md border border-border/40 hover:bg-muted/30 hover:border-border/50 transition-all;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(15, 15, 15, 0.1));
   }
 }
