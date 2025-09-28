@@ -19,6 +19,7 @@ import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import GuidedIdeaWithSuggestions from '@/components/hub/GuidedIdeaWithSuggestions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { IdeaConfirmationDialog } from '@/components/hub/IdeaConfirmationDialog';
  
  // Tile configurations
 const TILES = [
@@ -139,7 +140,10 @@ export default function EnterpriseHub() {
     setFilters,
     showQuestionnaire,
     setShowQuestionnaire,
-    handleIdeaSubmit
+    handleIdeaSubmit,
+    pendingIdea,
+    confirmIdea,
+    cancelIdeaConfirmation
   } = useIdeaManagement();
   
   const [refreshKey, setRefreshKey] = useState(0);
@@ -273,6 +277,12 @@ export default function EnterpriseHub() {
             <GuidedIdeaWithSuggestions onSubmit={handleIdeaSubmit} />
           </DialogContent>
         </Dialog>
+        
+        <IdeaConfirmationDialog
+          pendingIdea={pendingIdea}
+          onConfirm={confirmIdea}
+          onCancel={cancelIdeaConfirmation}
+        />
       </div>
     );
   }
@@ -373,6 +383,12 @@ export default function EnterpriseHub() {
           </div>
         </div>
       )}
+      
+      <IdeaConfirmationDialog
+        pendingIdea={pendingIdea}
+        onConfirm={confirmIdea}
+        onCancel={cancelIdeaConfirmation}
+      />
     </div>
   );
 }

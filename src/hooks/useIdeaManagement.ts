@@ -11,6 +11,12 @@ export interface IdeaFilters {
   time_window: string;
 }
 
+export interface IdeaConfirmation {
+  idea: string;
+  metadata: any;
+  isOpen: boolean;
+}
+
 export function useIdeaManagement() {
   const { currentSession } = useSession();
   const [filters, setFilters] = useState<IdeaFilters>({
@@ -20,6 +26,11 @@ export function useIdeaManagement() {
     time_window: 'last_12_months'
   });
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [pendingIdea, setPendingIdea] = useState<IdeaConfirmation>({
+    idea: '',
+    metadata: null,
+    isOpen: false
+  });
 
   // Load initial idea from localStorage + keep in sync
   useEffect(() => {
@@ -206,6 +217,18 @@ export function useIdeaManagement() {
   const handleIdeaSubmit = (idea: string, metadata: any) => {
     console.log('IdeaManagement handleIdeaSubmit', { idea, metadata });
     
+    // Store pending idea and show confirmation
+    setPendingIdea({
+      idea,
+      metadata,
+      isOpen: true
+    });
+  };
+
+  const confirmIdea = () => {
+    const { idea, metadata } = pendingIdea;
+    console.log('🎯 [useIdeaManagement] Confirming and persisting idea:', idea);
+    
     let kws = extractKeywords(idea);
     if (!kws.length && Array.isArray(metadata?.tags) && metadata.tags.length) {
       kws = metadata.tags.slice(0, 5);
@@ -213,16 +236,71 @@ export function useIdeaManagement() {
     console.log('IdeaManagement extracted keywords', kws);
 
     if (kws.length) {
+      // Persist idea across ALL relevant storage keys
+      const persistEverywhere = () => {
+        // Primary dashboard storage
+        localStorage.setItem('dashboardIdea', idea);
+        
+        // All possible idea keys for maximum compatibility
+        localStorage.setItem('userIdea', idea);
+        localStorage.setItem('currentIdea', idea);
+        localStorage.setItem('ideaText', idea);
+        localStorage.setItem('pmfCurrentIdea', idea);
+        localStorage.setItem('pmf.user.idea', idea);
+        
+        // Store metadata if available
+        if (metadata) {
+          const enrichedMetadata = {
+            ...metadata,
+            idea,
+            idea_text: idea,
+            refined: idea,
+            keywords: kws,
+            timestamp: new Date().toISOString()
+          };
+          localStorage.setItem('ideaMetadata', JSON.stringify(enrichedMetadata));
+          localStorage.setItem('pmf.analysis.metadata', JSON.stringify(enrichedMetadata));
+        }
+        
+        // Session storage for immediate access
+        sessionStorage.setItem('dashboardKeywords', JSON.stringify(kws));
+        sessionStorage.setItem('dashboardIdeaSource', idea);
+        
+        console.log('✨ [useIdeaManagement] Idea persisted everywhere:', { 
+          idea, 
+          keywords: kws,
+          storageKeys: [
+            'dashboardIdea', 'userIdea', 'currentIdea', 
+            'ideaText', 'pmfCurrentIdea', 'pmf.user.idea',
+            'ideaMetadata', 'pmf.analysis.metadata'
+          ]
+        });
+      };
+      
+      persistEverywhere();
       setFilters(prev => ({ ...prev, idea_keywords: kws }));
-      sessionStorage.setItem('dashboardKeywords', JSON.stringify(kws));
-      sessionStorage.setItem('dashboardIdeaSource', idea);
-      console.log('✨ [useIdeaManagement] handleIdeaSubmit saved to session:', { keywords: kws, idea });
-      localStorage.setItem('dashboardIdea', idea);
-      toast({ title: 'Idea captured', description: 'Seeding dashboard with AI insights...' });
+      
+      toast({ 
+        title: '✅ Great! Your idea has been saved', 
+        description: 'The dashboard is now analyzing your startup idea with real market data...' 
+      });
+      
+      // Trigger storage event to notify other components
+      window.dispatchEvent(new CustomEvent('idea:updated', { detail: { idea, keywords: kws } }));
+      
       setShowQuestionnaire(false);
+      setPendingIdea({ idea: '', metadata: null, isOpen: false });
     } else {
-      toast({ title: 'Could not parse idea', description: 'Try editing the idea or add tags.', variant: 'destructive' });
+      toast({ 
+        title: 'Could not parse idea', 
+        description: 'Try editing the idea or add tags.', 
+        variant: 'destructive' 
+      });
     }
+  };
+
+  const cancelIdeaConfirmation = () => {
+    setPendingIdea({ idea: '', metadata: null, isOpen: false });
   };
 
   return {
@@ -230,6 +308,9 @@ export function useIdeaManagement() {
     setFilters,
     showQuestionnaire,
     setShowQuestionnaire,
-    handleIdeaSubmit
+    handleIdeaSubmit,
+    pendingIdea,
+    confirmIdea,
+    cancelIdeaConfirmation
   };
 }
