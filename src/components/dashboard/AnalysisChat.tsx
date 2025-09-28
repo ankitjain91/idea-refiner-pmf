@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { 
   MessageSquare, Send, Loader2, CheckCircle, 
   AlertCircle, Target, Users, TrendingUp, 
@@ -492,34 +493,42 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
     );
   }
   return (
-    <Card className="flex flex-col h-[600px] border-primary/20 bg-gradient-to-br from-card to-card/80">
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <MessageSquare className="h-5 w-5 text-primary" />
+    <Card className="flex flex-col h-[700px] border-0 shadow-2xl bg-gradient-to-br from-background via-background/95 to-primary/5">
+      {/* Enhanced Header with Better Progress */}
+      <div className="p-6 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-primary/20 backdrop-blur">
+              <MessageSquare className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Dashboard Analysis</h3>
+              <p className="text-sm text-muted-foreground">Let's understand your business better</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold">Dashboard Analysis</h3>
-            <p className="text-xs text-muted-foreground">Answer questions to unlock insights</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
-            {currentQuestionIndex + 1} / {ANALYSIS_QUESTIONS.length}
-          </Badge>
-          <div className="w-24 h-2 bg-white/10 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
+          <div className="flex flex-col items-end gap-2">
+            <Badge variant="secondary" className="px-3 py-1">
+              Question {currentQuestionIndex + 1} of {ANALYSIS_QUESTIONS.length}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
+              <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-primary via-primary to-primary/80"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Chat Messages with Better Visual Hierarchy */}
+      <div className="flex-1 overflow-y-auto px-6 py-4">
         <AnimatePresence mode="wait">
-          {/* Show previous answers */}
+          {/* Previous Q&A Pairs */}
           {Object.entries(answers).map(([field, answer], idx) => {
             const question = ANALYSIS_QUESTIONS.find(q => q.field === field);
             if (!question) return null;
@@ -527,140 +536,176 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
             return (
               <motion.div
                 key={field}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="mb-6"
               >
-                {/* Question */}
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 rounded-lg bg-primary/10">
+                {/* Question Bubble */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm">
                     <question.icon className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <div className="bg-white/5 rounded-lg p-3">
-                      <p className="text-sm">{question.question}</p>
+                  <div className="flex-1 max-w-[80%]">
+                    <div className="bg-secondary/50 backdrop-blur rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                      <p className="text-sm font-medium">{question.question}</p>
                     </div>
                   </div>
                 </div>
                 
-                {/* Answer */}
-                <div className="flex items-start gap-3 pl-9">
-                  <div className="flex-1">
-                    <div className="bg-primary/10 rounded-lg p-3">
+                {/* Answer Bubble */}
+                <div className="flex items-start gap-3 justify-end">
+                  <div className="flex-1 max-w-[80%]">
+                    <div className="bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm ml-auto">
                       <p className="text-sm">{answer}</p>
                     </div>
                   </div>
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <div className="p-1.5 rounded-full bg-green-500/20">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  </div>
                 </div>
               </motion.div>
             );
           })}
 
-          {/* Loading AI Suggestion */}
+          {/* Loading AI Suggestion State */}
           {!isAnalyzing && currentQuestion && loadingSuggestion && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center p-8"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center py-12"
             >
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-                  <Loader2 className="h-5 w-5 animate-spin" />
+              <div className="text-center space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 animate-ping">
+                    <div className="h-16 w-16 rounded-full bg-primary/20 mx-auto" />
+                  </div>
+                  <div className="relative p-4 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 mx-auto w-fit">
+                    <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">Analyzing your context to provide suggestions...</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">AI is thinking...</p>
+                  <p className="text-xs text-muted-foreground">Analyzing your context to provide personalized suggestions</p>
+                </div>
               </div>
             </motion.div>
           )}
 
-          {/* Current Question - Only show after AI suggestion is loaded */}
+          {/* Current Question Card - Enhanced Design */}
           {!isAnalyzing && currentQuestion && !loadingSuggestion && (
             <motion.div
               key={currentQuestion.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-3"
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="space-y-4"
             >
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <currentQuestion.icon className="h-4 w-4 text-primary" />
-              </div>
-              <div className="flex-1">
-                <div className="bg-white/5 rounded-lg p-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-medium">{currentQuestion.question}</p>
-                    <Badge 
-                      variant="outline" 
-                      className={cn(
-                        "text-xs",
-                        currentQuestion.importance === 'critical' && "border-red-500/50 text-red-500",
-                        currentQuestion.importance === 'important' && "border-yellow-500/50 text-yellow-500",
-                        currentQuestion.importance === 'helpful' && "border-green-500/50 text-green-500"
-                      )}
-                    >
-                      {currentQuestion.importance}
-                    </Badge>
+              {/* Question Card */}
+              <div className="bg-gradient-to-br from-secondary via-secondary/80 to-secondary/60 rounded-2xl p-6 shadow-lg border border-border/50">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/25 to-primary/15">
+                      <currentQuestion.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-base mb-1">{currentQuestion.question}</p>
+                      <Badge 
+                        variant={
+                          currentQuestion.importance === 'critical' ? "destructive" :
+                          currentQuestion.importance === 'important' ? "default" : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {currentQuestion.importance}
+                      </Badge>
+                    </div>
                   </div>
-                  
-                  {/* AI Suggestion - Always show this section */}
-                  <div className="mt-3 p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
-                    <div className="flex items-start gap-2">
-                      <Sparkles className="h-4 w-4 text-primary mt-0.5 animate-pulse" />
-                      <div className="flex-1">
-                        <p className="text-xs font-medium text-primary mb-1">AI-Powered Suggestion</p>
-                        {aiSuggestion ? (
-                          <>
-                            <p className="text-sm text-foreground mb-2">{aiSuggestion}</p>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              className="text-xs"
-                              onClick={() => setCurrentAnswer(aiSuggestion)}
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Use this suggestion
-                            </Button>
-                          </>
-                        ) : (
-                          <p className="text-xs text-muted-foreground italic">
-                            Cannot fetch AI suggestions at this time.
-                          </p>
-                        )}
+                </div>
+                
+                {/* AI Suggestion Card */}
+                {aiSuggestion && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="p-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-primary/20">
+                        <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <p className="text-xs font-semibold text-primary mb-1.5">AI Suggestion</p>
+                          <p className="text-sm leading-relaxed">{aiSuggestion}</p>
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
+                            setCurrentAnswer(aiSuggestion);
+                            toast({
+                              title: "Suggestion applied",
+                              description: "You can edit it before sending",
+                            });
+                          }}
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Use this suggestion
+                        </Button>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Options for select type */}
-                  {currentQuestion.type === 'select' && currentQuestion.options && (
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      {currentQuestion.options.map((option) => (
+                  </motion.div>
+                )}
+                
+                {/* Options Grid for Select Type */}
+                {currentQuestion.type === 'select' && currentQuestion.options && (
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    {currentQuestion.options.map((option, idx) => (
+                      <motion.div
+                        key={option}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                      >
                         <Button
-                          key={option}
                           variant={currentAnswer === option ? "default" : "outline"}
-                          size="sm"
+                          className="w-full justify-start gap-2 h-auto py-3 px-4"
                           onClick={() => setCurrentAnswer(option)}
-                          className="justify-start"
                         >
-                          {option}
+                          {currentAnswer === option && <CheckCircle className="h-4 w-4" />}
+                          <span className="text-sm">{option}</span>
                         </Button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
 
-          {/* Analyzing State */}
+          {/* Analyzing State - Enhanced */}
           {isAnalyzing && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center py-8"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center py-16"
             >
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-                <p className="text-sm font-medium">Analyzing your responses...</p>
-                <p className="text-xs text-muted-foreground">Generating personalized insights</p>
+              <div className="text-center space-y-6">
+                <div className="relative">
+                  <div className="absolute inset-0 animate-pulse">
+                    <div className="h-24 w-24 rounded-full bg-gradient-to-r from-primary/30 via-primary/20 to-primary/30 mx-auto" />
+                  </div>
+                  <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 mx-auto w-fit">
+                    <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold">Creating your dashboard...</p>
+                  <p className="text-sm text-muted-foreground">Analyzing responses and generating insights</p>
+                  <Progress value={75} className="w-48 mx-auto h-2" />
+                </div>
               </div>
             </motion.div>
           )}
@@ -669,37 +714,45 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      {!isAnalyzing && currentQuestion && (
-        <div className="p-4 border-t border-white/10">
+      {/* Enhanced Input Area */}
+      {!isAnalyzing && currentQuestion && !loadingSuggestion && (
+        <div className="p-6 border-t bg-gradient-to-t from-background via-background/95 to-transparent">
           {currentQuestion.type === 'text' && (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Type your answer..."
-                value={currentAnswer}
-                onChange={(e) => setCurrentAnswer(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmitAnswer()}
-                className="flex-1 bg-white/5 border-white/10"
-                disabled={isProcessing}
-              />
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <Input
+                  placeholder="Type your answer here..."
+                  value={currentAnswer}
+                  onChange={(e) => setCurrentAnswer(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmitAnswer()}
+                  className="pr-12 py-6 text-sm bg-secondary/30 border-border/50 focus:bg-secondary/50 transition-colors"
+                  disabled={isProcessing}
+                />
+                <Badge variant="outline" className="absolute right-3 top-1/2 -translate-y-1/2 text-xs">
+                  {currentAnswer.length > 0 ? `${currentAnswer.length} chars` : 'Required'}
+                </Badge>
+              </div>
               <Button
                 onClick={handleSubmitAnswer}
                 disabled={isProcessing || !currentAnswer.trim()}
-                className="gap-2"
+                size="lg"
+                className="gap-2 px-6"
               >
                 {isProcessing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Send className="h-4 w-4" />
                     Send
+                    <Send className="h-4 w-4" />
                   </>
                 )}
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={skipQuestion}
                 disabled={isProcessing}
+                size="lg"
+                className="text-muted-foreground"
               >
                 Skip
               </Button>
@@ -707,11 +760,21 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
           )}
           
           {currentQuestion.type === 'select' && (
-            <div className="flex gap-2">
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="ghost"
+                onClick={skipQuestion}
+                disabled={isProcessing}
+                size="lg"
+                className="text-muted-foreground"
+              >
+                Skip this question
+              </Button>
               <Button
                 onClick={handleSubmitAnswer}
                 disabled={isProcessing || !currentAnswer}
-                className="flex-1 gap-2"
+                size="lg"
+                className="gap-2 px-8"
               >
                 {isProcessing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -721,13 +784,6 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={skipQuestion}
-                disabled={isProcessing}
-              >
-                Skip
               </Button>
             </div>
           )}
