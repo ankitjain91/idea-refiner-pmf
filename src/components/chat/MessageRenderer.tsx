@@ -294,6 +294,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           </motion.div>
         </div>
       )}
+      
+      {/* Show error message if suggestions failed to load */}
+      {message.suggestionsError && (
+        <div className="mt-3 text-xs text-muted-foreground/60 italic">
+          <span className="text-destructive/60">Failed to fetch AI suggestions</span>
+        </div>
+      )}
     </>
   );
 };

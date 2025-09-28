@@ -1839,6 +1839,7 @@ User submission: """${messageText}"""`;
         let suggestions = data.suggestions || [];
         
         // Generate AI-powered suggestions with explanations
+        let suggestionsError = false;
         try {
           const { data: suggestionData } = await supabase.functions.invoke('generate-suggestions', {
             body: { 
@@ -1863,22 +1864,15 @@ User submission: """${messageText}"""`;
               const text = typeof s === 'string' ? s : (s?.text ?? String(s ?? '').trim());
               return { text, explanation: generateSuggestionExplanation(text) };
             });
+          } else {
+            suggestionsError = true;
           }
         } catch (error) {
           console.error('Error getting AI suggestions:', error);
-          // Fallback: generate basic suggestions with explanations
-          suggestions = generateFallbackSuggestions(formattedContent, 'verbose');
+          suggestionsError = true;
         }
-        // Ensure we always have suggestions
-        if (!suggestions || suggestions.length === 0) {
-          suggestions = [
-            'I need to validate this with customers by...',
-            'My minimum viable version would include...',
-            'My main competitors are... but I differentiate by...',
-            'The biggest risks are... and I\'ll mitigate them by...'
-          ];
-        }
-        // Generate static suggestion explanation
+        
+        // Generate static suggestion explanation only if we have suggestions
         const suggestionTexts = suggestions.map(s => typeof s === 'string' ? s : s?.text || String(s));
         const staticSuggestionExplanation = suggestionTexts.length > 0 ? 
           generateBrainExplanation(suggestionTexts, formattedContent) : '';
@@ -1901,7 +1895,8 @@ User submission: """${messageText}"""`;
           suggestions,
           pointsEarned: pointChange,
           pointsExplanation: pointsExplanation,
-          suggestionExplanation: staticSuggestionExplanation
+          suggestionExplanation: staticSuggestionExplanation,
+          suggestionsError // Pass the error flag to the message
         };
         
         setMessages(prev => {

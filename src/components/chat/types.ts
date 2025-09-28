@@ -15,6 +15,7 @@ export interface Message {
   originalUserMessage?: string; // Store the user message that triggered this bot response
   awaitingResponse?: boolean; // Flag for user messages waiting for bot response
   failedToGetResponse?: boolean; // Flag when bot response failed
+  suggestionsError?: boolean; // Flag when suggestions failed to load
 }
 
 export interface EnhancedIdeaChatProps {
