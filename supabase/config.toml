@@ -299,7 +299,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.gdelt-news]
-verify_jwt = true
+verify_jwt = false
 
 [functions.groq-synthesis]
 verify_jwt = true

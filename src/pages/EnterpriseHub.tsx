@@ -17,6 +17,7 @@ import { useSession } from "@/contexts/SimpleSessionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalFilters } from "@/components/hub/GlobalFilters";
 import { DataTile } from "@/components/hub/DataTile";
+import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 
 export default function EnterpriseHub() {
   const { currentSession } = useSession();
@@ -178,9 +179,25 @@ export default function EnterpriseHub() {
         </Card>
       </div>
 
+      {/* Market Trends Card - Featured */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <MarketTrendsCard filters={filters} />
+        </div>
+        <div className="space-y-4">
+          <DataTile
+            title="Google Trends"
+            icon={Activity}
+            tileType="google_trends"
+            filters={filters}
+            description="Search trend analysis"
+          />
+        </div>
+      </div>
+
       {/* Main Grid of Data Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {tiles.map((tile) => (
+        {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends').map((tile) => (
           <div key={tile.id} className={tile.span}>
             <DataTile
               title={tile.title}
