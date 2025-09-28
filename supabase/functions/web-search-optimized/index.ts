@@ -1,10 +1,13 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -13,107 +16,340 @@ serve(async (req) => {
   }
 
   try {
-    const { filters } = await req.json();
+    const { filters, requestType = 'dashboard', tileType } = await req.json();
     
-    console.log('Web search optimized disabled - returning placeholder data');
+    console.log('Web search optimized request:', { filters, requestType, tileType });
 
-    // Return a disabled message
-    const responseData = {
-      updatedAt: new Date().toISOString(),
-      filters,
-      tiles: {
-        'search-trends': {
-          metrics: [],
-          items: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'competitor-landscape': {
-          metrics: [],
-          competitors: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'target-audience': {
-          metrics: [],
-          demographics: {},
-          notes: "OpenAI integration has been disabled"
-        },
-        'pm-fit-score': {
-          metrics: [],
-          signals: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'market-potential': {
-          metrics: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'unit-economics': {
-          metrics: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'risk-matrix': {
-          metrics: [],
-          risks: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'social-sentiment': {
-          metrics: [],
-          mentions: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'partnerships': {
-          metrics: [],
-          opportunities: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'roadmap': {
-          metrics: [],
-          milestones: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'resource-estimator': {
-          metrics: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'funding-pathways': {
-          metrics: [],
-          pathways: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'success-stories': {
-          companies: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'simulations': {
-          scenarios: [],
-          notes: "OpenAI integration has been disabled"
-        },
-        'quick-poll': {
-          questions: [],
-          notes: "OpenAI integration has been disabled"
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Extract search parameters
+    const idea = filters?.idea_keywords?.join(' ') || '';
+    const industry = filters?.industry || '';
+    const geo = filters?.geography || 'us';
+    const timeWindow = filters?.time_window || '12 months';
+    
+    // Check cache first (using idea + filters as key)
+    const cacheKey = `${idea}_${industry}_${geo}_${timeWindow}`;
+    const cacheExpiry = requestType === 'tile-details' ? 15 : 60; // minutes
+    
+    // Try to get from cache
+    const { data: cachedData } = await supabase
+      .from('web_search_cache')
+      .select('*')
+      .eq('cache_key', cacheKey)
+      .gte('expires_at', new Date().toISOString())
+      .single();
+    
+    if (cachedData) {
+      console.log('Returning cached data');
+      return new Response(
+        JSON.stringify({
+          ...cachedData.data,
+          cacheHit: true,
+          updatedAt: cachedData.created_at
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Build grouped search queries
+    let searchQueries = [];
+    let totalCost = 0;
+    
+    if (requestType === 'dashboard') {
+      // Group A: Market and competitor insights
+      const queryA = `${idea} market size competitors funding comparable startups demographics ${timeWindow} ${geo}`;
+      
+      // Group B: Operational insights
+      const queryB = `${industry} CAC LTV benchmarks risks regulations ${geo} partnerships investor interest forum sentiment 30 60 90 MVP plan`;
+      
+      searchQueries = [queryA, queryB];
+      
+      // Execute searches in parallel (try Serper first, fallback to Tavily)
+      const searchPromises = searchQueries.map(async (query) => {
+        try {
+          // Try Serper first
+          const serperResponse = await fetch(`${SUPABASE_URL}/functions/v1/serper-search`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query, num: 10, geo })
+          });
+          
+          if (serperResponse.ok) {
+            const data = await serperResponse.json();
+            totalCost += 0.0003; // $0.30 per 1000 queries
+            return data;
+          }
+        } catch (err) {
+          console.error('Serper search failed:', err);
         }
-      },
-      searchQueries: [],
-      totalSearches: 0,
-      costEstimate: "$0.00",
-      warnings: ["OpenAI integration has been disabled for this dashboard"],
-      fromCache: false,
-      cacheHit: false
-    };
-
-    return new Response(JSON.stringify(responseData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Error in web search optimized:', error);
+        
+        // Fallback to Tavily
+        try {
+          const tavilyResponse = await fetch(`${SUPABASE_URL}/functions/v1/tavily-search`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query, max_results: 10 })
+          });
+          
+          if (tavilyResponse.ok) {
+            const data = await tavilyResponse.json();
+            totalCost += 0.008; // $0.008 per credit
+            return data;
+          }
+        } catch (err) {
+          console.error('Tavily search failed:', err);
+        }
+        
+        return null;
+      });
+      
+      const searchResults = await Promise.all(searchPromises);
+      
+      // Extract top URLs from search results
+      const allUrls = new Set<string>();
+      searchResults.forEach(result => {
+        if (result?.organic) {
+          result.organic.slice(0, 5).forEach((item: any) => {
+            if (item.link || item.url) {
+              allUrls.add(item.link || item.url);
+            }
+          });
+        }
+      });
+      
+      // Fetch content from top 3-5 URLs using Firecrawl
+      const urlsToFetch = Array.from(allUrls).slice(0, 5);
+      let pageContent = [];
+      
+      if (urlsToFetch.length > 0) {
+        try {
+          const firecrawlResponse = await fetch(`${SUPABASE_URL}/functions/v1/firecrawl-fetch`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ urls: urlsToFetch, maxChars: 800 })
+          });
+          
+          if (firecrawlResponse.ok) {
+            const data = await firecrawlResponse.json();
+            pageContent = data.data || [];
+            totalCost += data.credits * 0.001; // Estimate $0.001 per credit
+          }
+        } catch (err) {
+          console.error('Firecrawl fetch failed:', err);
+        }
+      }
+      
+      // Get GDELT news/sentiment data
+      let newsData = null;
+      try {
+        const gdeltResponse = await fetch(`${SUPABASE_URL}/functions/v1/gdelt-news`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: idea, maxRecords: 50 })
+        });
+        
+        if (gdeltResponse.ok) {
+          newsData = await gdeltResponse.json();
+          // GDELT is free
+        }
+      } catch (err) {
+        console.error('GDELT fetch failed:', err);
+      }
+      
+      // Synthesize all data using Groq
+      const tiles: Record<string, any> = {};
+      const tileTypes = [
+        'search-trends', 'competitor-landscape', 'target-audience', 
+        'pm-fit-score', 'market-potential', 'unit-economics'
+      ];
+      
+      // Process each tile type
+      for (const type of tileTypes) {
+        try {
+          const groqResponse = await fetch(`${SUPABASE_URL}/functions/v1/groq-synthesis`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              searchResults,
+              pageContent,
+              newsData,
+              tileType: type,
+              filters
+            })
+          });
+          
+          if (groqResponse.ok) {
+            const synthesis = await groqResponse.json();
+            tiles[type] = synthesis.data;
+            totalCost += parseFloat(synthesis.usage?.costEstimate?.replace('$', '') || '0');
+          }
+        } catch (err) {
+          console.error(`Groq synthesis failed for ${type}:`, err);
+          // Provide fallback data
+          tiles[type] = {
+            metrics: [],
+            items: [],
+            insights: [`Unable to synthesize ${type} data`],
+            citations: []
+          };
+        }
+      }
+      
+      const responseData = {
+        tiles,
+        searchQueries,
+        totalSearches: searchQueries.length,
+        costEstimate: `$${totalCost.toFixed(4)}`,
+        cacheHit: false,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Cache the results (create table if needed)
+      try {
+        await supabase
+          .from('web_search_cache')
+          .upsert({
+            cache_key: cacheKey,
+            data: responseData,
+            expires_at: new Date(Date.now() + cacheExpiry * 60 * 1000).toISOString(),
+            created_at: new Date().toISOString()
+          });
+      } catch (cacheErr) {
+        console.warn('Failed to cache results:', cacheErr);
+      }
+      
+      return new Response(
+        JSON.stringify(responseData),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+      
+    } else if (requestType === 'tile-details' && tileType) {
+      // On-click deepening - single targeted search
+      const detailQuery = `${idea} ${tileType.replace('-', ' ')} detailed analysis ${geo}`;
+      
+      // Execute targeted search
+      let searchResult = null;
+      try {
+        const serperResponse = await fetch(`${SUPABASE_URL}/functions/v1/serper-search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: detailQuery, num: 5, geo })
+        });
+        
+        if (serperResponse.ok) {
+          searchResult = await serperResponse.json();
+          totalCost += 0.0003;
+        }
+      } catch (err) {
+        console.error('Detail search failed:', err);
+      }
+      
+      // Fetch one key URL
+      let detailContent = null;
+      if (searchResult?.organic?.[0]?.link) {
+        try {
+          const firecrawlResponse = await fetch(`${SUPABASE_URL}/functions/v1/firecrawl-fetch`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ urls: [searchResult.organic[0].link], maxChars: 1200 })
+          });
+          
+          if (firecrawlResponse.ok) {
+            const data = await firecrawlResponse.json();
+            detailContent = data.data?.[0];
+            totalCost += 0.001;
+          }
+        } catch (err) {
+          console.error('Detail fetch failed:', err);
+        }
+      }
+      
+      // Quick Groq synthesis
+      let detailSynthesis = null;
+      try {
+        const groqResponse = await fetch(`${SUPABASE_URL}/functions/v1/groq-synthesis`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            searchResults: [searchResult],
+            pageContent: detailContent ? [detailContent] : [],
+            tileType,
+            filters
+          })
+        });
+        
+        if (groqResponse.ok) {
+          const synthesis = await groqResponse.json();
+          detailSynthesis = synthesis.data;
+          totalCost += parseFloat(synthesis.usage?.costEstimate?.replace('$', '') || '0');
+        }
+      } catch (err) {
+        console.error('Detail synthesis failed:', err);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          tileType,
+          details: detailSynthesis,
+          costEstimate: `$${totalCost.toFixed(4)}`,
+          updatedAt: new Date().toISOString()
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
+    // Default response
     return new Response(
       JSON.stringify({
-        error: 'Service error',
-        message: error instanceof Error ? error.message : 'Unable to process request'
-      }), 
-      {
+        error: 'Invalid request type',
+        requestType
+      }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+    
+  } catch (error) {
+    console.error('Error in web-search-optimized:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        tiles: {},
+        searchQueries: [],
+        totalSearches: 0,
+        costEstimate: '$0',
+        cacheHit: false,
+        updatedAt: new Date().toISOString()
+      }),
+      { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
