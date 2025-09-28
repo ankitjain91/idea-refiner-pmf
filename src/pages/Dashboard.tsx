@@ -35,6 +35,23 @@ const Dashboard = () => {
   useEffect(() => {
     if (loading) return;
     if (!user) return;
+    
+    // Check for demo mode first
+    const isDemoMode = new URLSearchParams(window.location.search).get('demo') === 'true';
+    if (isDemoMode) {
+      // Set demo data for viewing the dashboard
+      setAnalysis({
+        idea: "AI-powered startup validation platform",
+        metadata: {
+          pmfScore: 72,
+          competitors: ['Competitor A', 'Competitor B', 'Competitor C'],
+          refinements: ['Improve onboarding', 'Add analytics', 'Enhance UI'],
+          personas: ['Founders', 'Product Managers', 'Investors']
+        }
+      });
+      return;
+    }
+    
     const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
     const idea = localStorage.getItem(LS_KEYS.userIdea);
     const metaRaw = localStorage.getItem(LS_KEYS.ideaMetadata);
