@@ -2,6 +2,7 @@ import { LS_KEYS } from '@/lib/storage-keys';
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteAllUserSessions } from "@/utils/deleteAllSessions";
 import { Loader2 } from "lucide-react";
 
 // Clear ALL session-related data from localStorage on logout
@@ -64,6 +65,13 @@ const Logout = () => {
       try { 
         window.dispatchEvent(new CustomEvent('auth:state-changed', { detail: 'SIGNED_OUT' })); 
       } catch {}
+      
+      // Also delete all persisted sessions for this user from Supabase
+      try {
+        await deleteAllUserSessions();
+      } catch (e) {
+        console.error('[Logout] Error deleting persisted sessions:', e);
+      }
       
       // Sign out from Supabase
       await supabase.auth.signOut();
