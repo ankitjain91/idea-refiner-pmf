@@ -118,6 +118,8 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
       try {
         const conversationHistory = JSON.parse(localStorage.getItem('conversationHistory') || '[]');
         
+        console.log('Fetching AI suggestion for:', currentQuestion.field);
+        
         const { data, error } = await supabase.functions.invoke('generate-analysis-suggestions', {
           body: {
             question: currentQuestion.question,
@@ -128,7 +130,10 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
           }
         });
         
-        if (!error && data?.suggestion) {
+        if (error) {
+          console.error('Error from edge function:', error);
+        } else if (data?.suggestion) {
+          console.log('Received suggestion:', data.suggestion);
           setAiSuggestion(data.suggestion);
         }
       } catch (error) {
@@ -138,8 +143,13 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
       }
     };
     
-    fetchAISuggestion();
-  }, [currentQuestionIndex, currentQuestion, hasEnteredIdea, ideaText, answers]);
+    // Delay slightly to ensure state is ready
+    const timer = setTimeout(() => {
+      fetchAISuggestion();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [currentQuestionIndex, currentQuestion, hasEnteredIdea, ideaText]);
 
   const handleSubmitIdea = () => {
     if (!ideaInput.trim()) {
@@ -417,8 +427,25 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
             );
           })}
 
-          {/* Current Question */}
-          {!isAnalyzing && currentQuestion && (
+          {/* Loading AI Suggestion */}
+          {!isAnalyzing && currentQuestion && loadingSuggestion && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-center p-8"
+            >
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+                <p className="text-sm text-muted-foreground">Analyzing your context to provide suggestions...</p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Current Question - Only show after AI suggestion is loaded */}
+          {!isAnalyzing && currentQuestion && !loadingSuggestion && (
             <motion.div
               key={currentQuestion.id}
               initial={{ opacity: 0, y: 10 }}
@@ -445,35 +472,33 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
                     </Badge>
                   </div>
                   
-                  {/* AI Suggestion */}
-                  {(aiSuggestion || loadingSuggestion) && (
-                    <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <div className="flex items-start gap-2">
-                        <Sparkles className="h-4 w-4 text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-primary mb-1">AI Suggestion</p>
-                          {loadingSuggestion ? (
-                            <div className="flex items-center gap-2">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              <span className="text-xs text-muted-foreground">Analyzing context...</span>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">{aiSuggestion}</p>
-                          )}
-                        </div>
+                  {/* AI Suggestion - Always show this section */}
+                  <div className="mt-3 p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 text-primary mt-0.5 animate-pulse" />
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-primary mb-1">AI-Powered Suggestion</p>
+                        {aiSuggestion ? (
+                          <>
+                            <p className="text-sm text-foreground mb-2">{aiSuggestion}</p>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => setCurrentAnswer(aiSuggestion)}
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Use this suggestion
+                            </Button>
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            No suggestion available - please answer based on your knowledge
+                          </p>
+                        )}
                       </div>
-                      {aiSuggestion && !loadingSuggestion && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-xs"
-                          onClick={() => setCurrentAnswer(aiSuggestion)}
-                        >
-                          Use this suggestion
-                        </Button>
-                      )}
                     </div>
-                  )}
+                  </div>
                   
                   {/* Options for select type */}
                   {currentQuestion.type === 'select' && currentQuestion.options && (
