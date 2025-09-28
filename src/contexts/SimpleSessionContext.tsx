@@ -198,6 +198,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem(LS_KEYS.ideaMetadata);
       localStorage.removeItem('wrinklePoints');
       
+      // Clear ALL session-specific storage from previous sessions
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.startsWith('session_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
       // Trigger a custom event to reset the chat component
       window.dispatchEvent(new CustomEvent('session:reset'));
       
@@ -296,16 +304,52 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       setCurrentSession(session);
 
+      // Clear ALL localStorage data first to prevent cross-session pollution
+      localStorage.removeItem('chatHistory');
+      localStorage.removeItem('enhancedIdeaChatMessages');
+      localStorage.removeItem(LS_KEYS.userIdea);
+      localStorage.removeItem('currentIdea');
+      localStorage.removeItem('pmf.user.idea');
+      localStorage.removeItem('userIdea');
+      localStorage.removeItem('pmf.user.answers');
+      localStorage.removeItem('ideaMetadata');
+      localStorage.removeItem('conversationHistory');
+      localStorage.removeItem(LS_KEYS.pmfScore);
+      localStorage.removeItem(LS_KEYS.analysisCompleted);
+      localStorage.removeItem('pmf.analysis.completed');
+      localStorage.removeItem(LS_KEYS.ideaMetadata);
+      localStorage.removeItem('wrinklePoints');
+      
+      // Clear any session-specific storage from other sessions
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.startsWith('session_') && !key.includes(sessionId)) {
+          // Don't remove data from the session we're loading
+          if (!key.includes(sessionId)) {
+            localStorage.removeItem(key);
+          }
+        }
+      });
 
-      // Restore session data to localStorage
+      // Now restore session data to localStorage
       // Store in both locations for compatibility
       localStorage.setItem('chatHistory', JSON.stringify(session.data.chatHistory));
       localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(session.data.chatHistory));
-      localStorage.setItem(LS_KEYS.userIdea, session.data.currentIdea);
-      localStorage.setItem('currentIdea', session.data.currentIdea);
+      
+      // Only restore idea and analysis data if they actually exist in the session
+      if (session.data.currentIdea) {
+        localStorage.setItem(LS_KEYS.userIdea, session.data.currentIdea);
+        localStorage.setItem('currentIdea', session.data.currentIdea);
+        // Store in session-specific key
+        localStorage.setItem(`session_${sessionId}_idea`, session.data.currentIdea);
+        if (session.data.analysisData) {
+          localStorage.setItem(`session_${sessionId}_metadata`, JSON.stringify({ refined: session.data.currentIdea }));
+        }
+      }
+      
       localStorage.setItem(LS_KEYS.pmfScore, String(session.data.pmfScore || 0));
       localStorage.setItem(LS_KEYS.analysisCompleted, session.data.analysisCompleted ? 'true' : 'false');
-      localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(session.data.analysisData));
+      localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(session.data.analysisData || {}));
       localStorage.setItem('currentSessionId', sessionId);
       
       // Restore wrinkle points if available
