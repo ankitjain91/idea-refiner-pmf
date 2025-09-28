@@ -26,17 +26,42 @@ export const useDashboardData = (idea: string | null) => {
 
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // Get conversation history from localStorage
+  const getConversationHistory = useCallback(() => {
+    try {
+      const conversationData = localStorage.getItem('conversationHistory');
+      return conversationData ? JSON.parse(conversationData) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  // Get idea metadata
+  const getIdeaMetadata = useCallback(() => {
+    try {
+      const metadataStr = localStorage.getItem('ideaMetadata');
+      return metadataStr ? JSON.parse(metadataStr) : {};
+    } catch {
+      return {};
+    }
+  }, []);
+
   const fetchInsights = useCallback(async (type: string) => {
     if (!idea) return null;
+
+    const conversation = getConversationHistory();
+    const metadata = getIdeaMetadata();
 
     try {
       const { data: response, error } = await supabase.functions.invoke('dashboard-insights', {
         body: { 
           idea,
           analysisType: type,
+          conversation,
           context: {
             userId: (await supabase.auth.getUser()).data.user?.id,
-            analysisId: localStorage.getItem('analysisId')
+            analysisId: localStorage.getItem('analysisId'),
+            ...metadata
           }
         }
       });

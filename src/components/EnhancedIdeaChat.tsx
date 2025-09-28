@@ -1799,7 +1799,50 @@ User submission: """${messageText}"""`;
           suggestionExplanation: staticSuggestionExplanation
         };
         
-        setMessages(prev => [...prev, botMessage]);
+        setMessages(prev => {
+          const newMessages = [...prev, botMessage];
+          
+          // Save conversation history to localStorage
+          const conversationHistory = newMessages.map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.content,
+            timestamp: msg.timestamp
+          }));
+          localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+          
+          // Extract and save metadata
+          const extractFromMessage = (keyword: string, text: string) => {
+            const pattern = new RegExp(`${keyword}[^.!?]*[.!?]`, 'gi');
+            const matches = text.match(pattern);
+            return matches ? matches[0] : '';
+          };
+          
+          const metadata = {
+            refined: currentIdea || '',
+            targetAudience: extractFromMessage('target|audience|customer', formattedContent),
+            problemSolving: extractFromMessage('problem|solve|pain', formattedContent),
+            businessModel: extractFromMessage('business model|revenue|pricing', formattedContent),
+            uniqueValue: extractFromMessage('unique|different|special', formattedContent),
+            marketSize: extractFromMessage('market|size|billion|million', formattedContent),
+            competitorAnalysis: extractFromMessage('competitor|competition|rival', formattedContent)
+          };
+          
+          const existingMetadata = localStorage.getItem('ideaMetadata');
+          if (existingMetadata) {
+            try {
+              const existing = JSON.parse(existingMetadata);
+              Object.keys(metadata).forEach(key => {
+                if (!metadata[key] && existing[key]) {
+                  metadata[key] = existing[key];
+                }
+              });
+            } catch {}
+          }
+          
+          localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
+          
+          return newMessages;
+        });
       }
     } catch (error) {
       console.error('Error:', error);

@@ -18,55 +18,114 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
-    const { idea, context, analysisType } = await req.json();
+    const { idea, context, analysisType, conversation } = await req.json();
 
     console.log('Analyzing dashboard insights for:', idea);
+    console.log('Conversation context available:', conversation?.length || 0, 'messages');
 
-    // Generate dynamic insights based on analysis type
-    const systemPrompt = `You are a startup analytics engine providing real-time business intelligence. Generate detailed, data-driven insights with specific metrics and actionable recommendations.`;
+    // Build comprehensive context from conversation
+    let conversationContext = '';
+    if (conversation && conversation.length > 0) {
+      conversationContext = `
+        Previous conversation context (${conversation.length} messages):
+        ${conversation.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n')}
+        
+        Key insights from conversation:
+        - User's refined idea: ${context?.refinedIdea || idea}
+        - Target audience: ${context?.targetAudience || 'Not specified'}
+        - Problem solving: ${context?.problemSolving || 'Not specified'}
+        - Market gap: ${context?.marketGap || 'Not specified'}
+        - Unique value: ${context?.uniqueValue || 'Not specified'}
+        - Business model: ${context?.businessModel || 'Not specified'}
+        - Revenue strategy: ${context?.revenueStrategy || 'Not specified'}
+      `;
+    }
+
+    // Generate dynamic insights based on analysis type with full context
+    const systemPrompt = `You are a startup analytics engine providing real-time business intelligence. 
+    You have access to the full conversation history and context about the startup idea.
+    Generate detailed, data-driven insights with specific metrics and actionable recommendations.
+    Base your analysis on the conversation context provided, extracting relevant information about the user's idea, target market, and business model.`;
 
     const analysisPrompts = {
+      validation: `Check if we have enough information to populate a comprehensive dashboard for: ${idea}
+        ${conversationContext}
+        
+        Return JSON with:
+        - hasMinimumData: boolean (true if we have enough data)
+        - missingFields: array of missing critical information
+        - suggestedQuestions: array of questions to ask user
+        - dataCompleteness: percentage 0-100
+        - readyForDashboard: boolean`,
+
       market: `Analyze the market opportunity for: ${idea}
+        ${conversationContext}
+        
         Return JSON with:
         - marketSize: total addressable market in USD
         - growthRate: annual percentage
-        - segments: array of market segments with sizes
+        - segments: array of {name, size, growthRate, fit}
         - trends: current market trends
-        - opportunities: specific opportunities with potential revenue`,
+        - opportunities: array of {title, description, revenue, priority}
+        - entryBarriers: key challenges to market entry`,
       
       competition: `Analyze competitive landscape for: ${idea}
+        ${conversationContext}
+        
         Return JSON with:
-        - competitors: array with name, marketShare, strengths, weaknesses, funding
-        - competitiveAdvantage: unique differentiators
-        - marketGaps: unserved needs
+        - competitors: array with {name, marketShare, strengths, weaknesses, funding, threat}
+        - competitiveAdvantage: array of unique differentiators
+        - marketGaps: array of unserved needs
         - threatLevel: 1-100 score
-        - recommendations: specific competitive strategies`,
+        - recommendations: array of competitive strategies
+        - positioning: how to position against competitors`,
       
       metrics: `Generate key performance metrics for: ${idea}
+        ${conversationContext}
+        
         Return JSON with:
-        - pmfScore: product-market fit score 1-100
-        - customerAcquisitionCost: estimated CAC
-        - lifetimeValue: estimated LTV
+        - pmfScore: product-market fit score 1-100 with reasoning
+        - customerAcquisitionCost: estimated CAC with breakdown
+        - lifetimeValue: estimated LTV with calculation
         - burnRate: monthly burn estimate
         - runway: months of runway
-        - conversionRate: expected conversion %
-        - churnRate: expected monthly churn %`,
+        - conversionRate: expected conversion % with funnel
+        - churnRate: expected monthly churn %
+        - unitEconomics: detailed unit economics`,
       
       channels: `Analyze marketing channels for: ${idea}
+        ${conversationContext}
+        
         Return JSON with:
-        - channels: array with channel, roi, cost, timeline, strategy
-        - topChannels: top 3 recommended channels
-        - budget: recommended monthly budget
-        - campaignIdeas: specific campaign concepts`,
+        - channels: array with {channel, roi, cost, timeline, strategy, priority}
+        - topChannels: top 3 recommended channels with reasoning
+        - budget: recommended monthly budget breakdown
+        - campaignIdeas: array of specific campaign concepts
+        - contentStrategy: content marketing approach
+        - growthHacks: innovative growth strategies`,
       
       realtime: `Generate real-time business metrics for: ${idea}
+        ${conversationContext}
+        
         Return JSON with:
-        - activeUsers: current active users (simulate realistic number)
-        - dailyRevenue: today's revenue
-        - conversionEvents: recent conversions array
-        - engagement: engagement metrics
-        - alerts: any critical alerts
-        - predictions: next 24hr predictions`
+        - activeUsers: current active users (realistic based on stage)
+        - dailyRevenue: today's revenue estimate
+        - conversionEvents: array of {type, time, value, user}
+        - engagement: {dau, mau, retention, sessionLength}
+        - alerts: array of critical business alerts
+        - predictions: {next24hr, nextWeek, nextMonth}
+        - healthScore: overall business health 1-100`,
+
+      suggestions: `Generate actionable suggestions and next steps for: ${idea}
+        ${conversationContext}
+        
+        Return JSON with:
+        - immediateActions: array of {action, impact, effort, timeline}
+        - metricsToWatch: array of {metric, target, current, importance}
+        - experiments: array of {hypothesis, test, success_criteria}
+        - milestonesNext30Days: array of key milestones
+        - resourcesNeeded: array of {resource, purpose, cost}
+        - risks: array of {risk, likelihood, impact, mitigation}`
     };
 
     const prompt = analysisPrompts[analysisType as keyof typeof analysisPrompts] || analysisPrompts.metrics;

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { DataCompletionCard, useIdeaValidation } from '@/components/dashboard/DataValidation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +15,7 @@ import {
   Loader2, Brain, Target, TrendingUp, Clock, Search,
   BarChart3, Zap, Users, Globe, Sparkles, Activity,
   CircleDollarSign, RefreshCw, AlertCircle, CheckCircle,
-  ArrowUp, ArrowDown, Shield, Rocket, ChevronRight
+  ArrowUp, ArrowDown, Shield, Rocket, ChevronRight, Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,6 +57,33 @@ const Dashboard = () => {
     error, 
     refresh 
   } = useDashboardData(idea);
+  
+  // Validate data completeness
+  const { validation, loading: validationLoading } = useIdeaValidation();
+  
+  // Get suggestions data
+  const [suggestions, setSuggestions] = useState<any>(null);
+  
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!idea) return;
+      
+      const { data } = await supabase.functions.invoke('dashboard-insights', {
+        body: { 
+          idea,
+          analysisType: 'suggestions',
+          conversation: JSON.parse(localStorage.getItem('conversationHistory') || '[]'),
+          context: JSON.parse(localStorage.getItem('ideaMetadata') || '{}')
+        }
+      });
+      
+      if (data?.insights) {
+        setSuggestions(data.insights);
+      }
+    };
+    
+    fetchSuggestions();
+  }, [idea]);
 
   // Auto-refresh
   useEffect(() => {
@@ -145,6 +174,112 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
+        {/* Data Validation Card */}
+        {validation && !validation.readyForDashboard && (
+          <div className="mb-6">
+            <DataCompletionCard
+              validation={validation}
+              onAskQuestion={(question) => {
+                // Store question and navigate to IdeaChat
+                localStorage.setItem('pendingQuestion', question);
+                navigate('/ideachat');
+              }}
+              onGoToDashboard={() => refresh()}
+            />
+          </div>
+        )}
+
+        {/* Interactive Suggestions */}
+        {suggestions && (
+          <div className="mb-6">
+            <Card className="p-6 border-primary/20">
+              <div className="flex items-center gap-3 mb-4">
+                <Lightbulb className="h-5 w-5 text-yellow-500" />
+                <h3 className="text-lg font-semibold">Recommended Actions</h3>
+                <Badge variant="outline">AI-Powered</Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                {suggestions?.immediateActions?.slice(0, 3).map((action: any, idx: number) => (
+                  <motion.div
+                    key={idx}
+                    whileHover={{ scale: 1.02 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20 cursor-pointer"
+                    onClick={() => {
+                      localStorage.setItem('pendingQuestion', `How do I ${action.action}?`);
+                      navigate('/ideachat');
+                    }}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <div className="flex gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          {action.impact || 'High'} Impact
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {action.effort || 'Low'} Effort
+                        </Badge>
+                      </div>
+                    </div>
+                    <h4 className="font-medium mb-1">{action.action || action}</h4>
+                    <p className="text-xs text-muted-foreground">{action.timeline || 'Start immediately'}</p>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Metrics to Watch */}
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">Key Metrics to Track</h4>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {suggestions?.metricsToWatch?.slice(0, 4).map((metric: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-white/5 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{metric.metric || metric}</span>
+                        <Activity className="h-3 w-3 text-primary" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Target:</span>
+                        <span className="text-sm font-semibold text-green-500">{metric.target || 'TBD'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Experiments to Run */}
+              {suggestions?.experiments && suggestions.experiments.length > 0 && (
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium mb-3">Experiments to Consider</h4>
+                  <div className="space-y-2">
+                    {suggestions.experiments.slice(0, 2).map((exp: any, idx: number) => (
+                      <motion.div
+                        key={idx}
+                        whileHover={{ x: 4 }}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer"
+                        onClick={() => {
+                          localStorage.setItem('pendingQuestion', `How should I test: ${exp.hypothesis}?`);
+                          navigate('/ideachat');
+                        }}
+                      >
+                        <Target className="h-4 w-4 text-blue-500" />
+                        <div className="flex-1">
+                          <p className="text-sm">{exp.hypothesis || exp}</p>
+                          <p className="text-xs text-muted-foreground">{exp.test || 'A/B test recommended'}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+        
+        {/* Key Metrics */}
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <MetricCard
