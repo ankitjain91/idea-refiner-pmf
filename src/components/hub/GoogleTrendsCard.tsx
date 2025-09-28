@@ -539,18 +539,21 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             {(() => {
               const minutesAgo = Math.floor((Date.now() - new Date(data.updatedAt).getTime()) / 60000);
               const isStale = minutesAgo > 5;
+              const isMockData = data.warnings?.some(w => w.toLowerCase().includes('mock data'));
               return (
                 <>
                   <div className="flex items-center gap-1">
                     <div className={cn(
                       "h-2 w-2 rounded-full",
+                      isMockData ? "bg-slate-500" : 
                       isStale ? "bg-amber-500" : "bg-emerald-500 animate-pulse"
                     )} />
                     <span className={cn(
                       "font-medium",
+                      isMockData ? "text-slate-600 dark:text-slate-400" :
                       isStale ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
                     )}>
-                      {isStale ? 'Stale' : 'Live'}
+                      {isMockData ? 'Mock' : isStale ? 'Stale' : 'Live'}
                     </span>
                   </div>
                   <span className="text-muted-foreground">•</span>
