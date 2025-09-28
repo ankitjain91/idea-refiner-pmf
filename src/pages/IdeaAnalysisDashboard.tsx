@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSimpleSession } from '@/contexts/SimpleSessionContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 import { useToast } from '@/hooks/use-toast';
 import { InteractiveDataCard } from '@/components/dashboard/InteractiveDataCard';
 import { Button } from '@/components/ui/button';
@@ -157,7 +157,8 @@ const CARD_CONFIGS: CardConfig[] = [
 
 export function IdeaAnalysisDashboard() {
   const navigate = useNavigate();
-  const { currentIdea } = useSessionContext();
+  const { currentSession } = useSession();
+  const currentIdea = currentSession?.data?.currentIdea;
   const { toast } = useToast();
   
   const [filters, setFilters] = useState({
@@ -349,17 +350,11 @@ export function IdeaAnalysisDashboard() {
           <TabsContent value={activeCategory} className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {visibleCards.map((config) => {
-                const Icon = config.icon;
                 return (
                   <InteractiveDataCard
                     key={config.type}
                     cardType={config.type}
-                    title={
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-5 w-5" />
-                        {config.title}
-                      </div>
-                    }
+                    title={config.title}
                     description={config.description}
                     idea={filters.idea_keywords}
                     industry={filters.industry}
