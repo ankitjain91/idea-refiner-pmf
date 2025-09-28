@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useIdeaManagement } from '@/hooks/useIdeaManagement';
+import { useOptimizedDashboardData } from '@/hooks/useOptimizedDashboardData';
 import { GlobalFilters } from '@/components/hub/GlobalFilters';
-import { DataTile } from '@/components/hub/DataTile';
+import { OptimizedDataTile } from '@/components/hub/OptimizedDataTile';
 import { IdeaBoard } from '@/components/hub/IdeaBoard';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,7 +15,7 @@ import {
   TrendingUp, Users, Target, BarChart3, DollarSign,
   Briefcase, Trophy, Map, Calculator, Shield,
   MessageSquare, Lightbulb, Handshake, Zap, AlertCircle,
-  ArrowLeft, FileText, Settings, Brain, RefreshCw
+  ArrowLeft, FileText, Settings, Brain, RefreshCw, DollarSign as Cost
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -23,7 +24,7 @@ import GuidedIdeaWithSuggestions from '@/components/hub/GuidedIdeaWithSuggestion
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { IdeaConfirmationDialog } from '@/components/hub/IdeaConfirmationDialog';
  
- // Tile configurations - Only Search Trends enabled for now to reduce API requests
+// All tile configurations
 const TILES = [
   {
     id: 'search-trends',
@@ -32,105 +33,104 @@ const TILES = [
     tileType: 'search-trends',
     description: 'Current market interest and rising queries'
   },
-  // Other tiles temporarily disabled to reduce API requests
-  // {
-  //   id: 'competitor-landscape',
-  //   title: 'Competitor Landscape',
-  //   icon: Users,
-  //   tileType: 'competitor-landscape',
-  //   description: 'Key players and their positioning'
-  // },
-  // {
-  //   id: 'target-audience',
-  //   title: 'Target Audience Fit',
-  //   icon: Target,
-  //   tileType: 'target-audience',
-  //   description: 'Demographics and segment analysis'
-  // },
-  // {
-  //   id: 'pm-fit-score',
-  //   title: 'PM Fit Score',
-  //   icon: BarChart3,
-  //   tileType: 'pm-fit-score',
-  //   description: 'Product-Market Fit likelihood assessment'
-  // },
-  // {
-  //   id: 'market-potential',
-  //   title: 'Market Potential',
-  //   icon: DollarSign,
-  //   tileType: 'market-potential',
-  //   description: 'TAM, SAM, and SOM estimates'
-  // },
-  // {
-  //   id: 'unit-economics',
-  //   title: 'Unit Economics',
-  //   icon: Calculator,
-  //   tileType: 'unit-economics',
-  //   description: 'CAC and LTV benchmarks'
-  // },
-  // {
-  //   id: 'funding-pathways',
-  //   title: 'Funding Pathways',
-  //   icon: Briefcase,
-  //   tileType: 'funding-pathways',
-  //   description: 'Recent funding rounds and investors'
-  // },
-  // {
-  //   id: 'success-stories',
-  //   title: 'Comparable Success Stories',
-  //   icon: Trophy,
-  //   tileType: 'success-stories',
-  //   description: 'Similar startups that succeeded'
-  // },
-  // {
-  //   id: 'roadmap',
-  //   title: 'Execution Roadmap',
-  //   icon: Map,
-  //   tileType: 'roadmap',
-  //   description: '30/60/90-day action plan'
-  // },
-  // {
-  //   id: 'resource-estimator',
-  //   title: 'Resource Estimator',
-  //   icon: Calculator,
-  //   tileType: 'resource-estimator',
-  //   description: 'Budget, time, and team requirements'
-  // },
-  // {
-  //   id: 'risk-matrix',
-  //   title: 'Risk Matrix',
-  //   icon: Shield,
-  //   tileType: 'risk-matrix',
-  //   description: 'Key risks and mitigation strategies'
-  // },
-  // {
-  //   id: 'social-sentiment',
-  //   title: 'Social Sentiment',
-  //   icon: MessageSquare,
-  //   tileType: 'social-sentiment',
-  //   description: 'Community feedback and discussions'
-  // },
-  // {
-  //   id: 'quick-poll',
-  //   title: 'Validation Questions',
-  //   icon: Lightbulb,
-  //   tileType: 'quick-poll',
-  //   description: 'Poll questions for user validation'
-  // },
-  // {
-  //   id: 'partnerships',
-  //   title: 'Partnership Opportunities',
-  //   icon: Handshake,
-  //   tileType: 'partnerships',
-  //   description: 'Potential partners and integrations'
-  // },
-  // {
-  //   id: 'simulations',
-  //   title: 'What-If Simulations',
-  //   icon: Zap,
-  //   tileType: 'simulations',
-  //   description: 'Impact of strategic changes'
-  // }
+  {
+    id: 'competitor-landscape',
+    title: 'Competitor Landscape',
+    icon: Users,
+    tileType: 'competitor-landscape',
+    description: 'Key players and their positioning'
+  },
+  {
+    id: 'target-audience',
+    title: 'Target Audience Fit',
+    icon: Target,
+    tileType: 'target-audience',
+    description: 'Demographics and segment analysis'
+  },
+  {
+    id: 'pm-fit-score',
+    title: 'PM Fit Score',
+    icon: BarChart3,
+    tileType: 'pm-fit-score',
+    description: 'Product-Market Fit likelihood assessment'
+  },
+  {
+    id: 'market-potential',
+    title: 'Market Potential',
+    icon: DollarSign,
+    tileType: 'market-potential',
+    description: 'TAM, SAM, and SOM estimates'
+  },
+  {
+    id: 'unit-economics',
+    title: 'Unit Economics',
+    icon: Calculator,
+    tileType: 'unit-economics',
+    description: 'CAC and LTV benchmarks'
+  },
+  {
+    id: 'funding-pathways',
+    title: 'Funding Pathways',
+    icon: Briefcase,
+    tileType: 'funding-pathways',
+    description: 'Recent funding rounds and investors'
+  },
+  {
+    id: 'success-stories',
+    title: 'Comparable Success Stories',
+    icon: Trophy,
+    tileType: 'success-stories',
+    description: 'Similar startups that succeeded'
+  },
+  {
+    id: 'roadmap',
+    title: 'Execution Roadmap',
+    icon: Map,
+    tileType: 'roadmap',
+    description: '30/60/90-day action plan'
+  },
+  {
+    id: 'resource-estimator',
+    title: 'Resource Estimator',
+    icon: Calculator,
+    tileType: 'resource-estimator',
+    description: 'Budget, time, and team requirements'
+  },
+  {
+    id: 'risk-matrix',
+    title: 'Risk Matrix',
+    icon: Shield,
+    tileType: 'risk-matrix',
+    description: 'Key risks and mitigation strategies'
+  },
+  {
+    id: 'social-sentiment',
+    title: 'Social Sentiment',
+    icon: MessageSquare,
+    tileType: 'social-sentiment',
+    description: 'Community feedback and discussions'
+  },
+  {
+    id: 'partnerships',
+    title: 'Partnership Opportunities',
+    icon: Handshake,
+    tileType: 'partnerships',
+    description: 'Potential partners and integrations'
+  },
+  {
+    id: 'simulations',
+    title: 'What-If Simulations',
+    icon: Zap,
+    tileType: 'simulations',
+    description: 'Impact of strategic changes'
+  },
+  {
+    id: 'quick-poll',
+    title: 'Validation Questions',
+    icon: Lightbulb,
+    tileType: 'quick-poll',
+    description: 'Poll questions for user validation'
+  }
 ];
 
 export default function EnterpriseHub() {
@@ -149,13 +149,19 @@ export default function EnterpriseHub() {
     cancelIdeaConfirmation
   } = useIdeaManagement();
   
+  // Use optimized dashboard data hook
+  const {
+    data: dashboardData,
+    loading: dataLoading,
+    error: dataError,
+    getTileData,
+    fetchTileDetails,
+    refresh,
+    costInfo
+  } = useOptimizedDashboardData(filters);
+  
   const [refreshKey, setRefreshKey] = useState(0);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // The idea management logic is now handled by the useIdeaManagement hook
-  // Fetching from Supabase is handled in a separate hook inside useIdeaManagement
   
   // Redirect if not authenticated
   useEffect(() => {
@@ -181,27 +187,9 @@ export default function EnterpriseHub() {
   };
   
   const handleRefreshAll = () => {
+    refresh();
     setRefreshKey(prev => prev + 1);
   };
-
-  // Auto-refresh disabled to prevent excessive requests
-  useEffect(() => {
-    // Auto-refresh commented out for now
-    // if (autoRefresh && filters.idea_keywords.length > 0) {
-    //   autoRefreshIntervalRef.current = setInterval(() => {
-    //     setRefreshKey(prev => prev + 1);
-    //   }, 30000); // Refresh every 30 seconds
-    // } else if (autoRefreshIntervalRef.current) {
-    //   clearInterval(autoRefreshIntervalRef.current);
-    //   autoRefreshIntervalRef.current = null;
-    // }
-
-    return () => {
-      if (autoRefreshIntervalRef.current) {
-        clearInterval(autoRefreshIntervalRef.current);
-      }
-    };
-  }, [autoRefresh, filters.idea_keywords.length]);
   
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
@@ -352,21 +340,35 @@ export default function EnterpriseHub() {
         onExport={handleExportPDF}
         onRefresh={handleRefreshAll}
         currentFilters={filters}
-        autoRefresh={autoRefresh}
-        onAutoRefreshChange={setAutoRefresh}
       />
+      
+      {/* Cost Optimization Info */}
+      {costInfo && (
+        <div className="max-w-7xl mx-auto px-6 pb-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Cost className="h-4 w-4" />
+            <span>
+              Cost optimized: {costInfo.totalSearches} grouped searches • 
+              Est. {costInfo.costEstimate} • 
+              {costInfo.cacheHit ? 'From cache (no API cost)' : 'Fresh data'}
+            </span>
+          </div>
+        </div>
+      )}
       
       {/* Dashboard Grid */}
       <div ref={dashboardRef} className="max-w-7xl mx-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {TILES.map(tile => (
-            <DataTile
+            <OptimizedDataTile
               key={`${tile.id}-${refreshKey}`}
               title={tile.title}
               icon={tile.icon}
               tileType={tile.tileType}
-              filters={filters}
+              data={getTileData(tile.tileType)}
+              onFetchDetails={() => fetchTileDetails(tile.tileType)}
               description={tile.description}
+              costInfo={costInfo}
             />
           ))}
         </div>
