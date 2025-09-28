@@ -172,13 +172,62 @@ Generate the JSON now.`;
     if (!aiRes.ok) {
       const text = await aiRes.text();
       console.error('[web-search-ai] Groq error:', aiRes.status, text);
-      throw new Error('Groq request failed');
+      // Graceful fallback without failing the tile
+      const now = new Date().toISOString();
+      const payload = {
+        updatedAt: now,
+        filters,
+        metrics: [
+          { name: 'Signal Strength', value: 50, unit: '%', explanation: 'Fallback (rate-limited)', method: 'serper+tavily', confidence: 0.35 }
+        ],
+        items: (serper?.organic || []).slice(0, 3).map((i: any) => ({
+          title: i.title,
+          snippet: i.snippet,
+          url: i.link,
+          canonicalUrl: i.link,
+          published: i.date || 'unknown',
+          source: new URL(i.link).hostname,
+          evidence: []
+        })),
+        assumptions: ['Groq rate limited; provided minimal synthesis from search results.'],
+        notes: 'AI temporarily rate-limited; showing search-derived snapshot.',
+        citations: normalizeCitations(serper, tavily),
+        fromCache: false,
+        stale: true
+      };
+      return new Response(JSON.stringify(payload), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const data = await aiRes.json();
     if (!data?.choices?.[0]?.message?.content) {
       console.error('[web-search-ai] Invalid Groq response:', data);
-      throw new Error('Invalid AI response');
+      const now = new Date().toISOString();
+      const payload = {
+        updatedAt: now,
+        filters,
+        metrics: [
+          { name: 'Signal Strength', value: 48, unit: '%', explanation: 'Fallback (invalid AI response)', method: 'serper+tavily', confidence: 0.3 }
+        ],
+        items: (serper?.organic || []).slice(0, 3).map((i: any) => ({
+          title: i.title,
+          snippet: i.snippet,
+          url: i.link,
+          canonicalUrl: i.link,
+          published: i.date || 'unknown',
+          source: new URL(i.link).hostname,
+          evidence: []
+        })),
+        assumptions: ['AI response was empty; synthesized minimal data.'],
+        notes: 'Fallback due to invalid AI response.',
+        citations: normalizeCitations(serper, tavily),
+        fromCache: false,
+        stale: true
+      };
+      return new Response(JSON.stringify(payload), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     let payload;

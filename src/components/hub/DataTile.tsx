@@ -213,7 +213,7 @@ export function DataTile({
     try {
       // Primary path: consolidated AI search
       const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
-        body: { tileType, filters, query: filters?.idea_keywords?.join(' ') || '' }
+        body: { tileType, filters, query: (filters?.idea_keywords?.join(' ') || (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || '') : '')) }
       });
       if (fetchError) throw fetchError;
       if (response?.error) throw new Error(response.message || response.error);
