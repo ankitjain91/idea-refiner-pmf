@@ -265,17 +265,36 @@ export function DataTile({
     return (
       <div className="space-y-2">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latest Updates</h4>
-        {data.items.slice(0, expanded ? undefined : 2).map((item, idx) => (
-          <div key={idx} className="p-3 bg-muted/10 rounded-lg border border-border/50 hover:border-border transition-colors">
-            <p className="text-sm font-medium leading-tight line-clamp-2">{item.title}</p>
-            {item.snippet && (
-              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{item.snippet}</p>
-            )}
-            {item.source && (
-              <p className="text-xs text-muted-foreground/70 mt-2 font-medium">Source: {item.source}</p>
-            )}
-          </div>
-        ))}
+        {data.items.slice(0, expanded ? undefined : 2).map((item, idx) => {
+          const ItemWrapper = item.url ? 'a' : 'div';
+          const itemProps = item.url ? {
+            href: item.url,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            className: "block p-3 bg-muted/10 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-muted/20 transition-all duration-200 cursor-pointer group"
+          } : {
+            className: "p-3 bg-muted/10 rounded-lg border border-border/50"
+          };
+          
+          return (
+            <ItemWrapper key={idx} {...itemProps}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">{item.title}</p>
+                  {item.snippet && (
+                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{item.snippet}</p>
+                  )}
+                  {item.source && (
+                    <p className="text-xs text-muted-foreground/70 mt-2 font-medium">Source: {item.source}</p>
+                  )}
+                </div>
+                {item.url && (
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary flex-shrink-0 mt-1" />
+                )}
+              </div>
+            </ItemWrapper>
+          );
+        })}
       </div>
     );
   };
@@ -528,20 +547,33 @@ export function DataTile({
                     <h3 className="font-semibold mb-3">Related Items</h3>
                     <div className="space-y-3">
                       {data.items.map((item, idx) => (
-                        <div key={idx} className="p-3 bg-muted/30 rounded-lg">
-                          <p className="font-medium">{item.title}</p>
-                          <p className="text-sm text-muted-foreground mt-1">{item.snippet}</p>
-                          {item.url && (
-                            <a 
-                              href={item.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
-                            >
-                              View source <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
+                        <a
+                          key={idx}
+                          href={item.url || '#'}
+                          target={item.url ? "_blank" : undefined}
+                          rel={item.url ? "noopener noreferrer" : undefined}
+                          className={`block p-4 bg-muted/10 rounded-lg border border-border/50 transition-all duration-200 ${
+                            item.url ? 'hover:border-primary/50 hover:bg-muted/20 cursor-pointer group' : 'cursor-default'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <p className={`font-medium ${item.url ? 'group-hover:text-primary transition-colors' : ''}`}>
+                                {item.title}
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-2">{item.snippet}</p>
+                              {item.source && (
+                                <p className="text-xs text-muted-foreground/70 mt-3">Source: {item.source}</p>
+                              )}
+                              {item.published && (
+                                <p className="text-xs text-muted-foreground/70 mt-1">Published: {item.published}</p>
+                              )}
+                            </div>
+                            {item.url && (
+                              <ExternalLink className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary flex-shrink-0 mt-1" />
+                            )}
+                          </div>
+                        </a>
                       ))}
                     </div>
                   </div>
