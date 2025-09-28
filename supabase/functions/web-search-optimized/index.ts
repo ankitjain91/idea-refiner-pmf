@@ -6,8 +6,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Cache store with TTL
-const cache = new Map<string, { data: any; expires: number }>();
+// Cache implementation for edge function
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+function getCached(key: string): any | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  
+  const age = Date.now() - entry.timestamp;
+  if (age < entry.ttl * 60 * 1000) {
+    return entry.data;
+  }
+  
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: any, ttlMinutes: number): void {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+    ttl: ttlMinutes
+  });
+  
+  // Cleanup old entries if cache gets too large
+  if (cache.size > 100) {
+    const now = Date.now();
+    for (const [k, v] of cache.entries()) {
+      if (now - v.timestamp > v.ttl * 60 * 1000) {
+        cache.delete(k);
+      }
+    }
+  }
+}
+
+// Remove duplicate cache declaration - using the one above
 
 // Circuit breaker for domain failures
 const circuitBreaker = new Map<string, { failures: number; resetTime: number }>();
@@ -26,11 +59,11 @@ serve(async (req) => {
     // Generate cache key
     const cacheKey = `${filters?.idea_keywords?.join('_')}_${filters?.industry}_${filters?.geography}_${filters?.time_window}_${requestType}`;
     
-    // Check cache first
-    const cached = cache.get(cacheKey);
-    if (cached && cached.expires > Date.now()) {
+    // Check cache first using the getCached function
+    const cached = getCached(cacheKey);
+    if (cached) {
       console.log('Returning cached data for:', cacheKey);
-      return new Response(JSON.stringify({ ...cached.data, fromCache: true }), {
+      return new Response(JSON.stringify({ ...cached, fromCache: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -62,10 +95,8 @@ serve(async (req) => {
     
     // Cache the response with appropriate TTL
     const ttl = determineTTL(requestType, tileType);
-    cache.set(cacheKey, {
-      data: responseData,
-      expires: Date.now() + ttl
-    });
+    setCache(cacheKey, responseData, ttl / 60000); // Convert ms to minutes
+    
     
     // Clean up old cache entries periodically
     cleanupCache();
@@ -158,7 +189,7 @@ async function executeWebSearch(query: string, apiKey: string) {
         model: 'gpt-5-mini-2025-08-07', // Using GPT-5 mini for web search
         tools: [{ type: "web_search" }],
         input: query,
-        max_completion_tokens: 2000
+        max_output_tokens: 2000 // Fixed: use max_output_tokens for Responses API
       }),
     });
 
@@ -395,7 +426,8 @@ function cleanupCache() {
   // Clean up expired cache entries
   const now = Date.now();
   for (const [key, value] of cache.entries()) {
-    if (value.expires < now) {
+    const age = now - value.timestamp;
+    if (age > value.ttl * 60 * 1000) {
       cache.delete(key);
     }
   }

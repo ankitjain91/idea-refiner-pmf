@@ -156,12 +156,13 @@ async function openAIChatRequest(body: any, { retries = 2 }: { retries?: number 
   let attempt = 0;
   let lastError: any = null;
   
-  // Use o4-mini model by default, unless specified
+  // Model strategy: default to gpt-4o-mini for cost efficiency
+  // Only use gpt-4o for deep analysis when explicitly needed
   if (!body.model) {
-    body.model = 'o4-mini-2025-04-16';
+    body.model = 'gpt-4o-mini';
   }
   
-  // Remove temperature for newer models (o4-mini doesn't support it)
+  // Remove temperature for o3/o4 models (they don't support it)
   if (body.model.startsWith('o4-') || body.model.startsWith('o3-')) {
     delete body.temperature;
   }
@@ -296,13 +297,12 @@ Generate 4 natural, conversational suggestions specific to "${idea}".`;
 
   try {
       const data = await openAIChatRequest({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini', // Use gpt-4o-mini for suggestions (cost-efficient)
         messages: [
           { role: 'system', content: 'Generate exactly 4 natural, conversational suggestions as a JSON array. Each should be a complete thought that sounds human and helpful.' },
           { role: 'user', content: systemPrompt }
         ],
-        max_tokens: 400,
-        temperature: 0.8
+        max_tokens: 400
       });
       let content = data.choices?.[0]?.message?.content || '';
       
@@ -504,7 +504,7 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
 
       try {
         const analysisData = await openAIChatRequest({
-          model: 'o4-mini-2025-04-16',
+          model: 'gpt-4o', // Use gpt-4o for comprehensive PMF analysis (deep dive)
             messages: [
               { role: 'system', content: 'Return only valid JSON for PMF analysis.' },
               { role: 'user', content: analysisPrompt }
@@ -609,7 +609,7 @@ Be the tough mentor who asks the hard questions now, so they don't fail later.`;
       let aiResponse = '';
       try {
         const mainData = await openAIChatRequest({
-          model: 'o4-mini-2025-04-16',
+          model: 'gpt-4o-mini', // Use gpt-4o-mini for analysis questions (cost-efficient)
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Rigorously scrutinize this answer: "${message}"
@@ -674,7 +674,7 @@ The 'suggestions' are what the USER might naturally say next in this conversatio
     const wantsStream = (req.headers.get('x-stream') === '1');
     if (wantsStream) {
       const body = {
-        model: 'o4-mini-2025-04-16',
+        model: 'gpt-4o-mini', // Use gpt-4o-mini for streaming chat (cost-efficient)
         stream: true,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -743,7 +743,7 @@ The 'suggestions' are what the USER might naturally say next in this conversatio
     try {
       // ALWAYS generate detailed response first
       const detailedRequest = await openAIChatRequest({
-        model: 'o4-mini-2025-04-16',
+        model: 'gpt-4o-mini', // Use gpt-4o-mini for regular chat (cost-efficient)
         response_format: { type: 'json_object' },
         max_tokens: 650, // Always use full token count for detailed
         messages: [
@@ -765,7 +765,7 @@ Respond naturally as their mentor. JSON format.` }
       // Always generate both detailed and summary versions
       try {
         const summaryRequest = await openAIChatRequest({
-          model: 'o4-mini-2025-04-16',
+          model: 'gpt-4o-mini', // Use gpt-4o-mini for summaries (cost-efficient)
           max_tokens: 150,
           messages: [
             { role: 'system', content: 'Summarize this response in 2-3 sentences max (under 50 words). Keep the key insight and maintain conversational tone. Be punchy and direct.' },

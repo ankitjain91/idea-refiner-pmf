@@ -61,7 +61,7 @@ BE STRICT. Higher point totals should get fewer points for the same quality of t
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini', // Use gpt-4o-mini for wrinkle points evaluation (cost-efficient)
         messages: [
           {
             role: 'system',

@@ -95,7 +95,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini', // Use gpt-4o-mini for dashboard insights (cost-efficient)
         messages: [
           { 
             role: 'system', 
