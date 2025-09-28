@@ -4,10 +4,12 @@ import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useIdeaManagement } from '@/hooks/useIdeaManagement';
 import { GlobalFilters } from '@/components/hub/GlobalFilters';
 import { DataTile } from '@/components/hub/DataTile';
+import { IdeaBoard } from '@/components/hub/IdeaBoard';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   TrendingUp, Users, Target, BarChart3, DollarSign,
   Briefcase, Trophy, Map, Calculator, Shield,
