@@ -30,42 +30,32 @@ const IdeaChatPage = () => {
   const [analysisCompleted, setAnalysisCompleted] = useState<boolean>(() => {
     try { return localStorage.getItem(LS_KEYS.analysisCompleted) === 'true'; } catch { return false; }
   });
-  // Session picker overlay state - check if we should show it from navigation state
-  const [showSessionPicker, setShowSessionPicker] = useState(() => {
-    const fromAuth = location.state?.showSessionPicker;
-    console.log('[IdeaChat] Initial state - showSessionPicker from location:', fromAuth);
-    console.log('[IdeaChat] Current session:', currentSession);
-    console.log('[IdeaChat] Sessions list:', sessions);
-    // Only show picker if explicitly coming from auth, not on refresh
-    return fromAuth || false;
-  });
+  // Session picker overlay state - always show if no current session
+  const [showSessionPicker, setShowSessionPicker] = useState(false);
   
   // Track if user came from auth (login/signup)
-  const [requireSessionSelection, setRequireSessionSelection] = useState(() => {
-    return location.state?.showSessionPicker || false;
-  });
+  const [requireSessionSelection, setRequireSessionSelection] = useState(false);
   
-  // Watch for navigation state changes and ensure session picker shows when needed
+  // Initialize session picker when user has no session
   useEffect(() => {
-    console.log('[IdeaChat] useEffect - checking session picker state');
-    console.log('[IdeaChat] location.state:', location.state);
-    console.log('[IdeaChat] currentSession:', currentSession);
-    console.log('[IdeaChat] user:', user);
-    console.log('[IdeaChat] sessionLoading:', sessionLoading);
+    console.log('[IdeaChat] Session check:', { user, currentSession, sessionLoading, sessions: sessions?.length });
     
+    // If user is authenticated and has no current session, show picker
+    if (user && !sessionLoading && !currentSession) {
+      console.log('[IdeaChat] Showing session picker - no current session');
+      setShowSessionPicker(true);
+      setRequireSessionSelection(true);
+    }
+    
+    // Handle navigation from auth
     if (location.state?.showSessionPicker) {
-      // Coming from auth, show the picker
+      console.log('[IdeaChat] Showing session picker - from auth');
       setShowSessionPicker(true);
       setRequireSessionSelection(true);
       // Clear the state to prevent re-opening on refresh
       navigate(location.pathname, { replace: true, state: {} });
-    } else if (user && !currentSession && !sessionLoading && sessions.length === 0) {
-      // Only show picker if user has no sessions at all (first time user)
-      console.log('[IdeaChat] User has no sessions, showing session picker');
-      setShowSessionPicker(true);
-      setRequireSessionSelection(true);
     }
-  }, [location.state, location.pathname, navigate, currentSession, user, sessionLoading, sessions.length]);
+  }, [user, currentSession, sessionLoading, location.state, location.pathname, navigate]);
   const sessionDecisionKey = 'pmf.session.decisionMade';
   const [chatMode, setChatMode] = useState<'idea'|'refine'|'analysis'>('idea');
   const [showDashboardLockedHint, setShowDashboardLockedHint] = useState(false);
@@ -212,16 +202,6 @@ const IdeaChatPage = () => {
     }
     return () => t && clearTimeout(t);
   }, [sessionLoading, sessionReloading]);
-
-  // Always show smoothbrain picker after login if no current session
-  useEffect(() => {
-    if (!user || sessionLoading) return;
-    if (currentSession) return; // already have one
-    
-    // Clear any previous decision and always show picker for authenticated users
-    sessionStorage.removeItem(sessionDecisionKey);
-    setShowSessionPicker(true);
-  }, [user, currentSession, sessionLoading]);
 
 
 
@@ -373,15 +353,16 @@ const IdeaChatPage = () => {
         <div className='flex-1 relative p-2'>
           {showOverlayLoader && <EngagingLoader active={true} scope='dashboard' />}
           <SessionPicker 
-            open={showSessionPicker || (requireSessionSelection && !currentSession)} 
+            open={showSessionPicker || (!currentSession && !sessionLoading && user !== null)} 
             onSessionSelected={() => {
               setShowSessionPicker(false);
               setRequireSessionSelection(false);
             }}
-            allowClose={!requireSessionSelection}
+            allowClose={currentSession !== null}
             onClose={() => {
-              if (!requireSessionSelection) {
+              if (currentSession) {
                 setShowSessionPicker(false);
+                setRequireSessionSelection(false);
               }
             }}
           />
