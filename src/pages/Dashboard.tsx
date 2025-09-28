@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { DataCompletionCard, useIdeaValidation } from '@/components/dashboard/DataValidation';
+import { AnalysisChat } from '@/components/dashboard/AnalysisChat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   // Load idea from localStorage
   useEffect(() => {
@@ -225,7 +227,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
         {/* Show prompt when idea exists but needs more data */}
-        {needsMoreData && (
+        {needsMoreData && !showAnalysis && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -268,25 +270,36 @@ const Dashboard = () => {
                     )}
                   </div>
                   <Button 
-                    onClick={() => {
-                      const missingDataPrompt = `I need more information about your idea "${idea?.slice(0, 50)}..." to generate comprehensive dashboard insights. Let me ask you some key questions about:
-
-${!metrics ? '• Your target metrics and KPIs\n' : ''}${!market ? '• Market size and opportunity\n' : ''}${!competition ? '• Competitive landscape\n' : ''}${!channels ? '• Marketing and growth channels\n' : ''}
-Let's start with the most important details to unlock your full dashboard analysis.`;
-                      
-                      console.log('Setting pending question:', missingDataPrompt);
-                      localStorage.setItem('pendingQuestion', missingDataPrompt);
-                      navigate('/ideachat');
-                    }}
+                    onClick={() => setShowAnalysis(true)}
                     className="gap-2"
                   >
-                    <MessageSquare className="h-4 w-4" />
-                    Continue in IdeaChat
+                    <Sparkles className="h-4 w-4" />
+                    Start Analysis
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             </Card>
+          </motion.div>
+        )}
+
+        {/* Analysis Chat Interface */}
+        {showAnalysis && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <AnalysisChat
+              idea={idea}
+              onComplete={() => {
+                setShowAnalysis(false);
+                refresh();
+              }}
+              onUpdateData={() => {
+                refresh();
+              }}
+            />
           </motion.div>
         )}
         
