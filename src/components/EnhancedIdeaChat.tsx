@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { KeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -63,6 +64,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   onAnalyze,
   sessionName = 'New Chat Session'
 }) => {
+  const navigate = useNavigate();
   // State management
   const { currentSession, saveCurrentSession } = useSession();
   const [anonymous, setAnonymous] = useState(false);
@@ -1943,6 +1945,15 @@ User submission: """${messageText}"""`;
       
       {/* Quick Actions */}
       <div className="flex gap-2 mt-3 max-w-4xl mx-auto">
+        <Button
+          onClick={() => navigate('/dashboard')}
+          variant="outline"
+          size="sm"
+          className="fluid-text-xs group hover:bg-primary/10 hover:border-primary/50"
+        >
+          <BarChart3 className="h-3 w-3 mr-1.5 text-primary group-hover:scale-110 transition-transform" />
+          Dashboard
+        </Button>
         <motion.div whileHover={hasValidIdea ? { scale: 1.02 } : {}} whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
             variant="outline"
@@ -1953,7 +1964,7 @@ User submission: """${messageText}"""`;
               ? 'hover:bg-primary/10 hover:border-primary/50' 
               : 'opacity-50 cursor-not-allowed bg-muted'}`}
           >
-            <BarChart3 className={`h-3 w-3 mr-1.5 ${hasValidIdea 
+            <Brain className={`h-3 w-3 mr-1.5 ${hasValidIdea 
               ? 'text-primary group-hover:scale-110 transition-transform' 
               : 'text-muted-foreground'}`} />
             Grow More Wrinkles
