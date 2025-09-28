@@ -135,27 +135,58 @@ serve(async (req) => {
     const response = await callGroq(messages);
     const content = response.choices?.[0]?.message?.content || "I understand. Let me help you develop that idea further.";
     
-    // Generate follow-up suggestions
+    // Generate follow-up suggestions for what the USER could say next
     let suggestions = [];
     try {
       const suggestionResponse = await callGroq([
-        { role: 'system', content: 'Generate 4 short follow-up suggestions as a JSON array. Each should be a question or prompt the user might want to explore next, under 15 words each.' },
-        { role: 'user', content: `Based on this exchange:\nUser: ${message}\nAssistant: ${content}\n\nGenerate 4 relevant follow-up suggestions.` }
+        { 
+          role: 'system', 
+          content: 'Generate exactly 4 user responses as a JSON array. Return ONLY the array, no markdown or explanation.'
+        },
+        { 
+          role: 'user', 
+          content: `The AI assistant just said: "${content.substring(0, 300)}..."
+          
+Generate 4 natural things the USER could say next to continue the conversation.
+Make them conversational, from the user's perspective (use "I" when appropriate).
+Mix questions, clarifications, and information sharing.
+
+Output format: ["response 1", "response 2", "response 3", "response 4"]` 
+        }
       ], 400, 0.9);
       
       if (suggestionResponse.choices?.[0]?.message?.content) {
-        const parsed = JSON.parse(suggestionResponse.choices[0].message.content);
-        if (Array.isArray(parsed)) {
-          suggestions = parsed.slice(0, 4);
+        let text = suggestionResponse.choices[0].message.content.trim();
+        
+        // Remove markdown code blocks if present
+        text = text.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
+        
+        // Try to find and parse JSON array
+        const arrayMatch = text.match(/\[[\s\S]*?\]/);
+        if (arrayMatch) {
+          try {
+            const parsed = JSON.parse(arrayMatch[0]);
+            if (Array.isArray(parsed)) {
+              suggestions = parsed
+                .filter(s => typeof s === 'string' && s.trim())
+                .slice(0, 4);
+            }
+          } catch (parseErr) {
+            console.error('Failed to parse suggestion JSON:', parseErr);
+          }
         }
       }
     } catch (e) {
       console.error('Error generating suggestions:', e);
+    }
+    
+    // Fallback with user-perspective suggestions if generation failed
+    if (!suggestions || suggestions.length === 0) {
       suggestions = [
-        "How will you acquire customers?",
-        "What's your pricing strategy?",
-        "Who are your main competitors?",
-        "What's your unique value proposition?"
+        "Can you give me specific examples of how this would work?",
+        "What would be the first steps I should take?",
+        "I'm concerned about scalability - how do I address that?",
+        "Tell me more about the competitive landscape"
       ];
     }
 
