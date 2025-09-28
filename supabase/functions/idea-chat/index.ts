@@ -791,8 +791,8 @@ Respond naturally as their mentor. JSON format.` }
       summaryResponse = "Need more details to help. What specific aspect should we focus on?";
     }
 
-    // Always use detailed response now (summary handled by UI button)
-    let aiResponse: string = detailedResponse;
+    // Always use summary response for conciseness
+    let aiResponse: string = summaryResponse || detailedResponse;
     
     let suggestions: string[] = Array.isArray(modelJson?.suggestions) ? modelJson.suggestions.slice(0,4).map((s: any)=>String(s)) : [];
 
