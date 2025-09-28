@@ -1874,7 +1874,7 @@ User submission: """${messageText}"""`;
             </p>
             {currentIdea && (
               <p className="fluid-text-xs text-primary font-medium mt-1 max-w-[320px] break-words" title={currentIdea}>
-                💡 {currentIdea}
+                💡 {currentIdea.length > 50 ? `${currentIdea.slice(0, 50)}...` : currentIdea}
               </p>
             )}
           </div>
