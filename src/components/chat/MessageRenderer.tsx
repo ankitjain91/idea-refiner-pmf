@@ -310,7 +310,7 @@ export default React.memo(MessageRenderer, (prev, next) => {
   const pm = prev.message;
   const nm = next.message;
   if (pm === nm) return true;
-  // Shallow compare key fields
+  // Shallow compare key fields (include suggestionsError so error UI updates)
   return (
     pm.id === nm.id &&
     pm.content === nm.content &&
@@ -320,6 +320,7 @@ export default React.memo(MessageRenderer, (prev, next) => {
     pm.pointsExplanation === nm.pointsExplanation &&
     pm.isTyping === nm.isTyping &&
     pm.pmfAnalysis === nm.pmfAnalysis &&
+    pm.suggestionsError === nm.suggestionsError &&
     JSON.stringify(pm.suggestions) === JSON.stringify(nm.suggestions)
   );
 });
