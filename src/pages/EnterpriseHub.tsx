@@ -183,16 +183,17 @@ export default function EnterpriseHub() {
     setRefreshKey(prev => prev + 1);
   };
 
-  // Handle auto-refresh toggle
+  // Auto-refresh disabled to prevent excessive requests
   useEffect(() => {
-    if (autoRefresh && filters.idea_keywords.length > 0) {
-      autoRefreshIntervalRef.current = setInterval(() => {
-        setRefreshKey(prev => prev + 1);
-      }, 30000); // Refresh every 30 seconds
-    } else if (autoRefreshIntervalRef.current) {
-      clearInterval(autoRefreshIntervalRef.current);
-      autoRefreshIntervalRef.current = null;
-    }
+    // Auto-refresh commented out for now
+    // if (autoRefresh && filters.idea_keywords.length > 0) {
+    //   autoRefreshIntervalRef.current = setInterval(() => {
+    //     setRefreshKey(prev => prev + 1);
+    //   }, 30000); // Refresh every 30 seconds
+    // } else if (autoRefreshIntervalRef.current) {
+    //   clearInterval(autoRefreshIntervalRef.current);
+    //   autoRefreshIntervalRef.current = null;
+    // }
 
     return () => {
       if (autoRefreshIntervalRef.current) {

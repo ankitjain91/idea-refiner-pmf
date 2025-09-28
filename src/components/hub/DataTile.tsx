@@ -130,18 +130,18 @@ export function DataTile({
     fetchData();
   }, [fetchData]);
   
-  // Auto-refresh for real-time data updates
-  useEffect(() => {
-    // More frequent refresh for real-time insights
-    const refreshInterval = 30000; // 30 seconds for all tiles to get latest AI insights
-    
-    const interval = setInterval(() => {
-      console.log(`Auto-refreshing ${tileType} for real-time data`);
-      fetchData();
-    }, refreshInterval);
-    
-    return () => clearInterval(interval);
-  }, [tileType, fetchData]);
+  // Auto-refresh disabled to prevent excessive requests
+  // useEffect(() => {
+  //   // More frequent refresh for real-time insights
+  //   const refreshInterval = 30000; // 30 seconds for all tiles to get latest AI insights
+  //   
+  //   const interval = setInterval(() => {
+  //     console.log(`Auto-refreshing ${tileType} for real-time data`);
+  //     fetchData();
+  //   }, refreshInterval);
+  //   
+  //   return () => clearInterval(interval);
+  // }, [tileType, fetchData]);
   
   const exportTileData = () => {
     if (!data) return;
