@@ -1848,9 +1848,20 @@ User submission: """${messageText}"""`;
             dynamicBrainTooltip={dynamicBrainTooltip}
           />
           <div className="flex flex-col">
-            <h3 className="font-extrabold tracking-tight fluid-text-xl leading-tight select-text">
-              {displaySessionName}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-extrabold tracking-tight fluid-text-xl leading-tight select-text">
+                {displaySessionName}
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={resetChatHandler}
+                title="Start new analysis"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+            </div>
             <p className="fluid-text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[0.75rem] tracking-tight text-primary/90">{wrinklePoints.toFixed(1)}</span>
               <span className="text-[0.65rem] uppercase tracking-wide font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">Wrinkles</span>
@@ -1868,19 +1879,8 @@ User submission: """${messageText}"""`;
             )}
           </div>
         </div>
-          <div className="flex items-center fluid-gap">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={resetChatHandler}
-              title="Start new analysis"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
       </div>
+    </div>
 
     {/* Messages Area */}
     <ScrollArea className="flex-1 relative">
