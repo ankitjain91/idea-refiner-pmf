@@ -151,13 +151,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.dashboard-insights]
-verify_jwt = true
+verify_jwt = false
 
 [functions.enterprise-features]
 verify_jwt = true
 
 [functions.google-trends]
-verify_jwt = true
+verify_jwt = false
 
 [functions.idea-chat]
 verify_jwt = true
@@ -166,10 +166,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.reddit-search]
-verify_jwt = true
+verify_jwt = false
 
 [functions.search-web]
-verify_jwt = true
+verify_jwt = false
 
 [functions.subscription-benefits]
 verify_jwt = true
@@ -178,16 +178,16 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.tiktok-trends]
-verify_jwt = true
+verify_jwt = false
 
 [functions.twitter-search]
-verify_jwt = true
+verify_jwt = false
 
 [functions.youtube-search]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-suggestions]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-session-name]
 verify_jwt = true
@@ -198,34 +198,7 @@ verify_jwt = true
 [functions.generate-session-composite-name]
 verify_jwt = true
 
-[functions.idea-chat]
-verify_jwt = true
-
-[functions.search-web]
-verify_jwt = false
-
-[functions.google-trends]
-verify_jwt = false
-
-[functions.reddit-search]
-verify_jwt = false
-
-[functions.youtube-search]
-verify_jwt = false
-
-[functions.twitter-search]
-verify_jwt = false
-
-[functions.tiktok-trends]
-verify_jwt = false
-
 [functions.amazon-public]
-verify_jwt = false
-
-[functions.generate-suggestions]
-verify_jwt = false
-
-[functions.dashboard-insights]
 verify_jwt = false
 
 [functions.analyze-idea]
@@ -271,4 +244,19 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.dashboard-insights-realtime]
+verify_jwt = true
+
+[functions.serper-search]
+verify_jwt = true
+
+[functions.tavily-search]
+verify_jwt = true
+
+[functions.firecrawl-fetch]
+verify_jwt = true
+
+[functions.gdelt-news]
+verify_jwt = true
+
+[functions.groq-synthesis]
 verify_jwt = true
