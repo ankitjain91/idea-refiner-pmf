@@ -758,7 +758,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           </SheetHeader>
           <div className="mt-6 space-y-4">
             {/* Citations */}
-            {data.citations && data.citations.length > 0 && (
+            {data?.citations && data.citations.length > 0 && (
               <div>
                 <h4 className="font-medium mb-2">Citations</h4>
                 <div className="space-y-2">
@@ -770,7 +770,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-2 bg-muted/10 rounded-lg hover:bg-muted/20 transition-colors"
                     >
-                      <span className="text-sm">{citation.label}</span>
+                      <span className="text-sm">
+                        {typeof citation === 'string' ? citation : 
+                         (typeof citation.label === 'string' ? citation.label : 'Source')}
+                      </span>
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   ))}
@@ -779,15 +782,21 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             )}
             
             {/* Recent items */}
-            {data.items && data.items.length > 0 && (
+            {data?.items && data.items.length > 0 && (
               <div>
                 <h4 className="font-medium mb-2">Recent Articles</h4>
                 <div className="space-y-2">
                   {data.items.map((item, idx) => (
                     <div key={idx} className="p-3 bg-muted/10 rounded-lg">
-                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-sm font-medium">
+                        {typeof item === 'object' && item.title ? 
+                         (typeof item.title === 'string' ? item.title : 'Article') : 
+                         'Article'}
+                      </p>
                       {item.snippet && (
-                        <p className="text-xs text-muted-foreground mt-1">{item.snippet}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {typeof item.snippet === 'string' ? item.snippet : ''}
+                        </p>
                       )}
                       {item.url && (
                         <a
