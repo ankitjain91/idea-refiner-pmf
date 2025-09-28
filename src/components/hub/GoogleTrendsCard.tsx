@@ -536,16 +536,40 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         </div>
         {data?.updatedAt && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
-            <Clock className="h-3 w-3" />
-            <span>
-              Last updated: {new Date(data.updatedAt).toLocaleString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true,
-                month: 'short',
-                day: 'numeric'
-              })}
-            </span>
+            {(() => {
+              const minutesAgo = Math.floor((Date.now() - new Date(data.updatedAt).getTime()) / 60000);
+              const isStale = minutesAgo > 5;
+              return (
+                <>
+                  <div className="flex items-center gap-1">
+                    <div className={cn(
+                      "h-2 w-2 rounded-full",
+                      isStale ? "bg-amber-500" : "bg-emerald-500 animate-pulse"
+                    )} />
+                    <span className={cn(
+                      "font-medium",
+                      isStale ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                    )}>
+                      {isStale ? 'Stale' : 'Live'}
+                    </span>
+                  </div>
+                  <span className="text-muted-foreground">•</span>
+                  <Clock className="h-3 w-3" />
+                  <span>
+                    {minutesAgo === 0 ? 'Just now' : 
+                     minutesAgo === 1 ? '1 minute ago' :
+                     minutesAgo < 60 ? `${minutesAgo} minutes ago` :
+                     new Date(data.updatedAt).toLocaleString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit',
+                      hour12: true,
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </>
+              );
+            })()}
           </div>
         )}
       </CardHeader>
