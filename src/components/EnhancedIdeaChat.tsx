@@ -1869,6 +1869,15 @@ User submission: """${messageText}"""`;
           // Fallback: generate basic suggestions with explanations
           suggestions = generateFallbackSuggestions(formattedContent, 'verbose');
         }
+        // Ensure we always have suggestions
+        if (!suggestions || suggestions.length === 0) {
+          suggestions = [
+            'I need to validate this with customers by...',
+            'My minimum viable version would include...',
+            'My main competitors are... but I differentiate by...',
+            'The biggest risks are... and I\'ll mitigate them by...'
+          ];
+        }
         // Generate static suggestion explanation
         const suggestionTexts = suggestions.map(s => typeof s === 'string' ? s : s?.text || String(s));
         const staticSuggestionExplanation = suggestionTexts.length > 0 ? 
