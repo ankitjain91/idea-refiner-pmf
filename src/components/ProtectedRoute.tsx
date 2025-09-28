@@ -35,10 +35,14 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
   }, [session, loading, refreshSession, location.pathname]);
 
   // Show loading spinner while auth state is initializing
+  // But keep it minimal and centered to avoid jarring transitions
   if (loading || !initialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground mt-2">Loading session...</p>
+        </div>
       </div>
     );
   }

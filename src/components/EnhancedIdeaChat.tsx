@@ -73,6 +73,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   
   const [responseMode, setResponseMode] = useState<ResponseMode>(() => {
     try {
+      // Default to 'verbose' instead of 'summary'
       return (localStorage.getItem('responseMode') as ResponseMode) || 'verbose';
     } catch {
       return 'verbose';

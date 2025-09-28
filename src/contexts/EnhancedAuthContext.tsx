@@ -246,11 +246,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Warm start: load cached auth snapshot (role) to reduce initial flicker
+    // Warm start: load cached auth snapshot to reduce initial flicker
     try {
       const snapshotRaw = localStorage.getItem(AUTH_SNAPSHOT_KEY);
       if (snapshotRaw) {
         const snapshot = JSON.parse(snapshotRaw);
+        // Restore user immediately if snapshot is still valid
+        if (snapshot?.user && snapshot?.expiresAt && Date.now() < snapshot.expiresAt) {
+          setUser(snapshot.user);
+        }
         if (snapshot?.role) {
           setUserProfile({
             role: snapshot.role,
@@ -425,20 +429,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Persist snapshot whenever userProfile changes (lightweight)
+  // Persist snapshot whenever userProfile or user changes (lightweight)
   useEffect(() => {
-    if (userProfile) {
+    if (userProfile && user && session) {
       try {
         localStorage.setItem(AUTH_SNAPSHOT_KEY, JSON.stringify({
+          user: user,
           role: userProfile.role,
           stripeCustomerId: userProfile.stripeCustomerId,
           subscriptionEnd: userProfile.subscriptionEnd?.toISOString(),
+          expiresAt: session.expires_at ? new Date(session.expires_at).getTime() : Date.now() + 3600000
         }));
       } catch {}
-    } else {
+    } else if (!user) {
       try { localStorage.removeItem(AUTH_SNAPSHOT_KEY); } catch {}
     }
-  }, [userProfile]);
+  }, [userProfile, user, session]);
 
   return (
     <AuthContext.Provider
