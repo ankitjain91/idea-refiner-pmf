@@ -15,7 +15,6 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import LandingPage from "./pages/LandingPage";
-import Dashboard from "./pages/Dashboard";
 import EnterpriseHub from "./pages/EnterpriseHub";
 import IdeaChat from "./pages/EnhancedIdeaChatPage";
 
