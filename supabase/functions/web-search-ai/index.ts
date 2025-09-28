@@ -35,33 +35,42 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: `You are a market research analyst providing real-time insights. Based on the query, generate realistic and current market data, trends, and analysis.
+            content: `You are a market research analyst. Generate realistic market data in JSON format.
             
-            For the tile type "${tileType}", provide:
-            1. Current market metrics with explanations
-            2. Recent trends and developments
-            3. Key competitors or players
-            4. Data-backed insights
-            5. Future projections
+            You MUST return a valid JSON object with this exact structure:
+            {
+              "metrics": [
+                {"name": "string", "value": number, "unit": "string", "explanation": "string", "confidence": "high|medium|low"}
+              ],
+              "trends": [
+                {"title": "string", "description": "string", "impact": "string", "timeframe": "string"}
+              ],
+              "competitors": [
+                {"name": "string", "description": "string", "marketShare": number, "strengths": ["string"]}
+              ],
+              "insights": [
+                {"point": "string", "evidence": "string", "importance": "high|medium|low"}
+              ],
+              "projections": {
+                "shortTerm": "string",
+                "mediumTerm": "string",
+                "longTerm": "string"
+              }
+            }
             
-            Format your response as JSON with these fields:
-            - metrics: array of {name, value, unit, explanation, confidence}
-            - trends: array of {title, description, impact, timeframe}
-            - competitors: array of {name, description, marketShare, strengths}
-            - insights: array of {point, evidence, importance}
-            - projections: {shortTerm, mediumTerm, longTerm}
-            
-            Use realistic data based on current market conditions (as of 2025).`
+            Populate all fields with realistic data for the ${tileType} analysis.`
           },
           { 
             role: 'user', 
-            content: `Generate market insights for: ${query || JSON.stringify(filters)}
+            content: `Generate comprehensive market insights for: ${query || 'startup idea'}
             
-            Focus on ${tileType} analysis with emphasis on:
+            Context:
             - Keywords: ${filters?.idea_keywords?.join(', ') || 'general market'}
             - Industry: ${filters?.industry || 'technology'}
             - Geography: ${filters?.geography || 'global'}
-            - Time window: ${filters?.time_window || 'last 12 months'}`
+            - Analysis type: ${tileType}
+            
+            Provide at least 3 metrics, 3 trends, 2 competitors, 3 insights, and projections.`
           }
         ],
         max_completion_tokens: 2000,
