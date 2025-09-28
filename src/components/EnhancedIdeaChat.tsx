@@ -1332,6 +1332,8 @@ const ChatMessageItem = useMemo(() => {
       'dashboardAccessGrant',
       'showAnalysisDashboard',
       'currentTab',
+      'dashboardIdea',
+      'dashboardConversationHistory',
       
       // Analysis related
       'analysisResults',
@@ -1358,6 +1360,10 @@ const ChatMessageItem = useMemo(() => {
         console.error(`Failed to remove ${key}:`, e);
       }
     });
+    
+    // Clear session storage for dashboard
+    sessionStorage.removeItem('dashboardKeywords');
+    sessionStorage.removeItem('dashboardIdeaSource');
     
     // Remove ALL session-specific data for the current session
     const sid = currentSession?.id;
@@ -1993,7 +1999,42 @@ User submission: """${messageText}"""`;
       {/* Quick Actions */}
       <div className="flex gap-2 mt-3 max-w-4xl mx-auto">
         <Button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => {
+            // Extract the actual idea from conversation history
+            const extractIdeaFromHistory = () => {
+              // Try to find the most relevant idea from messages
+              for (let i = messages.length - 1; i >= 0; i--) {
+                const msg = messages[i];
+                if (msg.type === 'user' && msg.content && msg.content.length > 20) {
+                  // Check if this looks like an idea description
+                  const lowerContent = msg.content.toLowerCase();
+                  if (!lowerContent.includes('what') && 
+                      !lowerContent.includes('how') && 
+                      !lowerContent.includes('can you') &&
+                      !lowerContent.includes('tell me') &&
+                      !lowerContent.includes('explain')) {
+                    return msg.content;
+                  }
+                }
+              }
+              return currentIdea;
+            };
+            
+            const ideaToStore = hasValidIdea ? (currentIdea || extractIdeaFromHistory()) : extractIdeaFromHistory();
+            
+            // Store the idea properly before navigation
+            if (ideaToStore) {
+              localStorage.setItem('dashboardIdea', ideaToStore);
+              localStorage.setItem('currentIdea', ideaToStore);
+              localStorage.setItem(LS_KEYS.userIdea, ideaToStore);
+              localStorage.setItem('ideaText', ideaToStore);
+            }
+            
+            // Store the full conversation context
+            localStorage.setItem('dashboardConversationHistory', JSON.stringify(messages));
+            
+            navigate('/dashboard');
+          }}
           variant="outline"
           size="sm"
           className="fluid-text-xs group hover:bg-primary/10 hover:border-primary/50"

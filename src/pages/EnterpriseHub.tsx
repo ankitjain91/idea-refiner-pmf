@@ -157,10 +157,44 @@ export default function EnterpriseHub() {
     };
 
     const recompute = () => {
-      const userIdea = localStorage.getItem('userIdea') || '';
-      const currentIdea = localStorage.getItem('currentIdea') || '';
-      const ideaText = localStorage.getItem('ideaText') || '';
-      let ideaToUse = userIdea || currentIdea || ideaText;
+      // First check if we have a dashboard-specific idea
+      const dashboardIdea = localStorage.getItem('dashboardIdea');
+      
+      // Extract from conversation history if available
+      const extractFromConversation = () => {
+        const historyRaw = localStorage.getItem('dashboardConversationHistory');
+        if (historyRaw) {
+          try {
+            const messages = JSON.parse(historyRaw);
+            // Find the most relevant user message that looks like an idea
+            for (let i = messages.length - 1; i >= 0; i--) {
+              const msg = messages[i];
+              if (msg.type === 'user' && msg.content && msg.content.length > 20) {
+                const lowerContent = msg.content.toLowerCase();
+                // Skip questions and commands
+                if (!lowerContent.includes('what') && 
+                    !lowerContent.includes('how') && 
+                    !lowerContent.includes('can you') &&
+                    !lowerContent.includes('tell me') &&
+                    !lowerContent.includes('explain')) {
+                  return msg.content;
+                }
+              }
+            }
+          } catch {}
+        }
+        return null;
+      };
+      
+      // Priority: dashboard idea > conversation extraction > localStorage keys
+      let ideaToUse = dashboardIdea || extractFromConversation();
+      
+      if (!ideaToUse) {
+        const userIdea = localStorage.getItem('userIdea') || '';
+        const currentIdea = localStorage.getItem('currentIdea') || '';
+        const ideaText = localStorage.getItem('ideaText') || '';
+        ideaToUse = userIdea || currentIdea || ideaText;
+      }
 
       // Try metadata as fallback
       const metaRaw = localStorage.getItem('ideaMetadata');
@@ -198,15 +232,34 @@ export default function EnterpriseHub() {
       }
 
       const keywords = metaKeywords || (ideaToUse ? extractKeywords(ideaToUse) : []);
-      console.log('EnterpriseHub recompute:', { userIdea, currentIdea, ideaText, metaKeywords, ideaToUse, keywords });
+      console.log('EnterpriseHub recompute:', { dashboardIdea, ideaToUse, keywords });
 
       if (keywords.length) {
         setFilters(prev => ({
           ...prev,
           idea_keywords: keywords,
         }));
+        
+        // Store in session state for persistence
+        sessionStorage.setItem('dashboardKeywords', JSON.stringify(keywords));
+        sessionStorage.setItem('dashboardIdeaSource', ideaToUse);
       }
     };
+
+    // Check if we have session state first
+    const sessionKeywords = sessionStorage.getItem('dashboardKeywords');
+    if (sessionKeywords) {
+      try {
+        const keywords = JSON.parse(sessionKeywords);
+        if (keywords.length) {
+          setFilters(prev => ({
+            ...prev,
+            idea_keywords: keywords,
+          }));
+          return;
+        }
+      } catch {}
+    }
 
     recompute();
 
