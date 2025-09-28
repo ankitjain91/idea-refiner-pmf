@@ -1,5 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,91 +14,71 @@ serve(async (req) => {
   }
 
   try {
-    const { q, timeframe = '30d', max = 10 } = await req.json();
-    console.log('Searching YouTube for:', q);
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_SEARCH_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
-
-    // Use GPT to generate realistic YouTube metrics
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const { query } = await req.json();
+    
+    console.log('Analyzing YouTube data for:', query);
+    
+    // Generate YouTube analytics using Groq
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
-            content: `Return ONLY valid JSON, no explanations. Search YouTube for videos.
-            
-            Return this exact JSON structure:
+            content: `Generate YouTube analytics data as JSON:
             {
-              "volume": <number 0-100>,
-              "engagement": <number>,
-              "topVideos": [{"title": "string", "views": number, "likes": number, "channel": "string", "url": "string"}],
-              "trendingTopics": ["string"],
-              "creatorSentiment": "string",
-              "sources": ["url string"]
+              "searchVolume": 1000-1000000,
+              "topVideos": [
+                {"title": "video1", "views": 10000-1000000, "engagement": 1-10},
+                {"title": "video2", "views": 10000-1000000, "engagement": 1-10}
+              ],
+              "averageViews": 10000-500000,
+              "competitionLevel": "low/medium/high",
+              "contentGaps": ["gap1", "gap2", ...],
+              "trendingTopics": ["topic1", "topic2", ...],
+              "insights": ["insight1", "insight2", ...]
             }`
           },
           {
             role: 'user',
-            content: `${q}`
+            content: `Generate YouTube analytics for: "${query}"`
           }
         ],
-        max_tokens: 1200,
-        temperature: 0.3
+        temperature: 0.8,
+        max_tokens: 800,
+        response_format: { type: "json_object" }
       }),
     });
 
     const aiData = await response.json();
     
     if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
-      console.error('Invalid OpenAI response:', aiData);
-      throw new Error('Invalid response from OpenAI');
+      console.error('Invalid Groq response:', aiData);
+      throw new Error('Invalid response from Groq');
     }
     
     const youtubeData = JSON.parse(aiData.choices[0].message.content);
 
-    return new Response(JSON.stringify({
-      status: 'ok',
-      raw: youtubeData,
-      normalized: {
-        volume: youtubeData.volume || 65,
-        engagement: youtubeData.engagement || 4.2,
-        topVideos: youtubeData.topVideos || [
-          { title: `How to build ${q}`, views: 125000, likes: 4800, channel: 'TechExplained' },
-          { title: `${q} Review 2024`, views: 89000, likes: 3200, channel: 'ReviewHub' }
-        ]
-      },
-      citations: [
-        {
-          source: 'YouTube Content Analysis',
-          url: '#',
-          fetchedAtISO: new Date().toISOString()
-        }
-      ],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: youtubeData
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('YouTube search error:', error);
-    return new Response(JSON.stringify({
-      status: 'unavailable',
-      reason: error instanceof Error ? error.message : 'Unknown error',
-      raw: null,
-      normalized: null,
-      citations: [],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in youtube-search function:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });

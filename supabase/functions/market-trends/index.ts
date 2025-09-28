@@ -1,7 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_DASHBOARD_API_KEY');
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
+const serperApiKey = Deno.env.get('SERPER_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,15 +19,36 @@ serve(async (req) => {
     
     console.log('Fetching market trends for:', idea);
     
-    // Analyze market trends and search volume using AI
-    const trendAnalysis = await fetch('https://api.openai.com/v1/chat/completions', {
+    // First, get real search data from Serper
+    let searchData = null;
+    if (serperApiKey) {
+      try {
+        const serperResponse = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': serperApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: idea,
+            num: 10
+          }),
+        });
+        searchData = await serperResponse.json();
+      } catch (e) {
+        console.error('Serper search failed:', e);
+      }
+    }
+    
+    // Analyze market trends using Groq
+    const trendAnalysis = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
@@ -56,19 +78,20 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Analyze market trends for: "${idea}". Keywords: ${keywords?.join(', ') || 'auto-detect'}`
+            content: `Analyze market trends for: "${idea}". Keywords: ${keywords?.join(', ') || 'auto-detect'}. ${searchData ? `Search results context: ${JSON.stringify(searchData.organic?.slice(0, 3))}` : ''}`
           }
         ],
         temperature: 0.7,
-        max_tokens: 1500
+        max_tokens: 1500,
+        response_format: { type: "json_object" }
       }),
     });
 
     const trendData = await trendAnalysis.json();
     
     if (!trendData.choices || !trendData.choices[0] || !trendData.choices[0].message) {
-      console.error('Invalid OpenAI response:', trendData);
-      throw new Error('Invalid response from OpenAI');
+      console.error('Invalid Groq response:', trendData);
+      throw new Error('Invalid response from Groq');
     }
     
     const trends = JSON.parse(trendData.choices[0].message.content);

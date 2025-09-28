@@ -1,5 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,104 +14,74 @@ serve(async (req) => {
   }
 
   try {
-    const { query, subreddits = [], sort = 'relevance' } = await req.json();
-    console.log('Searching Reddit for:', query);
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_SEARCH_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
-
-    // Use GPT to generate realistic Reddit sentiment data
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const { query } = await req.json();
+    
+    console.log('Analyzing Reddit sentiment for:', query);
+    
+    // Simulate Reddit data analysis using Groq
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
-            content: `Return ONLY valid JSON for Reddit analysis. Structure:
+            content: `Generate realistic Reddit sentiment analysis data as JSON:
             {
-              "painDensity": 68,
-              "sentiment": 25,
-              "topPainPhrases": ["too expensive", "hard to use", "lacks integration"],
-              "threads": [
-                {"title": "Looking for better alternatives", "score": 125, "comments": 43, "sentiment": "frustrated", "url": "https://reddit.com/r/example"},
-                {"title": "Why is this so difficult?", "score": 89, "comments": 27, "sentiment": "negative", "url": "https://reddit.com/r/example2"}
-              ],
-              "userNeeds": ["better pricing", "easier onboarding", "more integrations"],
-              "demographics": {
-                "subreddits": ["r/productivity", "r/startups", "r/SaaS"],
-                "userTypes": ["developers", "managers", "freelancers"],
-                "commonComplaints": ["pricing", "complexity", "support"]
+              "sentiment": {
+                "positive": 30-70,
+                "neutral": 20-40,
+                "negative": 10-30
               },
-              "sources": ["https://reddit.com"]
+              "topSubreddits": ["r/subreddit1", "r/subreddit2", ...],
+              "mentions": 100-5000,
+              "engagement": {
+                "upvotes": 1000-50000,
+                "comments": 100-5000
+              },
+              "trendingTopics": ["topic1", "topic2", ...],
+              "insights": ["insight1", "insight2", ...]
             }`
           },
           {
             role: 'user',
-            content: `Analyze Reddit discussions about: ${query}`
+            content: `Generate Reddit sentiment analysis for: "${query}"`
           }
         ],
-        max_tokens: 1200,
-        temperature: 0.3
+        temperature: 0.8,
+        max_tokens: 800,
+        response_format: { type: "json_object" }
       }),
     });
 
     const aiData = await response.json();
     
     if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
-      console.error('Invalid OpenAI response:', aiData);
-      throw new Error('Invalid response from OpenAI');
+      console.error('Invalid Groq response:', aiData);
+      throw new Error('Invalid response from Groq');
     }
     
     const redditData = JSON.parse(aiData.choices[0].message.content);
 
-    return new Response(JSON.stringify({
-      status: 'ok',
-      raw: {
-        threads: redditData.threads || [
-          { title: `Looking for ${query} solutions`, score: 125, comments: 43, sentiment: 'positive' },
-          { title: `Why is ${query} so difficult?`, score: 89, comments: 27, sentiment: 'frustrated' }
-        ]
-      },
-      normalized: {
-        painDensity: redditData.painDensity || 68,
-        sentiment: redditData.sentiment || 25,
-        topPainPhrases: redditData.topPainPhrases || [
-          'too expensive',
-          'hard to use',
-          'lacks integration'
-        ],
-        painMentions: redditData.threads?.length || 15
-      },
-      citations: [
-        {
-          source: 'Reddit Community Analysis',
-          url: '#',
-          fetchedAtISO: new Date().toISOString()
-        }
-      ],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: redditData
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Reddit search error:', error);
-    return new Response(JSON.stringify({
-      status: 'unavailable',
-      reason: error instanceof Error ? error.message : 'Unknown error',
-      raw: null,
-      normalized: null,
-      citations: [],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in reddit-search function:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });

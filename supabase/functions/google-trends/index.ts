@@ -1,5 +1,8 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
+const serperApiKey = Deno.env.get('SERPER_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,112 +15,92 @@ serve(async (req) => {
   }
 
   try {
-    const { keyword, geo = 'US', timeframe = '30d' } = await req.json();
-    console.log('Getting trends for:', keyword);
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_SEARCH_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
+    const { query } = await req.json();
+    
+    console.log('Fetching Google Trends for:', query);
+    
+    // Get real search data from Serper (includes trends)
+    let searchData = null;
+    if (serperApiKey) {
+      try {
+        const serperResponse = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': serperApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: query,
+            location: "United States",
+            gl: "us",
+            hl: "en",
+            num: 20
+          }),
+        });
+        searchData = await serperResponse.json();
+      } catch (e) {
+        console.error('Serper search failed:', e);
+      }
     }
-
-    // Use GPT to generate realistic trend data
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    
+    // Analyze trends using Groq
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
-            content: `Return ONLY valid JSON for trends analysis. Structure:
+            content: `Analyze Google search trends data and return insights as JSON:
             {
-              "interestScore": 72,
-              "velocity": 25,
-              "trendDirection": "rising",
-              "interestOverTime": [{"date": "2024-01-01", "value": 65}],
-              "regions": [{"region": "United States", "interest": 85}],
-              "relatedTopics": ["AI productivity", "remote work tools"],
-              "breakoutTerms": ["AI assistant", "workflow automation"],
-              "demographics": {
-                "ageGroups": ["25-34: 42%", "35-44: 28%", "18-24: 20%"],
-                "interests": ["Technology", "Business", "Productivity"]
-              },
-              "sources": ["https://trends.google.com"]
+              "trendScore": 0-100,
+              "trending": "rising/stable/declining",
+              "relatedQueries": ["query1", "query2", ...],
+              "seasonality": "high/medium/low",
+              "growthRate": percentage,
+              "insights": ["insight1", "insight2", ...]
             }`
           },
           {
             role: 'user',
-            content: `${keyword}`
+            content: `Analyze trends for: "${query}". ${searchData ? `Search context: ${JSON.stringify(searchData.searchParameters)}, Related searches: ${JSON.stringify(searchData.relatedSearches)}` : ''}`
           }
         ],
-        max_tokens: 1200,
-        temperature: 0.3 // Lower temperature for factual data
+        temperature: 0.7,
+        max_tokens: 800,
+        response_format: { type: "json_object" }
       }),
     });
 
     const aiData = await response.json();
     
     if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
-      console.error('Invalid OpenAI response:', aiData);
-      throw new Error('Invalid response from OpenAI');
+      console.error('Invalid Groq response:', aiData);
+      throw new Error('Invalid response from Groq');
     }
     
     const trends = JSON.parse(aiData.choices[0].message.content);
 
-    // Generate time series if not provided
-    if (!trends.interestOverTime || trends.interestOverTime.length === 0) {
-      const now = new Date();
-      trends.interestOverTime = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date(now);
-        date.setDate(date.getDate() - (29 - i));
-        const baseValue = 50 + Math.random() * 30;
-        const trend = i * (trends.velocity || 10) / 100;
-        return {
-          date: date.toISOString().split('T')[0],
-          value: Math.round(baseValue + trend + (Math.random() - 0.5) * 10)
-        };
-      });
-    }
-
-    return new Response(JSON.stringify({
-      status: 'ok',
-      raw: trends,
-      normalized: {
-        interestScore: trends.interestScore || 72,
-        velocity: trends.velocity || 15,
-        interestOverTime: trends.interestOverTime,
-        regions: trends.regions || [
-          { region: 'United States', interest: 85 },
-          { region: 'United Kingdom', interest: 72 },
-          { region: 'Canada', interest: 68 }
-        ]
-      },
-      citations: [
-        {
-          source: 'Trend Analysis',
-          url: '#',
-          fetchedAtISO: new Date().toISOString()
-        }
-      ],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        trends,
+        raw: searchData?.relatedSearches || []
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Google trends error:', error);
-    return new Response(JSON.stringify({
-      status: 'unavailable',
-      reason: error instanceof Error ? error.message : 'Unknown error',
-      raw: null,
-      normalized: null,
-      citations: [],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in google-trends function:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });

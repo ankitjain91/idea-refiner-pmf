@@ -1,5 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,90 +14,72 @@ serve(async (req) => {
   }
 
   try {
-    const { q, lang = 'en', since = '7d' } = await req.json();
-    console.log('Searching Twitter/X for:', q);
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_SEARCH_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
-
-    // Use GPT to generate realistic Twitter/X metrics
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const { query } = await req.json();
+    
+    console.log('Analyzing Twitter/X data for:', query);
+    
+    // Generate Twitter analytics using Groq
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
-            content: `Return ONLY valid JSON, no explanations. Search Twitter/X for posts.
-            
-            Return this exact JSON structure:
+            content: `Generate Twitter/X buzz analytics as JSON:
             {
-              "volume": <number 0-100>,
-              "sentiment": <number -100 to 100>,
-              "influencerInterest": <number 0-100>,
-              "topTweets": [{"text": "string", "likes": number, "retweets": number, "replies": number, "author": "string", "url": "string"}],
-              "trendingHashtags": ["string"],
-              "keyOpinions": ["string"],
-              "sources": ["url string"]
+              "mentions": 100-50000,
+              "sentiment": {
+                "positive": 30-70,
+                "neutral": 20-40,
+                "negative": 10-30
+              },
+              "reach": 10000-5000000,
+              "influencers": ["@influencer1", "@influencer2", ...],
+              "trendingHashtags": ["#hashtag1", "#hashtag2", ...],
+              "engagementRate": 1-10,
+              "insights": ["insight1", "insight2", ...]
             }`
           },
           {
             role: 'user',
-            content: `${q}`
+            content: `Generate Twitter/X analytics for: "${query}"`
           }
         ],
-        max_tokens: 1200,
-        temperature: 0.3
+        temperature: 0.8,
+        max_tokens: 800,
+        response_format: { type: "json_object" }
       }),
     });
 
     const aiData = await response.json();
     
     if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
-      console.error('Invalid OpenAI response:', aiData);
-      throw new Error('Invalid response from OpenAI');
+      console.error('Invalid Groq response:', aiData);
+      throw new Error('Invalid response from Groq');
     }
     
     const twitterData = JSON.parse(aiData.choices[0].message.content);
 
-    return new Response(JSON.stringify({
-      status: 'ok',
-      raw: twitterData,
-      normalized: {
-        volume: twitterData.volume || 58,
-        sentiment: twitterData.sentiment || 35,
-        influencerInterest: twitterData.influencerInterest || 42,
-        trendingHashtags: twitterData.trendingHashtags || [`#${q.replace(/\s+/g, '')}`, '#startup', '#innovation']
-      },
-      citations: [
-        {
-          source: 'Twitter/X Analysis',
-          url: '#',
-          fetchedAtISO: new Date().toISOString()
-        }
-      ],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: twitterData
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Twitter search error:', error);
-    return new Response(JSON.stringify({
-      status: 'unavailable',
-      reason: error instanceof Error ? error.message : 'Unknown error',
-      raw: null,
-      normalized: null,
-      citations: [],
-      fetchedAtISO: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in twitter-search function:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });
