@@ -234,9 +234,11 @@ const Dashboard = () => {
                 setIdea(ideaText);
                 localStorage.setItem(sessionIdeaKey, ideaText);
                 localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: ideaText }));
+                // Stay in AnalysisChat to answer questions and load AI suggestions
+                return;
               }
+              // ideaText undefined => analysis finished; exit AnalysisChat and load dashboard
               setShowAnalysis(false);
-              // Force a refresh of data
               setTimeout(() => {
                 refresh();
               }, 100);
