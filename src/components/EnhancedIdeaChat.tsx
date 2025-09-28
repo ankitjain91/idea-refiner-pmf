@@ -778,7 +778,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
           body: { 
             message: contextualMessage,
             conversationHistory,
-            responseMode: 'verbose', // Always use detailed responses
+            responseMode: 'concise', // Use concise mode to avoid verbose detailed responses
             refinementMode: true, // Always in refinement mode once idea is validated
             idea: currentIdea
           },
@@ -1025,7 +1025,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         body: { 
           message: contextualMessage,
           conversationHistory,
-          responseMode: 'verbose' // Always use detailed responses
+          responseMode: 'concise' // Use concise mode to avoid verbose detailed responses
         },
         headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined
       });
@@ -1725,7 +1725,7 @@ User submission: """${messageText}"""`;
         body: { 
           message: contextualMessage,
           conversationHistory,
-          responseMode: 'verbose' // Always use detailed responses
+          responseMode: 'concise' // Use concise mode to avoid verbose detailed responses
         }
       });
 
@@ -1813,7 +1813,7 @@ User submission: """${messageText}"""`;
                 return acc;
               }, {} as Record<string, string>),
               includeExplanations: true,
-              responseMode: 'verbose' // Always use detailed responses
+              responseMode: 'concise' // Use concise mode to avoid verbose detailed responses
             }
           });
           if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
