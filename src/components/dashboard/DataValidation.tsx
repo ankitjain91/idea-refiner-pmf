@@ -138,6 +138,11 @@ export const DataCompletionCard: React.FC<DataCompletionCardProps> = ({
 
   if (!validation) return null;
 
+  // Safe fallbacks to prevent runtime errors
+  const safeMissingFields = Array.isArray(validation.missingFields) ? validation.missingFields : [];
+  const safeDataCompleteness = typeof validation.dataCompleteness === 'number' ? validation.dataCompleteness : 0;
+  const safeReady = !!validation.readyForDashboard;
+
   const toggleField = (key: string) => {
     const newExpanded = new Set(expandedFields);
     if (newExpanded.has(key)) {
@@ -171,14 +176,14 @@ export const DataCompletionCard: React.FC<DataCompletionCardProps> = ({
             </p>
           </div>
         </div>
-        <Badge variant={validation.readyForDashboard ? "default" : "secondary"} className={validation.readyForDashboard ? "bg-green-500/20 text-green-500 border-green-500/50" : ""}>
-          {validation.dataCompleteness}% Complete
+        <Badge variant={safeReady ? "default" : "secondary"} className={safeReady ? "bg-green-500/20 text-green-500 border-green-500/50" : ""}>
+          {safeDataCompleteness}% Complete
         </Badge>
       </div>
 
-      <Progress value={validation.dataCompleteness} className="h-2 mb-6" />
+      <Progress value={safeDataCompleteness} className="h-2 mb-6" />
 
-      {!validation.readyForDashboard && (
+      {!safeReady && (
         <>
           <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
@@ -190,7 +195,7 @@ export const DataCompletionCard: React.FC<DataCompletionCardProps> = ({
           <div className="space-y-3 mb-4">
             <p className="text-sm font-medium text-muted-foreground">Missing Information:</p>
             {REQUIRED_FIELDS.filter(field => 
-              validation.missingFields.includes(field.key)
+              safeMissingFields.includes(field.key)
             ).map((field) => {
               const Icon = field.icon;
               const isExpanded = expandedFields.has(field.key);
@@ -245,7 +250,7 @@ export const DataCompletionCard: React.FC<DataCompletionCardProps> = ({
         </>
       )}
 
-      {validation.readyForDashboard ? (
+      {safeReady ? (
         <div className="space-y-4">
           <Alert className="border-green-500/20 bg-green-500/5">
             <CheckCircle className="h-4 w-4 text-green-500" />
@@ -261,7 +266,7 @@ export const DataCompletionCard: React.FC<DataCompletionCardProps> = ({
       ) : (
         <div className="pt-4 border-t">
           <p className="text-sm text-muted-foreground mb-3">
-            Answer {validation.missingFields.length} more questions to unlock:
+            Answer {safeMissingFields.length} more questions to unlock:
           </p>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 text-sm">
