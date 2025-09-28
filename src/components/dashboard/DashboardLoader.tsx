@@ -47,7 +47,12 @@ export const DashboardLoader: React.FC<DashboardLoaderProps> = ({
   const [collectedData, setCollectedData] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    if (!idea) return;
+    if (!idea || idea.trim().length < 10) {
+      // Set status for no idea state
+      setCurrentStatus('Waiting for startup idea...');
+      setProgress(0);
+      return;
+    }
     fetchDashboardData();
   }, [idea]);
 

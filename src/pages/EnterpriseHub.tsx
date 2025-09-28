@@ -6,11 +6,13 @@ import { GlobalFilters } from '@/components/hub/GlobalFilters';
 import { DataTile } from '@/components/hub/DataTile';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   TrendingUp, Users, Target, BarChart3, DollarSign,
   Briefcase, Trophy, Map, Calculator, Shield,
   MessageSquare, Lightbulb, Handshake, Zap, AlertCircle,
-  ArrowLeft, FileText, Settings
+  ArrowLeft, FileText, Settings, Brain, RefreshCw
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -408,27 +410,62 @@ export default function EnterpriseHub() {
   
   if (!filters.idea_keywords.length) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto p-8">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-4">
-                <p>No idea keywords detected. Please provide your startup idea to begin analysis.</p>
-                <div className="flex gap-2">
-                  <Button onClick={() => navigate('/ideachat')}>
-                    Go to Idea Chat
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    try { window.dispatchEvent(new Event('idea:updated')); } catch {}
-                  }}>
-                    Try Detect Again
-                  </Button>
-                </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-8">
+        <Card className="max-w-2xl w-full p-8">
+          <div className="text-center space-y-6">
+            <div className="inline-flex p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10">
+              <Brain className="h-12 w-12 text-primary" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Dashboard Needs Your Startup Idea</h2>
+              <p className="text-muted-foreground">
+                The dashboard analyzes your startup idea with real market data. 
+                Please share your idea first to begin the analysis.
+              </p>
+            </div>
+
+            <Alert className="text-left">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>How to get started:</strong>
+                <ul className="mt-2 space-y-1 text-sm">
+                  <li>• Go to the Idea Chat and describe your startup idea</li>
+                  <li>• The dashboard will automatically detect your idea</li>
+                  <li>• Real-time market analysis will begin immediately</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => navigate('/ideachat')} size="lg">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Go to Idea Chat
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => {
+                  window.location.reload();
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Dashboard
+              </Button>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              <p>Once you've shared your idea, the dashboard will analyze:</p>
+              <div className="flex flex-wrap gap-2 justify-center mt-2">
+                <Badge variant="secondary">Market Size</Badge>
+                <Badge variant="secondary">Competition</Badge>
+                <Badge variant="secondary">PMF Score</Badge>
+                <Badge variant="secondary">Growth Metrics</Badge>
+                <Badge variant="secondary">Marketing Channels</Badge>
               </div>
-            </AlertDescription>
-          </Alert>
-        </div>
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }
