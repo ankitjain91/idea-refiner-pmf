@@ -270,9 +270,15 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                   variant="outline"
                   className="py-1 px-2.5 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:border-primary/40 transition-colors text-xs"
                 >
-                  {typeof query === 'string' ? query : (query.query || String(query.value ?? ''))}
-                  {typeof query !== 'string' && query.change && (
-                    <span className="ml-1 text-green-500">{query.change}</span>
+                  {typeof query === 'string'
+                    ? query
+                    : (typeof (query as any)?.query === 'string'
+                        ? (query as any).query
+                        : (typeof (query as any)?.value === 'number' || typeof (query as any)?.value === 'string'
+                            ? String((query as any).value)
+                            : ''))}
+                  {typeof query === 'object' && (query as any)?.change && (
+                    <span className="ml-1 text-green-500">{(query as any).change}</span>
                   )}
                 </Badge>
               ))}
@@ -471,8 +477,14 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                         backgroundColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '10'
                       }}
                     >
-                      {typeof query === 'string' ? query : (query.query || String(query.value ?? ''))}
-                      {typeof query !== 'string' && query.change && (
+                      {typeof query === 'string'
+                        ? query
+                        : (typeof query?.query === 'string'
+                            ? query.query
+                            : (typeof query?.value === 'number' || typeof query?.value === 'string'
+                                ? String(query.value)
+                                : ''))}
+                      {typeof query === 'object' && query?.change && (
                         <span className="ml-1 text-green-500">{query.change}</span>
                       )}
                     </Badge>

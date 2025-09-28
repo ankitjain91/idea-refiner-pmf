@@ -650,8 +650,14 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               <div className="flex flex-wrap gap-2">
                 {currentData.top_queries.slice(0, 6).map((query: any, idx: number) => (
                   <Badge key={idx} variant="secondary" className="text-xs">
-                    {typeof query === 'string' ? query : (query.query || query.value || '')}
-                    {query.change && (
+                    {typeof query === 'string'
+                      ? query
+                      : (typeof query?.query === 'string'
+                          ? query.query
+                          : (typeof query?.value === 'number' || typeof query?.value === 'string'
+                              ? String(query.value)
+                              : ''))}
+                    {typeof query === 'object' && query?.change && (
                       <span className="ml-1 text-green-500">{query.change}</span>
                     )}
                   </Badge>
@@ -702,7 +708,13 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 {currentData.top_queries.slice(0, 4).map((query: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-2 bg-muted/10 rounded-lg">
                     <span className="text-xs font-medium truncate">
-                      {typeof query === 'string' ? query : (query.query || query.value || '')}
+                      {typeof query === 'string'
+                        ? query
+                        : (typeof query?.query === 'string'
+                            ? query.query
+                            : (typeof query?.value === 'number' || typeof query?.value === 'string'
+                                ? String(query.value)
+                                : ''))}
                     </span>
                     <Badge variant="secondary" className="text-xs h-5">
                       {query.value || '50'}%
