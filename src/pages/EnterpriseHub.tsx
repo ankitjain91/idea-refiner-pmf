@@ -138,34 +138,63 @@ export default function EnterpriseHub() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   
-  // Load initial idea from localStorage
+  // Load initial idea from localStorage + keep in sync
   useEffect(() => {
-    const storedIdea = localStorage.getItem('userIdea') || localStorage.getItem('currentIdea');
-    const ideaText = localStorage.getItem('ideaText');
-    
-    // Try multiple sources for the idea
-    const ideaToUse = storedIdea || ideaText;
-    
-    console.log('EnterpriseHub - Loading idea from localStorage:', {
-      userIdea: localStorage.getItem('userIdea'),
-      currentIdea: localStorage.getItem('currentIdea'),
-      ideaText: localStorage.getItem('ideaText'),
-      ideaToUse
-    });
-    
-    if (ideaToUse && ideaToUse.trim()) {
-      // Extract keywords from idea
-      const keywords = ideaToUse.split(' ')
-        .filter(word => word.length > 3)
-        .slice(0, 5);
-      
-      console.log('Extracted keywords:', keywords);
-      
-      setFilters(prev => ({
-        ...prev,
-        idea_keywords: keywords
-      }));
-    }
+    const extractKeywords = (idea: string) => {
+      const stop = new Set([
+        'the','and','for','with','that','this','from','your','into','about','over','using','you','are','our','their','them','they','have','has','can','will','just','very','much','more','less','when','what','how','why','where','who','app','tool','idea','project','startup','ai'
+      ]);
+      const words = idea
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w && w.length > 2 && !stop.has(w));
+      const unique = Array.from(new Set(words));
+      if (unique.length > 0) return unique.slice(0, 5);
+      const fallback = idea.split(/\s+/).filter(w => w.length >= 2).slice(0, 3);
+      return fallback.length ? fallback : [idea.trim().slice(0, 30)];
+    };
+
+    const recompute = () => {
+      const userIdea = localStorage.getItem('userIdea') || '';
+      const currentIdea = localStorage.getItem('currentIdea') || '';
+      const ideaText = localStorage.getItem('ideaText') || '';
+      let ideaToUse = userIdea || currentIdea || ideaText;
+
+      // Try metadata as fallback
+      const metaRaw = localStorage.getItem('ideaMetadata');
+      let metaKeywords: string[] | undefined;
+      if (metaRaw) {
+        try {
+          const meta = JSON.parse(metaRaw);
+          if (Array.isArray(meta?.keywords) && meta.keywords.length) {
+            metaKeywords = meta.keywords.slice(0, 5);
+          }
+          if (!ideaToUse) ideaToUse = meta?.refined || meta?.idea_text || meta?.idea || '';
+        } catch {}
+      }
+
+      const keywords = metaKeywords || (ideaToUse ? extractKeywords(ideaToUse) : []);
+      console.log('EnterpriseHub recompute:', { userIdea, currentIdea, ideaText, metaKeywords, ideaToUse, keywords });
+
+      if (keywords.length) {
+        setFilters(prev => ({
+          ...prev,
+          idea_keywords: keywords,
+        }));
+      }
+    };
+
+    recompute();
+
+    const onStorage = () => recompute();
+    const onIdeaUpdated = () => recompute();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('idea:updated', onIdeaUpdated as EventListener);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('idea:updated', onIdeaUpdated as EventListener);
+    };
   }, []);
   
   // Redirect if not authenticated
