@@ -71,31 +71,182 @@ export function DataTile({
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
-    try {
-      // Try the web-search-ai function for real-time data
-      const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
-        body: {
-          tileType,
-          filters,
-          query: filters?.idea_keywords?.join(' ') || ''
+
+    const toTileData = (payload: any): TileData => {
+      const now = new Date().toISOString();
+      return {
+        updatedAt: payload.updatedAt || now,
+        filters,
+        metrics: payload.metrics || [],
+        items: payload.items || [],
+        assumptions: payload.assumptions || [],
+        notes: payload.notes || '',
+        citations: payload.citations || [],
+        fromCache: !!payload.fromCache,
+        stale: !!payload.stale,
+      } as TileData;
+    };
+
+    const transformFallback = (type: string, res: any): TileData => {
+      const now = new Date().toISOString();
+      try {
+        switch (type) {
+          case 'market_trends': {
+            const t = res.trends || {};
+            const sv = t.searchVolume || {};
+            return {
+              updatedAt: res.timestamp || now,
+              filters,
+              metrics: [
+                { name: 'Trend', value: sv.trend || 'unknown', unit: '', explanation: 'Overall search trend', method: 'groq+serper', confidence: 0.6 },
+                { name: 'Monthly Volume', value: sv.monthlyVolume || 0, unit: 'searches/mo', explanation: 'Estimated search volume', method: 'groq+serper', confidence: 0.5 },
+                { name: 'Growth Rate', value: sv.growthRate || 0, unit: '%', explanation: 'Estimated growth', method: 'groq+serper', confidence: 0.5 },
+                { name: 'Sentiment', value: t.marketSentiment || 'neutral', unit: '', explanation: 'Estimated market sentiment', method: 'groq', confidence: 0.5 },
+              ],
+              items: [],
+              assumptions: t.insights || [],
+              notes: 'Synthesized from market-trends',
+              citations: [],
+            } as TileData;
+          }
+          case 'google_trends': {
+            const t = res.trends || {};
+            return {
+              updatedAt: now,
+              filters,
+              metrics: [
+                { name: 'Trend Score', value: t.trendScore || 0, unit: '/100', explanation: 'Relative search interest', method: 'groq+serper', confidence: 0.5 },
+                { name: 'Direction', value: t.trending || 'stable', unit: '', explanation: 'Trend direction', method: 'groq', confidence: 0.5 },
+                { name: 'Growth Rate', value: t.growthRate || 0, unit: '%', explanation: 'Estimated growth', method: 'groq', confidence: 0.5 },
+              ],
+              items: [],
+              assumptions: t.insights || [],
+              notes: 'Synthesized from google-trends',
+              citations: [],
+            } as TileData;
+          }
+          case 'reddit_sentiment': {
+            const d = res.data || {};
+            return {
+              updatedAt: now,
+              filters,
+              metrics: [
+                { name: 'Mentions', value: d.mentions || 0, unit: '', explanation: 'Total Reddit mentions', method: 'groq', confidence: 0.5 },
+                { name: 'Positive', value: d.sentiment?.positive || 0, unit: '%', explanation: 'Positive sentiment', method: 'groq', confidence: 0.5 },
+              ],
+              items: (d.topSubreddits || []).slice(0, 3).map((s: string) => ({ title: s, snippet: 'Top subreddit', url: `https://reddit.com/${s}`, canonicalUrl: `https://reddit.com/${s}`, published: 'unknown', source: 'reddit', evidence: [] })),
+              assumptions: d.insights || [],
+              notes: 'Synthesized from reddit-search',
+              citations: [],
+            } as TileData;
+          }
+          case 'youtube_analytics': {
+            const d = res.data || {};
+            return {
+              updatedAt: now,
+              filters,
+              metrics: [
+                { name: 'Search Volume', value: d.searchVolume || 0, unit: '', explanation: 'Estimated video search volume', method: 'groq', confidence: 0.5 },
+                { name: 'Avg Views', value: d.averageViews || 0, unit: '', explanation: 'Average views for top videos', method: 'groq', confidence: 0.5 },
+              ],
+              items: (d.topVideos || []).slice(0, 3).map((v: any) => ({ title: v.title, snippet: `Views: ${v.views}`, url: '#', canonicalUrl: '#', published: 'unknown', source: 'youtube', evidence: [] })),
+              assumptions: d.insights || [],
+              notes: 'Synthesized from youtube-search',
+              citations: [],
+            } as TileData;
+          }
+          case 'twitter_buzz': {
+            const d = res.data || {};
+            return {
+              updatedAt: now,
+              filters,
+              metrics: [
+                { name: 'Mentions', value: d.mentions || 0, unit: '', explanation: 'Total mentions on X', method: 'groq', confidence: 0.5 },
+                { name: 'Reach', value: d.reach || 0, unit: '', explanation: 'Estimated reach', method: 'groq', confidence: 0.5 },
+              ],
+              items: (d.trendingHashtags || []).slice(0, 3).map((h: string) => ({ title: h, snippet: 'Trending hashtag', url: '#', canonicalUrl: '#', published: 'unknown', source: 'x', evidence: [] })),
+              assumptions: d.insights || [],
+              notes: 'Synthesized from twitter-search',
+              citations: [],
+            } as TileData;
+          }
+          case 'amazon_reviews': {
+            const d = res.data || {};
+            return {
+              updatedAt: now,
+              filters,
+              metrics: [
+                { name: 'Avg Rating', value: d.averageRating || 0, unit: '/5', explanation: 'Average product rating', method: 'groq', confidence: 0.5 },
+                { name: 'Total Reviews', value: d.totalReviews || 0, unit: '', explanation: 'Total review count', method: 'groq', confidence: 0.5 },
+              ],
+              items: (d.topProducts || []).slice(0, 3).map((p: any) => ({ title: p.name, snippet: `Rating ${p.rating} • ${p.reviews} reviews`, url: '#', canonicalUrl: '#', published: 'unknown', source: 'amazon', evidence: [] })),
+              assumptions: d.commonComplaints || [],
+              notes: 'Synthesized from amazon-public',
+              citations: [],
+            } as TileData;
+          }
+          default:
+            return {
+              updatedAt: now,
+              filters,
+              metrics: [],
+              items: [],
+              assumptions: [],
+              notes: 'No data available',
+              citations: [],
+            } as TileData;
         }
-      });
-      
-      if (fetchError) throw fetchError;
-      
-      // Check if response contains an error
-      if (response?.error) {
-        throw new Error(response.message || response.error);
+      } catch (e) {
+        console.error('transformFallback error', e);
+        return {
+          updatedAt: now,
+          filters,
+          metrics: [],
+          items: [],
+          assumptions: [],
+          notes: 'Transformation error',
+          citations: [],
+        } as TileData;
       }
-      
-      setData(response);
+    };
+
+    try {
+      // Primary path: consolidated AI search
+      const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
+        body: { tileType, filters, query: filters?.idea_keywords?.join(' ') || '' }
+      });
+      if (fetchError) throw fetchError;
+      if (response?.error) throw new Error(response.message || response.error);
+      setData(toTileData(response));
+      setLastUpdate(new Date());
+      setRetryCount(0);
+      return;
+    } catch (primaryErr) {
+      console.warn(`[DataTile] web-search-ai failed for ${tileType}`, primaryErr);
+    }
+
+    // Fallback: hit specific functions based on tile type
+    try {
+      const fnMap: Record<string, { name: string; body: any }> = {
+        market_trends: { name: 'market-trends', body: { idea: (filters?.idea_keywords || []).join(' ') } },
+        google_trends: { name: 'google-trends', body: { query: (filters?.idea_keywords || []).join(' ') } },
+        reddit_sentiment: { name: 'reddit-search', body: { query: (filters?.idea_keywords || []).join(' ') } },
+        youtube_analytics: { name: 'youtube-search', body: { query: (filters?.idea_keywords || []).join(' ') } },
+        twitter_buzz: { name: 'twitter-search', body: { query: (filters?.idea_keywords || []).join(' ') } },
+        amazon_reviews: { name: 'amazon-public', body: { query: (filters?.idea_keywords || []).join(' ') } },
+      };
+      const entry = fnMap[tileType];
+      if (!entry) throw new Error('No fallback available');
+
+      const { data: resp, error: fnErr } = await supabase.functions.invoke(entry.name, { body: entry.body });
+      if (fnErr) throw fnErr;
+      if (resp?.error) throw new Error(resp.message || resp.error);
+      setData(transformFallback(tileType, resp));
       setLastUpdate(new Date());
       setRetryCount(0);
     } catch (err: any) {
       console.error(`Error fetching ${tileType} data:`, err);
       setError('Cannot fetch AI responses');
-      // No fallback data, just error state
     } finally {
       setLoading(false);
     }
