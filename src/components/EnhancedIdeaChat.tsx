@@ -770,6 +770,9 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         Challenge assumptions, identify risks, and push for validation, but always within the scope of improving "${currentIdea}".
         User says: ${messageText}`;
 
+        // Get current session for auth
+        const { data: { session } } = await supabase.auth.getSession();
+        
         // Register the main chat request for background processing
         const chatPromise = supabase.functions.invoke('idea-chat', {
           body: { 
@@ -778,7 +781,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
             responseMode: 'verbose', // Always use detailed responses
             refinementMode: true, // Always in refinement mode once idea is validated
             idea: currentIdea
-          }
+          },
+          headers: session ? {
+            Authorization: `Bearer ${session.access_token}`
+          } : undefined
         });
 
         backgroundProcessor.register(requestId, chatPromise, 'chat', sessionId);
@@ -905,8 +911,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       const sessionId = currentSession?.id;
       
       try {
+        const { data: { session } } = await supabase.auth.getSession();
         const topicPromise = supabase.functions.invoke('idea-chat', {
-          body: { message: topicCheckPrompt, conversationHistory: [] }
+          body: { message: topicCheckPrompt, conversationHistory: [] },
+          headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined
         });
         
         backgroundProcessor.register(topicRequestId, topicPromise, 'chat', sessionId);
@@ -1012,12 +1020,14 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         ? `Context: We are refining the startup idea "${currentIdea}" to maximize profitability and success. Focus on actionable insights for market fit, revenue optimization, growth strategies, and competitive advantages. User message: ${messageText}`
         : messageText;
 
+      const { data: { session } } = await supabase.auth.getSession();
       const chatPromise = supabase.functions.invoke('idea-chat', {
         body: { 
           message: contextualMessage,
           conversationHistory,
           responseMode: 'verbose' // Always use detailed responses
-        }
+        },
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined
       });
 
       backgroundProcessor.register(mainRequestId, chatPromise, 'chat', sessionId);

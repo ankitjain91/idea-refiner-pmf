@@ -408,16 +408,20 @@ serve(async (req) => {
   }
 
   try {
-    // Get user ID from request headers
+    // Get user ID from request headers (optional for now)
     const authHeader = req.headers.get('authorization');
     let userId: string | null = null;
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
-      const supabaseClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
-      const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-      if (!error && user) {
-        userId = user.id;
+      try {
+        const supabaseClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+        const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+        if (!error && user) {
+          userId = user.id;
+        }
+      } catch (err) {
+        console.log('Could not extract user ID, continuing without tracking:', err);
       }
     }
     
