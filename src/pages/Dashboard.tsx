@@ -410,8 +410,8 @@ const Dashboard = () => {
           </motion.div>
         )}
         
-        {/* Enhanced Data Validation with Inline Questions */}
-        {validation && !validation.readyForDashboard && (
+        {/* Enhanced Data Validation with Inline Questions - Only show when data not retrieved */}
+        {validation && !validation.readyForDashboard && needsMoreData && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
