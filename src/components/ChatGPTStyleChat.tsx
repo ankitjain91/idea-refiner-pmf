@@ -18,7 +18,9 @@ import {
   Play,
   RefreshCw,
   Brain,
-  Lightbulb
+  Lightbulb,
+  BarChart3,
+  Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -1911,7 +1913,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
 
   {/* Input Area - Fixed at Bottom (refactored) */}
   <div className="shrink-0 border-t bg-background p-4">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto space-y-3">
           <ChatInputBar
             input={input}
             setInput={setInput}
@@ -1920,6 +1922,28 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
             placeholder={!currentIdea ? 'Describe your product idea...' : isAnalyzing ? 'Type your answer...' : 'Ask a follow-up question...'}
             inputRef={inputRef}
           />
+          
+          {/* Action Buttons */}
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={() => navigate('/dashboard')}
+              variant="outline"
+              size="sm"
+              className="bg-card/50 hover:bg-primary/10 hover:border-primary/50 transition-all"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <Button
+              onClick={() => navigate('/pricing')}
+              variant="outline"
+              size="sm"
+              className="bg-card/50 hover:bg-primary/10 hover:border-primary/50 transition-all"
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              Monetization
+            </Button>
+          </div>
         </div>
       </div>
     </div>
