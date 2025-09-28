@@ -115,6 +115,22 @@ const Dashboard = () => {
     );
   }
 
+  // Check if idea exists but needs more data
+  const needsMoreData = idea && (!metrics || !market || !competition);
+  
+  useEffect(() => {
+    // If navigating to dashboard with insufficient data, redirect to IdeaChat with prompt
+    if (idea && needsMoreData && !loading) {
+      const missingDataPrompt = `I need more information about your idea to generate comprehensive dashboard insights. Let me ask you some key questions about:
+      
+${!metrics ? '• Your target metrics and KPIs\n' : ''}${!market ? '• Market size and opportunity\n' : ''}${!competition ? '• Competitive landscape\n' : ''}
+Let's start with the most important details to unlock your full dashboard analysis.`;
+      
+      localStorage.setItem('pendingQuestion', missingDataPrompt);
+      navigate('/ideachat');
+    }
+  }, [idea, needsMoreData, loading, metrics, market, competition, navigate]);
+
   if (!idea) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-black'>
@@ -130,7 +146,7 @@ const Dashboard = () => {
               </div>
               <h2 className="text-2xl font-bold mb-2">Start Your Journey</h2>
               <p className="text-muted-foreground mb-6">
-                The dashboard needs data from your IdeaChat conversation. Let's analyze your startup idea first!
+                Let's analyze your startup idea and generate real-time insights!
               </p>
               
               <div className="w-full space-y-3">

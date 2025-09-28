@@ -333,6 +333,24 @@ What's your startup idea?`,
   // Initialize chat on mount or session change
   useEffect(() => {
     initializeChat();
+    
+    // Check for pending question from dashboard
+    const pendingQuestion = localStorage.getItem('pendingQuestion');
+    if (pendingQuestion) {
+      // Wait for chat to initialize first
+      setTimeout(() => {
+        setInput(pendingQuestion);
+        localStorage.removeItem('pendingQuestion');
+        // Focus the input
+        inputRef.current?.focus();
+        
+        // Show a helpful message
+        toast({
+          title: "Dashboard Analysis",
+          description: "I need a few more details to complete your dashboard. Please answer the questions below.",
+        });
+      }, 500);
+    }
   }, [currentSession?.name, anonymous, fetchRandomIdeas]);
 
   // Persist messages for authenticated users
