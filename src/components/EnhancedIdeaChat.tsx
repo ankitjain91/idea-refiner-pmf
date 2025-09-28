@@ -655,7 +655,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
 
     // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: 'user',
       content: messageText,
       timestamp: new Date()
@@ -762,8 +762,9 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     // Once we have a valid idea, skip validation and focus on refinement
     if (hasValidIdea && currentIdea) {
       // Add typing indicator immediately for responsiveness
+      const typingMessageId = `typing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const typingMessage: Message = {
-        id: 'typing',
+        id: typingMessageId,
         type: 'bot',
         content: '',
         timestamp: new Date(),
@@ -808,6 +809,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         if (error) throw error;
 
         // Don't remove typing indicator yet - keep it visible until response is ready
+        const messageId = `bot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
         // Use ChatGPT to evaluate wrinkle points
         let pointChange = 0;
@@ -942,7 +944,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
           ];
           
           const redirectMessage: Message = {
-            id: Date.now().toString(),
+            id: `bot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: 'bot',
             content: topicCheck.redirect || redirectLines[Math.min(offTopicAttempts, 4)],
             timestamp: new Date(),
@@ -961,7 +963,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
           
           if (offTopicAttempts >= 4) {
             const finalWarning: Message = {
-              id: Date.now().toString() + '_final',
+              id: `bot-final-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               type: 'bot',
               content: "🛑 Last chance! I'm here to maximize your startup's profitability. One more off-topic and I stop. What profit-related aspect would you like to explore?",
               timestamp: new Date(),
@@ -986,7 +988,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     // Stop after 5 off-topic attempts
     if (offTopicAttempts >= 5) {
       const stopMessage: Message = {
-        id: Date.now().toString(),
+        id: `bot-stop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: 'bot',
         content: "🔚 I'm a profit-focused startup advisor, not a general chatbot. Start a new session when ready to maximize your business success! 🚀",
         timestamp: new Date()
@@ -996,9 +998,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       return;
     }
 
-    // Add typing indicator
+    // Add typing indicator with unique ID
+    const typingId = `typing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const typingMessage: Message = {
-      id: 'typing',
+      id: typingId,
       type: 'bot',
       content: '',
       timestamp: new Date(),
@@ -1092,7 +1095,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       // Check for comprehensive analysis
       if (data?.pmfAnalysis) {
         const analysisMessage: Message = {
-          id: Date.now().toString(),
+          id: `bot-analysis-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: 'bot',
           content: "🧠✨ Your brain has developed some serious wrinkles! Here's your refined idea analysis:",
           timestamp: new Date(),
@@ -1478,7 +1481,7 @@ Focus on: WHO has WHAT problem and your solution approach.`,
 
     // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: 'user',
       content: messageText,
       timestamp: new Date(),
@@ -1519,7 +1522,7 @@ Focus on: WHO has WHAT problem and your solution approach.`,
         ];
         
         const saltyMessage: Message = {
-          id: Date.now().toString(),
+          id: `bot-salty-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: 'bot',
           content: enhancedResponse,
           timestamp: new Date(),
@@ -1553,7 +1556,7 @@ Focus on: WHO has WHAT problem and your solution approach.`,
         }
         
         const saltyMessage: Message = {
-          id: Date.now().toString(),
+          id: `bot-escalated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: 'bot',
           content: escalatedResponse,
           timestamp: new Date(),
@@ -1619,7 +1622,7 @@ User submission: """${messageText}"""`;
               ];
 
           const gateMessage: Message = {
-            id: Date.now().toString(),
+            id: `bot-gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: 'bot',
             content: `🧪 Idea Validation: NOT APPROVED\n\n${randomFunny}\n\nReason: ${parsed.reason || 'Missing concrete target, problem, or wedge.'}\n\nAnswer one of these to refine:\n- ${improvementHints.join('\n- ')}`,
             timestamp: new Date(),
@@ -1658,7 +1661,7 @@ User submission: """${messageText}"""`;
           localStorage.setItem('currentIdea', ideaPreview);
         } else {
           const fallbackGate: Message = {
-            id: Date.now().toString(),
+            id: `bot-fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             type: 'bot',
             content: `🧪 Idea Validation Glitch: I couldn't fully evaluate that, but it still feels too vague. Give me: WHO specifically + their painful moment + your narrow starting feature.`,
             timestamp: new Date(),
@@ -1759,7 +1762,7 @@ User submission: """${messageText}"""`;
       // Check for comprehensive analysis
       if (data?.pmfAnalysis) {
         const analysisMessage: Message = {
-          id: Date.now().toString(),
+          id: `bot-pmf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: 'bot',
           content: "🧠✨ Your brain has developed some serious wrinkles! Here's your refined idea analysis:",
           timestamp: new Date(),
@@ -1822,7 +1825,7 @@ User submission: """${messageText}"""`;
         })();
 
         const botMessage: Message = {
-          id: Date.now().toString(),
+          id: `bot-response-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: 'bot',
           content: formattedContent,
           detailedContent: detailed,
