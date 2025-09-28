@@ -107,19 +107,7 @@ const Dashboard = () => {
   // Check if idea exists but needs more data - moved before conditional returns
   const needsMoreData = idea && (!metrics || !market || !competition);
   
-  // Handle insufficient data redirect - MUST be before any conditional returns
-  useEffect(() => {
-    // If navigating to dashboard with insufficient data, redirect to IdeaChat with prompt
-    if (idea && needsMoreData && !loading) {
-      const missingDataPrompt = `I need more information about your idea to generate comprehensive dashboard insights. Let me ask you some key questions about:
-      
-${!metrics ? '• Your target metrics and KPIs\n' : ''}${!market ? '• Market size and opportunity\n' : ''}${!competition ? '• Competitive landscape\n' : ''}
-Let's start with the most important details to unlock your full dashboard analysis.`;
-      
-      localStorage.setItem('pendingQuestion', missingDataPrompt);
-      navigate('/ideachat');
-    }
-  }, [idea, needsMoreData, loading, metrics, market, competition, navigate]);
+  // Remove auto-redirect - let user decide when to go to IdeaChat
 
   // Early return for loading state
   if (authLoading || loading) {
@@ -236,6 +224,71 @@ Let's start with the most important details to unlock your full dashboard analys
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
+        {/* Show prompt when idea exists but needs more data */}
+        {needsMoreData && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="p-6 border-yellow-500/20 bg-yellow-500/5">
+              <div className="flex items-start gap-4">
+                <div className="p-2 rounded-lg bg-yellow-500/10">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-2">Complete Your Analysis</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Your dashboard needs more information to generate comprehensive insights. Answer a few key questions to unlock:
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {!metrics && (
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Key Performance Metrics</span>
+                      </div>
+                    )}
+                    {!market && (
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Market Analysis</span>
+                      </div>
+                    )}
+                    {!competition && (
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Competitive Insights</span>
+                      </div>
+                    )}
+                    {!channels && (
+                      <div className="flex items-center gap-2">
+                        <Rocket className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Growth Channels</span>
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      const missingDataPrompt = `I need more information about your idea "${idea?.slice(0, 50)}..." to generate comprehensive dashboard insights. Let me ask you some key questions about:
+                      
+${!metrics ? '• Your target metrics and KPIs\n' : ''}${!market ? '• Market size and opportunity\n' : ''}${!competition ? '• Competitive landscape\n' : ''}${!channels ? '• Marketing and growth channels\n' : ''}
+Let's start with the most important details to unlock your full dashboard analysis.`;
+                      
+                      localStorage.setItem('pendingQuestion', missingDataPrompt);
+                      navigate('/ideachat');
+                    }}
+                    className="gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Continue in IdeaChat
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+        
         {/* Data Validation Card */}
         {validation && !validation.readyForDashboard && (
           <div className="mb-6">

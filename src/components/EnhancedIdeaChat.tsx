@@ -333,12 +333,14 @@ What's your startup idea?`,
   // Initialize chat on mount or session change
   useEffect(() => {
     initializeChat();
-    
-    // Check for pending question from dashboard
+  }, [currentSession?.name, anonymous, fetchRandomIdeas]);
+
+  // Handle pending question from dashboard - separate effect to ensure it runs
+  useEffect(() => {
     const pendingQuestion = localStorage.getItem('pendingQuestion');
     if (pendingQuestion) {
-      // Wait for chat to initialize first
-      setTimeout(() => {
+      // Wait a bit for the component to be ready
+      const timer = setTimeout(() => {
         setInput(pendingQuestion);
         localStorage.removeItem('pendingQuestion');
         // Focus the input
@@ -349,9 +351,11 @@ What's your startup idea?`,
           title: "Dashboard Analysis",
           description: "I need a few more details to complete your dashboard. Please answer the questions below.",
         });
-      }, 500);
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
-  }, [currentSession?.name, anonymous, fetchRandomIdeas]);
+  }, []); // Run only once on mount
 
   // Persist messages for authenticated users
   useEffect(() => {
