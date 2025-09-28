@@ -113,6 +113,12 @@ serve(async (req) => {
     });
 
     const executionData = await executionAnalysis.json();
+    
+    if (!executionData.choices || !executionData.choices[0] || !executionData.choices[0].message) {
+      console.error('Invalid OpenAI response:', executionData);
+      throw new Error('Invalid response from OpenAI');
+    }
+    
     const execution = JSON.parse(executionData.choices[0].message.content);
 
     return new Response(

@@ -65,6 +65,12 @@ serve(async (req) => {
     });
 
     const trendData = await trendAnalysis.json();
+    
+    if (!trendData.choices || !trendData.choices[0] || !trendData.choices[0].message) {
+      console.error('Invalid OpenAI response:', trendData);
+      throw new Error('Invalid response from OpenAI');
+    }
+    
     const trends = JSON.parse(trendData.choices[0].message.content);
 
     return new Response(

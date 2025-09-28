@@ -56,6 +56,12 @@ serve(async (req) => {
     });
 
     const aiData = await response.json();
+    
+    if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
+      console.error('Invalid OpenAI response:', aiData);
+      throw new Error('Invalid response from OpenAI');
+    }
+    
     const twitterData = JSON.parse(aiData.choices[0].message.content);
 
     return new Response(JSON.stringify({
