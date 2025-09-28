@@ -1859,10 +1859,10 @@ User submission: """${messageText}"""`;
             }
           });
           if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
-            suggestions = suggestionData.suggestions.map((suggestion: any) => ({
-              ...suggestion,
-              explanation: suggestion.explanation || generateSuggestionExplanation(suggestion.text || suggestion)
-            }));
+            suggestions = suggestionData.suggestions.map((s: any) => {
+              const text = typeof s === 'string' ? s : (s?.text ?? String(s ?? '').trim());
+              return { text, explanation: generateSuggestionExplanation(text) };
+            });
           }
         } catch (error) {
           console.error('Error getting AI suggestions:', error);
