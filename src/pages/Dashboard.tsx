@@ -15,7 +15,8 @@ import {
   Loader2, Brain, Target, TrendingUp, Clock, Search,
   BarChart3, Zap, Users, Globe, Sparkles, Activity,
   CircleDollarSign, RefreshCw, AlertCircle, CheckCircle,
-  ArrowUp, ArrowDown, Shield, Rocket, ChevronRight, Lightbulb
+  ArrowUp, ArrowDown, Shield, Rocket, ChevronRight, Lightbulb,
+  MessageSquare, DollarSign, ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -117,14 +118,57 @@ const Dashboard = () => {
   if (!idea) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-black'>
-        <Card className="p-8 max-w-md">
-          <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Idea Found</h2>
-          <p className="text-muted-foreground mb-4">Please complete your idea analysis in IdeaChat first.</p>
-          <Button onClick={() => navigate('/ideachat')} className="w-full">
-            Go to IdeaChat
-          </Button>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-lg"
+        >
+          <Card className="p-8 border-primary/20 bg-gradient-to-br from-card to-card/80">
+            <div className="flex flex-col items-center text-center">
+              <div className="p-4 rounded-full bg-primary/10 mb-4">
+                <MessageSquare className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Start Your Journey</h2>
+              <p className="text-muted-foreground mb-6">
+                The dashboard needs data from your IdeaChat conversation. Let's analyze your startup idea first!
+              </p>
+              
+              <div className="w-full space-y-3">
+                <Button 
+                  onClick={() => navigate('/ideachat')} 
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Start IdeaChat
+                  <ArrowRight className="h-5 w-5 ml-auto" />
+                </Button>
+                
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-3">What you'll get:</p>
+                  <div className="grid grid-cols-2 gap-2 text-left">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Target className="h-4 w-4 text-green-500" />
+                      <span>PMF Analysis</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <TrendingUp className="h-4 w-4 text-blue-500" />
+                      <span>Market Insights</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4 text-purple-500" />
+                      <span>User Metrics</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <DollarSign className="h-4 w-4 text-yellow-500" />
+                      <span>Revenue Data</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
       </div>
     );
   }
