@@ -1,15 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { ChevronRight, Lightbulb, ArrowRight, RefreshCw, AlertCircle } from 'lucide-react';
+import { ChevronRight, Lightbulb, ArrowRight, RefreshCw, AlertCircle, FileText, ListMinus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { Message, ResponseMode } from './types';
+import { Message } from './types';
 import { generateSuggestionExplanation, generateBrainExplanation } from './utils';
 import PMFAnalysisCard from './PMFAnalysisCard';
 
 interface MessageRendererProps {
   message: Message;
-  responseMode: ResponseMode;
   onSendMessage: (message: string) => void;
   onSuggestionClick?: (suggestion: string) => void;
   onRetry?: (message: Message) => void;
@@ -17,11 +16,11 @@ interface MessageRendererProps {
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
   message, 
-  responseMode, 
   onSendMessage,
   onSuggestionClick,
-  onRetry 
+  onRetry
 }) => {
+  const [isShowingSummary, setIsShowingSummary] = useState(false);
   // Handle typing indicator
   if (message.isTyping) {
     return (
@@ -105,13 +104,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     );
   }
 
-  // Determine which content to display based on response mode
+  // Determine which content to display
   const displayContent = (() => {
     if (message.type === 'bot') {
-      // For bot messages, use the appropriate version based on response mode
-      if (responseMode === 'summary' && message.summaryContent) {
+      // Show summary if toggled, otherwise always show detailed
+      if (isShowingSummary && message.summaryContent) {
         return message.summaryContent;
-      } else if (responseMode === 'verbose' && message.detailedContent) {
+      } else if (message.detailedContent) {
         return message.detailedContent;
       }
     }
@@ -121,7 +120,23 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   return (
     <>
-      <div className="prose prose-sm max-w-none dark:prose-invert">
+      <div className="prose prose-sm max-w-none dark:prose-invert relative">
+        {/* Add summarize button for bot messages with both detailed and summary content */}
+        {message.type === 'bot' && message.detailedContent && message.summaryContent && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsShowingSummary(!isShowingSummary)}
+            className="absolute top-0 right-0 p-1.5 h-auto hover:bg-accent/50 z-10"
+            title={isShowingSummary ? 'Show detailed response' : 'Show summary'}
+          >
+            {isShowingSummary ? (
+              <FileText className="h-4 w-4" />
+            ) : (
+              <ListMinus className="h-4 w-4" />
+            )}
+          </Button>
+        )}
         <ReactMarkdown
           components={{
             // Custom styling for different elements
@@ -277,8 +292,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
 // Memoize to prevent unnecessary re-renders causing flicker while typing
 export default React.memo(MessageRenderer, (prev, next) => {
-  // If the message reference or core display fields changed, re-render
-  if (prev.responseMode !== next.responseMode) return false;
   const pm = prev.message;
   const nm = next.message;
   if (pm === nm) return true;
@@ -286,6 +299,8 @@ export default React.memo(MessageRenderer, (prev, next) => {
   return (
     pm.id === nm.id &&
     pm.content === nm.content &&
+    pm.detailedContent === nm.detailedContent &&
+    pm.summaryContent === nm.summaryContent &&
     pm.pointsEarned === nm.pointsEarned &&
     pm.pointsExplanation === nm.pointsExplanation &&
     pm.isTyping === nm.isTyping &&

@@ -13,8 +13,6 @@ interface ChatHeaderProps {
   onReset?: () => void;
   onAnalyze?: () => void;
   canAnalyze?: boolean;
-  responseMode?: 'summary' | 'verbose';
-  onResponseModeChange?: (mode: 'summary' | 'verbose') => void;
 }
 
 export function ChatHeader({ 
@@ -22,9 +20,7 @@ export function ChatHeader({
   analysisProgress, 
   onReset, 
   onAnalyze, 
-  canAnalyze = false,
-  responseMode = 'verbose',
-  onResponseModeChange
+  canAnalyze = false
 }: ChatHeaderProps) {
   if (!isAnalyzing) return null;
   return (

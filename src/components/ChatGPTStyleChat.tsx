@@ -70,13 +70,7 @@ export default function ChatGPTStyleChat({
   });
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [isRefinementMode, setIsRefinementMode] = useState(false); // start in idea mode
-  const [responseMode, setResponseMode] = useState<'summary' | 'verbose'>(() => {
-    try {
-      return (localStorage.getItem('responseMode') as 'summary' | 'verbose') || 'verbose';
-    } catch {
-      return 'verbose';
-    }
-  });
+  // Response mode removed - always use detailed
   let persistedMode: 'idea'|'refine'|'analysis' = 'idea';
   try {
     const stored = localStorage.getItem('chatMode');
@@ -1874,58 +1868,14 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
     setShowStartAnalysisButton(false);
   };
 
-  const handleResponseModeChange = (mode: 'summary' | 'verbose') => {
-    setResponseMode(mode);
-    try {
-      localStorage.setItem('responseMode', mode);
-      // Emit event to notify IdeaChat page
-      window.dispatchEvent(new CustomEvent('responseMode:changed', { detail: { mode } }));
-    } catch {}
-  };
+  // Response mode removed - always use detailed
 
   // Check if we can analyze (have an idea)
   const canAnalyze = currentIdea.trim().length > 0;
 
-  // Function to summarize bot responses when in summary mode
+  // Function to summarize bot responses (no longer used - summary handled by UI)
   const summarizeResponse = async (content: string): Promise<string> => {
-    if (responseMode === 'verbose' || content.length < 200) {
-      return content; // Return original content in verbose mode or if content is short
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('idea-chat', {
-        body: { 
-          message: `Please summarize the following response in exactly 3-4 sentences, keeping the key insights and actionable points:\n\n${content}`,
-          conversationHistory: [],
-          idea: 'summary request',
-          summarize: true
-        }
-      });
-
-      if (!error && data) {
-        let summary = '';
-        if (typeof data === 'string') {
-          try {
-            const parsed = JSON.parse(data);
-            summary = parsed.response || parsed.message || data;
-          } catch {
-            summary = data;
-          }
-        } else if (typeof data === 'object') {
-          summary = data.response || data.message || '';
-        }
-        
-        if (summary && summary.trim()) {
-          return summary.trim();
-        }
-      }
-    } catch (error) {
-      console.error('Error summarizing response:', error);
-    }
-
-    // Fallback: simple truncation if AI summarization fails
-    const sentences = content.split('. ');
-    return sentences.slice(0, 3).join('. ') + (sentences.length > 3 ? '...' : '');
+    return content; // Always return original content
   };
 
   return (
@@ -1937,8 +1887,6 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
         onReset={handleReset}
         onAnalyze={handleAnalyze}
         canAnalyze={canAnalyze}
-        responseMode={responseMode}
-        onResponseModeChange={handleResponseModeChange}
       />
 
   {/* Main Chat Area */}

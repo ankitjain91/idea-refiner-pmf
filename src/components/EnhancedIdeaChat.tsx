@@ -33,7 +33,7 @@ import { LS_KEYS } from '@/lib/storage-keys';
 import { backgroundProcessor } from '@/lib/background-processor';
 
 // Import refactored components and utilities
-import { Message, ResponseMode, SuggestionItem } from './chat/types';
+import { Message, SuggestionItem } from './chat/types';
 import { 
   isIdeaDescription, 
   createIdeaPreview, 
@@ -71,14 +71,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const isDefaultSessionName = !currentSession?.name;
   const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
   
-  const [responseMode, setResponseMode] = useState<ResponseMode>(() => {
-    try {
-      // Default to 'verbose' instead of 'summary'
-      return (localStorage.getItem('responseMode') as ResponseMode) || 'verbose';
-    } catch {
-      return 'verbose';
-    }
-  });
+  // Response mode removed - always use detailed
   
   // Restore state from localStorage for authenticated sessions
   const [currentIdea, setCurrentIdea] = useState<string>(() => {
@@ -394,11 +387,7 @@ What's your startup idea?`,
     }
   }, [wrinklePoints, anonymous]);
   
-  useEffect(() => {
-    if (!anonymous) {
-      localStorage.setItem('responseMode', responseMode);
-    }
-  }, [responseMode, anonymous]);
+  // Response mode removed - always use detailed
 
   // Recompute total wrinkles from bot message history ensuring consistency
   useEffect(() => {
@@ -420,10 +409,9 @@ What's your startup idea?`,
   const ChatMessageItemMemo = useMemo(() => {
     const Item: React.FC<{
       message: Message;
-      responseMode: ResponseMode;
       sendMessage: (m?: string) => void;
       handleSuggestionClick: (s: string) => void;
-    }> = ({ message, responseMode, sendMessage, handleSuggestionClick }) => {
+    }> = ({ message, sendMessage, handleSuggestionClick }) => {
       return (
         <motion.div
           layout
@@ -521,7 +509,6 @@ What's your startup idea?`,
                   ) : (
                     <MessageRenderer 
                       message={message} 
-                      responseMode={responseMode}
                       onSendMessage={sendMessage}
                       onSuggestionClick={handleSuggestionClick}
                     />
@@ -549,7 +536,7 @@ What's your startup idea?`,
         </motion.div>
       );
     };
-    return memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
+    return memo(Item, (prev, next) => prev.message === next.message);
   }, []);
   const resetChat = async () => {
     // Fetch new random ideas for the reset
@@ -765,7 +752,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
           body: { 
             message: contextualMessage,
             conversationHistory,
-            responseMode: responseMode,
+            responseMode: 'verbose', // Always use detailed responses
             refinementMode: true, // Always in refinement mode once idea is validated
             idea: currentIdea
           }
@@ -994,7 +981,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         body: { 
           message: contextualMessage,
           conversationHistory,
-          responseMode: responseMode
+          responseMode: 'verbose' // Always use detailed responses
         }
       });
 
@@ -1140,11 +1127,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
 const ChatMessageItem = useMemo(() => {
   const Item: React.FC<{
     message: Message;
-    responseMode: ResponseMode;
     sendMessage: (m?: string) => void;
     handleSuggestionClick: (s: string) => void;
     retryMessage: (msg: Message) => void;
-  }> = ({ message, responseMode, sendMessage, handleSuggestionClick, retryMessage }) => {
+  }> = ({ message, sendMessage, handleSuggestionClick, retryMessage }) => {
     return (
       <motion.div
         layout
@@ -1259,7 +1245,6 @@ const ChatMessageItem = useMemo(() => {
                 ) : (
                   <MessageRenderer 
                     message={message} 
-                    responseMode={responseMode}
                     onSendMessage={sendMessage}
                     onSuggestionClick={handleSuggestionClick}
                     onRetry={retryMessage}
@@ -1288,7 +1273,7 @@ const ChatMessageItem = useMemo(() => {
       </motion.div>
     );
   };
-  return React.memo(Item, (prev, next) => prev.message === next.message && prev.responseMode === next.responseMode);
+  return React.memo(Item, (prev, next) => prev.message === next.message);
 }, []);
   const resetChatHandler = useCallback(async () => {
     // Clear ALL persisted state - both generic and session-specific
@@ -1667,7 +1652,7 @@ User submission: """${messageText}"""`;
         body: { 
           message: contextualMessage,
           conversationHistory,
-          responseMode: responseMode
+          responseMode: 'verbose' // Always use detailed responses
         }
       });
 
@@ -1733,33 +1718,7 @@ User submission: """${messageText}"""`;
         // Parse response for better formatting
         let formattedContent = data.response || "Let me help you explore that further.";
         
-        // Apply aggressive summarization if in summary mode
-        if (responseMode === 'summary' && formattedContent.length > 100) {
-          try {
-            const { data: summaryData } = await supabase.functions.invoke('idea-chat', {
-              body: { 
-                message: `Please provide a very concise 2-3 sentence summary of this response, focusing only on the most critical points and actionable insights: "${formattedContent}"`,
-                conversationHistory: [],
-                responseMode: 'summary'
-              }
-            });
-            if (summaryData?.response) {
-              formattedContent = summaryData.response;
-            }
-          } catch (error) {
-            console.error('Error summarizing response:', error);
-            // Fallback: aggressive manual summarization
-            const sentences = formattedContent.split(/[.!?]+/).filter(s => s.trim());
-            if (sentences.length > 2) {
-              const firstTwo = sentences.slice(0, 2).join('. ');
-              const keyPoints = formattedContent.match(/(?:key|important|critical|main|primary)[^.!?]*[.!?]/gi);
-              const summary = keyPoints && keyPoints.length > 0 
-                ? `${firstTwo}. Key takeaway: ${keyPoints[0]}`
-                : `${firstTwo}.`;
-              formattedContent = summary;
-            }
-          }
-        }
+        // Always show detailed content - summary handled by UI button
         
         // Extract suggestions if they're in the response
         let suggestions = data.suggestions || [];
@@ -1781,7 +1740,7 @@ User submission: """${messageText}"""`;
                 return acc;
               }, {} as Record<string, string>),
               includeExplanations: true,
-              responseMode: responseMode
+              responseMode: 'verbose' // Always use detailed responses
             }
           });
           if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
@@ -1793,7 +1752,7 @@ User submission: """${messageText}"""`;
         } catch (error) {
           console.error('Error getting AI suggestions:', error);
           // Fallback: generate basic suggestions with explanations
-          suggestions = generateFallbackSuggestions(formattedContent, responseMode);
+          suggestions = generateFallbackSuggestions(formattedContent, 'verbose');
         }
         
         // Generate static suggestion explanation
@@ -1867,7 +1826,7 @@ User submission: """${messageText}"""`;
         variant: "destructive"
       });
     }
-  }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, responseMode, toast]); // Properly close the sendMessageHandler function
+  }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, toast]); // Properly close the sendMessageHandler function
 
   return (
     <TooltipProvider>
@@ -1899,7 +1858,7 @@ User submission: """${messageText}"""`;
                 <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
               )}
               <span className="text-[0.65rem] uppercase tracking-wide font-medium text-muted-foreground">
-                {responseMode === 'summary' ? 'Summary' : 'Detailed'} Mode
+                Detailed Mode
               </span>
             </p>
             {currentIdea && (
@@ -1910,31 +1869,6 @@ User submission: """${messageText}"""`;
           </div>
         </div>
           <div className="flex items-center fluid-gap">
-            <div className="flex items-center gap-2">
-              <Button
-                variant={responseMode === 'summary' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setResponseMode('summary');
-                  if (!anonymous) localStorage.setItem('responseMode', 'summary');
-                }}
-                className="h-8 px-3 transition-all duration-200 text-xs font-medium"
-              >
-                Summary
-              </Button>
-              
-              <Button
-                variant={responseMode === 'verbose' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setResponseMode('verbose');
-                  if (!anonymous) localStorage.setItem('responseMode', 'verbose');
-                }}
-                className="h-8 px-3 transition-all duration-200 text-xs font-medium"
-              >
-                Detailed
-              </Button>
-            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -1956,7 +1890,6 @@ User submission: """${messageText}"""`;
             <ChatMessageItem
               key={message.id}
               message={message}
-              responseMode={responseMode}
               sendMessage={sendMessageHandler}
               handleSuggestionClick={handleSuggestionClickHandler}
               retryMessage={retryMessageHandler}
