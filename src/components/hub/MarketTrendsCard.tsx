@@ -147,11 +147,16 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     }
   );
   
-  // Manual refresh handler
+  // Manual refresh handler - bypasses cache
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await mutate();
+      // Clear cache for this key to force fresh data
+      const cacheKeyStorage = `market-trends-cache:${ideaText}:${viewMode}`;
+      localStorage.removeItem(cacheKeyStorage);
+      
+      // Force a fresh fetch by passing revalidate option
+      await mutate(undefined, { revalidate: true });
     } finally {
       setIsRefreshing(false);
     }
