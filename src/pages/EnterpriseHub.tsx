@@ -17,6 +17,7 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import GuidedIdeaWithSuggestions from '@/components/hub/GuidedIdeaWithSuggestions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
  
@@ -388,6 +389,7 @@ const handleRefreshAll = () => {
 };
 
 const handleIdeaSubmit = (idea: string, metadata: any) => {
+  console.log('EnterpriseHub handleIdeaSubmit', { idea, metadata });
   const extract = (text: string) => {
     const stop = new Set([
       'the','and','for','with','that','this','from','your','into','about','over','using','you','are','our','their','them','they','have','has','can','will','just','very','much','more','less','when','what','how','why','where','who','app','tool','idea','project','startup','ai'
@@ -405,13 +407,17 @@ const handleIdeaSubmit = (idea: string, metadata: any) => {
   if (!kws.length && Array.isArray(metadata?.tags) && metadata.tags.length) {
     kws = metadata.tags.slice(0, 5);
   }
+  console.log('EnterpriseHub extracted keywords', kws);
 
   if (kws.length) {
     setFilters(prev => ({ ...prev, idea_keywords: kws }));
     sessionStorage.setItem('dashboardKeywords', JSON.stringify(kws));
     sessionStorage.setItem('dashboardIdeaSource', idea);
     localStorage.setItem('dashboardIdea', idea);
+    toast({ title: 'Idea captured', description: 'Seeding dashboard with AI insights...' });
     setShowQuestionnaire(false);
+  } else {
+    toast({ title: 'Could not parse idea', description: 'Try editing the idea or add tags.', variant: 'destructive' });
   }
 };
   
