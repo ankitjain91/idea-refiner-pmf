@@ -56,24 +56,23 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       icon: BookOpen,
       badge: null
     },
-    { 
-      title: "Dashboard", 
-      url: "/dashboard", 
-      icon: BarChart3,
-      badge: null
-    },
   ];
 
   const bottomNav = [
     { 
-      title: "Settings", 
-      url: "/settings", 
-      icon: Settings,
+      title: "Dashboard", 
+      url: "/dashboard", 
+      icon: BarChart3,
     },
     { 
       title: "Pricing", 
       url: "/pricing", 
       icon: Crown,
+    },
+    { 
+      title: "Settings", 
+      url: "/settings", 
+      icon: Settings,
     },
   ];
 
