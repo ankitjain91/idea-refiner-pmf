@@ -13,7 +13,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-interface ValidationResult {
+import { Activity } from 'lucide-react';
+
+export interface ValidationResult {
   hasMinimumData: boolean;
   missingFields: string[];
   suggestedQuestions: string[];
@@ -21,7 +23,7 @@ interface ValidationResult {
   readyForDashboard: boolean;
 }
 
-interface RequiredField {
+export interface RequiredField {
   key: string;
   label: string;
   question: string;
@@ -29,7 +31,7 @@ interface RequiredField {
   importance: 'critical' | 'important' | 'helpful';
 }
 
-const REQUIRED_FIELDS: RequiredField[] = [
+export const REQUIRED_FIELDS: RequiredField[] = [
   {
     key: 'targetAudience',
     label: 'Target Audience',
