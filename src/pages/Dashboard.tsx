@@ -250,7 +250,10 @@ const Dashboard = () => {
     );
   }
 
-  const pmfScore = metrics?.pmfScore || 0;
+  // Handle pmfScore which might be an object with {score, reasoning} or just a number
+  const pmfScoreValue = typeof metrics?.pmfScore === 'object' && metrics?.pmfScore !== null 
+    ? (metrics.pmfScore as any).score || 0
+    : metrics?.pmfScore || 0;
   const activeUsers = realtime?.activeUsers || 0;
   const dailyRevenue = realtime?.dailyRevenue || 0;
 
@@ -482,10 +485,10 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <MetricCard
             title="PMF Score"
-            value={pmfScore}
+            value={pmfScoreValue}
             suffix="%"
             icon={Target}
-            trend={pmfScore > 70 ? "up" : pmfScore > 40 ? "stable" : "down"}
+            trend={pmfScoreValue > 70 ? "up" : pmfScoreValue > 40 ? "stable" : "down"}
             color="blue"
           />
           <MetricCard
