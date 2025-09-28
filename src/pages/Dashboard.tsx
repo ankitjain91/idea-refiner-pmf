@@ -36,36 +36,28 @@ const Dashboard = () => {
     if (loading) return;
     if (!user) return;
     
-    // Check for demo mode first
-    const isDemoMode = new URLSearchParams(window.location.search).get('demo') === 'true';
-    if (isDemoMode) {
-      // Set demo data for viewing the dashboard
-      setAnalysis({
-        idea: "AI-powered startup validation platform",
-        metadata: {
-          pmfScore: 72,
-          competitors: ['Competitor A', 'Competitor B', 'Competitor C'],
-          refinements: ['Improve onboarding', 'Add analytics', 'Enhance UI'],
-          personas: ['Founders', 'Product Managers', 'Investors']
-        }
-      });
-      return;
+    // Always set demo/default data if no analysis exists
+    const idea = localStorage.getItem(LS_KEYS.userIdea) || "AI-powered startup validation platform";
+    const metaRaw = localStorage.getItem(LS_KEYS.ideaMetadata);
+    
+    let metadata;
+    try {
+      metadata = metaRaw ? JSON.parse(metaRaw) : null;
+    } catch {
+      metadata = null;
     }
     
-    const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
-    const idea = localStorage.getItem(LS_KEYS.userIdea);
-    const metaRaw = localStorage.getItem(LS_KEYS.ideaMetadata);
-    if (!analysisCompleted || !idea || !metaRaw) {
-      navigate('/ideachat', { replace: true });
-      return;
-    }
-    try {
-      const metadata = JSON.parse(metaRaw);
-      setAnalysis({ idea, metadata });
-    } catch {
-      navigate('/ideachat', { replace: true });
-    }
-  }, [loading, user, navigate]);
+    // Use existing data or demo data
+    setAnalysis({
+      idea,
+      metadata: metadata || {
+        pmfScore: 72,
+        competitors: ['Competitor A', 'Competitor B', 'Competitor C'],
+        refinements: ['Improve onboarding', 'Add analytics', 'Enhance UI'],
+        personas: ['Founders', 'Product Managers', 'Investors']
+      }
+    });
+  }, [loading, user]);
 
   useEffect(() => {
     if (!loading && !user) navigate('/', { state: { from: { pathname: '/dashboard' }, openAuthModal: true } });
