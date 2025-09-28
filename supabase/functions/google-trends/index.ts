@@ -26,10 +26,10 @@ serve(async (req) => {
   try {
     const { idea_keywords, geo = 'US', time_window = 'last_12_months', fetch_continents = false } = await req.json();
     
-    // Join keywords into a simple search query
-    const query = Array.isArray(idea_keywords) 
-      ? idea_keywords.slice(0, 3).join(' ')  // Limit to 3 keywords max
-      : (idea_keywords || '');
+    // Prefer the first strong keyword to avoid over-specific phrases
+    const query = Array.isArray(idea_keywords)
+      ? String(idea_keywords[0] || '').trim()
+      : String(idea_keywords || '').trim();
     
     console.log('[google-trends] Processing request:', { query, geo, time_window, fetch_continents });
     
@@ -73,8 +73,8 @@ serve(async (req) => {
           console.log(`[google-trends] Fetching for ${continent} using ${representativeCountry}`);
           
           const [timeseriesData, relatedData] = await Promise.all([
-            fetchGoogleTrends(query, representativeCountry, 'TIMESERIES'),
-            fetchGoogleTrends(query, representativeCountry, 'RELATED_QUERIES')
+            fetchGoogleTrends(query, representativeCountry, 'TIMESERIES', time_window),
+            fetchGoogleTrends(query, representativeCountry, 'RELATED_QUERIES', time_window)
           ]);
           
           const processedData = processGoogleTrendsData(
@@ -141,8 +141,8 @@ serve(async (req) => {
     
     // Regular single-region fetch
     const [timeseriesData, relatedData] = await Promise.all([
-      fetchGoogleTrends(query, geo, 'TIMESERIES'),
-      fetchGoogleTrends(query, geo, 'RELATED_QUERIES')
+      fetchGoogleTrends(query, geo, 'TIMESERIES', time_window),
+      fetchGoogleTrends(query, geo, 'RELATED_QUERIES', time_window)
     ]);
     
     // Process and normalize the data
@@ -182,7 +182,7 @@ serve(async (req) => {
   }
 });
 
-async function fetchGoogleTrends(query: string, geo: string, dataType: string) {
+async function fetchGoogleTrends(query: string, geo: string, dataType: string, time_window?: string) {
   const timeoutController = new AbortController();
   const timeoutId = setTimeout(() => timeoutController.abort(), 7000);
   
@@ -194,8 +194,12 @@ async function fetchGoogleTrends(query: string, geo: string, dataType: string) {
       data_type: dataType,
       api_key: serpApiKey!
     });
+
+    // Map our time_window to SerpApi `date` param for correct recency
+    const dateParam = mapTimeWindowToDate(time_window || 'last_12_months');
+    if (dateParam) params.set('date', dateParam);
     
-    console.log(`[google-trends] Fetching ${dataType} for: ${query} in ${geo}`);
+    console.log(`[google-trends] Fetching ${dataType} for: ${query} in ${geo} (date=${dateParam})`);
     
     const response = await fetch(`https://serpapi.com/search?${params}`, {
       signal: timeoutController.signal
@@ -219,6 +223,24 @@ async function fetchGoogleTrends(query: string, geo: string, dataType: string) {
   }
 }
 
+function mapTimeWindowToDate(time_window: string) {
+  switch (time_window) {
+    case 'last_4_hours':
+      return 'now 4-H';
+    case 'last_1_day':
+      return 'now 1-d';
+    case 'last_7_days':
+      return 'now 7-d';
+    case 'last_30_days':
+      return 'today 1-m';
+    case 'last_90_days':
+      return 'today 3-m';
+    case 'last_12_months':
+    default:
+      return 'today 12-m';
+  }
+}
+
 function processGoogleTrendsData(
   timeseriesData: any, 
   relatedData: any,
@@ -237,7 +259,11 @@ function processGoogleTrendsData(
     const points: [string, number][] = [];
     
     timeseriesData.interest_over_time.timeline_data.forEach((item: any) => {
-      const date = item.date?.split(' - ')[0] || item.date;
+      let date = item.date || '';
+      if (typeof date === 'string') {
+        if (date.includes('–')) date = date.split('–')[0].trim();
+        else if (date.includes(' - ')) date = date.split(' - ')[0].trim();
+      }
       const value = item.values?.[0]?.value || 0;
       if (date) {
         points.push([date, typeof value === 'number' ? value : parseInt(value) || 0]);

@@ -100,7 +100,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     if (keywords.length === 0) return;
     
     // Use simplified keywords for better Google Trends results
-    const trendsKeywords = keywords.slice(0, 3); // Max 3 keywords for better results
+    const trendsKeywords = keywords.slice(0, 1); // Use the strongest single keyword for accuracy
     console.log('[GoogleTrendsCard] Using keywords:', trendsKeywords);
     
     setLoading(true);
@@ -173,10 +173,10 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const renderSingleRegionView = () => {
     if (!data || data.type === 'continental') return null;
 
-    const chartData = data.series?.[0]?.points?.map(([date, value]) => ({
-      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value
-    })) || [];
+      const chartData = data.series?.[0]?.points?.map(([date, value]) => ({
+        date: typeof date === 'string' ? (date.split('–')[0]?.trim() || date) : String(date),
+        value
+      })) || [];
 
     const trendMetric = data.metrics?.find(m => m.name === 'trend_direction');
 
@@ -415,7 +415,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart 
                     data={selectedData.series[0].points.map(([date, value]: [string, number]) => ({
-                      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                      date: typeof date === 'string' ? (date.split('–')[0]?.trim() || date) : String(date),
                       value
                     }))}
                   >
