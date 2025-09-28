@@ -113,6 +113,12 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const [hasValidIdea, setHasValidIdea] = useState(false);
   const [persistenceLevel, setPersistenceLevel] = useState(0);
   const [offTopicAttempts, setOffTopicAttempts] = useState(0);
+  const [ideaSummaryName, setIdeaSummaryName] = useState<string>(() => {
+    if (!anonymous) {
+      return localStorage.getItem('ideaSummaryName') || '';
+    }
+    return '';
+  });
 
   // Derived: wrinkle tier + dynamic tooltip messaging
   const wrinkleTier = useMemo(() => {
@@ -212,6 +218,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
                 setCurrentIdea(storedIdea);
                 setHasValidIdea(true);
                 setConversationStarted(true);
+                // Try to restore summary name
+                const storedSummaryName = localStorage.getItem('ideaSummaryName');
+                if (storedSummaryName) {
+                  setIdeaSummaryName(storedSummaryName);
+                }
               }
               if (storedWrinkles) {
                 setWrinklePoints(parseInt(storedWrinkles) || 0);
@@ -305,6 +316,7 @@ What's your startup idea?`,
       // Clear all chat state
       setMessages([]);
       setCurrentIdea('');
+      setIdeaSummaryName('');
       setWrinklePoints(0);
       setHasValidIdea(false);
       setConversationStarted(false);
@@ -566,11 +578,42 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     setConversationStarted(false);
     setIsRefining(false);
     setCurrentIdea('');
+    setIdeaSummaryName('');
     setWrinklePoints(0);
     setHasValidIdea(false);
     setAnonymous(false);
     setOffTopicAttempts(0);
     onReset?.();
+  };
+
+  // Generate AI summary name for the idea
+  const generateIdeaSummaryName = async (idea: string) => {
+    try {
+      const { data } = await supabase.functions.invoke('idea-chat', {
+        body: {
+          message: `Generate a concise 2-4 word name/title for this startup idea. Be specific and catchy. Just return the name, nothing else: "${idea}"`,
+          conversationHistory: [],
+          responseMode: 'verbose'
+        }
+      });
+      
+      if (data?.response) {
+        // Clean up the response - remove quotes, periods, etc.
+        const cleanName = data.response
+          .replace(/^["']|["']$/g, '') // Remove quotes
+          .replace(/\.$/, '') // Remove trailing period
+          .trim()
+          .slice(0, 30); // Max 30 chars for safety
+        
+        setIdeaSummaryName(cleanName);
+        localStorage.setItem('ideaSummaryName', cleanName);
+      }
+    } catch (error) {
+      console.error('Error generating idea summary name:', error);
+      // Fallback to first few words
+      const fallbackName = idea.split(' ').slice(0, 4).join(' ');
+      setIdeaSummaryName(fallbackName);
+    }
   };
 
   const handleSuggestionClick = (suggestionText: string) => {
@@ -854,6 +897,9 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       setCurrentIdea(ideaPreview);
       setHasValidIdea(true);
       setOffTopicAttempts(0);
+      
+      // Generate AI summary name for the idea
+      generateIdeaSummaryName(ideaPreview);
       
       // Save the idea text to localStorage for dashboard
       localStorage.setItem('ideaText', messageText);
@@ -1348,7 +1394,8 @@ const ChatMessageItem = useMemo(() => {
           key.includes('analysis') || 
           key.includes('pmf') ||
           key.includes('idea') ||
-          key.includes('wrinkle')) {
+          key.includes('wrinkle') ||
+          key.includes('ideaSummaryName')) {
         try {
           localStorage.removeItem(key);
         } catch (e) {
@@ -1387,6 +1434,7 @@ Focus on: WHO has WHAT problem and your solution approach.`,
     setConversationStarted(false);
     setIsRefining(false);
     setCurrentIdea('');
+    setIdeaSummaryName('');
     setWrinklePoints(0);
     setHasValidIdea(false);
     setAnonymous(false);
@@ -1589,6 +1637,9 @@ User submission: """${messageText}"""`;
         setCurrentIdea(ideaPreview);
         setHasValidIdea(true);
         
+        // Generate AI summary name for the idea
+        generateIdeaSummaryName(ideaPreview);
+        
         // Save the idea text to localStorage for dashboard
         localStorage.setItem('ideaText', messageText);
         localStorage.setItem('currentIdea', ideaPreview);
@@ -1598,6 +1649,9 @@ User submission: """${messageText}"""`;
           const ideaPreview = createIdeaPreview(messageText);
           setCurrentIdea(ideaPreview);
           setHasValidIdea(true);
+          
+          // Generate AI summary name for the idea
+          generateIdeaSummaryName(ideaPreview);
           
           // Save the idea text to localStorage for dashboard
           localStorage.setItem('ideaText', messageText);
@@ -1874,7 +1928,7 @@ User submission: """${messageText}"""`;
             </p>
             {currentIdea && (
               <p className="fluid-text-xs text-primary font-medium mt-1 max-w-[320px] break-words" title={currentIdea}>
-                💡 {currentIdea.length > 50 ? `${currentIdea.slice(0, 50)}...` : currentIdea}
+                💡 {ideaSummaryName || (currentIdea.length > 50 ? `${currentIdea.slice(0, 50)}...` : currentIdea)}
               </p>
             )}
           </div>
