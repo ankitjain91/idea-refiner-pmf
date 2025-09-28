@@ -15,7 +15,7 @@ serve(async (req) => {
     const { q, lang = 'en', since = '7d' } = await req.json();
     console.log('Searching Twitter/X for:', q);
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_SEARCH_API_KEY');
     if (!OPENAI_API_KEY) {
       throw new Error('OpenAI API key not configured');
     }

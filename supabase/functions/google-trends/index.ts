@@ -15,7 +15,7 @@ serve(async (req) => {
     const { keyword, geo = 'US', timeframe = '30d' } = await req.json();
     console.log('Getting trends for:', keyword);
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_SEARCH_API_KEY');
     if (!OPENAI_API_KEY) {
       throw new Error('OpenAI API key not configured');
     }
