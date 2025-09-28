@@ -5,11 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
   TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, 
-  ExternalLink, Search, Newspaper, ChevronRight
+  ExternalLink, Search, Newspaper, ChevronRight, CheckCircle, XCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,7 @@ interface TrendsData {
     source?: string;
     published?: string;
   }>;
+  insights?: string[];
   warnings?: string[];
 }
 
@@ -195,10 +197,33 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       <Card className={cn("h-full", className)}>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Market Trends
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Market Trends
+              </CardTitle>
+              {/* Data source indicator */}
+              {data && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge variant={data.insights?.some(i => i.includes('API key required')) ? "destructive" : "secondary"} className="h-5">
+                      {data.insights?.some(i => i.includes('API key required')) ? (
+                        <XCircle className="h-3 w-3 mr-1" />
+                      ) : (
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                      )}
+                      {data.insights?.some(i => i.includes('API key required')) ? 'Mock' : 'Live'}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {data.insights?.some(i => i.includes('API key required')) 
+                      ? 'Using mock data - Serper API key may not be configured'
+                      : 'Using real data from Serper API'
+                    }
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -206,16 +231,21 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 onClick={() => mutate()}
                 disabled={isLoading}
                 className="h-8 w-8"
+                title="Refresh data"
               >
                 <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               </Button>
-              <Badge variant="outline" className="flex items-center gap-1">
-                {getTrendIcon()}
-                {trendDirection}
-              </Badge>
-              <Badge variant="secondary">
-                Momentum: {momentum}%
-              </Badge>
+              {data && (
+                <>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    {getTrendIcon()}
+                    {trendDirection}
+                  </Badge>
+                  <Badge variant="secondary">
+                    Momentum: {momentum}%
+                  </Badge>
+                </>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -286,6 +316,18 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 </div>
               ))}
             </div>
+          )}
+          
+          {/* API Status Alert for debugging */}
+          {data?.insights && data.insights.some(i => i.includes('API key required')) && (
+            <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-sm">
+                <strong>Serper API Not Connected</strong><br/>
+                The Serper API key may not be configured correctly. The card is showing mock data.
+                Click refresh to retry with your API key.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Top rising queries */}

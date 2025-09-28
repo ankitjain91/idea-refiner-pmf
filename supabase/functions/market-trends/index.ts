@@ -82,9 +82,11 @@ async function fetchGoogleTrends(query: string) {
   try {
     // Use Serper for Google Trends-like data
     if (!SERPER_API_KEY) {
-      console.log('[market-trends] Serper API key not configured');
+      console.log('[market-trends] ⚠️ Serper API key not configured - using mock data');
       return generateMockTrendsData(query);
     }
+    
+    console.log('[market-trends] ✅ Serper API key found - fetching real data');
     
     const res = await fetch('https://google.serper.dev/search', {
       method: 'POST',
@@ -101,7 +103,7 @@ async function fetchGoogleTrends(query: string) {
     });
     
     if (!res.ok) {
-      console.error('[market-trends] Serper API error:', res.status);
+      console.error('[market-trends] ❌ Serper API error:', res.status, await res.text());
       return generateMockTrendsData(query);
     }
     
