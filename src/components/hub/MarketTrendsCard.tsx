@@ -259,23 +259,25 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
 
           {/* Key metrics */}
-          <div className="grid grid-cols-2 gap-3">
-            {data.metrics.slice(0, 4).map((metric, idx) => (
-              <div key={idx} className="bg-muted/10 rounded-lg p-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {metric.name}
-                </p>
-                <p className="text-lg font-bold mt-1">
-                  {metric.value}
-                  {metric.unit && (
-                    <span className="text-sm font-normal text-muted-foreground ml-1">
-                      {metric.unit}
-                    </span>
-                  )}
-                </p>
-              </div>
-            ))}
-          </div>
+          {data.metrics && data.metrics.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              {data.metrics.slice(0, 4).map((metric, idx) => (
+                <div key={idx} className="bg-muted/10 rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {metric.name}
+                  </p>
+                  <p className="text-lg font-bold mt-1">
+                    {metric.value}
+                    {metric.unit && (
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                        {metric.unit}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Top rising queries */}
           {data.top_queries && data.top_queries.length > 0 && (
@@ -325,7 +327,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           <SheetHeader>
             <SheetTitle>Data Sources & Citations</SheetTitle>
             <SheetDescription>
-              Last updated: {new Date(data.updatedAt).toLocaleString()}
+              {data?.updatedAt ? `Last updated: ${new Date(data.updatedAt).toLocaleString()}` : 'Loading...'}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">
