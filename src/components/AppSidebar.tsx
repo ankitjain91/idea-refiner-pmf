@@ -89,7 +89,10 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Brain className="h-6 w-6 text-primary" />
             </div>
-            <span className="font-semibold text-base">SmoothBrains</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-base">SmoothBrains</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">BETA</Badge>
+            </div>
           </div>
         ) : (
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
