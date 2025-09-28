@@ -67,6 +67,27 @@ export default function RealtimeDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [showQuestions, setShowQuestions] = useState(false);
+  const [additionalContext, setAdditionalContext] = useState('');
+
+  // Load idea from IdeaChat localStorage on mount
+  useEffect(() => {
+    const storedIdea = localStorage.getItem('ideaText');
+    const ideaMetadata = localStorage.getItem('ideaMetadata');
+    
+    if (storedIdea) {
+      const parsedMetadata = ideaMetadata ? JSON.parse(ideaMetadata) : null;
+      const ideaToUse = parsedMetadata?.refined || storedIdea;
+      setIdeaInput(ideaToUse);
+      
+      // Automatically start analysis if idea is present
+      if (ideaToUse && user) {
+        setTimeout(() => {
+          handleAnalyzeIdea(ideaToUse);
+        }, 500);
+      }
+    }
+  }, [user]);
 
   // Real-time subscription for metrics
   useEffect(() => {
@@ -106,8 +127,10 @@ export default function RealtimeDashboard() {
     return () => clearInterval(interval);
   }, [autoRefresh, analysisData]);
 
-  const handleAnalyzeIdea = async () => {
-    if (!ideaInput.trim() || !user) {
+  const handleAnalyzeIdea = async (ideaText?: string) => {
+    const idea = ideaText || ideaInput;
+    
+    if (!idea.trim() || !user) {
       toast({
         title: "Error",
         description: "Please enter an idea to analyze",
@@ -116,16 +139,27 @@ export default function RealtimeDashboard() {
       return;
     }
 
+    // Check if we need additional context
+    if (!additionalContext && !showQuestions) {
+      setShowQuestions(true);
+      return;
+    }
+
     setIsAnalyzing(true);
     try {
+      const fullIdea = additionalContext 
+        ? `${idea}\n\nAdditional Context: ${additionalContext}`
+        : idea;
+
       const { data, error } = await supabase.functions.invoke('analyze-idea', {
-        body: { idea: ideaInput }
+        body: { idea: fullIdea }
       });
 
       if (error) throw error;
 
       setAnalysisData(data.analysis);
       setLastUpdated(new Date());
+      setShowQuestions(false);
       
       // Create default implementation tasks
       if (data.analysis.id) {
@@ -285,32 +319,76 @@ export default function RealtimeDashboard() {
               <Sparkles className="h-5 w-5 text-yellow-500" />
               Idea Refinement Panel
             </h2>
-            <div className="flex gap-4">
-              <Input
-                value={ideaInput}
-                onChange={(e) => setIdeaInput(e.target.value)}
-                placeholder="Enter your startup idea..."
-                className="flex-1"
-                disabled={isAnalyzing}
-              />
-              <Button
-                onClick={handleAnalyzeIdea}
-                disabled={isAnalyzing || !ideaInput.trim()}
-                className="min-w-[150px]"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Rocket className="h-4 w-4 mr-2" />
-                    Analyze Idea
-                  </>
-                )}
-              </Button>
-            </div>
+            {showQuestions ? (
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  To provide a more accurate analysis, please provide additional context:
+                </p>
+                <Input
+                  value={additionalContext}
+                  onChange={(e) => setAdditionalContext(e.target.value)}
+                  placeholder="Target market, specific features, unique value proposition..."
+                  className="w-full"
+                />
+                <div className="flex gap-4">
+                  <Button
+                    onClick={() => handleAnalyzeIdea()}
+                    disabled={isAnalyzing}
+                    className="min-w-[150px]"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Analyze with Context
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setAdditionalContext('');
+                      handleAnalyzeIdea();
+                    }}
+                    disabled={isAnalyzing}
+                  >
+                    Skip & Analyze
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <Input
+                  value={ideaInput}
+                  onChange={(e) => setIdeaInput(e.target.value)}
+                  placeholder="Your startup idea from IdeaChat..."
+                  className="flex-1"
+                  disabled={isAnalyzing}
+                  readOnly
+                />
+                <Button
+                  onClick={() => handleAnalyzeIdea()}
+                  disabled={isAnalyzing || !ideaInput.trim()}
+                  className="min-w-[150px]"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="h-4 w-4 mr-2" />
+                      Analyze Idea
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
 
