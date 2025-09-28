@@ -104,20 +104,10 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
-  if (authLoading || loading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-black'>
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className='h-8 w-8 animate-spin text-primary' />
-          <p className="text-sm text-muted-foreground">Loading real-time insights...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if idea exists but needs more data
+  // Check if idea exists but needs more data - moved before conditional returns
   const needsMoreData = idea && (!metrics || !market || !competition);
   
+  // Handle insufficient data redirect - MUST be before any conditional returns
   useEffect(() => {
     // If navigating to dashboard with insufficient data, redirect to IdeaChat with prompt
     if (idea && needsMoreData && !loading) {
@@ -130,6 +120,18 @@ Let's start with the most important details to unlock your full dashboard analys
       navigate('/ideachat');
     }
   }, [idea, needsMoreData, loading, metrics, market, competition, navigate]);
+
+  // Early return for loading state
+  if (authLoading || loading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-black'>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+          <p className="text-sm text-muted-foreground">Loading real-time insights...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!idea) {
     return (
