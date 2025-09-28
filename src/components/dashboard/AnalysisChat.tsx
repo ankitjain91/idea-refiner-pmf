@@ -134,42 +134,18 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
         
         if (error) {
           console.error('Error from edge function:', error);
-          // Show a helpful fallback based on the field
-          const fallbackSuggestions: Record<string, string> = {
-            problem: 'Describe a specific pain point your target users face daily. Include metrics if possible.',
-            solution: 'Explain how your solution uniquely addresses the problem better than existing alternatives.',
-            targetUser: 'Define your ideal customer with demographics, behaviors, and specific characteristics.',
-            differentiation: 'Highlight what makes your approach unique - technology, pricing, or user experience.',
-            monetization: 'Consider subscription models, one-time purchases, or usage-based pricing that fits your market.',
-            successMetric: 'Choose a measurable KPI like user retention, revenue growth, or customer satisfaction scores.'
-          };
-          setAiSuggestion(fallbackSuggestions[currentQuestion.field] || 'Think about how this specifically applies to your idea and target market.');
+          // Simple message when AI suggestions fail
+          setAiSuggestion('Cannot fetch AI suggestions at this time.');
         } else if (data?.error) {
           console.error('Edge function returned error:', data.error);
-          // Use field-specific fallback
-          const fallbackSuggestions: Record<string, string> = {
-            problem: 'Describe a specific pain point your target users face daily. Include metrics if possible.',
-            solution: 'Explain how your solution uniquely addresses the problem better than existing alternatives.',
-            targetUser: 'Define your ideal customer with demographics, behaviors, and specific characteristics.',
-            differentiation: 'Highlight what makes your approach unique - technology, pricing, or user experience.',
-            monetization: 'Consider subscription models, one-time purchases, or usage-based pricing that fits your market.',
-            successMetric: 'Choose a measurable KPI like user retention, revenue growth, or customer satisfaction scores.'
-          };
-          setAiSuggestion(fallbackSuggestions[currentQuestion.field] || 'Think about how this specifically applies to your idea and target market.');
+          // Simple message when AI suggestions fail
+          setAiSuggestion('Cannot fetch AI suggestions at this time.');
         } else if (data?.suggestion) {
           console.log('Received suggestion:', data.suggestion);
           setAiSuggestion(data.suggestion);
         } else {
-          // No suggestion returned, use field-specific fallback
-          const fallbackSuggestions: Record<string, string> = {
-            problem: 'Describe a specific pain point your target users face daily. Include metrics if possible.',
-            solution: 'Explain how your solution uniquely addresses the problem better than existing alternatives.',
-            targetUser: 'Define your ideal customer with demographics, behaviors, and specific characteristics.',
-            differentiation: 'Highlight what makes your approach unique - technology, pricing, or user experience.',
-            monetization: 'Consider subscription models, one-time purchases, or usage-based pricing that fits your market.',
-            successMetric: 'Choose a measurable KPI like user retention, revenue growth, or customer satisfaction scores.'
-          };
-          setAiSuggestion(fallbackSuggestions[currentQuestion.field] || 'Think about how this specifically applies to your idea and target market.');
+          // No suggestion returned
+          setAiSuggestion('Cannot fetch AI suggestions at this time.');
         }
       } catch (error) {
         console.error('Error fetching AI suggestion:', error);
