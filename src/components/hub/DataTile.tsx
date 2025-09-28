@@ -211,11 +211,23 @@ export function DataTile({
     };
 
     try {
+      // Get current idea from multiple sources
+      const currentIdea = filters?.idea_keywords?.join(' ') || 
+        (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
+      
+      if (!currentIdea) {
+        throw new Error('No idea configured');
+      }
+      
       // Primary path: consolidated AI search
       const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
-        body: { tileType, filters, query: (filters?.idea_keywords?.join(' ') || (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || '') : '')) }
+        body: { tileType, filters, query: currentIdea }
       });
-      if (fetchError) throw fetchError;
+      
+      if (fetchError) {
+        console.warn(`web-search-ai failed for ${tileType}, trying fallback:`, fetchError);
+        throw fetchError;
+      }
       if (response?.error) throw new Error(response.message || response.error);
       setData(toTileData(response));
       setLastUpdate(new Date());
