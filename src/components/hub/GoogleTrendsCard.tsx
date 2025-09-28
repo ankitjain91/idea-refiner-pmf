@@ -1,22 +1,42 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
-  TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, 
-  ExternalLink, Search, ChevronRight, CheckCircle, XCircle,
-  HelpCircle, Sparkles, ArrowUpRight, ArrowDownRight, Activity
+  TrendingUp, 
+  TrendingDown, 
+  Minus, 
+  RefreshCw, 
+  Globe, 
+  Map,
+  ChevronRight,
+  Search,
+  AlertCircle,
+  Sparkles,
+  Activity,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+  Area,
+  AreaChart
+} from 'recharts';
 import { cn } from '@/lib/utils';
-import useSWR from 'swr';
-import { TileInsightsDialog } from './TileInsightsDialog';
 
 interface GoogleTrendsCardProps {
   filters: {
@@ -27,156 +47,387 @@ interface GoogleTrendsCardProps {
   className?: string;
 }
 
-interface GoogleTrendsData {
-  updatedAt: string;
-  filters: {
-    idea: string;
-    geo: string;
-    time_window: string;
-  };
-  metrics: Array<{
-    name: string;
-    value: string;
-    explanation?: string;
-    confidence?: number;
-  }>;
-  series: Array<{
-    name: string;
-    points: [string, number][];
-  }>;
-  top_queries: string[];
-  citations: Array<{
-    url: string;
-    label: string;
-  }>;
+interface TrendData {
+  series?: Array<{ name: string; points: Array<[string, number]> }>;
+  metrics?: Array<{ name: string; value: string; confidence: number; explanation: string }>;
+  top_queries?: string[];
+  updatedAt?: string;
   warnings?: string[];
+  continentData?: Record<string, any>;
+  type?: 'single' | 'continental';
 }
 
+const CONTINENT_COLORS = {
+  'North America': '#3b82f6',
+  'Europe': '#10b981',
+  'Asia': '#f59e0b',
+  'South America': '#8b5cf6',
+  'Africa': '#ef4444',
+  'Oceania': '#06b6d4'
+};
+
 export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) {
-  const [showSources, setShowSources] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  
+  const [data, setData] = useState<TrendData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'global' | 'single'>('single');
+  const [selectedContinent, setSelectedContinent] = useState<string>('North America');
+
   // Get the idea from filters or fallback to localStorage
   const ideaKeywords = filters.idea_keywords || [];
   const ideaText = ideaKeywords.length > 0 
     ? ideaKeywords.join(' ')
     : (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
   
+  const keywords = ideaText.split(' ').filter(w => w.length > 2);
   const geo = filters.geo || 'US';
   const timeWindow = filters.time_window || 'last_12_months';
-  
-  const cacheKey = ideaText ? `google-trends:${ideaText}:${geo}:${timeWindow}` : null;
-  
-  const { data, error, isLoading, mutate } = useSWR<GoogleTrendsData>(
-    cacheKey,
-    async (key) => {
-      const [_, idea, geoParam, timeParam] = key.split(':');
-      const { data, error } = await supabase.functions.invoke('google-trends', {
+
+  const fetchTrendsData = async (fetchContinents = false) => {
+    if (keywords.length === 0) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const { data: trendsData, error: trendsError } = await supabase.functions.invoke('google-trends', {
         body: { 
-          idea_keywords: idea.split(' ').filter(w => w.length > 2),
-          geo: geoParam,
-          time_window: timeParam
+          idea_keywords: keywords,
+          geo,
+          time_window: timeWindow,
+          fetch_continents: fetchContinents
         }
       });
+
+      if (trendsError) throw trendsError;
       
-      if (error) throw error;
-      return data;
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 3600000, // 60m cache
-      refreshInterval: 0, // No auto refresh
-      shouldRetryOnError: true,
-      errorRetryCount: 1
-    }
-  );
-  
-  // Manual refresh handler
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await mutate();
+      console.log('[GoogleTrendsCard] Data received:', trendsData);
+      setData(trendsData);
+    } catch (err: any) {
+      console.error('[GoogleTrendsCard] Error:', err);
+      setError(err.message || 'Failed to fetch trends data');
     } finally {
-      setIsRefreshing(false);
+      setLoading(false);
     }
   };
-  
-  // Load data on mount if we have an idea
+
   useEffect(() => {
-    if (ideaText && !data && !isLoading) {
-      mutate();
+    if (keywords.length > 0) {
+      fetchTrendsData(viewMode === 'global');
     }
-  }, [ideaText]);
+  }, [ideaText, geo, timeWindow]);
 
-  // Prepare chart data
-  const chartData = data?.series?.[0]?.points ? 
-    data.series[0].points.map(([date, value]) => ({
+  const handleViewModeChange = (mode: 'global' | 'single') => {
+    setViewMode(mode);
+    fetchTrendsData(mode === 'global');
+  };
+
+  const getTrendIcon = (direction: string) => {
+    switch (direction) {
+      case 'up': return <ArrowUpRight className="h-4 w-4 text-emerald-500" />;
+      case 'down': return <ArrowDownRight className="h-4 w-4 text-rose-500" />;
+      default: return <Minus className="h-4 w-4 text-amber-500" />;
+    }
+  };
+
+  const getTrendColor = (direction: string) => {
+    switch (direction) {
+      case 'up': return 'text-emerald-500';
+      case 'down': return 'text-rose-500';
+      default: return 'text-amber-500';
+    }
+  };
+
+  const renderSingleRegionView = () => {
+    if (!data || data.type === 'continental') return null;
+
+    const chartData = data.series?.[0]?.points?.map(([date, value]) => ({
       date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      searchInterest: value
-    })) : [];
+      value
+    })) || [];
 
-  // Get trend direction
-  const trendMetric = data?.metrics?.find(m => m.name === 'trend_direction');
-  const trendDirection = trendMetric?.value || 'flat';
-  const confidence = trendMetric?.confidence || 0.5;
-  
-  const getTrendIcon = () => {
-    switch (trendDirection) {
-      case 'up':
-        return <ArrowUpRight className="h-4 w-4" />;
-      case 'down':
-        return <ArrowDownRight className="h-4 w-4" />;
-      default:
-        return <Minus className="h-4 w-4" />;
-    }
-  };
+    const trendMetric = data.metrics?.find(m => m.name === 'trend_direction');
 
-  const getTrendColor = () => {
-    switch (trendDirection) {
-      case 'up':
-        return 'text-emerald-500';
-      case 'down':
-        return 'text-rose-500';
-      default:
-        return 'text-amber-500';
-    }
-  };
-
-  const getTrendBgColor = () => {
-    switch (trendDirection) {
-      case 'up':
-        return 'bg-emerald-500/10 border-emerald-500/20';
-      case 'down':
-        return 'bg-rose-500/10 border-rose-500/20';
-      default:
-        return 'bg-amber-500/10 border-amber-500/20';
-    }
-  };
-
-  if (isLoading && !data) {
     return (
-      <Card className={cn("h-full overflow-hidden", className)}>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
-              <Activity className="h-5 w-5 text-primary" />
+      <div className="space-y-4">
+        {/* Trend Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Search Trend</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {getTrendIcon(trendMetric?.value || 'flat')}
+                  <span className="text-xl font-bold capitalize">{trendMetric?.value || 'No data'}</span>
+                </div>
+                {trendMetric?.confidence && (
+                  <Badge variant="secondary" className="mt-2 text-xs">
+                    {Math.round(trendMetric.confidence * 100)}% confidence
+                  </Badge>
+                )}
+              </div>
+              <Activity className="h-6 w-6 text-primary/50" />
             </div>
-            Google Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-48 w-full rounded-xl" />
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-20 rounded-xl" />
-            <Skeleton className="h-20 rounded-xl" />
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="bg-gradient-to-br from-secondary/5 to-secondary/10 rounded-xl p-4 border border-secondary/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Region</p>
+                <p className="text-xl font-bold mt-1">{geo}</p>
+                <p className="text-xs text-muted-foreground mt-1">{timeWindow.replace(/_/g, ' ')}</p>
+              </div>
+              <Globe className="h-6 w-6 text-secondary/50" />
+            </div>
+          </div>
+        </div>
+
+        {/* Chart */}
+        {chartData.length > 0 && (
+          <div className="bg-card/50 rounded-xl p-4 border">
+            <h3 className="text-sm font-semibold mb-3">Search Interest Over Time</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  fill="url(#colorValue)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Related Queries */}
+        {data.top_queries && data.top_queries.length > 0 && (
+          <div className="bg-card/50 rounded-xl p-4 border">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Top Related Searches
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {data.top_queries.map((query, idx) => (
+                <Badge 
+                  key={idx} 
+                  variant="outline"
+                  className="py-1 px-2.5 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:border-primary/40 transition-colors text-xs"
+                >
+                  {query}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     );
-  }
+  };
+
+  const renderContinentalView = () => {
+    if (!data || !data.continentData) return null;
+
+    const continents = Object.keys(data.continentData);
+    const selectedData = data.continentData[selectedContinent];
+
+    // Prepare comparison data for bar chart
+    const comparisonData = continents.map(continent => {
+      const continentData = data.continentData![continent];
+      const latestValue = continentData?.series?.[0]?.points?.slice(-1)[0]?.[1] || 0;
+      return {
+        continent,
+        interest: latestValue,
+        trend: continentData?.metrics?.[0]?.value || 'flat'
+      };
+    });
+
+    return (
+      <div className="space-y-4">
+        {/* Continent Selector */}
+        <div className="flex items-center justify-between">
+          <Select value={selectedContinent} onValueChange={setSelectedContinent}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {continents.map(continent => (
+                <SelectItem key={continent} value={continent}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: CONTINENT_COLORS[continent as keyof typeof CONTINENT_COLORS] }}
+                    />
+                    {continent}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Badge variant="outline" className="gap-1 text-xs">
+            <Map className="h-3 w-3" />
+            {continents.length} Continents
+          </Badge>
+        </div>
+
+        {/* Continental Comparison */}
+        <div className="bg-card/50 rounded-xl p-4 border">
+          <h3 className="text-sm font-semibold mb-3">Interest by Continent</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={comparisonData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+              <XAxis 
+                dataKey="continent" 
+                className="text-xs"
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                className="text-xs"
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px'
+                }}
+              />
+              <Bar dataKey="interest" radius={[6, 6, 0, 0]}>
+                {comparisonData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={CONTINENT_COLORS[entry.continent as keyof typeof CONTINENT_COLORS]} 
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Selected Continent Details */}
+        {selectedData && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-3 border border-primary/20">
+                <p className="text-xs font-medium text-muted-foreground">Trend Direction</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {getTrendIcon(selectedData.metrics?.[0]?.value || 'flat')}
+                  <span className="text-lg font-bold capitalize">
+                    {selectedData.metrics?.[0]?.value || 'No data'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-secondary/5 to-secondary/10 rounded-xl p-3 border border-secondary/20">
+                <p className="text-xs font-medium text-muted-foreground">Countries Analyzed</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {selectedData.countries_analyzed?.map((country: string) => (
+                    <Badge key={country} variant="secondary" className="text-xs py-0">
+                      {country}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Trend Chart for Selected Continent */}
+            {selectedData.series?.[0]?.points && (
+              <div className="bg-card/50 rounded-xl p-4 border">
+                <h3 className="text-sm font-semibold mb-3">
+                  {selectedContinent} Search Interest
+                </h3>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart 
+                    data={selectedData.series[0].points.map(([date, value]: [string, number]) => ({
+                      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                      value
+                    }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                    <XAxis 
+                      dataKey="date" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke={CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS]}
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Related Queries for Continent */}
+            {selectedData.top_queries && selectedData.top_queries.length > 0 && (
+              <div className="bg-card/50 rounded-xl p-4 border">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Top Searches in {selectedContinent}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedData.top_queries.map((query: string, idx: number) => (
+                    <Badge 
+                      key={idx} 
+                      variant="outline"
+                      className="py-1 px-2.5 text-xs"
+                      style={{ 
+                        borderColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '40',
+                        backgroundColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '10'
+                      }}
+                    >
+                      {query}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
 
   if (!ideaText) {
     return (
@@ -202,302 +453,68 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     );
   }
 
-  if (error || (!data && !isLoading)) {
-    return (
-      <Card className={cn("h-full overflow-hidden", className)}>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
-              <Activity className="h-5 w-5 text-primary" />
-            </div>
-            Google Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error?.message || 'Failed to load Google Trends data'}
-            </AlertDescription>
-          </Alert>
-          <Button 
-            onClick={handleRefresh} 
-            className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70" 
-            size="sm"
-          >
-            <RefreshCw className="h-3.5 w-3.5 mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const hasRealData = !data?.warnings?.some(w => w.includes('mock data'));
-
   return (
-    <>
-      <Card className={cn("h-full overflow-hidden group hover:shadow-xl transition-all duration-300 relative", className)}>
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        
-        <CardHeader className="relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 group-hover:scale-110 transition-transform duration-300">
-                <Activity className="h-5 w-5 text-primary" />
-              </div>
-              <CardTitle className="text-lg font-semibold">Google Trends</CardTitle>
-              
-              {/* Data source indicator */}
-              {data && (
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge 
-                      variant={hasRealData ? "secondary" : "outline"} 
-                      className={cn(
-                        "h-5 animate-fade-in",
-                        hasRealData 
-                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-                          : "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                      )}
-                    >
-                      {hasRealData ? (
-                        <Sparkles className="h-3 w-3 mr-1" />
-                      ) : (
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                      )}
-                      {hasRealData ? 'Live' : 'Mock'}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {hasRealData 
-                      ? 'Using real data from SerpApi Google Trends'
-                      : 'Using mock data - SerpApi key required for real data'
-                    }
-                  </TooltipContent>
-                </Tooltip>
-              )}
+    <Card className={cn("overflow-hidden bg-gradient-to-br from-background to-muted/10", className)}>
+      <CardHeader className="bg-gradient-to-r from-primary/5 to-secondary/5 border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowInsights(true);
-                }}
-                className="h-8 w-8 hover:bg-primary/10 transition-colors"
-                title="How this helps your product journey"
-              >
-                <HelpCircle className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRefresh();
-                }}
-                disabled={isLoading || isRefreshing || !ideaText}
-                className={cn(
-                  "h-8 transition-all duration-200",
-                  "hover:bg-primary/10 hover:border-primary/30",
-                  (isLoading || isRefreshing) && "opacity-70"
-                )}
-                title={!ideaText ? "No idea configured" : "Refresh data"}
-              >
-                <RefreshCw className={cn("h-4 w-4 mr-1", (isLoading || isRefreshing) && "animate-spin")} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-4 relative">
-          {/* Mini area chart with gradient */}
-          {chartData.length > 0 && (
-            <div className="rounded-xl bg-gradient-to-br from-background/50 to-muted/20 p-3 border border-border/50">
-              <ChartContainer config={{
-                searchInterest: {
-                  label: "Search Interest",
-                  color: "hsl(var(--primary))",
-                }
-              }} className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="searchGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
-                    <XAxis 
-                      dataKey="date" 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <YAxis 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      domain={[0, 100]}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="searchInterest" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      fill="url(#searchGradient)"
-                      name="Search Interest"
-                      className="animate-fade-in"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
-          )}
-
-          {/* Trend metrics with enhanced styling */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted/30 to-muted/10 border border-border/50">
-            <div className="flex items-center gap-3">
-              <div className={cn("p-2 rounded-lg", getTrendBgColor())}>
-                <div className={cn("flex items-center gap-1", getTrendColor())}>
-                  {getTrendIcon()}
-                  <span className="font-semibold text-sm">
-                    {trendDirection === 'up' ? 'Rising' : trendDirection === 'down' ? 'Declining' : 'Stable'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Confidence</span>
-                <div className="flex items-center gap-1">
-                  <div className="h-1.5 w-20 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-500"
-                      style={{ width: `${Math.round(confidence * 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium">{Math.round(confidence * 100)}%</span>
-                </div>
-              </div>
-            </div>
+            <CardTitle className="text-base font-bold">Google Trends Analysis</CardTitle>
           </div>
           
-          {/* Top rising queries with enhanced badges */}
-          {data && data.top_queries && data.top_queries.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="h-3.5 w-3.5" />
-                Top Related Queries
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {data.top_queries.map((query, idx) => (
-                  <Badge 
-                    key={idx} 
-                    variant="secondary" 
-                    className={cn(
-                      "text-xs hover:scale-105 transition-transform cursor-default",
-                      "bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20",
-                      "animate-fade-in"
-                    )}
-                    style={{ animationDelay: `${idx * 50}ms` }}
-                  >
-                    {query}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Warnings with better styling */}
-          {data?.warnings && data.warnings.length > 0 && !hasRealData && (
-            <Alert className="border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-amber-500/5">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-              <AlertDescription className="text-sm">
-                {data.warnings[0]}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Action buttons with enhanced styling */}
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowInsights(true)}
-              className="flex-1 hover:bg-primary/10 hover:border-primary/30 transition-all group"
-            >
-              <HelpCircle className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
-              How This Helps
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSources(true)}
-              className="flex-1 hover:bg-primary/10 hover:border-primary/30 transition-all group"
-            >
-              View Sources
-              <ChevronRight className="h-3.5 w-3.5 ml-2 group-hover:translate-x-0.5 transition-transform" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Sources drawer */}
-      <Sheet open={showSources} onOpenChange={setShowSources}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>Data Sources & Citations</SheetTitle>
-            <SheetDescription>
-              {data?.updatedAt ? `Last updated: ${new Date(data.updatedAt).toLocaleString()}` : 'Loading...'}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {/* Filters */}
-            {data?.filters && (
-              <div>
-                <h4 className="font-medium mb-2">Query Parameters</h4>
-                <div className="space-y-1 text-sm">
-                  <p><span className="text-muted-foreground">Keywords:</span> {data.filters.idea}</p>
-                  <p><span className="text-muted-foreground">Location:</span> {data.filters.geo}</p>
-                  <p><span className="text-muted-foreground">Time Window:</span> {data.filters.time_window}</p>
-                </div>
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <Tabs value={viewMode} onValueChange={(v) => handleViewModeChange(v as 'global' | 'single')}>
+              <TabsList className="h-8">
+                <TabsTrigger value="single" className="text-xs">Single</TabsTrigger>
+                <TabsTrigger value="global" className="text-xs">Global</TabsTrigger>
+              </TabsList>
+            </Tabs>
             
-            {/* Citations */}
-            {data?.citations && data.citations.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Citations</h4>
-                <div className="space-y-2">
-                  {data.citations.map((citation, idx) => (
-                    <a
-                      key={idx}
-                      href={citation.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2 bg-muted/10 rounded-lg hover:bg-muted/20 transition-colors"
-                    >
-                      <span className="text-sm">{citation.label}</span>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => fetchTrendsData(viewMode === 'global')}
+              disabled={loading}
+              className="h-8 hover:bg-primary/10"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
-        </SheetContent>
-      </Sheet>
-      
-      {/* Insights Dialog */}
-      <TileInsightsDialog 
-        open={showInsights}
-        onOpenChange={setShowInsights}
-        tileType="google_trends"
-      />
-    </>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-4">
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center space-y-2">
+              <RefreshCw className="h-6 w-6 animate-spin mx-auto text-primary" />
+              <p className="text-xs text-muted-foreground">Fetching trends data...</p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {!loading && !error && data && (
+          viewMode === 'single' ? renderSingleRegionView() : renderContinentalView()
+        )}
+
+        {data?.warnings && data.warnings.length > 0 && (
+          <Alert className="mt-3 border-amber-500/20 bg-amber-500/5">
+            <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+            <AlertDescription className="text-xs text-amber-600">
+              {data.warnings[0]}
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   );
 }

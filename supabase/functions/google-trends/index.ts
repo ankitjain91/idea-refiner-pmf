@@ -8,19 +8,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Define continent regions for Google Trends
+const CONTINENT_REGIONS = {
+  'North America': ['US', 'CA', 'MX'],
+  'Europe': ['GB', 'DE', 'FR', 'IT', 'ES'],
+  'Asia': ['JP', 'IN', 'KR', 'SG', 'ID'],
+  'South America': ['BR', 'AR', 'CL', 'CO'],
+  'Africa': ['ZA', 'NG', 'EG', 'KE'],
+  'Oceania': ['AU', 'NZ']
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { idea_keywords, geo = 'US', time_window = 'last_12_months' } = await req.json();
+    const { idea_keywords, geo = 'US', time_window = 'last_12_months', fetch_continents = false } = await req.json();
     
     const query = Array.isArray(idea_keywords) 
       ? idea_keywords.join(' ') 
       : (idea_keywords || '');
     
-    console.log('[google-trends] Processing request:', { query, geo, time_window });
+    console.log('[google-trends] Processing request:', { query, geo, time_window, fetch_continents });
     
     if (!query) {
       return new Response(
@@ -40,14 +50,84 @@ serve(async (req) => {
     
     if (!serpApiKey) {
       console.log('[google-trends] No SerpApi key - returning mock data');
-      const mockData = generateMockData(query, geo, time_window);
+      const mockData = fetch_continents 
+        ? generateMockContinentData(query, time_window)
+        : generateMockData(query, geo, time_window);
       return new Response(
         JSON.stringify(mockData),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Parallel fetch both TIMESERIES and RELATED_QUERIES
+    // If continent-wise data is requested
+    if (fetch_continents) {
+      const continentData: any = {};
+      
+      // Fetch data for each continent in parallel
+      const continentPromises = Object.entries(CONTINENT_REGIONS).map(async ([continent, countries]) => {
+        try {
+          // Pick the first country as representative for the continent
+          const representativeCountry = countries[0];
+          
+          const [timeseriesData, relatedData] = await Promise.all([
+            fetchGoogleTrends(query, representativeCountry, 'TIMESERIES'),
+            fetchGoogleTrends(query, representativeCountry, 'RELATED_QUERIES')
+          ]);
+          
+          const processedData = processGoogleTrendsData(
+            timeseriesData, 
+            relatedData, 
+            query, 
+            representativeCountry, 
+            time_window
+          );
+          
+          return { 
+            continent, 
+            countries: countries,
+            data: processedData 
+          };
+        } catch (error) {
+          console.error(`[google-trends] Error fetching data for ${continent}:`, error);
+          return { 
+            continent, 
+            countries: countries,
+            data: null 
+          };
+        }
+      });
+      
+      const results = await Promise.all(continentPromises);
+      
+      // Organize data by continent
+      results.forEach(({ continent, countries, data }) => {
+        if (data) {
+          continentData[continent] = {
+            ...data,
+            region: continent,
+            countries_analyzed: countries
+          };
+        }
+      });
+      
+      console.log('[google-trends] Continent-wise data fetched successfully');
+      
+      return new Response(
+        JSON.stringify({ 
+          type: 'continental',
+          continentData,
+          updatedAt: new Date().toISOString(),
+          filters: { 
+            idea: query, 
+            geo: 'global', 
+            time_window 
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Regular single-region fetch
     const [timeseriesData, relatedData] = await Promise.all([
       fetchGoogleTrends(query, geo, 'TIMESERIES'),
       fetchGoogleTrends(query, geo, 'RELATED_QUERIES')
@@ -63,7 +143,10 @@ serve(async (req) => {
     );
     
     return new Response(
-      JSON.stringify(processedData),
+      JSON.stringify({ 
+        type: 'single',
+        ...processedData 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -100,7 +183,7 @@ async function fetchGoogleTrends(query: string, geo: string, dataType: string) {
       api_key: serpApiKey!
     });
     
-    console.log(`[google-trends] Fetching ${dataType} for: ${query}`);
+    console.log(`[google-trends] Fetching ${dataType} for: ${query} in ${geo}`);
     
     const response = await fetch(`https://serpapi.com/search?${params}`, {
       signal: timeoutController.signal
@@ -111,7 +194,7 @@ async function fetchGoogleTrends(query: string, geo: string, dataType: string) {
     }
     
     const data = await response.json();
-    console.log(`[google-trends] ${dataType} fetched successfully`);
+    console.log(`[google-trends] ${dataType} fetched successfully for ${geo}`);
     return data;
   } catch (error: any) {
     if (error?.name === 'AbortError') {
@@ -275,5 +358,65 @@ function generateMockData(query: string, geo: string, time_window: string) {
       }
     ],
     warnings: ['Using mock data - SerpApi key required for real data']
+  };
+}
+
+function generateMockContinentData(query: string, time_window: string) {
+  const continentData: any = {};
+  
+  Object.entries(CONTINENT_REGIONS).forEach(([continent, countries]) => {
+    // Generate different mock data for each continent
+    const points: [string, number][] = [];
+    const today = new Date();
+    const baseValue = Math.floor(Math.random() * 30 + 20); // Different base for each continent
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+      const value = Math.floor(Math.random() * 20 + baseValue + (11 - i) * 1.5);
+      points.push([date.toISOString().split('T')[0], value]);
+    }
+    
+    continentData[continent] = {
+      updatedAt: new Date().toISOString(),
+      region: continent,
+      countries_analyzed: countries,
+      filters: { idea: query, geo: countries[0], time_window },
+      metrics: [
+        {
+          name: 'trend_direction',
+          value: Math.random() > 0.5 ? 'up' : 'flat',
+          explanation: 'based on last-4-week vs prior-12-week avg',
+          confidence: 0.5 + Math.random() * 0.3
+        }
+      ],
+      series: [
+        { name: 'search_interest', points }
+      ],
+      top_queries: [
+        `${query} ${continent}`,
+        `${query} local`,
+        `best ${query}`,
+        `${query} pricing`
+      ].slice(0, 4),
+      citations: [
+        { 
+          label: `Google Trends ${continent} (via SerpApi)`, 
+          url: `https://trends.google.com/trends/explore?q=${encodeURIComponent(query)}&geo=${countries[0]}` 
+        }
+      ],
+      warnings: ['Using mock data - SerpApi key required for real data']
+    };
+  });
+  
+  return {
+    type: 'continental',
+    continentData,
+    updatedAt: new Date().toISOString(),
+    filters: { 
+      idea: query, 
+      geo: 'global', 
+      time_window 
+    }
   };
 }
