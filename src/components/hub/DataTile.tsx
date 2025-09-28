@@ -350,8 +350,7 @@ export function DataTile({
   return (
     <>
       <Card 
-        className={cn("h-full flex flex-col hover:shadow-lg transition-all duration-200 border-border/50 cursor-pointer", className)}
-        onClick={() => setShowInsights(true)}
+        className={cn("h-full flex flex-col hover:shadow-lg transition-all duration-200 border-border/50", className)}
       >
         <CardHeader className="pb-4 px-4 pt-4">
           <div className="flex items-center justify-between">
@@ -420,7 +419,10 @@ export function DataTile({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setShowDetails(true)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDetails(true);
+                        }}
                         className="h-7 w-7"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -435,7 +437,10 @@ export function DataTile({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setExpanded(!expanded)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpanded(!expanded);
+                    }}
                     className="h-7 w-7"
                   >
                     {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}

@@ -239,8 +239,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   return (
     <>
       <Card 
-        className={cn("h-full cursor-pointer transition-all hover:shadow-lg", className)}
-        onClick={() => setShowInsights(true)}
+        className={cn("h-full", className)}
       >
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -423,15 +422,26 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
 
           {/* View sources button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowSources(true)}
-            className="w-full"
-          >
-            View Sources
-            <ChevronRight className="h-3.5 w-3.5 ml-2" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInsights(true)}
+              className="flex-1"
+            >
+              <HelpCircle className="h-3.5 w-3.5 mr-2" />
+              How This Helps
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSources(true)}
+              className="flex-1"
+            >
+              View Sources
+              <ChevronRight className="h-3.5 w-3.5 ml-2" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
