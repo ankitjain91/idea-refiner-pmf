@@ -98,30 +98,67 @@ serve(async (req) => {
       tavily?.results?.slice(0, 3).forEach((r: any) => contextSnippets.push(`${r.title}: ${r.content?.slice(0, 160)}`));
     } catch (_) {}
 
-    // If Groq key is missing, fallback to a basic synthesized payload
+    // If no search results were obtained, return error
+    if (!serper && !tavily) {
+      console.error('[web-search-ai] No search API keys configured or all APIs failed');
+      return new Response(JSON.stringify({
+        error: 'Search APIs unavailable',
+        message: 'Unable to fetch real-time data. Please configure API keys.',
+        updatedAt: new Date().toISOString()
+      }), { 
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // If Groq key is missing but we have search data, return structured search results
     if (!GROQ_API_KEY) {
       const now = new Date().toISOString();
+      const searchItems = [];
+      
+      // Combine results from both sources
+      if (serper?.organic) {
+        searchItems.push(...serper.organic.slice(0, 5).map((i: any) => ({
+          title: i.title || 'Untitled',
+          snippet: i.snippet || '',
+          url: i.link,
+          canonicalUrl: i.link,
+          published: i.date || now,
+          source: new URL(i.link).hostname,
+          evidence: []
+        })));
+      }
+      
+      if (tavily?.results) {
+        searchItems.push(...tavily.results.slice(0, 5).map((r: any) => ({
+          title: r.title || 'Untitled',
+          snippet: r.content?.slice(0, 200) || '',
+          url: r.url,
+          canonicalUrl: r.url,
+          published: r.published_date || now,
+          source: new URL(r.url).hostname,
+          evidence: []
+        })));
+      }
+
+      // Remove duplicates by URL
+      const uniqueItems = Array.from(
+        new Map(searchItems.map(item => [item.url, item])).values()
+      ).slice(0, 6);
+
       return new Response(JSON.stringify({
         updatedAt: now,
         filters,
         metrics: [
-          { name: 'Signal Strength', value: 62, unit: '%', explanation: 'Heuristic based on available sources', method: 'heuristic', confidence: 0.5 },
-          { name: 'Market Momentum', value: 0.7, unit: '', explanation: 'Estimated from recent mentions', method: 'approximation', confidence: 0.4 }
+          { name: 'Results Found', value: uniqueItems.length, unit: 'items', explanation: 'Number of relevant search results', method: 'search', confidence: 0.8 },
+          { name: 'Data Source', value: 'Direct Search', unit: '', explanation: 'Using raw search API data', method: 'api', confidence: 1.0 }
         ],
-        items: (serper?.organic || []).slice(0, 4).map((i: any) => ({
-          title: i.title,
-          snippet: i.snippet,
-          url: i.link,
-          canonicalUrl: i.link,
-          published: i.date || 'unknown',
-          source: new URL(i.link).hostname,
-          evidence: []
-        })),
+        items: uniqueItems,
         assumptions: [
-          'Data synthesized without AI model due to missing key',
-          'Signals may be incomplete'
+          'Showing direct search results without AI synthesis',
+          'Results are sorted by relevance from search providers'
         ],
-        notes: 'Fallback synthetic summary due to service constraints.',
+        notes: `Displaying real-time search results from ${serper ? 'Serper' : ''}${serper && tavily ? ' and ' : ''}${tavily ? 'Tavily' : ''}`,
         citations: normalizeCitations(serper, tavily),
         fromCache: false,
         stale: false

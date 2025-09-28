@@ -104,7 +104,11 @@ export function DataTile({
         console.warn(`web-search-ai failed for ${tileType}, trying fallback:`, fetchError);
         throw fetchError;
       }
-      if (response?.error) throw new Error(response.message || response.error);
+      
+      // Check for error in response
+      if (response?.error) {
+        throw new Error(response.message || response.error);
+      }
       
       return response as TileData;
     } catch (primaryError) {
@@ -449,11 +453,18 @@ export function DataTile({
               <Skeleton className="h-12 w-full rounded-lg" />
               <Skeleton className="h-8 w-3/4 rounded-lg" />
             </div>
-          ) : error ? (
+          ) : error || (data as any)?.error ? (
             <div className="py-4">
               <Alert variant="destructive" className="border-destructive/50">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">{error}</AlertDescription>
+                <AlertDescription className="text-sm">
+                  {error || (data as any)?.error || 'Failed to load data'}
+                  {(data as any)?.message && (
+                    <span className="block mt-1 text-xs opacity-75">
+                      {(data as any).message}
+                    </span>
+                  )}
+                </AlertDescription>
               </Alert>
             </div>
           ) : data ? (
