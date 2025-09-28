@@ -412,6 +412,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // DISABLED - This function requires API keys that have been removed
+  return new Response(
+    JSON.stringify({ 
+      error: 'This function has been disabled. API keys have been removed for security.',
+      disabled: true 
+    }),
+    { 
+      status: 503, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    }
+  );
+
   try {
     // Get user ID from request headers (optional for now)
     const authHeader = req.headers.get('authorization');
