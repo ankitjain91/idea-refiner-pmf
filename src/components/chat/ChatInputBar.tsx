@@ -1,7 +1,8 @@
 import React, { ForwardedRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, RotateCcw } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ChatInputBarProps {
   input: string;
@@ -10,11 +11,32 @@ interface ChatInputBarProps {
   disabled: boolean;
   placeholder: string;
   inputRef: ForwardedRef<HTMLInputElement>;
+  onReset?: () => void;
 }
 
-export const ChatInputBar: React.FC<ChatInputBarProps> = ({ input, setInput, onSend, disabled, placeholder, inputRef }) => {
+export const ChatInputBar: React.FC<ChatInputBarProps> = ({ input, setInput, onSend, disabled, placeholder, inputRef, onReset }) => {
   return (
     <div className="flex gap-2">
+      {onReset && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={onReset}
+                disabled={disabled}
+                size="icon"
+                variant="outline"
+                className="hover:bg-destructive/10 hover:border-destructive/50"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Clear all data and start fresh</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
       <Input
         ref={inputRef}
         value={input}

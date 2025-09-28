@@ -641,31 +641,144 @@ export default function ChatGPTStyleChat({
   };
 
   // Reset chat but keep same session (clear idea + messages + local storage for chat/idea)
-  const resetChat = () => {
+  const resetChat = async () => {
     if (isAnalyzing) return;
+    
+    // Clear all component state
     setCurrentIdea('');
+    setShowStartAnalysisButton(false);
+    setIsRefinementMode(false);
+    setAnalysisProgress(0);
+    setIsBriefQAMode(false);
+    setBriefQuestionIndex(0);
+    setBriefSuggestions({});
+    setEvidenceScore(0);
+    setBriefWeakAreas([]);
+    setIsFetchingBriefSuggestions(false);
+    
+    // Clear refs
+    briefQuestionsRef.current = [];
+    briefSuggestionsRef.current = {};
+    briefFetchedRef.current = false;
+    positivityUnlockedRef.current = false;
+    vagueAnswerCountsRef.current = {};
+    
+    // Get current session ID for targeted clearing
+    const sessionId = currentSession?.id || localStorage.getItem('currentSessionId');
+    
     try {
-      localStorage.removeItem('userIdea');
-      localStorage.removeItem('chatHistory');
-      localStorage.removeItem(LS_KEYS.analysisCompleted);
-      localStorage.removeItem('pmfScore');
-      localStorage.removeItem('ideaMetadata');
-      localStorage.removeItem('analysisBrief');
-      localStorage.removeItem('analysisBriefSuggestionsCache');
+      // Clear ALL local storage items related to ideas, analysis, and sessions
+      const keysToRemove = [
+        'userIdea',
+        'chatHistory',
+        'enhancedIdeaChatMessages',
+        'currentIdea',
+        'pmfCurrentIdea',
+        'pmfScore',
+        'ideaMetadata',
+        'analysisBrief',
+        'analysisBriefSuggestionsCache',
+        'conversationHistory',
+        'userAnswers',
+        'dashboardValidation',
+        'pendingQuestion',
+        'analysisId',
+        'pmfAnalysisData',
+        'dashboardAccessGrant',
+        'wrinklePoints',
+        LS_KEYS.analysisCompleted,
+        LS_KEYS.userIdea,
+        LS_KEYS.pmfScore,
+        LS_KEYS.ideaMetadata,
+        LS_KEYS.userAnswers,
+      ];
+      
+      // Clear session-specific keys if we have a session ID
+      if (sessionId) {
+        keysToRemove.push(
+          `session_${sessionId}_idea`,
+          `session_${sessionId}_metadata`,
+          `session_${sessionId}_conversation`,
+          `session_${sessionId}_answers`,
+          `session_${sessionId}_analysis`,
+          `session_${sessionId}_brief`
+        );
+        
+        // Clear from database if authenticated
+        if (user && currentSession && !currentSession.is_anonymous) {
+          try {
+            // Update the session in database to clear idea-related data
+            const { error } = await supabase
+              .from('analysis_sessions')
+              .update({
+                idea: '',
+                refinements: null,
+                metadata: null,
+                pmf_score: 0,
+                insights: null,
+                user_answers: null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', sessionId)
+              .eq('user_id', user.id);
+              
+            if (error) {
+              console.error('[ChatGPTStyleChat] Error clearing session in DB:', error);
+            } else {
+              console.log('[ChatGPTStyleChat] Successfully cleared session data in DB');
+            }
+          } catch (dbError) {
+            console.error('[ChatGPTStyleChat] Failed to clear DB session:', dbError);
+          }
+        }
+      }
+      
+      // Remove all the keys from localStorage
+      keysToRemove.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch {}
+      });
+      
+      // Also clear any keys with dynamic prefixes
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.includes('session_') || 
+            key.includes('analysis_') || 
+            key.includes('pmf') ||
+            key.includes('idea') ||
+            key.includes('conversation')) {
+          try {
+            localStorage.removeItem(key);
+          } catch {}
+        }
+      });
+      
+      // Dispatch events to notify other components
       window.dispatchEvent(new Event('idea:updated'));
-    } catch {}
+      window.dispatchEvent(new CustomEvent('session:cleared', { detail: { sessionId } }));
+      
+    } catch (error) {
+      console.error('[ChatGPTStyleChat] Error during reset:', error);
+    }
+    
+    // Set fresh welcome message
     const welcomeMessage: Message = {
       id: `msg-welcome-${Date.now()}`,
       type: 'system',
-      content: "🌟 Fresh start, here we go! What's a new idea you'd like to explore? It could be anything - an app, a service, or even just something you wish existed!",
+      content: "🌟 Fresh start! Everything has been cleared. What's a new idea you'd like to explore? It could be anything - an app, a service, or even just something you wish existed!",
       timestamp: new Date(),
       suggestions: generateRandomSuggestions()
     };
     setMessages([welcomeMessage]);
-    setShowStartAnalysisButton(false);
-    setIsRefinementMode(false);
-    setAnalysisProgress(0);
+    
+    // Update mode
     emitMode('idea');
+    
+    // Update session context to reflect the cleared state
+    if (currentSession) {
+      window.dispatchEvent(new CustomEvent('session:reset'));
+    }
   };
 
   // Listen for external idea injection / reset triggers from IdeaChat container UI
@@ -1952,6 +2065,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
             disabled={isLoading}
             placeholder={!currentIdea ? 'Describe your product idea...' : isAnalyzing ? 'Type your answer...' : 'Ask a follow-up question...'}
             inputRef={inputRef}
+            onReset={resetChat}
           />
         </div>
       </div>
