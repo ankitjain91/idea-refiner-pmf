@@ -643,7 +643,7 @@ export default function LandingPage() {
               VALIDATE YOUR
             </motion.span>
             <motion.span 
-              className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent mt-2"
+              className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent mt-4"
               animate={{
                 backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
               }}
