@@ -148,7 +148,7 @@ const Dashboard = () => {
                   size="lg"
                 >
                   <MessageSquare className="h-5 w-5" />
-                  Start IdeaChat
+                  Start Analysis
                   <ArrowRight className="h-5 w-5 ml-auto" />
                 </Button>
                 
