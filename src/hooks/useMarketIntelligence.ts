@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCachedSWR, CACHE_DURATIONS } from './useCachedSWR';
 
 interface MarketIntelligence {
   competitors: any[];
@@ -10,18 +11,14 @@ interface MarketIntelligence {
   trends: string[];
   sources: any[];
   lastUpdated: string;
+  fromCache?: boolean;
 }
 
 export function useMarketIntelligence(idea: string) {
-  const [data, setData] = useState<MarketIntelligence | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchMarketData = useCallback(async () => {
-    if (!idea) return;
-    
-    setLoading(true);
-    setError(null);
+  
+  const fetcher = useCallback(async () => {
+    if (!idea) return null;
     
     try {
       // Fetch comprehensive market data
@@ -87,23 +84,28 @@ export function useMarketIntelligence(idea: string) {
         new Map(aggregated.sources.map((s: any) => [s.url, s])).values()
       );
 
-      setData(aggregated);
+      return aggregated;
     } catch (err) {
       console.error('Error fetching market intelligence:', err);
       setError('Failed to fetch market data');
-    } finally {
-      setLoading(false);
+      throw err;
     }
   }, [idea]);
-
-  useEffect(() => {
-    fetchMarketData();
-  }, [fetchMarketData]);
+  
+  const { data, error: swrError, isLoading, mutate } = useCachedSWR<MarketIntelligence>({
+    cacheKey: `market-intelligence:${idea}`,
+    cacheTime: CACHE_DURATIONS.ONE_DAY, // Cache for 24 hours
+    fetcher,
+    swrOptions: {
+      revalidateIfStale: false,
+      errorRetryInterval: 5000
+    }
+  });
 
   return {
     data,
-    loading,
-    error,
-    refresh: fetchMarketData
+    loading: isLoading,
+    error: error || swrError?.message,
+    refresh: mutate
   };
 }

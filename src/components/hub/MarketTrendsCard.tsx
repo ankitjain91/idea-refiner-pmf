@@ -67,6 +67,8 @@ interface TrendsData {
   insights?: string[];
   warnings?: string[];
   continentData?: Record<string, any>;
+  fromCache?: boolean;
+  stale?: boolean;
 }
 
 const CONTINENT_COLORS = {
@@ -97,6 +99,23 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     cacheKey,
     async (key) => {
       const [, idea, mode] = key.split(':');
+      
+      // Check localStorage for cached data first
+      const cacheKeyStorage = `market-trends-cache:${idea}:${mode}`;
+      const cachedData = localStorage.getItem(cacheKeyStorage);
+      
+      if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+        const cacheAge = Date.now() - parsed.timestamp;
+        const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        
+        // Return cached data if less than 24 hours old
+        if (cacheAge < ONE_DAY) {
+          return { ...parsed.data, fromCache: true };
+        }
+      }
+      
+      // Fetch fresh data if cache is stale or missing
       const { data, error } = await supabase.functions.invoke('market-trends', {
         body: { 
           idea,
@@ -106,15 +125,25 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       });
       
       if (error) throw error;
+      
+      // Store in localStorage with timestamp
+      if (data) {
+        localStorage.setItem(cacheKeyStorage, JSON.stringify({
+          data,
+          timestamp: Date.now()
+        }));
+      }
+      
       return data;
     },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 60000, // 60s for search data
-      refreshInterval: 900000, // 15m for news data
+      dedupingInterval: 3600000, // 1 hour - prevent duplicate requests within this window
+      refreshInterval: 86400000, // 24 hours - auto refresh once per day
       shouldRetryOnError: true,
-      errorRetryCount: 2
+      errorRetryCount: 2,
+      revalidateOnMount: false // Don't refetch on mount if we have cached data
     }
   );
   
@@ -327,26 +356,41 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 <Search className="h-5 w-5" />
                 Market Trends
               </CardTitle>
-              {/* Data source indicator */}
+              {/* Data source and cache indicator */}
               {data && (
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant={data.insights?.some(i => i.includes('API key required')) ? "destructive" : "secondary"} className="h-5">
-                      {data.insights?.some(i => i.includes('API key required')) ? (
-                        <XCircle className="h-3 w-3 mr-1" />
-                      ) : (
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                      )}
-                      {data.insights?.some(i => i.includes('API key required')) ? 'Mock' : 'Live'}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {data.insights?.some(i => i.includes('API key required')) 
-                      ? 'Using mock data - Serper API key may not be configured'
-                      : 'Using real data from Serper API'
-                    }
-                  </TooltipContent>
-                </Tooltip>
+                <>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge variant={data.insights?.some(i => i.includes('API key required')) ? "destructive" : "secondary"} className="h-5">
+                        {data.insights?.some(i => i.includes('API key required')) ? (
+                          <XCircle className="h-3 w-3 mr-1" />
+                        ) : (
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {data.insights?.some(i => i.includes('API key required')) ? 'Mock' : 'Live'}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {data.insights?.some(i => i.includes('API key required')) 
+                        ? 'Using mock data - Serper API key may not be configured'
+                        : 'Using real data from Serper API'
+                      }
+                    </TooltipContent>
+                  </Tooltip>
+                  {data.fromCache && (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="outline" className="h-5">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Cached
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Data cached locally for 24 hours to reduce API calls
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </>
               )}
             </div>
             <div className="flex items-center gap-2">
