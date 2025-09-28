@@ -22,9 +22,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["-apple-system", "BlinkMacSystemFont", "Inter", "system-ui", "sans-serif"],
-        display: ["-apple-system", "BlinkMacSystemFont", "Inter", "system-ui", "sans-serif"],
-        mono: ["Space Mono", "SF Mono", "Monaco", "Courier New", "monospace"],
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"],
+        display: ["Inter", "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "SF Mono", "Monaco", "Courier New", "monospace"],
         orbitron: ["Orbitron", "sans-serif"],
       },
       colors: {

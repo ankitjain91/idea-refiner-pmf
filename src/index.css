@@ -145,13 +145,15 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-size: clamp(15px, 1.5vw, 17px);
-    line-height: 1.6;
-    letter-spacing: -0.01em;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.011em;
     font-weight: 400;
     position: relative;
     overflow-x: hidden;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
   }
   
   /* Professional Grid Background */
@@ -195,15 +197,17 @@ All colors MUST be HSL.
   }
   
   h1 {
-    @apply font-display font-bold;
-    font-size: var(--text-3xl);
-    line-height: 1.2;
+    @apply font-semibold;
+    font-size: 2rem;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
   }
   
   h2 {
-    @apply font-display font-semibold;
-    font-size: var(--text-2xl);
-    line-height: 1.3;
+    @apply font-semibold;
+    font-size: 1.5rem;
+    line-height: 1.333;
+    letter-spacing: -0.02em;
   }
 
   /* Glow effects */
@@ -223,24 +227,28 @@ All colors MUST be HSL.
   }
   
   h3 {
-    @apply font-display font-semibold;
-    font-size: var(--text-xl);
+    @apply font-semibold;
+    font-size: 1.25rem;
     line-height: 1.4;
+    letter-spacing: -0.02em;
   }
   
   h4, h5, h6 {
-    @apply font-display font-medium;
-    font-size: var(--text-lg);
+    @apply font-medium;
+    font-size: 1rem;
     line-height: 1.5;
+    letter-spacing: -0.015em;
   }
   
   p {
-    font-size: var(--text-base);
-    line-height: 1.6;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    letter-spacing: -0.011em;
   }
   
   small {
-    font-size: var(--text-sm);
+    font-size: 0.75rem;
+    letter-spacing: -0.011em;
   }
 }
 
