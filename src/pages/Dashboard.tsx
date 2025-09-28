@@ -196,7 +196,10 @@ const Dashboard = () => {
           <AnalysisChat
             idea={null}
             onComplete={(ideaText) => {
-              setIdea(ideaText);
+              if (ideaText) {
+                setIdea(ideaText);
+                localStorage.setItem('ideaText', ideaText);
+              }
               setShowAnalysis(false);
               refresh();
             }}

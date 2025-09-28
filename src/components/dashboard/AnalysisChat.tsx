@@ -92,6 +92,8 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string>('');
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const currentQuestion = hasEnteredIdea ? ANALYSIS_QUESTIONS[currentQuestionIndex] : null;
@@ -104,6 +106,40 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
   useEffect(() => {
     scrollToBottom();
   }, [currentQuestionIndex, answers]);
+
+  // Fetch AI suggestion when question changes
+  useEffect(() => {
+    const fetchAISuggestion = async () => {
+      if (!currentQuestion || !hasEnteredIdea) return;
+      
+      setLoadingSuggestion(true);
+      setAiSuggestion('');
+      
+      try {
+        const conversationHistory = JSON.parse(localStorage.getItem('conversationHistory') || '[]');
+        
+        const { data, error } = await supabase.functions.invoke('generate-analysis-suggestions', {
+          body: {
+            question: currentQuestion.question,
+            field: currentQuestion.field,
+            conversationHistory,
+            ideaText,
+            previousAnswers: answers
+          }
+        });
+        
+        if (!error && data?.suggestion) {
+          setAiSuggestion(data.suggestion);
+        }
+      } catch (error) {
+        console.error('Error fetching AI suggestion:', error);
+      } finally {
+        setLoadingSuggestion(false);
+      }
+    };
+    
+    fetchAISuggestion();
+  }, [currentQuestionIndex, currentQuestion, hasEnteredIdea, ideaText, answers]);
 
   const handleSubmitIdea = () => {
     if (!ideaInput.trim()) {
@@ -118,6 +154,11 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
     // Save idea to localStorage
     localStorage.setItem('ideaText', ideaInput);
     localStorage.setItem('ideaMetadata', JSON.stringify({ refined: ideaInput }));
+    
+    // Pass the idea to parent if onComplete expects it
+    if (onComplete) {
+      onComplete(ideaInput);
+    }
     
     setIdeaText(ideaInput);
     setHasEnteredIdea(true);
@@ -188,7 +229,7 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
       // Validate and generate insights
       const { data, error } = await supabase.functions.invoke('dashboard-insights', {
         body: {
-          idea,
+          idea: ideaText,
           analysisType: 'full',
           metadata: allAnswers,
           conversation: JSON.parse(localStorage.getItem('conversationHistory') || '[]')
@@ -403,6 +444,36 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
                       {currentQuestion.importance}
                     </Badge>
                   </div>
+                  
+                  {/* AI Suggestion */}
+                  {(aiSuggestion || loadingSuggestion) && (
+                    <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="h-4 w-4 text-primary mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-primary mb-1">AI Suggestion</p>
+                          {loadingSuggestion ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span className="text-xs text-muted-foreground">Analyzing context...</span>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">{aiSuggestion}</p>
+                          )}
+                        </div>
+                      </div>
+                      {aiSuggestion && !loadingSuggestion && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 text-xs"
+                          onClick={() => setCurrentAnswer(aiSuggestion)}
+                        >
+                          Use this suggestion
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Options for select type */}
                   {currentQuestion.type === 'select' && currentQuestion.options && (
