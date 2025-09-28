@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,8 +17,8 @@ serve(async (req) => {
   try {
     const { userMessage, currentIdea, conversationHistory, currentWrinklePoints } = await req.json();
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!GROQ_API_KEY) {
+      throw new Error('Groq API key not configured');
     }
 
     const evaluationPrompt = `You are a brain wrinkle evaluator. Evaluate the QUALITY of the USER'S MESSAGE, not the bot's response.
@@ -54,14 +54,14 @@ Return ONLY a JSON object like this:
 
 BE STRICT. Higher point totals should get fewer points for the same quality of thinking.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Use gpt-4o-mini for wrinkle points evaluation (cost-efficient)
+        model: 'llama-3.1-8b-instant', // Use Groq for wrinkle points evaluation
         messages: [
           {
             role: 'system',
@@ -74,14 +74,14 @@ BE STRICT. Higher point totals should get fewer points for the same quality of t
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Groq API error: ${response.status}`);
     }
 
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
 
     if (!content) {
-      throw new Error('No content in OpenAI response');
+      throw new Error('No content in Groq response');
     }
 
     // Parse the JSON response and ensure positive points

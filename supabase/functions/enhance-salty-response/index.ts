@@ -33,14 +33,14 @@ Instructions:
 
 Enhanced Response:`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Use gpt-4o-mini for salty responses (cost-efficient)
+        model: 'llama-3.1-8b-instant', // Use Groq for salty responses
         messages: [
           {
             role: 'system',
@@ -57,7 +57,7 @@ Enhanced Response:`;
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Groq API error: ${response.status}`);
     }
 
     const data = await response.json();

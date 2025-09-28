@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,8 +17,8 @@ serve(async (req) => {
   try {
     console.log('[GENERATE-SUGGESTIONS] Function started');
     
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!GROQ_API_KEY) {
+      throw new Error('Groq API key not configured');
     }
 
     const { question, ideaDescription, previousAnswers } = await req.json();
@@ -59,14 +59,14 @@ Example for "Who is your target audience?":
  "I'm thinking B2B, but not sure if B2C would be better - what matters most?",
  "Remote workers and digital nomads who need flexible collaboration tools"]`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Fast model for conversational suggestions
+        model: 'llama-3.1-8b-instant',  // Fast model for conversational suggestions
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -80,13 +80,13 @@ Example for "Who is your target audience?":
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[GENERATE-SUGGESTIONS] OpenAI API error:', errorText);
+      console.error('[GENERATE-SUGGESTIONS] Groq API error:', errorText);
       console.error('[GENERATE-SUGGESTIONS] Status:', response.status);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('[GENERATE-SUGGESTIONS] OpenAI response:', JSON.stringify(data, null, 2));
+    console.log('[GENERATE-SUGGESTIONS] Groq response:', JSON.stringify(data, null, 2));
     
     let suggestions: string[] = [];
     try {
@@ -136,11 +136,11 @@ Example for "Who is your target audience?":
     } catch (parseError) {
       console.error('[GENERATE-SUGGESTIONS] Failed to parse suggestions:', parseError);
       // Check if API key is missing first
-      if (!openAIApiKey) {
-        console.error('[GENERATE-SUGGESTIONS] No OpenAI API key configured');
+      if (!GROQ_API_KEY) {
+        console.error('[GENERATE-SUGGESTIONS] No Groq API key configured');
         suggestions = [
           'API key not configured properly',
-          'Please check OpenAI settings',
+          'Please check Groq settings',
           'Contact support for assistance',
           'Using fallback suggestions only'
         ];
