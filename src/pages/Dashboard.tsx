@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { EngagingLoader } from '@/components/engagement/EngagingLoader';
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -33,7 +34,7 @@ const Dashboard = () => {
   const [idea, setIdea] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
 
   // Get storage key for session-specific idea
@@ -111,7 +112,10 @@ const Dashboard = () => {
     realtime, 
     loading, 
     error, 
-    refresh 
+    refresh,
+    progress,
+    status,
+    initialLoadComplete
   } = useDashboardData(idea);
   
   // Validate data completeness
@@ -164,17 +168,7 @@ const Dashboard = () => {
   
   // Remove auto-redirect - let user decide when to go to IdeaChat
 
-  // Early return for loading state - but only if we're actually fetching data
-  if ((authLoading || (loading && idea)) && !showAnalysis) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-black'>
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className='h-8 w-8 animate-spin text-primary' />
-          <p className="text-sm text-muted-foreground">Loading real-time insights...</p>
-        </div>
-      </div>
-    );
-  }
+  // Loading is handled by EngagingLoader overlay and status bar; do not early-return here.
 
   if (!idea && !showAnalysis) {
     return (
@@ -237,8 +231,8 @@ const Dashboard = () => {
     );
   }
 
-  // Show AnalysisChat when showAnalysis is true
-  if (showAnalysis && !idea) {
+  // Show AnalysisChat exclusively when active (minimal UI)
+  if (showAnalysis) {
     return (
       <div className='min-h-screen bg-black p-6'>
         <motion.div
@@ -289,10 +283,12 @@ const Dashboard = () => {
       <header className="glass-header border-b border-white/5 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card border border-white/5">
-              <Brain className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-white">{idea.slice(0, 40)}...</span>
-            </div>
+            {idea && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card border border-white/5">
+                <Brain className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-white">{idea.length > 40 ? `${idea.slice(0, 40)}...` : idea}</span>
+              </div>
+            )}
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -10,6 +10,9 @@ interface DashboardData {
   realtime: any;
   loading: boolean;
   error: string | null;
+  progress: number;
+  status: string;
+  initialLoadComplete: boolean;
 }
 
 export const useDashboardData = (idea: string | null) => {
@@ -21,7 +24,10 @@ export const useDashboardData = (idea: string | null) => {
     channels: null,
     realtime: null,
     loading: true,
-    error: null
+    error: null,
+    progress: 0,
+    status: '',
+    initialLoadComplete: false
   });
 
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
@@ -76,49 +82,61 @@ export const useDashboardData = (idea: string | null) => {
 
   const loadAllData = useCallback(async () => {
     if (!idea) {
-      setData(prev => ({ ...prev, loading: false, error: 'No idea found' }));
+      setData(prev => ({ ...prev, loading: false, error: 'No idea found', progress: 0, status: '', initialLoadComplete: false }));
       return;
     }
 
-    setData(prev => ({ ...prev, loading: true, error: null }));
+    // Reset loading state with progress
+    setData(prev => ({ ...prev, loading: true, error: null, progress: 0, status: 'Starting analysis…', initialLoadComplete: false }));
 
     try {
-      // Fetch all types of insights in parallel
-      const [metrics, market, competition, channels, realtime] = await Promise.all([
-        fetchInsights('metrics'),
-        fetchInsights('market'),
-        fetchInsights('competition'),
-        fetchInsights('channels'),
-        fetchInsights('realtime')
-      ]);
+      const stages: Array<{ key: keyof Omit<DashboardData, 'loading' | 'error' | 'progress' | 'status' | 'initialLoadComplete' | 'refresh'>; label: string; type: string; }> = [
+        { key: 'metrics', label: 'Fetching key metrics', type: 'metrics' },
+        { key: 'market', label: 'Analyzing market', type: 'market' },
+        { key: 'competition', label: 'Evaluating competition', type: 'competition' },
+        { key: 'channels', label: 'Identifying growth channels', type: 'channels' },
+        { key: 'realtime', label: 'Preparing realtime signals', type: 'realtime' },
+      ];
 
-      setData({
-        metrics,
-        market,
-        competition,
-        channels,
-        realtime,
+      const results: any = {};
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        const percent = Math.round((i / stages.length) * 100);
+        setData(prev => ({ ...prev, status: stage.label, progress: percent }));
+        // Fetch each stage sequentially to reflect accurate progress
+        const value = await fetchInsights(stage.type);
+        results[stage.key] = value;
+      }
+
+      setData(prev => ({
+        ...prev,
+        metrics: results.metrics ?? null,
+        market: results.market ?? null,
+        competition: results.competition ?? null,
+        channels: results.channels ?? null,
+        realtime: results.realtime ?? null,
         loading: false,
-        error: null
-      });
+        error: null,
+        progress: 100,
+        status: 'Complete',
+        initialLoadComplete: true,
+      }));
 
-      // Show success toast
-      toast({
-        title: "Data Updated",
-        description: "Dashboard insights refreshed successfully",
-      });
+      // Optional: keep success toast minimal or omit to avoid noise
+      // toast({ title: 'Data updated', description: 'Dashboard insights refreshed.' });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       setData(prev => ({
         ...prev,
         loading: false,
-        error: 'Failed to load dashboard data'
+        error: 'Failed to load dashboard data',
+        status: 'Error',
       }));
 
       toast({
-        title: "Error",
-        description: "Failed to load dashboard insights",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to load dashboard insights',
+        variant: 'destructive'
       });
     }
   }, [idea, fetchInsights, toast]);
@@ -161,13 +179,14 @@ export const useDashboardData = (idea: string | null) => {
         },
         (payload) => {
           console.log('New metric received:', payload);
-          // Update specific data based on metric type
-          const metricType = payload.new.metric_type;
-          if (metricType && data[metricType]) {
+          const metricType = payload.new.metric_type as keyof DashboardData;
+          const metricValue = payload.new.metric_value;
+          if (metricType) {
             setData(prev => ({
               ...prev,
-              [metricType]: payload.new.metric_value
-            }));
+              // Only update known keys
+              [metricType]: metricValue
+            } as DashboardData));
           }
         }
       )
@@ -176,7 +195,7 @@ export const useDashboardData = (idea: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [idea, data]);
+  }, [idea]);
 
   const refresh = useCallback(() => {
     loadAllData();
