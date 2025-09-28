@@ -131,21 +131,37 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
             previousAnswers: answers
           }
         });
+        console.log('Suggestion invoke result:', { data, error });
         
         if (error) {
           console.error('Error from edge function:', error);
           // Simple message when AI suggestions fail
           setAiSuggestion('Cannot fetch AI suggestions at this time.');
+          toast({
+            title: 'AI Suggestions Unavailable',
+            description: 'We could not fetch suggestions for this question. You can still answer manually.',
+            variant: 'destructive',
+          });
         } else if (data?.error) {
           console.error('Edge function returned error:', data.error);
           // Simple message when AI suggestions fail
           setAiSuggestion('Cannot fetch AI suggestions at this time.');
+          toast({
+            title: 'AI Suggestions Unavailable',
+            description: 'We could not fetch suggestions for this question. You can still answer manually.',
+            variant: 'destructive',
+          });
         } else if (data?.suggestion) {
           console.log('Received suggestion:', data.suggestion);
           setAiSuggestion(data.suggestion);
         } else {
           // No suggestion returned
           setAiSuggestion('Cannot fetch AI suggestions at this time.');
+          toast({
+            title: 'AI Suggestions Unavailable',
+            description: 'No suggestion was returned. Please proceed with your own answer.',
+            variant: 'destructive',
+          });
         }
       } catch (error) {
         console.error('Error fetching AI suggestion:', error);
@@ -524,7 +540,7 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
                           </>
                         ) : (
                           <p className="text-xs text-muted-foreground italic">
-                            No suggestion available - please answer based on your knowledge
+                            Cannot fetch AI suggestions at this time.
                           </p>
                         )}
                       </div>
