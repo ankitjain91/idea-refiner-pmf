@@ -63,28 +63,31 @@ interface TrendsData {
   warnings?: string[];
 }
 
-const fetcher = async (key: string) => {
-  const [, idea, industry, geo, time] = key.split(':');
-  const { data, error } = await supabase.functions.invoke('market-trends', {
-    body: { 
-      idea,
-      keywords: idea?.split(' '),
-      filters: { industry, geography: geo, time_window: time }
-    }
-  });
-  
-  if (error) throw error;
-  return data;
-};
 
 export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) {
   const [showSources, setShowSources] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const cacheKey = `market-trends:${filters.idea_keywords?.join(' ')}:${filters.industry}:${filters.geography}:${filters.time_window}`;
+  // Get the idea from filters or fallback to localStorage
+  const ideaText = filters.idea_keywords?.join(' ') || 
+    (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
+  
+  const cacheKey = ideaText ? `market-trends:${ideaText}` : null;
   
   const { data, error, isLoading, mutate } = useSWR<TrendsData>(
     cacheKey,
-    fetcher,
+    async (key) => {
+      const idea = key.replace('market-trends:', '');
+      const { data, error } = await supabase.functions.invoke('market-trends', {
+        body: { 
+          idea,
+          keywords: idea.split(' ').filter(w => w.length > 2)
+        }
+      });
+      
+      if (error) throw error;
+      return data;
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -94,6 +97,23 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       errorRetryCount: 2
     }
   );
+  
+  // Manual refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await mutate();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
+  // Load data on mount if we have an idea
+  useEffect(() => {
+    if (ideaText && !data && !isLoading) {
+      mutate();
+    }
+  }, [ideaText]);
 
   // Prepare chart data
   const chartData = data?.series ? (() => {
@@ -160,7 +180,28 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     );
   }
 
-  if (error || !data) {
+  if (!ideaText) {
+    return (
+      <Card className={cn("h-full", className)}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Market Trends
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No idea configured. Please enter an idea in the Idea Chat first.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || (!data && !isLoading)) {
     return (
       <Card className={cn("h-full", className)}>
         <CardHeader>
@@ -176,14 +217,14 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               {error?.message || 'Failed to load market trends'}
             </AlertDescription>
           </Alert>
-          <Button onClick={handleRetry} className="mt-4" variant="outline" size="sm">
+          <Button onClick={handleRefresh} className="mt-4" variant="outline" size="sm">
             <RefreshCw className="h-3.5 w-3.5 mr-2" />
             Retry
           </Button>
           {!filters.idea_keywords?.length && (
             <Alert className="mt-4">
               <AlertDescription>
-                Tip: Set idea keywords in filters to get relevant trends
+                Tip: Make sure you have an active idea configured
               </AlertDescription>
             </Alert>
           )}
@@ -226,14 +267,15 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             </div>
             <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => mutate()}
-                disabled={isLoading}
-                className="h-8 w-8"
-                title="Refresh data"
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading || isRefreshing || !ideaText}
+                className="h-8"
+                title={!ideaText ? "No idea configured" : "Refresh data"}
               >
-                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                <RefreshCw className={cn("h-4 w-4 mr-1", (isLoading || isRefreshing) && "animate-spin")} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
               {data && (
                 <>
