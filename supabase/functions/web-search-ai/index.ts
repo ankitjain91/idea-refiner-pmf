@@ -11,7 +11,11 @@ const corsHeaders = {
 };
 
 async function serperSearch(query: string) {
-  if (!SERPER_API_KEY) return null;
+  if (!SERPER_API_KEY) {
+    console.log('[web-search-ai] Serper API key not configured');
+    return null;
+  }
+  console.log('[web-search-ai] Calling Serper with query:', query);
   try {
     const res = await fetch('https://google.serper.dev/search', {
       method: 'POST',
@@ -21,8 +25,13 @@ async function serperSearch(query: string) {
       },
       body: JSON.stringify({ q: query, num: 10 })
     });
-    if (!res.ok) return null;
-    return await res.json();
+    if (!res.ok) {
+      console.error('[web-search-ai] Serper API error:', res.status, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    console.log('[web-search-ai] Serper returned', data?.organic?.length || 0, 'results');
+    return data;
   } catch (e) {
     console.error('[web-search-ai] Serper error:', e);
     return null;
@@ -30,7 +39,11 @@ async function serperSearch(query: string) {
 }
 
 async function tavilySearch(query: string) {
-  if (!TAVILY_API_KEY) return null;
+  if (!TAVILY_API_KEY) {
+    console.log('[web-search-ai] Tavily API key not configured');
+    return null;
+  }
+  console.log('[web-search-ai] Calling Tavily with query:', query);
   try {
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
@@ -40,8 +53,13 @@ async function tavilySearch(query: string) {
       },
       body: JSON.stringify({ query, include_answer: false, max_results: 5 })
     });
-    if (!res.ok) return null;
-    return await res.json();
+    if (!res.ok) {
+      console.error('[web-search-ai] Tavily API error:', res.status, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    console.log('[web-search-ai] Tavily returned', data?.results?.length || 0, 'results');
+    return data;
   } catch (e) {
     console.error('[web-search-ai] Tavily error:', e);
     return null;
@@ -89,6 +107,13 @@ serve(async (req) => {
       serperSearch(query || (filters?.idea_keywords || []).join(' ')),
       tavilySearch(query || (filters?.idea_keywords || []).join(' '))
     ]);
+
+    console.log('[web-search-ai] Search results:', {
+      serperCount: serper?.organic?.length || 0,
+      tavilyCount: tavily?.results?.length || 0,
+      hasSerper: !!serper,
+      hasTavily: !!tavily
+    });
 
     const contextSnippets: string[] = [];
     try {
@@ -167,9 +192,10 @@ serve(async (req) => {
 
     // Build Groq prompt to produce TileData JSON
     const systemPrompt = `You are a data synthesis engine that outputs STRICT JSON for dashboard tiles.
+IMPORTANT: Use ONLY the search results provided in the context. Do NOT generate fake or example data.
 Return ONLY a JSON object with these fields:
 {
-  "updatedAt": ISO8601 string,
+  "updatedAt": ISO8601 string (use current timestamp),
   "filters": object,
   "metrics": [ { "name": string, "value": number|string, "unit": string, "explanation": string, "method": string, "confidence": 0..1 } ],
   "items": [ { "title": string, "snippet": string, "url": string, "canonicalUrl": string, "published": string, "source": string, "evidence": string[] } ],
@@ -179,14 +205,22 @@ Return ONLY a JSON object with these fields:
   "fromCache": boolean,
   "stale": boolean
 }
-Ensure metrics are concise (2-5 items) and confidence is between 0 and 1.`;
+CRITICAL: The "items" array MUST contain ONLY real search results from the context provided. Use exact titles, snippets, and URLs from the search results.`;
 
     const userPrompt = `Tile Type: ${tileType}
 Query: ${query || (filters?.idea_keywords || []).join(' ')}
 Filters: ${JSON.stringify(filters)}
-Context (top sources): ${contextSnippets.join('\n')}
 
-Generate the JSON now.`;
+ACTUAL SEARCH RESULTS (USE THESE - DO NOT MAKE UP DATA):
+${contextSnippets.join('\n')}
+
+Raw Search Data:
+Serper Results: ${JSON.stringify(serper?.organic?.slice(0, 3) || [])}
+Tavily Results: ${JSON.stringify(tavily?.results?.slice(0, 3) || [])}
+
+Generate the JSON using ONLY the search results above. Do not invent any data.`;
+
+    console.log('[web-search-ai] Sending to Groq with', contextSnippets.length, 'context snippets');
 
     const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
