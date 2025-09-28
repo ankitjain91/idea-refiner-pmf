@@ -1913,23 +1913,14 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
 
   {/* Input Area - Fixed at Bottom (refactored) */}
   <div className="shrink-0 border-t bg-background p-4">
-        <div className="max-w-3xl mx-auto space-y-3">
-          <ChatInputBar
-            input={input}
-            setInput={setInput}
-            onSend={handleSend}
-            disabled={isLoading}
-            placeholder={!currentIdea ? 'Describe your product idea...' : isAnalyzing ? 'Type your answer...' : 'Ask a follow-up question...'}
-            inputRef={inputRef}
-          />
-          
+        <div className="max-w-3xl mx-auto space-y-2">
           {/* Action Buttons */}
           <div className="flex gap-2 justify-center">
             <Button
               onClick={() => navigate('/dashboard')}
               variant="outline"
               size="sm"
-              className="bg-card/50 hover:bg-primary/10 hover:border-primary/50 transition-all"
+              className="bg-card hover:bg-primary/10 hover:border-primary/50 transition-all"
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Dashboard
@@ -1938,12 +1929,21 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
               onClick={() => navigate('/pricing')}
               variant="outline"
               size="sm"
-              className="bg-card/50 hover:bg-primary/10 hover:border-primary/50 transition-all"
+              className="bg-card hover:bg-primary/10 hover:border-primary/50 transition-all"
             >
               <Crown className="h-4 w-4 mr-2" />
               Monetization
             </Button>
           </div>
+          
+          <ChatInputBar
+            input={input}
+            setInput={setInput}
+            onSend={handleSend}
+            disabled={isLoading}
+            placeholder={!currentIdea ? 'Describe your product idea...' : isAnalyzing ? 'Type your answer...' : 'Ask a follow-up question...'}
+            inputRef={inputRef}
+          />
         </div>
       </div>
     </div>
