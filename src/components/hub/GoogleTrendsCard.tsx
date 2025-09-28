@@ -51,7 +51,7 @@ interface GoogleTrendsCardProps {
 interface TrendData {
   series?: Array<{ name: string; points: Array<[string, number]> }>;
   metrics?: Array<{ name: string; value: string; confidence: number; explanation: string }>;
-  top_queries?: string[];
+  top_queries?: Array<string | { query: string; value?: number; change?: string; type?: 'rising' | 'top' }>;
   updatedAt?: string;
   warnings?: string[];
   continentData?: Record<string, any>;
@@ -270,7 +270,10 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                   variant="outline"
                   className="py-1 px-2.5 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:border-primary/40 transition-colors text-xs"
                 >
-                  {query}
+                  {typeof query === 'string' ? query : (query.query || String(query.value ?? ''))}
+                  {typeof query !== 'string' && query.change && (
+                    <span className="ml-1 text-green-500">{query.change}</span>
+                  )}
                 </Badge>
               ))}
             </div>
@@ -458,7 +461,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                   Top Searches in {selectedContinent}
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedData.top_queries.map((query: string, idx: number) => (
+                  {selectedData.top_queries.map((query: any, idx: number) => (
                     <Badge 
                       key={idx} 
                       variant="outline"
@@ -468,7 +471,10 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                         backgroundColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '10'
                       }}
                     >
-                      {query}
+                      {typeof query === 'string' ? query : (query.query || String(query.value ?? ''))}
+                      {typeof query !== 'string' && query.change && (
+                        <span className="ml-1 text-green-500">{query.change}</span>
+                      )}
                     </Badge>
                   ))}
                 </div>
