@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_SUPPORT_API_KEY');
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,8 +77,8 @@ serve(async (req) => {
   try {
     const { message, chatHistory = [] } = await req.json();
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!GROQ_API_KEY) {
+      throw new Error('Groq API key not configured');
     }
 
     // Prepare messages for OpenAI
@@ -91,15 +91,15 @@ serve(async (req) => {
       { role: 'user', content: message }
     ];
 
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Groq API
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages,
         temperature: 0.7,
         max_tokens: 500,
@@ -108,8 +108,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('OpenAI API error:', error);
-      throw new Error(error.error?.message || 'Failed to get response from OpenAI');
+      console.error('Groq API error:', error);
+      throw new Error(error.error?.message || 'Failed to get response from Groq');
     }
 
     const data = await response.json();
@@ -127,14 +127,14 @@ Return ONLY a JSON array of 4 strings, no additional text.`;
 
     let suggestedQuestions = [];
     try {
-      const suggestionsResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const suggestionsResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'llama-3.1-8b-instant',
           messages: [
             { role: 'system', content: 'Generate fun, quirky questions about the SmoothBrains site, brain wrinkles, and startup features.' },
             { role: 'user', content: suggestionsPrompt }

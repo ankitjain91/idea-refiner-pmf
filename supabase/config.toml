@@ -21,133 +21,179 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-listen_ip = "0.0.0.0"
-port = 54323
-ip_version = "both"
-
-[storage]
-enabled = true
-bind_ip = "0.0.0.0"
-port = 54325
-proxy_port = 54324
-
-[storage.file_size_limit]
+ip_version = "IPv4"
+max_events_per_second = 100
 
 [studio]
 enabled = true
 port = 54323
-api_url = ""
-openai_api_key = ""
+api_url = "http://127.0.0.1"
+openai_api_key = "env(OPENAI_API_KEY)"
 
 [inbucket]
 enabled = true
-bind_ip = "127.0.0.1"
-port = 54326
-smtp_port = 54327
-pop3_port = 54328
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.image_transformation]
+enabled = true
 
 [auth]
 enabled = true
-site_url = ""
-additional_redirect_urls = []
+site_url = "https://wppwfiiomxmnjyokxnin.supabase.co"
+additional_redirect_urls = ["https://auth-callback"]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
 enable_anonymous_sign_ins = false
-email.enable_signup = true
-email.enable_confirmations = false
-sms.enable_signup = true
-sms.enable_confirmations = false
-sms.max_frequency = "15s"
-sms.test_otp = ""
-external.apple.enabled = false
-external.apple.client_id = ""
-external.apple.secret = ""
-external.azure.enabled = false
-external.azure.client_id = ""
-external.azure.secret = ""
-external.azure.url = ""
-external.bitbucket.enabled = false
-external.bitbucket.client_id = ""
-external.bitbucket.secret = ""
-external.discord.enabled = false
-external.discord.client_id = ""
-external.discord.secret = ""
-external.facebook.enabled = false
-external.facebook.client_id = ""
-external.facebook.secret = ""
-external.figma.enabled = false
-external.figma.client_id = ""
-external.figma.secret = ""
-external.github.enabled = false
-external.github.client_id = ""
-external.github.secret = ""
-external.gitlab.enabled = false
-external.gitlab.client_id = ""
-external.gitlab.secret = ""
-external.gitlab.url = ""
-external.google.enabled = false
-external.google.client_id = ""
-external.google.secret = ""
-external.google.skip_nonce_check = false
-external.keycloak.enabled = false
-external.keycloak.client_id = ""
-external.keycloak.secret = ""
-external.keycloak.url = ""
-external.linkedin_oidc.enabled = false
-external.linkedin_oidc.client_id = ""
-external.linkedin_oidc.secret = ""
-external.notion.enabled = false
-external.notion.client_id = ""
-external.notion.secret = ""
-external.twitch.enabled = false
-external.twitch.client_id = ""
-external.twitch.secret = ""
-external.twitter.enabled = false
-external.twitter.client_id = ""
-external.twitter.secret = ""
-external.spotify.enabled = false
-external.spotify.client_id = ""
-external.spotify.secret = ""
-external.slack_oidc.enabled = false
-external.slack_oidc.client_id = ""
-external.slack_oidc.secret = ""
-external.zoom.enabled = false
-external.zoom.client_id = ""
-external.zoom.secret = ""
-external.kakao.enabled = false
-external.kakao.client_id = ""
-external.kakao.secret = ""
-external.fly.enabled = false
-external.fly.client_id = ""
-external.fly.secret = ""
-external.fly.url = ""
-external.workos.enabled = false
-external.workos.client_id = ""
-external.workos.secret = ""
-external.workos.url = ""
+enable_manual_linking = false
 
 [auth.email]
-name_ato_z_only = false
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+max_frequency = "1h"
 
-[analytics]
+[auth.email.template.invite]
+subject = "You have been invited"
+content_path = "./supabase/templates/invite.html"
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = false
+max_frequency = "5s"
+
+[auth.external.apple]
 enabled = false
-port = 54327
-backend = "postgres"
+client_id = ""
+secret = ""
+redirect_uri = ""
+url = ""
 
-[edge_runtime]
-enabled = true
-policy = "oneshot"
-inspector_port = 8083
+[auth.external.azure]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
 
-[functions.check-subscription]
+[auth.external.bitbucket]
+enabled = false
+client_id = ""
+secret = ""
+
+[auth.external.discord]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.facebook]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.figma]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.github]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.gitlab]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.google]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+skip_nonce_check = false
+
+[auth.external.kakao]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.keycloak]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.linkedin_oidc]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.notion]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.slack_oidc]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.spotify]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.twitch]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.twitter]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.workos]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[auth.external.zoom]
+enabled = false
+client_id = ""
+secret = ""
+url = ""
+
+[functions."check-subscription"]
 verify_jwt = true
 
 [functions.create-checkout]
 verify_jwt = true
 
 [functions.customer-portal]
+verify_jwt = true
+
+[functions.sync-subscription-role]
 verify_jwt = true
 
 [functions.dashboard-insights]
@@ -162,7 +208,7 @@ verify_jwt = false
 [functions.idea-chat]
 verify_jwt = true
 
-[functions.market-insights]
+[functions.help-support]
 verify_jwt = true
 
 [functions.reddit-search]
@@ -174,7 +220,7 @@ verify_jwt = false
 [functions.subscription-benefits]
 verify_jwt = true
 
-[functions.sync-subscription-role]
+[functions.populate-startup-ideas]
 verify_jwt = true
 
 [functions.tiktok-trends]
@@ -222,13 +268,13 @@ verify_jwt = true
 [functions.execution-insights]
 verify_jwt = true
 
+[functions.market-insights]
+verify_jwt = true
+
 [functions.hub-data-fetcher]
 verify_jwt = true
 
 [functions.web-search-ai]
-verify_jwt = true
-
-[functions.web-search-optimized]
 verify_jwt = true
 
 [functions.evaluate-wrinkle-points]
@@ -237,10 +283,7 @@ verify_jwt = true
 [functions.enhance-salty-response]
 verify_jwt = true
 
-[functions.help-support]
-verify_jwt = true
-
-[functions.populate-startup-ideas]
+[functions.web-search-optimized]
 verify_jwt = true
 
 [functions.dashboard-insights-realtime]
@@ -260,3 +303,11 @@ verify_jwt = true
 
 [functions.groq-synthesis]
 verify_jwt = true
+
+[analytics]
+enabled = false
+port = 54327
+vector_port = 54328
+gcp_project_id = ""
+gcp_project_number = ""
+gcp_jwt_path = "supabase/gcloud.json"
