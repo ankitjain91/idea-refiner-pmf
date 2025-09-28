@@ -891,32 +891,43 @@ const Dashboard = () => {
 
             {/* Top Channels */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {channels?.topChannels?.map((channel: any, idx: number) => (
-                <Card key={idx} className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <Rocket className="h-5 w-5 text-primary" />
-                    <Badge>#{idx + 1}</Badge>
-                  </div>
-                  <h4 className="font-semibold mb-1">{channel.name || channel}</h4>
-                  <p className="text-sm text-muted-foreground">{channel.strategy || "Recommended channel"}</p>
-                </Card>
-              ))}
+              {channels?.topChannels?.map((channel: any, idx: number) => {
+                // Handle both object and string formats
+                const channelName = typeof channel === 'object' ? (channel.name || channel.channel) : channel;
+                const channelStrategy = typeof channel === 'object' ? (channel.strategy || channel.reasoning) : "Recommended channel";
+                
+                return (
+                  <Card key={idx} className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <Rocket className="h-5 w-5 text-primary" />
+                      <Badge>#{idx + 1}</Badge>
+                    </div>
+                    <h4 className="font-semibold mb-1">{channelName}</h4>
+                    <p className="text-sm text-muted-foreground">{channelStrategy}</p>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Campaign Ideas */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Campaign Ideas</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {channels?.campaignIdeas?.map((idea: any, idx: number) => (
-                  <motion.div
-                    key={idx}
-                    whileHover={{ scale: 1.02 }}
-                    className="p-4 bg-white/5 rounded-lg cursor-pointer"
-                  >
-                    <Sparkles className="h-4 w-4 text-yellow-500 mb-2" />
-                    <p className="text-sm">{idea}</p>
-                  </motion.div>
-                ))}
+                {channels?.campaignIdeas?.map((idea: any, idx: number) => {
+                  // Handle both object and string formats
+                  const ideaText = typeof idea === 'object' ? (idea.idea || idea.text || JSON.stringify(idea)) : idea;
+                  
+                  return (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.02 }}
+                      className="p-4 bg-white/5 rounded-lg cursor-pointer"
+                    >
+                      <Sparkles className="h-4 w-4 text-yellow-500 mb-2" />
+                      <p className="text-sm">{ideaText}</p>
+                    </motion.div>
+                  );
+                })}
               </div>
             </Card>
           </TabsContent>
