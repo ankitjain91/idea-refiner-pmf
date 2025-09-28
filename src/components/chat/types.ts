@@ -2,6 +2,8 @@ export interface Message {
   id: string;
   type: 'user' | 'bot';
   content: string;
+  detailedContent?: string; // Full detailed response
+  summaryContent?: string;  // Summarized version of response
   timestamp: Date;
   suggestions?: any[];
   isTyping?: boolean;

@@ -729,43 +729,66 @@ The 'suggestions' are what the USER might naturally say next in this conversatio
     }
 
     let modelJson: any = null;
+    let detailedResponse: string = '';
+    let summaryResponse: string = '';
+    
     try {
-      const combined = await openAIChatRequest({
+      // ALWAYS generate detailed response first
+      const detailedRequest = await openAIChatRequest({
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
-        temperature: refinementMode ? 0.8 : 0.85,  // Higher temperature for more natural responses
-        max_tokens: responseMode === 'summary' ? 200 : 650,
+        temperature: refinementMode ? 0.8 : 0.85,
+        max_tokens: 650, // Always use full token count for detailed
         messages: [
-          { role: 'system', content: responseMode === 'summary' 
-            ? `${systemPrompt}\n\nKEEP IT SUPER BRIEF (under 50 words) but still conversational. Like a quick text from a friend who's looking out for you.`
-            : systemPrompt 
-          },
-          ...conversationHistory.slice(-6),  // Include MORE context (last 6 messages) for better conversation flow
+          { role: 'system', content: systemPrompt },
+          ...conversationHistory.slice(-6),
           { role: 'user', content: `Context: Working on "${idea || 'exploring startup ideas'}"
 Mode: ${refinementMode ? 'Refining and improving the idea' : 'Brainstorming and exploring'}
-${responseMode === 'summary' ? 'Give me your quick gut reaction:' : 'User says:'} ${message}
+User says: ${message}
 
 IMPORTANT: They just said "${message}" - make sure you're responding to THIS specific point, not something generic.
 Build on our conversation so far. Be helpful but challenging. Include personality and occasional humor.
 Respond naturally as their mentor. JSON format.` }
         ]
       });
-      const content = combined.choices?.[0]?.message?.content || '{}';
+      const content = detailedRequest.choices?.[0]?.message?.content || '{}';
       modelJson = safeParseJSON(content) || {};
+      detailedResponse = modelJson?.response || "I need more context to provide meaningful feedback. Could you share more details about your idea?";
+      
+      // If summary mode requested, create a summary of the detailed response
+      if (responseMode === 'summary') {
+        try {
+          const summaryRequest = await openAIChatRequest({
+            model: 'gpt-4o-mini',
+            max_tokens: 150,
+            temperature: 0.7,
+            messages: [
+              { role: 'system', content: 'Summarize this response in 2-3 sentences max (under 50 words). Keep the key insight and maintain conversational tone. Be punchy and direct.' },
+              { role: 'user', content: detailedResponse }
+            ]
+          });
+          summaryResponse = summaryRequest.choices?.[0]?.message?.content || '';
+          
+          // Fallback: if summary generation fails, extract first 2 sentences
+          if (!summaryResponse) {
+            const sentences = detailedResponse.split(/[.!?]+/).filter(s => s.trim());
+            summaryResponse = sentences.slice(0, 2).join('. ') + '.';
+          }
+        } catch (e) {
+          console.error('Summary generation failed:', e);
+          // Fallback to simple truncation
+          const sentences = detailedResponse.split(/[.!?]+/).filter(s => s.trim());
+          summaryResponse = sentences.slice(0, 2).join('. ') + '.';
+        }
+      }
     } catch (e) {
-      console.error('Optimized combined call failed, falling back:', e);
+      console.error('Response generation failed:', e);
+      detailedResponse = "I need more context to provide meaningful feedback. Could you share more details about your idea?";
+      summaryResponse = "Need more details to help. What specific aspect should we focus on?";
     }
 
-    let aiResponse: string = modelJson?.response || "I need more context to provide meaningful feedback. Could you share more details about your idea?";
-    
-    // Apply additional summarization for summary mode
-    if (responseMode === 'summary' && aiResponse.length > 150) {
-      // Extract the most important sentence or two
-      const sentences = aiResponse.split(/[.!?]+/).filter(s => s.trim());
-      // Make sure we have at least one sentence, but no more than 2
-      const sentenceCount = Math.min(Math.max(1, sentences.length), 2);
-      aiResponse = sentences.slice(0, sentenceCount).join('. ') + '.';
-    }
+    // Use summary if in summary mode, otherwise use detailed
+    let aiResponse: string = responseMode === 'summary' ? summaryResponse : detailedResponse;
     
     let suggestions: string[] = Array.isArray(modelJson?.suggestions) ? modelJson.suggestions.slice(0,4).map((s: any)=>String(s)) : [];
 
@@ -804,11 +827,14 @@ Respond naturally as their mentor. JSON format.` }
     return new Response(
       JSON.stringify({
         response: aiResponse,
+        detailedResponse: detailedResponse,  // Always include the full detailed version
+        summaryResponse: summaryResponse || aiResponse,  // Include summary (same as response if not in summary mode)
         suggestions,
         metadata: {
           hasIdea: !!idea,
             ideaContext: idea,
-            marketData
+            marketData,
+            responseMode  // Include which mode was requested
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

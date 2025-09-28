@@ -819,10 +819,13 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
           ];
         }
 
+        // Store both detailed and summary versions
         const botMessage: Message = {
           id: messageId,
           type: 'bot',
           content: data.response || "Let's continue refining your idea to maximize success.",
+          detailedContent: data.detailedResponse || data.response,  // Store the detailed version
+          summaryContent: data.summaryResponse || data.response,    // Store the summary version
           timestamp: new Date(),
           suggestions,
           pointsEarned: pointChange,
@@ -1067,136 +1070,24 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         setIsTyping(false);
         onAnalysisReady(messageText, data.pmfAnalysis);
       } else {
-        // Parse response for better formatting
-        let formattedContent = data.response || "Let me help you explore that further.";
+        // Use the pre-generated detailed and summary responses from the edge function
+        const detailedContent = data.detailedResponse || data.response || "Let me help you explore that further.";
+        const summaryContent = data.summaryResponse || data.response || "Let's explore further.";
         
-        // Apply aggressive summarization if in summary mode
-        if (responseMode === 'summary' && formattedContent.length > 100) {
-          try {
-            const { data: summaryData } = await supabase.functions.invoke('idea-chat', {
-              body: { 
-                message: `Please provide a very concise 2-3 sentence summary of this response, focusing only on the most critical points and actionable insights: "${formattedContent}"`,
-                conversationHistory: [],
-                responseMode: 'summary'
-              }
-            });
-            if (summaryData?.response) {
-              formattedContent = summaryData.response;
-            }
-          } catch (error) {
-            console.error('Error summarizing response:', error);
-            // Fallback: aggressive manual summarization
-            const sentences = formattedContent.split(/[.!?]+/).filter(s => s.trim());
-            if (sentences.length > 2) {
-              const firstTwo = sentences.slice(0, 2).join('. ');
-              const keyPoints = formattedContent.match(/(?:key|important|critical|main|primary)[^.!?]*[.!?]/gi);
-              const summary = keyPoints && keyPoints.length > 0 
-                ? `${firstTwo}. Key takeaway: ${keyPoints[0]}`
-                : `${firstTwo}.`;
-              formattedContent = summary;
-            }
-          }
-        }
-        
-        // Extract suggestions if they're in the response
-        let suggestions = data.suggestions || [];
-        
-        // Generate contextual AI-powered suggestions
-        try {
-          // Determine if bot is asking questions or providing answers
-          const isBotAsking = formattedContent.includes('?') || 
-                             formattedContent.toLowerCase().includes('what') ||
-                             formattedContent.toLowerCase().includes('how') ||
-                             formattedContent.toLowerCase().includes('why') ||
-                             formattedContent.toLowerCase().includes('when') ||
-                             formattedContent.toLowerCase().includes('describe');
-          
-          // Generate suggestions that are contextually appropriate
-          const suggestionType = isBotAsking ? 'answers' : 'followup_questions';
-          
-          const { data: suggestionData } = await supabase.functions.invoke('generate-suggestions', {
-            body: { 
-              question: formattedContent,
-              ideaDescription: currentIdea || messageText,
-              previousAnswers: messages.reduce((acc, msg, idx) => {
-                if (msg.type === 'user' && idx > 0) {
-                  const prevBot = messages[idx - 1];
-                  if (prevBot && prevBot.type === 'bot') {
-                    const key = `answer_${idx}`;
-                    acc[key] = msg.content;
-                  }
-                }
-                return acc;
-              }, {} as Record<string, string>),
-              includeExplanations: true,
-              responseMode: responseMode,
-              suggestionType: suggestionType,
-              contextualMode: true
-            }
-          });
-          
-          if (suggestionData?.suggestions && suggestionData.suggestions.length > 0) {
-            suggestions = suggestionData.suggestions.map((suggestion: any) => ({
-              ...suggestion,
-              text: typeof suggestion === 'string' ? suggestion : suggestion.text,
-              explanation: suggestion.explanation || generateSuggestionExplanation(suggestion.text || suggestion)
-            }));
-          }
-        } catch (error) {
-          console.error('Error getting AI suggestions:', error);
-          // Fallback: generate contextually appropriate suggestions
-          const isBotAsking = formattedContent.includes('?');
-          if (isBotAsking) {
-            // Bot is asking - provide potential answers
-            suggestions = [
-              "My target users face this problem daily when they...",
-              "The current manual workaround involves...",
-              "I've validated this with [number] potential customers who said...",
-              "My unique insight is based on..."
-            ];
-          } else {
-            // Bot is answering - provide follow-up questions
-            suggestions = [
-              "I plan to scale to 1000+ users by...",
-              "My competitive moat will be...",
-              "My pricing strategy is...",
-              "My customer acquisition strategy involves..."
-            ];
-          }
-        }
-        
-        // Generate static suggestion explanation
-        const suggestionTexts = suggestions.map(s => typeof s === 'string' ? s : s?.text || String(s));
-        const staticSuggestionExplanation = suggestionTexts.length > 0 ? 
-          generateBrainExplanation(suggestionTexts, formattedContent) : '';
-
         const botMessage: Message = {
-          id: Date.now().toString(),
+          id: messageId,
           type: 'bot',
-          content: formattedContent,
+          content: data.response || "Let me help you explore that further.", // Current response based on mode
+          detailedContent: detailedContent,  // Always store the full detailed version
+          summaryContent: summaryContent,    // Always store the summary version
           timestamp: new Date(),
-          suggestions,
+          suggestions: data.suggestions || [],
           pointsEarned: pointChange,
-          pointsExplanation: pointsExplanation,
-          suggestionExplanation: staticSuggestionExplanation
+          pointsExplanation: pointsExplanation
         };
         
-        // Remove typing indicator and clear awaiting response flag on user messages
-        setMessages(prev => {
-          const filtered = prev.filter(msg => !msg.isTyping);
-          // Clear awaitingResponse flag on the last user message
-          const updatedMessages = [...filtered];
-          for (let i = updatedMessages.length - 1; i >= 0; i--) {
-            if (updatedMessages[i].type === 'user' && updatedMessages[i].awaitingResponse) {
-              updatedMessages[i] = {
-                ...updatedMessages[i],
-                awaitingResponse: false
-              };
-              break;
-            }
-          }
-          return [...updatedMessages, botMessage];
-        });
+        // Remove typing indicator right before adding the real message
+        setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
         setIsTyping(false);
       }
     } catch (error) {

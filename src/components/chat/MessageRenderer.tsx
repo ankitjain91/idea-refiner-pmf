@@ -105,6 +105,20 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     );
   }
 
+  // Determine which content to display based on response mode
+  const displayContent = (() => {
+    if (message.type === 'bot') {
+      // For bot messages, use the appropriate version based on response mode
+      if (responseMode === 'summary' && message.summaryContent) {
+        return message.summaryContent;
+      } else if (responseMode === 'verbose' && message.detailedContent) {
+        return message.detailedContent;
+      }
+    }
+    // Fallback to regular content
+    return message.content;
+  })();
+
   return (
     <>
       <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -146,7 +160,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             ),
           }}
         >
-          {message.content}
+          {displayContent}
         </ReactMarkdown>
       </div>
 
