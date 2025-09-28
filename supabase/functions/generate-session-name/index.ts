@@ -40,11 +40,11 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'Generate a single word (no spaces, no hyphens) that captures the essence of the brainstorming session. The word should be a noun, creative, and memorable. Examples: Innovation, Strategy, Vision, Catalyst, Nexus, Synthesis, Momentum, Phoenix, Zenith, Fusion. Return ONLY the single word, nothing else.' 
+            content: 'You generate a single descriptive word for an idea. Return ONLY one word, nothing else.' 
           },
           { 
             role: 'user', 
-            content: `Based on this context, generate a single-word session name: ${context || 'General brainstorming session for startup ideas'}` 
+            content: `Give one word that describes the idea: ${context || 'startup brainstorming'}` 
           }
         ],
         max_tokens: 10,
