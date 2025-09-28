@@ -1926,6 +1926,15 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
               Dashboard
             </Button>
             <Button
+              onClick={() => navigate('/realtime')}
+              variant="outline"
+              size="sm"
+              className="bg-card hover:bg-primary/10 hover:border-primary/50 transition-all"
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              AI Analyzer
+            </Button>
+            <Button
               onClick={() => navigate('/pricing')}
               variant="outline"
               size="sm"

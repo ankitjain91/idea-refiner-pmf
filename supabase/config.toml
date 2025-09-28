@@ -227,3 +227,6 @@ verify_jwt = false
 
 [functions.dashboard-insights]
 verify_jwt = false
+
+[functions.analyze-idea]
+verify_jwt = true
