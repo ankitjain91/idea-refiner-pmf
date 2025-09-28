@@ -741,13 +741,13 @@ The 'suggestions' are what the USER might naturally say next in this conversatio
     let summaryResponse: string = '';
     
     try {
-      // ALWAYS generate detailed response first
+      // Generate a single concise response to reduce costs
       const detailedRequest = await openAIChatRequest({
         model: 'gpt-4o-mini', // Use gpt-4o-mini for regular chat (cost-efficient)
         response_format: { type: 'json_object' },
-        max_tokens: 650, // Always use full token count for detailed
+        max_tokens: 200, // Reduced tokens for concise responses (cost savings)
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: systemPrompt + '\n\nIMPORTANT: Keep your response concise - 2-3 sentences max (under 60 words). Be punchy and direct while maintaining personality.' },
           ...conversationHistory.slice(-6),
           { role: 'user', content: `Context: Working on "${idea || 'exploring startup ideas'}"
 Mode: ${refinementMode ? 'Refining and improving the idea' : 'Brainstorming and exploring'}
@@ -755,36 +755,15 @@ User says: ${message}
 
 IMPORTANT: They just said "${message}" - make sure you're responding to THIS specific point, not something generic.
 Build on our conversation so far. Be helpful but challenging. Include personality and occasional humor.
-Respond naturally as their mentor. JSON format.` }
+Respond naturally as their mentor. JSON format. Keep it CONCISE.` }
         ]
       });
       const content = detailedRequest.choices?.[0]?.message?.content || '{}';
       modelJson = safeParseJSON(content) || {};
       detailedResponse = modelJson?.response || "I need more context to provide meaningful feedback. Could you share more details about your idea?";
       
-      // Always generate both detailed and summary versions
-      try {
-        const summaryRequest = await openAIChatRequest({
-          model: 'gpt-4o-mini', // Use gpt-4o-mini for summaries (cost-efficient)
-          max_tokens: 150,
-          messages: [
-            { role: 'system', content: 'Summarize this response in 2-3 sentences max (under 50 words). Keep the key insight and maintain conversational tone. Be punchy and direct.' },
-            { role: 'user', content: detailedResponse }
-          ]
-        });
-        summaryResponse = summaryRequest.choices?.[0]?.message?.content || '';
-        
-        // Fallback: if summary generation fails, extract first 2 sentences
-        if (!summaryResponse) {
-          const sentences = detailedResponse.split(/[.!?]+/).filter(s => s.trim());
-          summaryResponse = sentences.slice(0, 2).join('. ') + '.';
-        }
-      } catch (e) {
-        console.error('Summary generation failed:', e);
-        // Fallback to simple truncation
-        const sentences = detailedResponse.split(/[.!?]+/).filter(s => s.trim());
-        summaryResponse = sentences.slice(0, 2).join('. ') + '.';
-      }
+      // Skip summary generation - we already have a concise response
+      summaryResponse = detailedResponse;
     } catch (e) {
       console.error('Response generation failed:', e);
       detailedResponse = "I need more context to provide meaningful feedback. Could you share more details about your idea?";
