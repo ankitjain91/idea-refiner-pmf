@@ -586,34 +586,11 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     onReset?.();
   };
 
-  // Generate AI summary name for the idea
+  // No longer generating shortened idea names - storing full idea as-is
   const generateIdeaSummaryName = async (idea: string) => {
-    try {
-      const { data } = await supabase.functions.invoke('idea-chat', {
-        body: {
-          message: `Generate a concise 2-4 word name/title for this startup idea. Be specific and catchy. Just return the name, nothing else: "${idea}"`,
-          conversationHistory: [],
-          responseMode: 'verbose'
-        }
-      });
-      
-      if (data?.response) {
-        // Clean up the response - remove quotes, periods, etc.
-        const cleanName = data.response
-          .replace(/^["']|["']$/g, '') // Remove quotes
-          .replace(/\.$/, '') // Remove trailing period
-          .trim()
-          .slice(0, 30); // Max 30 chars for safety
-        
-        setIdeaSummaryName(cleanName);
-        localStorage.setItem('ideaSummaryName', cleanName);
-      }
-    } catch (error) {
-      console.error('Error generating idea summary name:', error);
-      // Fallback to first few words
-      const fallbackName = idea.split(' ').slice(0, 4).join(' ');
-      setIdeaSummaryName(fallbackName);
-    }
+    // We're now storing the full idea without shortening
+    setIdeaSummaryName(idea);
+    localStorage.setItem('ideaSummaryName', idea);
   };
 
   const handleSuggestionClick = (suggestionText: string) => {
