@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SessionPicker } from '@/components/SessionPicker';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { OpenAIBilling } from '@/components/OpenAIBilling';
 
 import EnhancedIdeaChat from '@/components/EnhancedIdeaChat';
 
@@ -84,6 +85,7 @@ const EnhancedIdeaChatPage = () => {
           </div>
           
           <div className="flex items-center gap-2">
+            <OpenAIBilling />
             <div className="flex items-center gap-2">
               <Label htmlFor="auto-save" className="text-xs flex items-center gap-1 cursor-pointer">
                 <Save className="w-3 h-3" />
