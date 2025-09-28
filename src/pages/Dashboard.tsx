@@ -123,7 +123,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!idea) {
+  if (!idea && !showAnalysis) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-black'>
         <motion.div
@@ -142,15 +142,18 @@ const Dashboard = () => {
               </p>
               
               <div className="w-full space-y-3">
-              <Button 
-                onClick={() => setShowAnalysis(true)} 
-                className="w-full gap-2"
-                size="lg"
-              >
-                <MessageSquare className="h-5 w-5" />
-                Start Analysis
-                <ArrowRight className="h-5 w-5 ml-auto" />
-              </Button>
+                <Button 
+                  onClick={() => {
+                    console.log('Start Analysis clicked');
+                    setShowAnalysis(true);
+                  }} 
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Start Analysis
+                  <ArrowRight className="h-5 w-5 ml-auto" />
+                </Button>
                 
                 <div className="pt-4 border-t">
                   <p className="text-sm text-muted-foreground mb-3">What you'll get:</p>
@@ -176,6 +179,31 @@ const Dashboard = () => {
               </div>
             </div>
           </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Show AnalysisChat when showAnalysis is true and no idea yet
+  if (showAnalysis && !idea) {
+    return (
+      <div className='min-h-screen bg-black p-6'>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-4xl mx-auto"
+        >
+          <AnalysisChat
+            idea={null}
+            onComplete={(ideaText) => {
+              setIdea(ideaText);
+              setShowAnalysis(false);
+              refresh();
+            }}
+            onUpdateData={() => {
+              refresh();
+            }}
+          />
         </motion.div>
       </div>
     );

@@ -25,8 +25,8 @@ interface AnalysisQuestion {
 }
 
 interface AnalysisChatProps {
-  idea: string;
-  onComplete?: () => void;
+  idea: string | null;
+  onComplete?: (ideaText?: string) => void;
   onUpdateData?: (data: any) => void;
 }
 
@@ -84,6 +84,9 @@ const ANALYSIS_QUESTIONS: AnalysisQuestion[] = [
 ];
 
 export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatProps) => {
+  const [ideaText, setIdeaText] = useState<string>(idea || '');
+  const [ideaInput, setIdeaInput] = useState('');
+  const [hasEnteredIdea, setHasEnteredIdea] = useState(!!idea);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -91,7 +94,7 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const currentQuestion = ANALYSIS_QUESTIONS[currentQuestionIndex];
+  const currentQuestion = hasEnteredIdea ? ANALYSIS_QUESTIONS[currentQuestionIndex] : null;
   const progress = ((currentQuestionIndex + 1) / ANALYSIS_QUESTIONS.length) * 100;
 
   const scrollToBottom = () => {
@@ -101,6 +104,30 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
   useEffect(() => {
     scrollToBottom();
   }, [currentQuestionIndex, answers]);
+
+  const handleSubmitIdea = () => {
+    if (!ideaInput.trim()) {
+      toast({
+        title: "Idea Required",
+        description: "Please enter your startup idea to begin analysis.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Save idea to localStorage
+    localStorage.setItem('ideaText', ideaInput);
+    localStorage.setItem('ideaMetadata', JSON.stringify({ refined: ideaInput }));
+    
+    setIdeaText(ideaInput);
+    setHasEnteredIdea(true);
+    setIdeaInput('');
+    
+    // Initialize conversation history
+    localStorage.setItem('conversationHistory', JSON.stringify([
+      { role: 'user', content: `My startup idea: ${ideaInput}` }
+    ]));
+  };
 
   const handleSubmitAnswer = async () => {
     if (!currentAnswer.trim()) {
@@ -207,9 +234,85 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
     }
   };
 
+  // Show idea input screen if no idea yet
+  if (!hasEnteredIdea) {
+    return (
+      <Card className="flex flex-col h-[600px] border-primary/20 bg-gradient-to-br from-card to-card/80">
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Start Your Analysis</h3>
+              <p className="text-xs text-muted-foreground">Tell us about your startup idea</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center items-center p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-lg space-y-6"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold">What's your startup idea?</h2>
+              <p className="text-muted-foreground">
+                Describe your business concept in a few sentences. Be as specific as possible.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <Input
+                  placeholder="E.g., An AI-powered platform that helps small businesses automate their customer support..."
+                  value={ideaInput}
+                  onChange={(e) => setIdeaInput(e.target.value)}
+                  className="min-h-[100px] pt-3 pb-3 pr-12"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmitIdea();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleSubmitIdea}
+                  size="icon"
+                  className="absolute bottom-2 right-2"
+                  disabled={!ideaInput.trim()}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>PMF Analysis</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Market Insights</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Growth Strategy</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Competitor Analysis</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </Card>
+    );
+  }
   return (
     <Card className="flex flex-col h-[600px] border-primary/20 bg-gradient-to-br from-card to-card/80">
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
