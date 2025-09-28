@@ -504,7 +504,7 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
 
       try {
         const analysisData = await openAIChatRequest({
-          model: 'gpt-4o', // Use gpt-4o for comprehensive PMF analysis (deep dive)
+          model: 'gpt-4o-mini', // Use gpt-4o-mini for all operations (cost-efficient)
             messages: [
               { role: 'system', content: 'Return only valid JSON for PMF analysis.' },
               { role: 'user', content: analysisPrompt }
