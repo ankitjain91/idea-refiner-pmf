@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const serperApiKey = Deno.env.get('SERPER_API_KEY');
+const serpApiKey = Deno.env.get('SERPAPI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +38,7 @@ serve(async (req) => {
       );
     }
     
-    if (!serperApiKey) {
+    if (!serpApiKey) {
       console.log('[google-trends] No SerpApi key - returning mock data');
       const mockData = generateMockData(query, geo, time_window);
       return new Response(
@@ -97,7 +97,7 @@ async function fetchGoogleTrends(query: string, geo: string, dataType: string) {
       q: query,
       geo: geo.toUpperCase(),
       data_type: dataType,
-      api_key: serperApiKey!
+      api_key: serpApiKey!
     });
     
     console.log(`[google-trends] Fetching ${dataType} for: ${query}`);
