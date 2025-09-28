@@ -650,7 +650,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               <div className="flex flex-wrap gap-2">
                 {currentData.top_queries.slice(0, 6).map((query: any, idx: number) => (
                   <Badge key={idx} variant="secondary" className="text-xs">
-                    {query.query}
+                    {typeof query === 'string' ? query : (query.query || query.value || '')}
                     {query.change && (
                       <span className="ml-1 text-green-500">{query.change}</span>
                     )}
@@ -701,7 +701,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               <div className="grid grid-cols-2 gap-2">
                 {currentData.top_queries.slice(0, 4).map((query: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-2 bg-muted/10 rounded-lg">
-                    <span className="text-xs font-medium truncate">{query.query}</span>
+                    <span className="text-xs font-medium truncate">
+                      {typeof query === 'string' ? query : (query.query || query.value || '')}
+                    </span>
                     <Badge variant="secondary" className="text-xs h-5">
                       {query.value || '50'}%
                     </Badge>
