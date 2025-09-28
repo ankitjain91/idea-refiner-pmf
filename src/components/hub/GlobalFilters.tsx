@@ -96,12 +96,12 @@ export function GlobalFilters({ onFiltersChange, onExport, onRefresh }: GlobalFi
           
           <div className="space-y-2">
             <label className="text-sm font-medium">Industry</label>
-            <Select value={industry} onValueChange={setIndustry}>
+            <Select value={industry || 'all'} onValueChange={(value) => setIndustry(value === 'all' ? '' : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All Industries" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Industries</SelectItem>
+                <SelectItem value="all">All Industries</SelectItem>
                 <SelectItem value="fintech">FinTech</SelectItem>
                 <SelectItem value="healthtech">HealthTech</SelectItem>
                 <SelectItem value="edtech">EdTech</SelectItem>
