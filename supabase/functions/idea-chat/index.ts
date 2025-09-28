@@ -64,6 +64,7 @@ serve(async (req) => {
       context,
       analysisQuestion,
       currentIdea,
+      persona,
       stream = false 
     } = await req.json();
 
@@ -81,9 +82,16 @@ serve(async (req) => {
       );
     }
 
-    // Build conversation messages
-    const messages = [
+    // Build conversation messages with optional persona
+    const systemMessages: any[] = [
       { role: 'system', content: BUSINESS_ADVISOR_PROMPT },
+    ];
+    if (persona) {
+      systemMessages.push({ role: 'system', content: `Persona configuration (enforce strictly across all replies): ${JSON.stringify(persona)}` });
+    }
+
+    const messages = [
+      ...systemMessages,
       ...conversationHistory.map((msg: any) => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content: msg.content
@@ -99,6 +107,7 @@ serve(async (req) => {
       const suggestionPrompt = `Based on this context, generate exactly 4 short, conversational suggestions for what the user might want to explore next. Return as a JSON array of strings, each under 15 words.`;
       
       const response = await callGroq([
+        ...(persona ? [{ role: 'system', content: `Persona configuration (enforce strictly across all replies): ${JSON.stringify(persona)}` }] : []),
         { role: 'system', content: 'Generate 4 concise follow-up suggestions as a JSON array of strings.' },
         { role: 'user', content: `${message}\n\n${suggestionPrompt}` }
       ], 500, 0.9);

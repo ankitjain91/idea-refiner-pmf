@@ -120,6 +120,15 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     return '';
   });
 
+  // Persisted chat persona (allows custom tone/style)
+  const [chatPersona, setChatPersona] = useState<any>(() => {
+    if (!anonymous) {
+      const raw = localStorage.getItem('chatPersona');
+      try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+    }
+    return null;
+  });
+
   // Derived: wrinkle tier + dynamic tooltip messaging
   const wrinkleTier = useMemo(() => {
     const w = wrinklePoints;
@@ -780,7 +789,8 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
             conversationHistory,
             responseMode: 'concise', // Use concise mode to avoid verbose detailed responses
             refinementMode: true, // Always in refinement mode once idea is validated
-            idea: currentIdea
+            idea: currentIdea,
+            persona: chatPersona || undefined
           },
           headers: session ? {
             Authorization: `Bearer ${session.access_token}`
@@ -913,7 +923,7 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const topicPromise = supabase.functions.invoke('idea-chat', {
-          body: { message: topicCheckPrompt, conversationHistory: [] },
+          body: { message: topicCheckPrompt, conversationHistory: [], persona: chatPersona || undefined },
           headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined
         });
         
@@ -1025,7 +1035,8 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         body: { 
           message: contextualMessage,
           conversationHistory,
-          responseMode: 'concise' // Use concise mode to avoid verbose detailed responses
+          responseMode: 'concise', // Use concise mode to avoid verbose detailed responses
+          persona: chatPersona || undefined
         },
         headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined
       });
@@ -1492,6 +1503,36 @@ Focus on: WHO has WHAT problem and your solution approach.`,
     
     setMessages(prev => [...prev, userMessage]);
     
+    // Detect and save persona JSON
+    try {
+      const maybeJson = messageText.trim();
+      if (maybeJson.startsWith('{') && maybeJson.includes('"persona"')) {
+        const parsed = JSON.parse(maybeJson);
+        if (parsed?.persona || parsed?.style || parsed?.boundaries) {
+          setChatPersona(parsed);
+          if (!anonymous) {
+            try { localStorage.setItem('chatPersona', JSON.stringify(parsed)); } catch {}
+          }
+          const confirmMsg: Message = {
+            id: `bot-persona-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: 'bot',
+            content: `✅ Persona saved: ${parsed?.persona?.name || 'Custom Persona'}. I’ll use this style going forward.`,
+            timestamp: new Date(),
+            suggestions: [
+              'Share your startup idea',
+              'Ask for monetization strategies',
+              'Request a quick validation checklist'
+            ],
+            pointsEarned: 0.5,
+            pointsExplanation: 'Persona configured'
+          };
+          setMessages(prev => [...prev, confirmMsg]);
+          setIsTyping(false);
+          return;
+        }
+      }
+    } catch {}
+    
     // Check for trickery attempts first
     const trickeryCheck = detectTrickery(messageText);
     if (trickeryCheck.isTricky) {
@@ -1588,7 +1629,7 @@ Respond ONLY with minified JSON: {"valid": true|false, "reason": "short reason w
 User submission: """${messageText}"""`;
 
         const { data: validationData, error: validationError } = await supabase.functions.invoke('idea-chat', {
-          body: { message: validationPrompt, conversationHistory: [] }
+          body: { message: validationPrompt, conversationHistory: [], persona: chatPersona || undefined }
         });
 
         if (validationError) throw validationError;
@@ -1725,7 +1766,8 @@ User submission: """${messageText}"""`;
         body: { 
           message: contextualMessage,
           conversationHistory,
-          responseMode: 'concise' // Use concise mode to avoid verbose detailed responses
+          responseMode: 'concise', // Use concise mode to avoid verbose detailed responses
+          persona: chatPersona || undefined
         }
       });
 
