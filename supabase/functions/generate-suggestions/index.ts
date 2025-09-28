@@ -27,37 +27,37 @@ serve(async (req) => {
     console.log('[GENERATE-SUGGESTIONS] Idea context:', ideaDescription);
     console.log('[GENERATE-SUGGESTIONS] Previous answers:', previousAnswers);
 
-    // Create a context-aware prompt that generates actual answers to the question
-    const systemPrompt = `You are an expert startup advisor helping entrepreneurs achieve optimal Product-Market Fit. Your goal is to suggest answers that would maximize their PM-FIT score by addressing key success factors: market demand, pain point intensity, competition gaps, differentiation, and distribution readiness.`;
+    // Create a context-aware prompt that generates user-focused conversational suggestions
+    const systemPrompt = `You are helping a user have a productive conversation about their startup idea. Generate suggestions for what the USER should say next to continue the discussion naturally. Never suggest what the AI should say - only what the user might want to say, ask, or clarify.`;
     
     const userPrompt = `
 Context:
-- Startup Idea: "${ideaDescription || 'New startup idea being developed'}"
-- Previous answers: ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `${q}: ${a}`).join(' | ') : 'None yet'}
+- User's Startup Idea: "${ideaDescription || 'New startup idea being developed'}"
+- Previous conversation: ${previousAnswers ? Object.entries(previousAnswers).map(([q, a]) => `Q: ${q}\nA: ${a}`).join('\n') : 'None yet'}
 
-Current Question: "${question}"
+Current situation: The AI just asked: "${question}"
 
-Generate 4 high-quality, strategic suggestions that directly answer this question to help achieve optimal Product-Market Fit. Each suggestion should be:
+Generate 4 natural suggestions for what the USER could say next. Each suggestion should be:
 
-1. A complete, specific answer to the question (not a prompt or partial thought)
-2. Strategic and likely to maximize PM-FIT score
-3. Contextually relevant to the startup idea
-4. 15-30 words for clarity and completeness
-5. Actionable and practical
+1. A natural user response - either answering the question, asking for clarification, or providing relevant information
+2. Written from the user's perspective (first person "I" statements when appropriate)
+3. Contextually relevant to continue the conversation forward
+4. Concise (10-25 words) but complete thoughts
+5. Varied in approach - mix direct answers, clarifications, and follow-up questions
 
-Focus on demonstrating:
-- Clear market demand and pain point resolution
-- Strong competitive differentiation
-- Scalability and growth potential
-- Clear path to profitability
+Types to include:
+- Direct answer to the question asked
+- Request for clarification or examples
+- Providing additional context about their idea
+- Asking about implications or next steps
 
 Format: Return ONLY a JSON array of 4 suggestion strings, no markdown or explanation.
 
-Example output format:
-["First complete strategic answer addressing the question directly",
- "Second insightful answer with specific market positioning",
- "Third answer highlighting unique value and differentiation",
- "Fourth answer demonstrating scalability and growth potential"]`;
+Example for "Who is your target audience?":
+["Young professionals aged 25-35 who struggle with time management and productivity",
+ "Can you give me examples of different target audiences I should consider?",
+ "I'm thinking B2B, but not sure if B2C would be better - what matters most?",
+ "Remote workers and digital nomads who need flexible collaboration tools"]`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -66,15 +66,15 @@ Example output format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',  // Using more powerful model for better suggestions
+        model: 'gpt-4o-mini',  // Fast model for conversational suggestions
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 500,  // Increased for complete answers
-        temperature: 0.8,  // Slightly higher for more creative suggestions
-        presence_penalty: 0.6,  // Reduce repetition
-        frequency_penalty: 0.3  // Encourage variety
+        max_tokens: 400,
+        temperature: 0.9,  // Higher for natural variation
+        presence_penalty: 0.7,  // Encourage diverse suggestions
+        frequency_penalty: 0.4  // Avoid repetitive patterns
       }),
     });
 
@@ -145,51 +145,51 @@ Example output format:
           'Using fallback suggestions only'
         ];
       } else {
-        // Generate contextual fallback suggestions based on the question
+        // Generate contextual fallback suggestions based on the question - from user's perspective
         const lowerQ = (question || '').toLowerCase();
         
         if (lowerQ.includes('target audience') || lowerQ.includes('who is your')) {
           suggestions = [
-            'Tech-savvy early adopters aged 25-40 in major metropolitan areas seeking innovative solutions',
-            'Small to medium businesses with 10-100 employees looking to optimize operational efficiency',
-            'Budget-conscious consumers prioritizing value and quality over brand names in purchasing decisions',
-            'Enterprise clients requiring scalable, secure solutions with dedicated support and customization options'
+            'Young professionals who need better work-life balance tools',
+            'Can you help me identify the most profitable target segment?',
+            'I think SMBs, but how do I validate this assumption?',
+            'People frustrated with existing solutions in this space'
           ];
         } else if (lowerQ.includes('problem') || lowerQ.includes('pain point')) {
           suggestions = [
-            'Current solutions take 10x longer and cost 5x more than necessary for basic tasks',
-            'No existing platform integrates all required features forcing users to juggle multiple tools',
-            'Manual processes cause 30% error rates leading to significant revenue loss and customer churn',
-            'Lack of real-time insights prevents data-driven decisions causing missed growth opportunities'
+            'Current solutions are too expensive and complicated for most users',
+            'What specific pain points should I focus on first?',
+            'People waste hours daily due to inefficient processes',
+            'I need help articulating the core problem more clearly'
           ];
         } else if (lowerQ.includes('unique value') || lowerQ.includes('proposition') || lowerQ.includes('different')) {
           suggestions = [
-            'First AI-powered solution delivering 10x faster results with 90% accuracy improvement guaranteed',
-            'Only platform combining all essential features at 50% lower cost than competitors',
-            'Patented technology solving previously impossible problems with proven ROI within 30 days',
-            'Zero learning curve with intuitive design reducing onboarding from weeks to hours'
+            'We\'re 10x faster and half the price of alternatives',
+            'How can I better differentiate from existing competitors?',
+            'Our AI-powered approach is completely unique in this market',
+            'Should I focus more on price or features for differentiation?'
           ];
         } else if (lowerQ.includes('monetization') || lowerQ.includes('revenue') || lowerQ.includes('pricing')) {
           suggestions = [
-            'Freemium model with $29/month pro tier targeting 20% conversion rate after trial',
-            'Usage-based pricing starting at $99/month scaling with customer growth and value delivered',
-            'Enterprise licensing at $10K/year with unlimited users and premium support included',
-            'Transaction-based model taking 2.5% commission on platform-facilitated deals and exchanges'
+            'Thinking subscription model, $20-50 per month range',
+            'What pricing model works best for B2B SaaS?',
+            'Freemium with premium features at $99/month',
+            'Not sure yet - what would you recommend for my idea?'
           ];
         } else if (lowerQ.includes('competitor') || lowerQ.includes('competition')) {
           suggestions = [
-            'Three established players dominate but lack innovation and have poor user experience ratings',
-            'Fragmented market with no clear leader creating opportunity for superior solution to win',
-            'Legacy solutions from 2010s haven\'t adapted to modern user needs and expectations',
-            'High-priced enterprise solutions leaving SMB market completely underserved and seeking alternatives'
+            'There are 3 main players but they\'re all outdated',
+            'How do I analyze my competition effectively?',
+            'No direct competitors, but several indirect ones exist',
+            'I\'m not sure who my real competitors are - can you help?'
           ];
         } else {
-          // Generic fallback for unknown questions
+          // Generic fallback for unknown questions - conversational user responses
           suggestions = [
-            'Comprehensive market research indicates strong demand with limited quality solutions available currently',
-            'Data-driven approach validated through customer interviews and prototype testing with target users',
-            'Leveraging emerging technologies to create competitive advantages traditional players cannot match quickly',
-            'Building strategic partnerships to accelerate growth and establish market leadership position early'
+            'I need more guidance on how to answer this properly',
+            'Can you give me some examples to consider?',
+            'Let me think about this - what\'s most important here?',
+            'I have some ideas but would like your input first'
           ];
         }
       }
