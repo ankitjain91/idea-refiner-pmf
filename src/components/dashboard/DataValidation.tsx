@@ -105,12 +105,17 @@ export const useIdeaValidation = () => {
 
     try {
       // Calculate validation based on local data first
-      const answers = userAnswers ? JSON.parse(userAnswers) : {};
+      const rawAnswers = userAnswers ? JSON.parse(userAnswers) : {};
+      // Backward compatibility: map legacy keys to current ones
+      const answers: Record<string, any> = { ...rawAnswers };
+      if (answers.competition && !answers.competitorAnalysis) {
+        answers.competitorAnalysis = answers.competition;
+      }
       const answeredFields = Object.keys(answers);
       
-      // Check which required fields are missing
+      // Check which required fields are missing (treat empty strings as missing)
       const missingFields = REQUIRED_FIELDS
-        .filter(field => !answeredFields.includes(field.key) || !answers[field.key])
+        .filter(field => !answers[field.key] || (typeof answers[field.key] === 'string' && !answers[field.key].trim()))
         .map(field => field.key);
       
       // Calculate weighted completeness score
@@ -118,9 +123,9 @@ export const useIdeaValidation = () => {
       const importantFields = REQUIRED_FIELDS.filter(f => f.importance === 'important');
       const helpfulFields = REQUIRED_FIELDS.filter(f => f.importance === 'helpful');
       
-      const criticalCompleted = criticalFields.filter(f => answeredFields.includes(f.key) && answers[f.key]).length;
-      const importantCompleted = importantFields.filter(f => answeredFields.includes(f.key) && answers[f.key]).length;
-      const helpfulCompleted = helpfulFields.filter(f => answeredFields.includes(f.key) && answers[f.key]).length;
+      const criticalCompleted = criticalFields.filter(f => !!answers[f.key]).length;
+      const importantCompleted = importantFields.filter(f => !!answers[f.key]).length;
+      const helpfulCompleted = helpfulFields.filter(f => !!answers[f.key]).length;
       
       // Weighted scoring: critical = 50%, important = 30%, helpful = 20%
       const criticalScore = (criticalCompleted / Math.max(criticalFields.length, 1)) * 50;

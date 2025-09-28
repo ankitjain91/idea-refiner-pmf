@@ -86,8 +86,8 @@ const ANALYSIS_QUESTIONS: AnalysisQuestion[] = [
     context: 'Explain your unique value proposition and competitive advantage'
   },
   {
-    id: 'competition',
-    field: 'competition',
+    id: 'competitorAnalysis',
+    field: 'competitorAnalysis',
     question: 'Who are your main competitors?',
     type: 'text',
     icon: Users,
@@ -122,6 +122,11 @@ export const EnhancedAnalysisChat: React.FC<EnhancedAnalysisChatProps> = ({
     const savedAnswers = localStorage.getItem('pmf.user.answers');
     if (savedAnswers) {
       const parsed = JSON.parse(savedAnswers);
+      // Backward compatibility: migrate legacy key
+      if (parsed.competition && !parsed.competitorAnalysis) {
+        parsed.competitorAnalysis = parsed.competition;
+        localStorage.setItem('pmf.user.answers', JSON.stringify(parsed));
+      }
       setAnswers(parsed);
       
       // Find the first unanswered question
