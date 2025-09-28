@@ -85,9 +85,9 @@ const ANALYSIS_QUESTIONS: AnalysisQuestion[] = [
 ];
 
 export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: AnalysisChatProps) => {
-  const [ideaText, setIdeaText] = useState<string>(idea || '');
+  const [ideaText, setIdeaText] = useState<string>('');
   const [ideaInput, setIdeaInput] = useState('');
-  const [hasEnteredIdea, setHasEnteredIdea] = useState(!!idea);
+  const [hasEnteredIdea, setHasEnteredIdea] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -96,6 +96,63 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
   const [aiSuggestion, setAiSuggestion] = useState<string>('');
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check for existing idea on mount or when props change
+  useEffect(() => {
+    // First check if idea was passed as prop
+    if (idea) {
+      setIdeaText(idea);
+      setHasEnteredIdea(true);
+      return;
+    }
+
+    // Check session storage for existing idea
+    if (sessionId) {
+      const sessionIdeaKey = `session_${sessionId}_idea`;
+      const sessionMetadataKey = `session_${sessionId}_metadata`;
+      const sessionConversationKey = `session_${sessionId}_conversation`;
+      
+      // Try to get idea from storage
+      const storedIdea = localStorage.getItem(sessionIdeaKey);
+      if (storedIdea) {
+        const metadata = localStorage.getItem(sessionMetadataKey);
+        try {
+          const parsedMetadata = metadata ? JSON.parse(metadata) : null;
+          const refinedIdea = parsedMetadata?.refined || storedIdea;
+          setIdeaText(refinedIdea);
+          setHasEnteredIdea(true);
+          return;
+        } catch {
+          setIdeaText(storedIdea);
+          setHasEnteredIdea(true);
+          return;
+        }
+      }
+
+      // Try to extract from conversation history
+      const conversationHistory = localStorage.getItem(sessionConversationKey);
+      if (conversationHistory) {
+        try {
+          const history = JSON.parse(conversationHistory);
+          const ideaMessage = history.find((msg: any) => 
+            msg.role === 'user' && msg.content.toLowerCase().includes('startup idea:')
+          );
+          if (ideaMessage) {
+            const extractedIdea = ideaMessage.content.replace(/^.*startup idea:\s*/i, '').trim();
+            if (extractedIdea) {
+              setIdeaText(extractedIdea);
+              setHasEnteredIdea(true);
+              // Save to storage for consistency
+              localStorage.setItem(sessionIdeaKey, extractedIdea);
+              localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: extractedIdea }));
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing conversation history:', e);
+        }
+      }
+    }
+  }, [idea, sessionId]);
 
   const currentQuestion = hasEnteredIdea ? ANALYSIS_QUESTIONS[currentQuestionIndex] : null;
   const progress = ((currentQuestionIndex + 1) / ANALYSIS_QUESTIONS.length) * 100;

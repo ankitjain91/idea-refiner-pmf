@@ -49,13 +49,14 @@ const Dashboard = () => {
     return `session_${sessionId}_conversation`;
   };
 
-  // Load idea from localStorage for current session
+  // Load idea from localStorage for current session or conversation history
   useEffect(() => {
     const checkForIdea = () => {
       if (!currentSession?.id) return;
       
       const sessionIdeaKey = getSessionStorageKey(currentSession.id);
       const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
+      const sessionConversationKey = getSessionConversationKey(currentSession.id);
       
       const storedIdea = localStorage.getItem(sessionIdeaKey);
       const ideaMetadata = localStorage.getItem(sessionMetadataKey);
@@ -68,8 +69,31 @@ const Dashboard = () => {
           setIdea(storedIdea);
         }
       } else {
-        // Clear idea if no session-specific idea exists
-        setIdea(null);
+        // Try to extract idea from conversation history if available
+        const conversationHistory = localStorage.getItem(sessionConversationKey);
+        if (conversationHistory) {
+          try {
+            const history = JSON.parse(conversationHistory);
+            // Look for the initial idea message in conversation
+            const ideaMessage = history.find((msg: any) => 
+              msg.role === 'user' && msg.content.toLowerCase().includes('startup idea:')
+            );
+            if (ideaMessage) {
+              const extractedIdea = ideaMessage.content.replace(/^.*startup idea:\s*/i, '').trim();
+              if (extractedIdea) {
+                setIdea(extractedIdea);
+                // Also save it to the proper storage keys for consistency
+                localStorage.setItem(sessionIdeaKey, extractedIdea);
+                localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: extractedIdea }));
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing conversation history:', e);
+          }
+        } else {
+          // Clear idea if no session-specific idea exists
+          setIdea(null);
+        }
       }
     };
     
@@ -213,7 +237,7 @@ const Dashboard = () => {
     );
   }
 
-  // Show AnalysisChat when showAnalysis is true and no idea yet
+  // Show AnalysisChat when showAnalysis is true
   if (showAnalysis && !idea) {
     return (
       <div className='min-h-screen bg-black p-6'>
@@ -223,7 +247,7 @@ const Dashboard = () => {
           className="max-w-4xl mx-auto"
         >
           <AnalysisChat
-            idea={null}
+            idea={idea} // Pass the idea even if null, component will check localStorage
             sessionId={currentSession?.id || ''}
             onComplete={(ideaText) => {
               if (ideaText && currentSession?.id) {
