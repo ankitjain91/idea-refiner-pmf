@@ -507,7 +507,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Ensure unique ID
       type: 'user',
       content: input,
       timestamp: new Date()
@@ -549,7 +549,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
           
           // Add the summary message to chat
           setMessages(prev => [...prev, {
-            id: Date.now().toString(),
+            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Ensure unique ID
             type: 'bot',
             content: pmfData.summary || "🎯 Perfect! I've calculated your PMF score and created a comprehensive analysis. Keep refining your idea in the chat above for better results!",
             timestamp: new Date(),
@@ -599,7 +599,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
         };
         
         setMessages(prev => [...prev, {
-          id: Date.now().toString(),
+          id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Ensure unique ID
           type: 'bot',
           content: "🎯 I've prepared your PMF analysis dashboard with the available information.",
           timestamp: new Date(),
@@ -654,7 +654,7 @@ const IdeaChat: React.FC<IdeaChatProps> = ({ onAnalysisReady }) => {
       }
       
       const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Ensure unique ID
         type: 'bot',
         content: response.message,
         timestamp: new Date(),
