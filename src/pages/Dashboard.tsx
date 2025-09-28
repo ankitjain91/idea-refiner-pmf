@@ -270,10 +270,11 @@ const Dashboard = () => {
                   <Button 
                     onClick={() => {
                       const missingDataPrompt = `I need more information about your idea "${idea?.slice(0, 50)}..." to generate comprehensive dashboard insights. Let me ask you some key questions about:
-                      
+
 ${!metrics ? '• Your target metrics and KPIs\n' : ''}${!market ? '• Market size and opportunity\n' : ''}${!competition ? '• Competitive landscape\n' : ''}${!channels ? '• Marketing and growth channels\n' : ''}
 Let's start with the most important details to unlock your full dashboard analysis.`;
                       
+                      console.log('Setting pending question:', missingDataPrompt);
                       localStorage.setItem('pendingQuestion', missingDataPrompt);
                       navigate('/ideachat');
                     }}

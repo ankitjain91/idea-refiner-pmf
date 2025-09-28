@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { KeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -166,6 +166,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const location = useLocation();
   
   // Effects
   useEffect(() => {
@@ -335,27 +336,34 @@ What's your startup idea?`,
     initializeChat();
   }, [currentSession?.name, anonymous, fetchRandomIdeas]);
 
-  // Handle pending question from dashboard - separate effect to ensure it runs
+  // Handle pending question from dashboard - runs when location changes
   useEffect(() => {
-    const pendingQuestion = localStorage.getItem('pendingQuestion');
-    if (pendingQuestion) {
-      // Wait a bit for the component to be ready
-      const timer = setTimeout(() => {
-        setInput(pendingQuestion);
-        localStorage.removeItem('pendingQuestion');
-        // Focus the input
-        inputRef.current?.focus();
+    const checkPendingQuestion = () => {
+      const pendingQuestion = localStorage.getItem('pendingQuestion');
+      if (pendingQuestion) {
+        console.log('Found pending question:', pendingQuestion);
+        // Small delay to ensure component is ready
+        const timer = setTimeout(() => {
+          setInput(pendingQuestion);
+          localStorage.removeItem('pendingQuestion');
+          // Focus the input
+          inputRef.current?.focus();
+          // Scroll to bottom to show the input
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          
+          // Show a helpful message
+          toast({
+            title: "Dashboard Analysis",
+            description: "Answer these questions to unlock your full dashboard insights.",
+          });
+        }, 100);
         
-        // Show a helpful message
-        toast({
-          title: "Dashboard Analysis",
-          description: "I need a few more details to complete your dashboard. Please answer the questions below.",
-        });
-      }, 300);
-      
-      return () => clearTimeout(timer);
-    }
-  }, []); // Run only once on mount
+        return () => clearTimeout(timer);
+      }
+    };
+    
+    checkPendingQuestion();
+  }, [location, toast]); // Re-run when location changes
 
   // Persist messages for authenticated users
   useEffect(() => {
@@ -851,9 +859,14 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       }
       
       // Approved idea
-      setCurrentIdea(validation.preview || createIdeaPreview(messageText));
+      const ideaPreview = validation.preview || createIdeaPreview(messageText);
+      setCurrentIdea(ideaPreview);
       setHasValidIdea(true);
       setOffTopicAttempts(0);
+      
+      // Save the idea text to localStorage for dashboard
+      localStorage.setItem('ideaText', messageText);
+      localStorage.setItem('currentIdea', ideaPreview);
 
     }
 
@@ -1619,13 +1632,23 @@ User submission: """${messageText}"""`;
         }
 
         // Approved idea: capture preview + unlock analyses
-        setCurrentIdea(createIdeaPreview(messageText));
+        const ideaPreview = createIdeaPreview(messageText);
+        setCurrentIdea(ideaPreview);
         setHasValidIdea(true);
+        
+        // Save the idea text to localStorage for dashboard
+        localStorage.setItem('ideaText', messageText);
+        localStorage.setItem('currentIdea', ideaPreview);
       } catch (e) {
         console.error('Idea validation failed, falling back to heuristic only.', e);
         if (isIdeaDescription(messageText)) {
-          setCurrentIdea(createIdeaPreview(messageText));
+          const ideaPreview = createIdeaPreview(messageText);
+          setCurrentIdea(ideaPreview);
           setHasValidIdea(true);
+          
+          // Save the idea text to localStorage for dashboard
+          localStorage.setItem('ideaText', messageText);
+          localStorage.setItem('currentIdea', ideaPreview);
         } else {
           const fallbackGate: Message = {
             id: Date.now().toString(),
