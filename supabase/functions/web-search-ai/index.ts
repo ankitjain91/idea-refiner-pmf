@@ -70,13 +70,43 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
+      
+      // Try to parse as JSON if possible
+      let errorMessage = 'Unknown error';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || errorData.message || errorText;
+      } catch {
+        errorMessage = errorText;
+      }
+      
+      throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 
     const data = await response.json();
-    const analysis = JSON.parse(data.choices[0].message.content);
+    console.log('OpenAI response received for', tileType);
+    
+    // Safely parse the content
+    let analysis;
+    try {
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in OpenAI response');
+      }
+      analysis = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response:', parseError);
+      // Provide fallback data
+      analysis = {
+        metrics: [],
+        trends: [],
+        competitors: [],
+        insights: [],
+        projections: {}
+      };
+    }
 
     // Transform the analysis into the format expected by DataTile
     const transformedData = {
@@ -112,11 +142,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in web-search-ai function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: errorMessage,
         details: 'Failed to generate market insights'
-      }), 
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
