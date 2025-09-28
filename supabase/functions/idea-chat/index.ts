@@ -44,13 +44,7 @@ async function callGroq(messages: any[], maxTokens = 2000, temperature = 0.7) {
 }
 
 // System prompt for the business advisor
-const BUSINESS_ADVISOR_PROMPT = `You are a friendly and insightful business advisor who helps entrepreneurs refine their startup ideas. 
-
-Keep your responses conversational and natural - like you're having a real discussion with a friend about their business. Avoid bullet points or numbered lists. Instead, weave your insights naturally into the conversation.
-
-Focus on practical advice about monetization, market fit, and growth strategies, but deliver it in a warm, engaging way that feels like a natural dialogue rather than a formal consultation.
-
-When you mention multiple points, connect them smoothly with transitional phrases rather than listing them out.`;
+const BUSINESS_ADVISOR_PROMPT = `You are a concise business advisor. Give SHORT, SUMMARIZED responses - maximum 2-3 sentences. Be friendly but extremely brief. Focus only on the most critical point. No long explanations, no lists, no detailed analysis. Just quick, helpful insights.`;
 
 serve(async (req) => {
   // Handle CORS
@@ -133,8 +127,8 @@ serve(async (req) => {
       );
     }
 
-    // Regular chat response
-    const response = await callGroq(messages);
+    // Regular chat response with reduced token limit for shorter responses
+    const response = await callGroq(messages, 400, 0.7); // Reduced from 2000 to 400 tokens
     const content = response.choices?.[0]?.message?.content || "I understand. Let me help you develop that idea further.";
     
     // Generate follow-up suggestions for what the USER could say next
@@ -143,19 +137,13 @@ serve(async (req) => {
       const suggestionResponse = await callGroq([
         { 
           role: 'system', 
-          content: 'Generate exactly 4 user responses as a JSON array. Return ONLY the array, no markdown or explanation.'
+          content: 'Generate 4 very SHORT user follow-up questions. Each under 8 words. Return as JSON array only.'
         },
         { 
           role: 'user', 
-          content: `The AI assistant just said: "${content.substring(0, 300)}..."
-          
-Generate 4 natural things the USER could say next to continue the conversation.
-Make them conversational, from the user's perspective (use "I" when appropriate).
-Mix questions, clarifications, and information sharing.
-
-Output format: ["response 1", "response 2", "response 3", "response 4"]` 
+          content: `Based on: "${content.substring(0, 100)}..." generate 4 brief user questions. Format: ["q1", "q2", "q3", "q4"]` 
         }
-      ], 400, 0.9);
+      ], 200, 0.9);
       
       if (suggestionResponse.choices?.[0]?.message?.content) {
         let text = suggestionResponse.choices[0].message.content.trim();
