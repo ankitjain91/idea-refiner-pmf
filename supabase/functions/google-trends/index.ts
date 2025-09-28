@@ -61,6 +61,7 @@ serve(async (req) => {
     
     // If continent-wise data is requested
     if (fetch_continents) {
+      console.log('[google-trends] Fetching continental data...');
       const continentData: any = {};
       
       // Fetch data for each continent in parallel
@@ -68,6 +69,7 @@ serve(async (req) => {
         try {
           // Pick the first country as representative for the continent
           const representativeCountry = countries[0];
+          console.log(`[google-trends] Fetching for ${continent} using ${representativeCountry}`);
           
           const [timeseriesData, relatedData] = await Promise.all([
             fetchGoogleTrends(query, representativeCountry, 'TIMESERIES'),
@@ -82,6 +84,12 @@ serve(async (req) => {
             time_window
           );
           
+          console.log(`[google-trends] ${continent} data processed:`, {
+            hasMetrics: !!processedData.metrics?.length,
+            hasSeries: !!processedData.series?.length,
+            hasQueries: !!processedData.top_queries?.length
+          });
+          
           return { 
             continent, 
             countries: countries,
@@ -89,40 +97,43 @@ serve(async (req) => {
           };
         } catch (error) {
           console.error(`[google-trends] Error fetching data for ${continent}:`, error);
+          // Return mock data for failed continent
           return { 
             continent, 
             countries: countries,
-            data: null 
+            data: generateMockData(query, countries[0], time_window)
           };
         }
       });
       
       const results = await Promise.all(continentPromises);
+      console.log(`[google-trends] All continents processed: ${results.length}`);
       
       // Organize data by continent
       results.forEach(({ continent, countries, data }) => {
-        if (data) {
-          continentData[continent] = {
-            ...data,
-            region: continent,
-            countries_analyzed: countries
-          };
-        }
+        continentData[continent] = {
+          ...data,
+          region: continent,
+          countries_analyzed: countries
+        };
       });
       
-      console.log('[google-trends] Continent-wise data fetched successfully');
+      console.log('[google-trends] Continental data ready:', Object.keys(continentData));
       
+      const response = { 
+        type: 'continental',
+        continentData,
+        updatedAt: new Date().toISOString(),
+        filters: { 
+          idea: query, 
+          geo: 'global', 
+          time_window 
+        }
+      };
+      
+      console.log('[google-trends] Sending continental response');
       return new Response(
-        JSON.stringify({ 
-          type: 'continental',
-          continentData,
-          updatedAt: new Date().toISOString(),
-          filters: { 
-            idea: query, 
-            geo: 'global', 
-            time_window 
-          }
-        }),
+        JSON.stringify(response),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

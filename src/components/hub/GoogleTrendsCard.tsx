@@ -99,9 +99,18 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         }
       });
 
-      if (trendsError) throw trendsError;
+      if (trendsError) {
+        console.error('[GoogleTrendsCard] Error from edge function:', trendsError);
+        throw trendsError;
+      }
       
-      console.log('[GoogleTrendsCard] Data received:', trendsData);
+      console.log('[GoogleTrendsCard] Data received:', {
+        type: trendsData?.type,
+        hasData: !!trendsData,
+        hasContinentData: !!trendsData?.continentData,
+        continents: trendsData?.continentData ? Object.keys(trendsData.continentData) : []
+      });
+      
       setData(trendsData);
     } catch (err: any) {
       console.error('[GoogleTrendsCard] Error:', err);
@@ -118,8 +127,14 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   }, [ideaText, geo, timeWindow]);
 
   const handleViewModeChange = (mode: 'global' | 'single') => {
+    console.log('[GoogleTrendsCard] Changing view mode to:', mode);
     setViewMode(mode);
     fetchTrendsData(mode === 'global');
+  };
+
+  const handleRefresh = () => {
+    console.log('[GoogleTrendsCard] Manual refresh, viewMode:', viewMode);
+    fetchTrendsData(viewMode === 'global');
   };
 
   const getTrendIcon = (direction: string) => {
@@ -248,7 +263,25 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   };
 
   const renderContinentalView = () => {
-    if (!data || !data.continentData) return null;
+    console.log('[renderContinentalView] Data:', {
+      hasData: !!data,
+      type: data?.type,
+      hasContinentData: !!data?.continentData,
+      continentKeys: data?.continentData ? Object.keys(data.continentData) : []
+    });
+    
+    if (!data || !data.continentData || Object.keys(data.continentData).length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Globe className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">No continental data available</p>
+          <Button onClick={() => fetchTrendsData(true)} className="mt-4" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry Continental Data
+          </Button>
+        </div>
+      );
+    }
 
     const continents = Object.keys(data.continentData);
     const selectedData = data.continentData[selectedContinent];
@@ -475,7 +508,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => fetchTrendsData(viewMode === 'global')}
+              onClick={handleRefresh}
               disabled={loading}
               className="h-8 hover:bg-primary/10"
             >
@@ -503,7 +536,10 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         )}
 
         {!loading && !error && data && (
-          viewMode === 'single' ? renderSingleRegionView() : renderContinentalView()
+          <>
+            {console.log('[Render] ViewMode:', viewMode, 'DataType:', data?.type)}
+            {data.type === 'continental' ? renderContinentalView() : renderSingleRegionView()}
+          </>
         )}
 
         {data?.warnings && data.warnings.length > 0 && (
