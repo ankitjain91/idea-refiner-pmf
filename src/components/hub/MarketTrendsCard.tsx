@@ -6,12 +6,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
   TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, 
   ExternalLink, Search, Newspaper, ChevronRight, CheckCircle, XCircle,
-  HelpCircle
+  HelpCircle, Globe, Map, Clock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -29,6 +31,7 @@ interface MarketTrendsCardProps {
 }
 
 interface TrendsData {
+  type?: 'single' | 'continental';
   updatedAt: string;
   filters: any;
   metrics: Array<{
@@ -63,13 +66,25 @@ interface TrendsData {
   }>;
   insights?: string[];
   warnings?: string[];
+  continentData?: Record<string, any>;
 }
+
+const CONTINENT_COLORS = {
+  'North America': '#3b82f6',
+  'Europe': '#10b981',
+  'Asia': '#f59e0b',
+  'South America': '#8b5cf6',
+  'Africa': '#ef4444',
+  'Oceania': '#06b6d4'
+};
 
 
 export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) {
   const [showSources, setShowSources] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'global' | 'single'>('single');
+  const [selectedContinent, setSelectedContinent] = useState<string>('North America');
   
   // Get the idea from filters or fallback to localStorage
   const ideaText = filters.idea_keywords?.join(' ') || 
@@ -84,7 +99,8 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       const { data, error } = await supabase.functions.invoke('market-trends', {
         body: { 
           idea,
-          keywords: idea.split(' ').filter(w => w.length > 2)
+          keywords: idea.split(' ').filter(w => w.length > 2),
+          fetch_continents: viewMode === 'global'
         }
       });
       
@@ -242,6 +258,23 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
         className={cn("h-full", className)}
       >
         <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-base">Market Trends Analysis</CardTitle>
+            <div className="flex items-center gap-2">
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'global' | 'single')}>
+                <TabsList className="h-8">
+                  <TabsTrigger value="single" className="text-xs">Single</TabsTrigger>
+                  <TabsTrigger value="global" className="text-xs">Global</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {data?.updatedAt && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>{new Date(data.updatedAt).toLocaleTimeString()}</span>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CardTitle className="flex items-center gap-2">
@@ -360,7 +393,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
 
           {/* Key metrics */}
-          {data.metrics && data.metrics.length > 0 && (
+          {data?.metrics && data.metrics.length > 0 && (
             <div className="grid grid-cols-2 gap-3">
               {data.metrics.slice(0, 4).map((metric, idx) => (
                 <div key={idx} className="bg-muted/10 rounded-lg p-3">
@@ -379,6 +412,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               ))}
             </div>
           )}
+        </>
+      );
+  };
           
           {/* API Status Alert for debugging */}
           {data?.insights && data.insights.some(i => i.includes('API key required')) && (
