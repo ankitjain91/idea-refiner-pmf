@@ -24,92 +24,52 @@ serve(async (req) => {
       );
     }
 
-    // Fetch usage for current billing cycle
-    const today = new Date();
-    const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    console.log('Testing OpenAI API key validity...');
     
-    // Format dates as YYYY-MM-DD
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
-    
-    console.log('Fetching OpenAI usage from', formatDate(startDate), 'to', formatDate(endDate));
-    
-    // Fetch usage data from OpenAI
-    const usageResponse = await fetch(
-      `https://api.openai.com/v1/usage?date=${formatDate(startDate)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        }
+    // First, test if the API key is valid by making a simple request
+    const testResponse = await fetch('https://api.openai.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
       }
-    );
+    });
 
-    if (!usageResponse.ok) {
-      const errorText = await usageResponse.text();
-      console.error('OpenAI API error:', errorText);
+    if (!testResponse.ok) {
+      const errorText = await testResponse.text();
+      console.error('OpenAI API key test failed:', errorText);
       
-      // Try alternative endpoint for usage
-      const billingResponse = await fetch(
-        'https://api.openai.com/v1/dashboard/billing/usage',
-        {
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      
-      if (!billingResponse.ok) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Unable to fetch OpenAI billing data',
-            details: 'The OpenAI billing API may have changed or your API key might not have billing permissions'
-          }),
-          { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-      
-      const billingData = await billingResponse.json();
       return new Response(
-        JSON.stringify({
-          usage: billingData,
-          note: 'Fetched from billing endpoint'
+        JSON.stringify({ 
+          error: 'Invalid OpenAI API key',
+          details: 'The API key appears to be invalid or revoked',
+          keyStatus: 'invalid'
         }),
         { 
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
-
-    const usageData = await usageResponse.json();
     
-    // Also try to fetch subscription/credit information
-    const subscriptionResponse = await fetch(
-      'https://api.openai.com/v1/dashboard/billing/subscription',
-      {
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+    console.log('API key is valid, attempting to fetch billing data...');
     
-    let subscriptionData = null;
-    if (subscriptionResponse.ok) {
-      subscriptionData = await subscriptionResponse.json();
-    }
-
+    // Note: OpenAI's billing/usage APIs are restricted and require special permissions
+    // Most API keys don't have access to billing endpoints
+    // The following endpoints are deprecated or restricted:
+    // - /v1/usage
+    // - /v1/dashboard/billing/usage
+    // - /v1/dashboard/billing/subscription
+    
+    // Since billing APIs are restricted, we'll return a message about this limitation
     return new Response(
       JSON.stringify({
-        usage: usageData,
-        subscription: subscriptionData,
-        currentMonth: {
-          start: formatDate(startDate),
-          end: formatDate(endDate)
+        status: 'api_key_valid',
+        message: 'Your OpenAI API key is valid and working',
+        billingNote: 'OpenAI billing/usage APIs require special permissions that are not available with standard API keys',
+        recommendation: 'Track your usage through the OpenAI platform dashboard at https://platform.openai.com/usage',
+        keyInfo: {
+          valid: true,
+          keyPrefix: openAIApiKey.substring(0, 7) + '...'
         }
       }),
       { 
@@ -117,9 +77,12 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error fetching OpenAI balance:', error);
+    console.error('Error in openai-balance function:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error occurred' }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
