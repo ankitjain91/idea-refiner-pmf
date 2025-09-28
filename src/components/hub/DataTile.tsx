@@ -90,14 +90,7 @@ export function DataTile({
     } catch (err: any) {
       console.error(`Error fetching ${tileType} data:`, err);
       setError(err.message || 'Failed to fetch data');
-      
-      // Retry with exponential backoff
-      if (retryCount < 3) {
-        const delay = Math.pow(2, retryCount) * 1000;
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-        }, delay);
-      }
+      // Don't set dummy data, just show error state
     } finally {
       setLoading(false);
     }
@@ -189,26 +182,34 @@ export function DataTile({
   if (error && !data) {
     return (
       <Card className={cn("p-6", className)}>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
-            {retryCount < 3 && (
-              <span className="block mt-2 text-sm">
-                Retrying... (Attempt {retryCount + 1}/3)
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setRetryCount(0)}
-          className="mt-4"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry Now
-        </Button>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Icon className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">{title}</h3>
+              {description && (
+                <p className="text-sm text-muted-foreground mt-1">{description}</p>
+              )}
+            </div>
+          </div>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Unable to fetch data at the moment. Please try again later.
+            </AlertDescription>
+          </Alert>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            className="w-full"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
       </Card>
     );
   }
