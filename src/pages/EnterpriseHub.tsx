@@ -166,21 +166,25 @@ export default function EnterpriseHub() {
         if (historyRaw) {
           try {
             const messages = JSON.parse(historyRaw);
-            // Find the most relevant user message that looks like an idea
+            // Find the most recent user message; accept questions if nothing else
+            let fallbackUser: string | null = null;
             for (let i = messages.length - 1; i >= 0; i--) {
               const msg = messages[i];
-              if (msg.type === 'user' && msg.content && msg.content.length > 20) {
-                const lowerContent = msg.content.toLowerCase();
-                // Skip questions and commands
-                if (!lowerContent.includes('what') && 
-                    !lowerContent.includes('how') && 
-                    !lowerContent.includes('can you') &&
-                    !lowerContent.includes('tell me') &&
-                    !lowerContent.includes('explain')) {
-                  return msg.content;
+              if ((msg.type === 'user' || msg.role === 'user') && typeof msg.content === 'string') {
+                const content = msg.content.trim();
+                if (!content) continue;
+                if (content.length > 20) {
+                  const lower = content.toLowerCase();
+                  const looksLikeQuestion = /\b(what|how|can you|tell me|explain|why|where|who)\b/.test(lower);
+                  if (!looksLikeQuestion) return content;
+                  // keep as fallback if nothing better
+                  if (!fallbackUser) fallbackUser = content;
+                } else if (!fallbackUser && content.length > 8) {
+                  fallbackUser = content;
                 }
               }
             }
+            if (fallbackUser) return fallbackUser;
           } catch {}
         }
         return null;
@@ -193,7 +197,8 @@ export default function EnterpriseHub() {
         const userIdea = localStorage.getItem('userIdea') || '';
         const currentIdea = localStorage.getItem('currentIdea') || '';
         const ideaText = localStorage.getItem('ideaText') || '';
-        ideaToUse = userIdea || currentIdea || ideaText;
+        const pmfCurrentIdea = localStorage.getItem('pmfCurrentIdea') || '';
+        ideaToUse = userIdea || currentIdea || ideaText || pmfCurrentIdea;
       }
 
       // Try metadata as fallback
@@ -390,9 +395,16 @@ export default function EnterpriseHub() {
             <AlertDescription>
               <div className="space-y-4">
                 <p>No idea keywords detected. Please provide your startup idea to begin analysis.</p>
-                <Button onClick={() => navigate('/ideachat')}>
-                  Go to Idea Chat
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => navigate('/ideachat')}>
+                    Go to Idea Chat
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    try { window.dispatchEvent(new Event('idea:updated')); } catch {}
+                  }}>
+                    Try Detect Again
+                  </Button>
+                </div>
               </div>
             </AlertDescription>
           </Alert>
