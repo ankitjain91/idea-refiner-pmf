@@ -47,22 +47,59 @@ import {
   X
 } from "lucide-react";
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const authSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().optional(),
+}).refine((data) => {
+  if (data.confirmPassword !== undefined) {
+    return data.password === data.confirmPassword;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
-// Fun Wrinkle Points Counter Component
-const WrinkleCounter = ({ points }: { points: number }) => {
+// Fun Wrinkle Points Counter Component with accessibility
+const WrinkleCounter = ({ points, onClose }: { points: number; onClose: () => void }) => {
   const displayPoints = useSpring(points, { stiffness: 100, damping: 30 });
+  const [isVisible, setIsVisible] = useState(true);
+  
+  // Auto-dismiss after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      onClose();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+  
+  // Handle ESC key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsVisible(false);
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+  
+  if (!isVisible) return null;
   
   return (
     <motion.div 
-      className="fixed top-6 right-6 z-50"
-      initial={{ scale: 0, rotate: -180 }}
-      animate={{ scale: 1, rotate: 0 }}
-      transition={{ type: "spring", duration: 1 }}
+      className="fixed top-20 right-6 z-40"
+      initial={{ scale: 0, rotate: -180, opacity: 0 }}
+      animate={{ scale: 1, rotate: 0, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+      transition={{ type: "spring", duration: 0.5 }}
+      role="alert"
+      aria-live="polite"
     >
       <div className="relative">
         <motion.div
@@ -71,6 +108,16 @@ const WrinkleCounter = ({ points }: { points: number }) => {
           className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-xl"
         />
         <div className="relative bg-black/90 border border-primary/30 rounded-2xl px-6 py-3 shadow-[0_0_30px_rgba(100,150,255,0.3)]">
+          <button
+            onClick={() => {
+              setIsVisible(false);
+              onClose();
+            }}
+            className="absolute -top-2 -right-2 bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded-full p-1 transition-colors"
+            aria-label="Close notification"
+          >
+            <X className="w-4 h-4 text-gray-400 hover:text-white" />
+          </button>
           <div className="flex items-center gap-3">
             <motion.div
               animate={{ 
@@ -223,8 +270,11 @@ export default function LandingPage() {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState(0);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(shouldOpenAuthModal || false);
+  const [showWrinkleCounter, setShowWrinkleCounter] = useState(false);
   
   // Gamification States
   const [wrinklePoints, setWrinklePoints] = useState(0);
@@ -249,6 +299,21 @@ export default function LandingPage() {
   // Mouse parallax effect
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  
+  // Calculate password strength
+  const calculatePasswordStrength = (pass: string) => {
+    let strength = 0;
+    if (pass.length >= 8) strength += 25;
+    if (pass.length >= 12) strength += 25;
+    if (/[a-z]/.test(pass) && /[A-Z]/.test(pass)) strength += 25;
+    if (/\d/.test(pass)) strength += 12.5;
+    if (/[^a-zA-Z\d]/.test(pass)) strength += 12.5;
+    return Math.min(100, strength);
+  };
+  
+  useEffect(() => {
+    setPasswordStrength(calculatePasswordStrength(password));
+  }, [password]);
   
   const handleMouseMove = (e: React.MouseEvent) => {
     const { clientX, clientY } = e;
@@ -370,7 +435,7 @@ export default function LandingPage() {
     setIsLoading(true);
 
     try {
-      authSchema.parse({ email, password });
+      authSchema.parse({ email, password, confirmPassword });
       const normalizedEmail = email.trim().toLowerCase();
 
       if (normalizedEmail !== 'er.ankitjain91@gmail.com') {
@@ -487,6 +552,11 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-black overflow-x-hidden">
+      {/* Wrinkle Points Counter */}
+      {showWrinkleCounter && (
+        <WrinkleCounter points={wrinklePoints} onClose={() => setShowWrinkleCounter(false)} />
+      )}
+      
       {/* Futuristic Grid Background */}
       
       {/* Animated Background Layers */}
@@ -583,8 +653,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Empty right side for balance */}
-          <div className="flex-1">
+          {/* Right side with theme toggle */}
+          <div className="flex-1 flex justify-end">
+            <ThemeToggle />
           </div>
         </div>
       </motion.div>
@@ -664,7 +735,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto font-light"
+            className="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto font-light"
           >
             Powered by real market data. Trusted by smart founders. Built for serious entrepreneurs.
           </motion.p>
@@ -682,14 +753,11 @@ export default function LandingPage() {
                 setIsSignUp(true);
                 setShowAuthModal(true);
                 setWrinklePoints(prev => prev + 50);
-                toast({
-                  title: "🧠 +50 Wrinkle Points!",
-                  description: "Smart move! You're getting wrinklier!",
-                });
+                setShowWrinkleCounter(true);
               }}
             >
               <Rocket className="mr-2 h-5 w-5" />
-              Start Free Trial
+              Start Your 7-Day Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
@@ -718,7 +786,7 @@ export default function LandingPage() {
               <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Platform Launch</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary mb-1">{smoothbrainScore}%</p>
+              <p className="text-3xl font-bold text-primary mb-1">85%</p>
               <p className="text-sm text-gray-500 font-mono uppercase tracking-wider">Algorithm Accuracy†</p>
             </div>
             <div className="text-center">
@@ -1134,18 +1202,67 @@ export default function LandingPage() {
       </section>
 
       {/* Legal Disclaimer Footer */}
-      <footer className="py-8 px-4 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-xs text-gray-500 mb-4">
-            * This platform provides educational analysis tools based on publicly available data. Results are algorithmic estimates and should not be considered professional advice.
-          </p>
-          <p className="text-xs text-gray-500 mb-4">
-            † Accuracy metrics are based on internal testing and may vary. Past performance does not guarantee future results.
-          </p>
-          <p className="text-xs text-gray-500">
-            By using this platform, you acknowledge that all analyses are for informational purposes only. We are not responsible for business decisions made based on our tools.
-            Please consult with qualified professionals for investment, legal, or business advice. Terms of Service and Privacy Policy apply.
-          </p>
+      <footer className="py-12 px-4 border-t border-gray-800">
+        <div className="max-w-7xl mx-auto">
+          {/* Footer Links */}
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h4 className="font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2">
+                <li><a href="/documentation" className="text-sm text-gray-400 hover:text-primary transition-colors">Documentation</a></li>
+                <li><a href="/pricing" className="text-sm text-gray-400 hover:text-primary transition-colors">Pricing</a></li>
+                <li><a href="/documentation#features" className="text-sm text-gray-400 hover:text-primary transition-colors">Features</a></li>
+                <li><a href="/documentation#methodology" className="text-sm text-gray-400 hover:text-primary transition-colors">Methodology</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Resources</h4>
+              <ul className="space-y-2">
+                <li><a href="/documentation#faq" className="text-sm text-gray-400 hover:text-primary transition-colors">FAQ</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">Blog</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">Case Studies</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">API Docs</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Company</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">About Us</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">Contact</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">Careers</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">Press</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Legal</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">Terms of Service</a></li>
+                <li><a href="/documentation#security" className="text-sm text-gray-400 hover:text-primary transition-colors">Security</a></li>
+                <li><a href="#" className="text-sm text-gray-400 hover:text-primary transition-colors">GDPR</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* Disclaimers */}
+          <div className="pt-8 border-t border-gray-800 text-center">
+            <p className="text-xs text-gray-500 mb-4">
+              * This platform provides educational analysis tools based on publicly available data. Results are algorithmic estimates and should not be considered professional advice.
+            </p>
+            <p className="text-xs text-gray-500 mb-4">
+              † Up to 85% accuracy based on internal benchmarks. Results may vary based on data availability and market conditions. 
+              <a href="/documentation#methodology" className="text-primary hover:underline ml-1">View methodology</a>
+            </p>
+            <p className="text-xs text-gray-500">
+              By using this platform, you acknowledge that all analyses are for informational purposes only. We are not responsible for business decisions made based on our tools.
+              Please consult with qualified professionals for investment, legal, or business advice. 
+              <a href="#" className="text-primary hover:underline ml-1">Terms of Service</a> and 
+              <a href="#" className="text-primary hover:underline ml-1">Privacy Policy</a> apply.
+            </p>
+            <p className="text-xs text-gray-500 mt-4">
+              © 2024 Quantils Lab. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
 
@@ -1177,7 +1294,13 @@ export default function LandingPage() {
                   {isSignUp ? "Join the Wrinkle Revolution" : "Welcome back, Thinker"}
                 </CardTitle>
                 <CardDescription className="text-center">
-                  {isSignUp ? "Start your journey to big brain status" : "Continue gaining those wrinkles"}
+                  {isSignUp ? (
+                    <>
+                      <span className="text-primary font-semibold">7-day free trial</span> — no credit card required
+                    </>
+                  ) : (
+                    "Continue gaining those wrinkles"
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1206,7 +1329,53 @@ export default function LandingPage() {
                       disabled={isLoading || socialLoading !== null}
                       className="bg-gray-900/50 border-gray-800 focus:border-primary/50"
                     />
+                    {isSignUp && password && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Password strength</span>
+                          <span className={`font-medium ${
+                            passwordStrength < 50 ? 'text-destructive' : 
+                            passwordStrength < 75 ? 'text-warning' : 'text-success'
+                          }`}>
+                            {passwordStrength < 50 ? 'Weak' : 
+                             passwordStrength < 75 ? 'Medium' : 'Strong'}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${passwordStrength}%` }}
+                            className={`h-full transition-colors ${
+                              passwordStrength < 50 ? 'bg-destructive' : 
+                              passwordStrength < 75 ? 'bg-warning' : 'bg-success'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  
+                  {isSignUp && (
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        disabled={isLoading || socialLoading !== null}
+                        className="bg-gray-900/50 border-gray-800 focus:border-primary/50"
+                      />
+                    </div>
+                  )}
+                  
+                  {isSignUp && (
+                    <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm text-muted-foreground">
+                      <p className="font-semibold text-primary mb-1">What happens next?</p>
+                      <p>You'll get instant access to the dashboard and all features. Your 7-day trial starts immediately. Cancel anytime — no questions asked.</p>
+                    </div>
+                  )}
                   
                   <Button 
                     type="submit" 

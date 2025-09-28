@@ -30,6 +30,7 @@ import React, { useEffect, useState } from 'react';
 import EngagingLoader from '@/components/engagement/EngagingLoader';
 import { useInitializeIdeas } from '@/hooks/useInitializeIdeas';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
+import Documentation from "./pages/Documentation";
 
 const RouteTransitionWrapper = () => {
   const location = useLocation();
@@ -38,6 +39,7 @@ const RouteTransitionWrapper = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/documentation" element={<Documentation />} />
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
