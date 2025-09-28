@@ -288,7 +288,7 @@ export default function EnterpriseHub() {
   }
   
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-auto">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -322,7 +322,7 @@ export default function EnterpriseHub() {
         </div>
       </div>
       
-      {/* Global Filters */}
+      {/* Global Filters - Made sticky with proper z-index */}
       <GlobalFilters
         onFiltersChange={handleFiltersChange}
         onExport={handleExportPDF}

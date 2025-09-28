@@ -63,7 +63,7 @@ export function GlobalFilters({ onFiltersChange, onExport, onRefresh, currentFil
   };
   
   return (
-    <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-lg border-b border-border p-4">
+    <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-lg border-b border-border p-4">
       <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
