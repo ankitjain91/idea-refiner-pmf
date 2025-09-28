@@ -71,7 +71,16 @@ serve(async (req) => {
     });
 
     const aiData = await response.json();
-    const analysis = JSON.parse(aiData.choices[0].message.content);
+    const content = aiData?.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content in OpenAI response');
+    }
+    let analysis;
+    try {
+      analysis = JSON.parse(content);
+    } catch (e) {
+      throw new Error('Failed to parse OpenAI JSON content');
+    }
 
     return new Response(JSON.stringify({
       status: 'ok',

@@ -148,13 +148,37 @@ serve(async (req) => {
     });
 
     const data = await response.json();
-    let insights = {};
+    let insights: any = {};
+
+    // Build safe defaults by analysis type
+    const defaultInsights = (type: string) => {
+      if (type === 'validation') {
+        return {
+          hasMinimumData: false,
+          missingFields: ['targetAudience','problemSolving','businessModel','marketSize','uniqueValue','competitorAnalysis'],
+          suggestedQuestions: [
+            'Who is your target customer? Describe their demographics and pain points.',
+            'What problem are you solving and how is it solved today?',
+            'How will you make money? What pricing will you use?'
+          ],
+          dataCompleteness: 0,
+          readyForDashboard: false
+        };
+      }
+      return { note: 'No insights available from AI yet' };
+    };
 
     try {
-      insights = JSON.parse(data.choices[0].message.content);
+      const content = data?.choices?.[0]?.message?.content;
+      if (content && typeof content === 'string') {
+        insights = JSON.parse(content);
+      } else {
+        console.error('Failed to parse insights: missing content', data);
+        insights = defaultInsights(analysisType);
+      }
     } catch (e) {
       console.error('Failed to parse insights:', e);
-      insights = { error: 'Failed to generate insights' };
+      insights = defaultInsights(analysisType);
     }
 
     // Store insights in database for historical tracking
