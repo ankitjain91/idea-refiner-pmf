@@ -1405,6 +1405,19 @@ const ChatMessageItem = useMemo(() => {
       localStorage.removeItem('currentIdea');
       localStorage.removeItem('wrinklePoints');
       localStorage.removeItem(LS_KEYS.userIdea);
+      localStorage.removeItem('conversationHistory');
+      localStorage.removeItem('ideaMetadata');
+      localStorage.removeItem(LS_KEYS.ideaMetadata);
+      localStorage.removeItem(LS_KEYS.analysisCompleted);
+      localStorage.removeItem(LS_KEYS.pmfScore);
+      // Remove session-specific persisted data for this session
+      const sid = currentSession?.id;
+      if (sid) {
+        localStorage.removeItem(`session_${sid}_idea`);
+        localStorage.removeItem(`session_${sid}_metadata`);
+        localStorage.removeItem(`session_${sid}_answers`);
+        localStorage.removeItem(`session_${sid}_conversation`);
+      }
     }
     
     // Fetch new random ideas for the reset
@@ -1970,7 +1983,7 @@ User submission: """${messageText}"""`;
             <Button
               variant="ghost"
               size="icon"
-              onClick={resetChat}
+              onClick={resetChatHandler}
               title="Start new analysis"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
