@@ -90,17 +90,18 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const ideaText = filters.idea_keywords?.join(' ') || 
     (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
   
-  const cacheKey = ideaText ? `market-trends:${ideaText}` : null;
+  // Include viewMode in cache key to refetch when switching modes
+  const cacheKey = ideaText ? `market-trends:${ideaText}:${viewMode}` : null;
   
   const { data, error, isLoading, mutate } = useSWR<TrendsData>(
     cacheKey,
     async (key) => {
-      const idea = key.replace('market-trends:', '');
+      const [, idea, mode] = key.split(':');
       const { data, error } = await supabase.functions.invoke('market-trends', {
         body: { 
           idea,
           keywords: idea.split(' ').filter(w => w.length > 2),
-          fetch_continents: viewMode === 'global'
+          fetch_continents: mode === 'global'
         }
       });
       
@@ -127,40 +128,71 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     }
   };
   
-  // Load data on mount if we have an idea
+  // Refetch data when viewMode changes
   useEffect(() => {
-    if (ideaText && !data && !isLoading) {
+    if (ideaText) {
       mutate();
     }
-  }, [ideaText]);
+  }, [viewMode, ideaText]);
 
-  // Prepare chart data
-  const chartData = data?.series ? (() => {
-    const searchSeries = data.series.find(s => s.name === 'search_interest');
-    const newsSeries = data.series.find(s => s.name === 'news_volume');
-    
-    if (!searchSeries && !newsSeries) return [];
-    
-    const maxLength = Math.max(
-      searchSeries?.data.length || 0,
-      newsSeries?.data.length || 0
-    );
-    
-    return Array.from({ length: maxLength }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - ((maxLength - i - 1) * 7));
+  // Prepare chart data based on view mode
+  const chartData = (() => {
+    if (viewMode === 'global' && data?.continentData && selectedContinent) {
+      const continentInfo = data.continentData[selectedContinent];
+      if (!continentInfo?.series) return [];
       
-      return {
-        week: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        searchInterest: searchSeries?.data[i] || 0,
-        newsVolume: newsSeries?.data[i] || 0
-      };
-    });
-  })() : [];
+      const searchSeries = continentInfo.series.find((s: any) => s.name === 'search_interest');
+      const newsSeries = continentInfo.series.find((s: any) => s.name === 'news_volume');
+      
+      if (!searchSeries && !newsSeries) return [];
+      
+      const maxLength = Math.max(
+        searchSeries?.data.length || 0,
+        newsSeries?.data.length || 0
+      );
+      
+      return Array.from({ length: maxLength }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - ((maxLength - i - 1) * 7));
+        
+        return {
+          week: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          searchInterest: searchSeries?.data[i] || 0,
+          newsVolume: newsSeries?.data[i] || 0
+        };
+      });
+    } else if (data?.series) {
+      const searchSeries = data.series.find(s => s.name === 'search_interest');
+      const newsSeries = data.series.find(s => s.name === 'news_volume');
+      
+      if (!searchSeries && !newsSeries) return [];
+      
+      const maxLength = Math.max(
+        searchSeries?.data.length || 0,
+        newsSeries?.data.length || 0
+      );
+      
+      return Array.from({ length: maxLength }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - ((maxLength - i - 1) * 7));
+        
+        return {
+          week: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          searchInterest: searchSeries?.data[i] || 0,
+          newsVolume: newsSeries?.data[i] || 0
+        };
+      });
+    }
+    return [];
+  })();
 
-  // Get trend direction
-  const trendDirection = data?.metrics?.find(m => m.name === 'Trend Direction')?.value || 'flat';
-  const momentum = data?.metrics?.find(m => m.name === 'News Momentum')?.value || '0';
+  // Get metrics based on view mode
+  const currentData = viewMode === 'global' && data?.continentData?.[selectedContinent] 
+    ? data.continentData[selectedContinent] 
+    : data;
+    
+  const trendDirection = currentData?.metrics?.find((m: any) => m.name === 'Trend Direction')?.value || 'flat';
+  const momentum = currentData?.metrics?.find((m: any) => m.name === 'News Momentum')?.value || '0';
   
   const getTrendIcon = () => {
     switch (trendDirection) {
@@ -261,6 +293,20 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-base">Market Trends Analysis</CardTitle>
             <div className="flex items-center gap-2">
+              {viewMode === 'global' && data?.continentData && (
+                <Select value={selectedContinent} onValueChange={setSelectedContinent}>
+                  <SelectTrigger className="w-[160px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(data.continentData).map((continent) => (
+                      <SelectItem key={continent} value={continent}>
+                        {continent}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'global' | 'single')}>
                 <TabsList className="h-8">
                   <TabsTrigger value="single" className="text-xs">Single</TabsTrigger>
@@ -393,9 +439,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
 
           {/* Key metrics */}
-          {data?.metrics && data.metrics.length > 0 && (
+          {currentData?.metrics && currentData.metrics.length > 0 && (
             <div className="grid grid-cols-2 gap-3">
-              {data.metrics.slice(0, 4).map((metric, idx) => (
+              {currentData.metrics.slice(0, 4).map((metric: any, idx: number) => (
                 <div key={idx} className="bg-muted/10 rounded-lg p-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {metric.name}
@@ -426,13 +472,13 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
 
           {/* Top rising queries */}
-          {data.top_queries && data.top_queries.length > 0 && (
+          {currentData?.top_queries && currentData.top_queries.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Top Rising Queries
+                Top Rising Queries {viewMode === 'global' && `- ${selectedContinent}`}
               </h4>
               <div className="flex flex-wrap gap-2">
-                {data.top_queries.slice(0, 6).map((query, idx) => (
+                {currentData.top_queries.slice(0, 6).map((query: any, idx: number) => (
                   <Badge key={idx} variant="secondary" className="text-xs">
                     {query.query}
                     {query.change && (
@@ -445,11 +491,11 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
 
           {/* Warnings */}
-          {data.warnings && data.warnings.length > 0 && (
+          {currentData?.warnings && currentData.warnings.length > 0 && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                {data.warnings[0]}
+                {currentData.warnings[0]}
               </AlertDescription>
             </Alert>
           )}
