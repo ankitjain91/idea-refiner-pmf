@@ -20,13 +20,13 @@ All colors MUST be HSL.
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 2%;
     --popover-foreground: 0 0% 95%;
-    --primary: 198 93% 60%;  /* Electric Cyan */
+    --primary: 198 93% 50%;  /* Darker Electric Cyan */
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 8%;
     --secondary-foreground: 0 0% 95%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
-    --accent: 165 82% 51%;  /* Teal Accent */
+    --accent: 165 82% 40%;  /* Darker Teal Accent */
     --accent-foreground: 0 0% 98%;
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
@@ -90,13 +90,13 @@ All colors MUST be HSL.
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 2%;
     --popover-foreground: 0 0% 95%;
-    --primary: 198 93% 60%;
+    --primary: 198 93% 50%;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 8%;
     --secondary-foreground: 0 0% 95%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
-    --accent: 165 82% 51%;
+    --accent: 165 82% 40%;
     --accent-foreground: 0 0% 98%;
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;

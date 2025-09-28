@@ -756,13 +756,15 @@ Respond naturally as their mentor. JSON format.` }
       console.error('Optimized combined call failed, falling back:', e);
     }
 
-    let aiResponse: string = modelJson?.response || 'Let me push you to get more specific—what real evidence backs this direction?';
+    let aiResponse: string = modelJson?.response || "I need more context to provide meaningful feedback. Could you share more details about your idea?";
     
     // Apply additional summarization for summary mode
     if (responseMode === 'summary' && aiResponse.length > 150) {
       // Extract the most important sentence or two
       const sentences = aiResponse.split(/[.!?]+/).filter(s => s.trim());
-      aiResponse = sentences.slice(0, 2).join('. ') + '.';
+      // Make sure we have at least one sentence, but no more than 2
+      const sentenceCount = Math.min(Math.max(1, sentences.length), 2);
+      aiResponse = sentences.slice(0, sentenceCount).join('. ') + '.';
     }
     
     let suggestions: string[] = Array.isArray(modelJson?.suggestions) ? modelJson.suggestions.slice(0,4).map((s: any)=>String(s)) : [];

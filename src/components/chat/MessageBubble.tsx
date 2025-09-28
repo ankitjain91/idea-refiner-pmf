@@ -53,7 +53,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className={cn(
                 'rounded-2xl px-5 py-3.5 shadow-md transition-all duration-200',
                 msg.type === 'user'
-                  ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground ml-auto'
+                  ? 'bg-black/80 backdrop-blur-xl border border-primary/20 text-white ml-auto'
                   : 'bg-card border border-border/50 hover:shadow-lg'
               )}
             >
