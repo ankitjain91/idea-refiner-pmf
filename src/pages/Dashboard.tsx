@@ -970,14 +970,29 @@ const Dashboard = () => {
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">24-Hour Predictions</h3>
                 <div className="space-y-3">
-                  {Object.entries(realtime.predictions).map(([key, value]: [string, any]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                      <span className="font-semibold">{value}</span>
-                    </div>
-                  ))}
+                  {Object.entries(realtime.predictions).map(([key, value]: [string, any]) => {
+                    // Handle nested objects in predictions
+                    let displayValue = value;
+                    if (typeof value === 'object' && value !== null) {
+                      // If it's an object with newSignups and expectedRevenue, format it nicely
+                      if ('newSignups' in value || 'expectedRevenue' in value) {
+                        displayValue = value.newSignups 
+                          ? `${value.newSignups} signups${value.expectedRevenue ? ` • $${value.expectedRevenue}` : ''}`
+                          : JSON.stringify(value);
+                      } else {
+                        displayValue = JSON.stringify(value);
+                      }
+                    }
+                    
+                    return (
+                      <div key={key} className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <span className="font-semibold">{displayValue}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </Card>
             )}
