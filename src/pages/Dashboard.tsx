@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { DataCompletionCard, useIdeaValidation } from '@/components/dashboard/DataValidation';
-import { AnalysisChat } from '@/components/dashboard/AnalysisChat';
+import { EnhancedAnalysisChat } from '@/components/dashboard/EnhancedAnalysisChat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -283,7 +283,7 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-4xl mx-auto"
         >
-          <AnalysisChat
+            <EnhancedAnalysisChat
             idea={idea} // Pass the idea even if null, component will check localStorage
             sessionId={currentSession?.id || ''}
             onComplete={(ideaText) => {
@@ -427,7 +427,7 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <AnalysisChat
+            <EnhancedAnalysisChat
               idea={idea}
               onComplete={() => {
                 setShowAnalysis(false);
