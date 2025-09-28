@@ -155,6 +155,17 @@ async function timedFetch(resource: string, init: RequestInit & { timeoutMs?: nu
 async function openAIChatRequest(body: any, { retries = 2 }: { retries?: number } = {}) {
   let attempt = 0;
   let lastError: any = null;
+  
+  // Use o4-mini model by default, unless specified
+  if (!body.model) {
+    body.model = 'o4-mini-2025-04-16';
+  }
+  
+  // Remove temperature for newer models (o4-mini doesn't support it)
+  if (body.model.startsWith('o4-') || body.model.startsWith('o3-')) {
+    delete body.temperature;
+  }
+  
   while (attempt <= retries) {
     try {
       const resp = await timedFetch('https://api.openai.com/v1/chat/completions', {
@@ -493,14 +504,13 @@ Generate a comprehensive PMF analysis with REAL data in this exact JSON format:
 
       try {
         const analysisData = await openAIChatRequest({
-          model: 'gpt-4o-mini',
+          model: 'o4-mini-2025-04-16',
             messages: [
               { role: 'system', content: 'Return only valid JSON for PMF analysis.' },
               { role: 'user', content: analysisPrompt }
             ],
             response_format: { type: 'json_object' },
-            max_tokens: 1100,
-            temperature: 0.25
+            max_tokens: 1100
         }, { retries: 1 });
         const content = analysisData.choices?.[0]?.message?.content || '';
         
@@ -599,7 +609,7 @@ Be the tough mentor who asks the hard questions now, so they don't fail later.`;
       let aiResponse = '';
       try {
         const mainData = await openAIChatRequest({
-          model: 'gpt-4o',
+          model: 'o4-mini-2025-04-16',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Rigorously scrutinize this answer: "${message}"
@@ -608,8 +618,7 @@ Challenge every assumption. Point out risks they're ignoring. Ask for proof and 
 Compare to real companies that tried similar things. Be tough but constructive.
 Make them think harder and validate better. This is how great ideas are forged.` }
           ],
-          max_tokens: 500,
-          temperature: 0.8
+          max_tokens: 500
         });
         aiResponse = mainData.choices?.[0]?.message?.content || '';
       } catch (e) {
@@ -665,9 +674,8 @@ The 'suggestions' are what the USER might naturally say next in this conversatio
     const wantsStream = (req.headers.get('x-stream') === '1');
     if (wantsStream) {
       const body = {
-        model: 'gpt-4o-mini',
+        model: 'o4-mini-2025-04-16',
         stream: true,
-        temperature: refinementMode ? 0.7 : 0.75,
         messages: [
           { role: 'system', content: systemPrompt },
           ...conversationHistory.slice(-2),
@@ -735,9 +743,8 @@ The 'suggestions' are what the USER might naturally say next in this conversatio
     try {
       // ALWAYS generate detailed response first
       const detailedRequest = await openAIChatRequest({
-        model: 'gpt-4o-mini',
+        model: 'o4-mini-2025-04-16',
         response_format: { type: 'json_object' },
-        temperature: refinementMode ? 0.8 : 0.85,
         max_tokens: 650, // Always use full token count for detailed
         messages: [
           { role: 'system', content: systemPrompt },
@@ -758,9 +765,8 @@ Respond naturally as their mentor. JSON format.` }
       // Always generate both detailed and summary versions
       try {
         const summaryRequest = await openAIChatRequest({
-          model: 'gpt-4o-mini',
+          model: 'o4-mini-2025-04-16',
           max_tokens: 150,
-          temperature: 0.7,
           messages: [
             { role: 'system', content: 'Summarize this response in 2-3 sentences max (under 50 words). Keep the key insight and maintain conversational tone. Be punchy and direct.' },
             { role: 'user', content: detailedResponse }
