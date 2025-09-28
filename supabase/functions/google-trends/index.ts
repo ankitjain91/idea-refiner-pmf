@@ -26,8 +26,9 @@ serve(async (req) => {
   try {
     const { idea_keywords, geo = 'US', time_window = 'last_12_months', fetch_continents = false } = await req.json();
     
+    // Join keywords into a simple search query
     const query = Array.isArray(idea_keywords) 
-      ? idea_keywords.join(' ') 
+      ? idea_keywords.slice(0, 3).join(' ')  // Limit to 3 keywords max
       : (idea_keywords || '');
     
     console.log('[google-trends] Processing request:', { query, geo, time_window, fetch_continents });

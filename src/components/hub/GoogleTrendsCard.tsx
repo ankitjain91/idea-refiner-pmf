@@ -79,12 +79,29 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     ? ideaKeywords.join(' ')
     : (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
   
-  const keywords = ideaText.split(' ').filter(w => w.length > 2);
+  // Extract key concepts for better Google Trends results
+  let keywords: string[] = [];
+  if (ideaText.toLowerCase().includes('mental wellness') || ideaText.toLowerCase().includes('mental health')) {
+    keywords = ['mental health', 'remote work', 'burnout'];
+  } else if (ideaText.toLowerCase().includes('wellness')) {
+    keywords = ['employee wellness', 'remote teams'];
+  } else {
+    // Fallback to simplified keywords
+    keywords = ideaText.split(' ')
+      .filter(w => w.length > 3 && !['with', 'that', 'this', 'from', 'have'].includes(w.toLowerCase()))
+      .slice(0, 2);
+  }
+  
+  console.log('[GoogleTrendsCard] Simplified keywords for trends:', keywords);
   const geo = filters.geo || 'US';
   const timeWindow = filters.time_window || 'last_12_months';
 
   const fetchTrendsData = async (fetchContinents = false) => {
     if (keywords.length === 0) return;
+    
+    // Use simplified keywords for better Google Trends results
+    const trendsKeywords = keywords.slice(0, 3); // Max 3 keywords for better results
+    console.log('[GoogleTrendsCard] Using keywords:', trendsKeywords);
     
     setLoading(true);
     setError(null);
@@ -92,7 +109,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     try {
       const { data: trendsData, error: trendsError } = await supabase.functions.invoke('google-trends', {
         body: { 
-          idea_keywords: keywords,
+          idea_keywords: trendsKeywords,
           geo,
           time_window: timeWindow,
           fetch_continents: fetchContinents
