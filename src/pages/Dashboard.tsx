@@ -440,19 +440,112 @@ const Dashboard = () => {
           </motion.div>
         )}
         
-        {/* Data Validation Card */}
-        {validation && !validation.readyForDashboard && (
-          <div className="mb-6">
-            <DataCompletionCard
-              validation={validation}
-              onAskQuestion={(question) => {
-                // Store question and navigate to IdeaChat
-                localStorage.setItem('pendingQuestion', question);
-                navigate('/ideachat');
-              }}
-              onGoToDashboard={() => refresh()}
-            />
-          </div>
+        {/* Enhanced Data Validation & Recommended Actions Card */}
+        {validation && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            {!validation.readyForDashboard ? (
+              <DataCompletionCard
+                validation={validation}
+                onAskQuestion={(question) => {
+                  localStorage.setItem('pendingQuestion', question);
+                  navigate('/ideachat');
+                }}
+                onGoToDashboard={() => refresh()}
+              />
+            ) : (
+              <Card className="p-6 border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Dashboard Ready</h3>
+                      <p className="text-sm text-muted-foreground">
+                        All data loaded • {validation.dataCompleteness}% complete
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="bg-green-500/20 text-green-500 border-green-500/50">
+                      <Activity className="h-3 w-3 mr-1 animate-pulse" />
+                      Live Data
+                    </Badge>
+                    {autoRefresh && (
+                      <Badge variant="outline" className="text-xs">
+                        Auto-refreshing
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Recommended Actions */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Recommended Actions:</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTab("market")}
+                      className="justify-start gap-2 hover:border-blue-500/50 hover:bg-blue-500/5"
+                    >
+                      <TrendingUp className="h-4 w-4 text-blue-500" />
+                      Review Market Trends
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTab("competition")}
+                      className="justify-start gap-2 hover:border-purple-500/50 hover:bg-purple-500/5"
+                    >
+                      <Users className="h-4 w-4 text-purple-500" />
+                      Analyze Competitors
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTab("channels")}
+                      className="justify-start gap-2 hover:border-orange-500/50 hover:bg-orange-500/5"
+                    >
+                      <Rocket className="h-4 w-4 text-orange-500" />
+                      Optimize Channels
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowAnalysis(true)}
+                      className="justify-start gap-2 hover:border-yellow-500/50 hover:bg-yellow-500/5"
+                    >
+                      <Sparkles className="h-4 w-4 text-yellow-500" />
+                      Refine Analysis
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Data Status */}
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-4">
+                      <span className="text-muted-foreground">Data Sources:</span>
+                      <div className="flex items-center gap-2">
+                        {metrics && <Badge variant="outline" className="text-xs">Metrics ✓</Badge>}
+                        {market && <Badge variant="outline" className="text-xs">Market ✓</Badge>}
+                        {competition && <Badge variant="outline" className="text-xs">Competition ✓</Badge>}
+                        {channels && <Badge variant="outline" className="text-xs">Channels ✓</Badge>}
+                      </div>
+                    </div>
+                    <span className="text-muted-foreground">
+                      Last updated: {new Date().toLocaleTimeString()}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </motion.div>
         )}
 
         {/* Interactive Suggestions */}

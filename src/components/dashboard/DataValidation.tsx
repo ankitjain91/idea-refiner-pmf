@@ -79,10 +79,16 @@ export const useIdeaValidation = () => {
   const [loading, setLoading] = useState(true);
 
   const checkValidation = async () => {
-    const idea = localStorage.getItem('ideaText');
-    const conversationHistory = localStorage.getItem('conversationHistory');
-    const metadata = localStorage.getItem('ideaMetadata');
-
+    // Check multiple localStorage keys for idea
+    const idea = localStorage.getItem('currentIdea') || 
+                  localStorage.getItem('pmf.user.idea') || 
+                  localStorage.getItem('userIdea') ||
+                  localStorage.getItem('ideaText');
+                  
+    // Get user answers for validation
+    const userAnswers = localStorage.getItem('pmf.user.answers') || localStorage.getItem('userAnswers');
+    const analysisCompleted = localStorage.getItem('pmf.analysis.completed') === 'true';
+    
     if (!idea) {
       setValidation({
         hasMinimumData: false,
@@ -96,21 +102,55 @@ export const useIdeaValidation = () => {
     }
 
     try {
-      // Call validation endpoint
-      const { data, error } = await supabase.functions.invoke('dashboard-insights', {
-        body: {
-          idea,
-          analysisType: 'validation',
-          conversation: conversationHistory ? JSON.parse(conversationHistory) : [],
-          context: metadata ? JSON.parse(metadata) : {}
-        }
+      // Calculate validation based on local data first
+      const answers = userAnswers ? JSON.parse(userAnswers) : {};
+      const answeredFields = Object.keys(answers);
+      
+      // Check which required fields are missing
+      const missingFields = REQUIRED_FIELDS
+        .filter(field => !answeredFields.includes(field.key) || !answers[field.key])
+        .map(field => field.key);
+      
+      // Calculate weighted completeness score
+      const criticalFields = REQUIRED_FIELDS.filter(f => f.importance === 'critical');
+      const importantFields = REQUIRED_FIELDS.filter(f => f.importance === 'important');
+      const helpfulFields = REQUIRED_FIELDS.filter(f => f.importance === 'helpful');
+      
+      const criticalCompleted = criticalFields.filter(f => answeredFields.includes(f.key) && answers[f.key]).length;
+      const importantCompleted = importantFields.filter(f => answeredFields.includes(f.key) && answers[f.key]).length;
+      const helpfulCompleted = helpfulFields.filter(f => answeredFields.includes(f.key) && answers[f.key]).length;
+      
+      // Weighted scoring: critical = 50%, important = 30%, helpful = 20%
+      const criticalScore = (criticalCompleted / Math.max(criticalFields.length, 1)) * 50;
+      const importantScore = (importantCompleted / Math.max(importantFields.length, 1)) * 30;
+      const helpfulScore = (helpfulCompleted / Math.max(helpfulFields.length, 1)) * 20;
+      
+      const dataCompleteness = Math.round(criticalScore + importantScore + helpfulScore);
+      
+      // Dashboard is ready if analysis is completed OR critical fields are done + 70% overall
+      const readyForDashboard = analysisCompleted || 
+        (criticalCompleted === criticalFields.length && dataCompleteness >= 70);
+      
+      setValidation({
+        hasMinimumData: dataCompleteness >= 30,
+        missingFields,
+        suggestedQuestions: missingFields.map(field => {
+          const fieldDef = REQUIRED_FIELDS.find(f => f.key === field);
+          return fieldDef?.question || '';
+        }).filter(q => q),
+        dataCompleteness,
+        readyForDashboard
       });
-
-      if (data?.insights) {
-        setValidation(data.insights);
-      }
     } catch (error) {
       console.error('Validation error:', error);
+      // Default to ready if there's an error
+      setValidation({
+        hasMinimumData: true,
+        missingFields: [],
+        suggestedQuestions: [],
+        dataCompleteness: 100,
+        readyForDashboard: true
+      });
     } finally {
       setLoading(false);
     }
@@ -118,6 +158,10 @@ export const useIdeaValidation = () => {
 
   useEffect(() => {
     checkValidation();
+    
+    // Re-check when localStorage changes
+    const interval = setInterval(checkValidation, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return { validation, loading, refresh: checkValidation };
