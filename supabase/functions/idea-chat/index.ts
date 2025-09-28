@@ -755,31 +755,29 @@ Respond naturally as their mentor. JSON format.` }
       modelJson = safeParseJSON(content) || {};
       detailedResponse = modelJson?.response || "I need more context to provide meaningful feedback. Could you share more details about your idea?";
       
-      // If summary mode requested, create a summary of the detailed response
-      if (responseMode === 'summary') {
-        try {
-          const summaryRequest = await openAIChatRequest({
-            model: 'gpt-4o-mini',
-            max_tokens: 150,
-            temperature: 0.7,
-            messages: [
-              { role: 'system', content: 'Summarize this response in 2-3 sentences max (under 50 words). Keep the key insight and maintain conversational tone. Be punchy and direct.' },
-              { role: 'user', content: detailedResponse }
-            ]
-          });
-          summaryResponse = summaryRequest.choices?.[0]?.message?.content || '';
-          
-          // Fallback: if summary generation fails, extract first 2 sentences
-          if (!summaryResponse) {
-            const sentences = detailedResponse.split(/[.!?]+/).filter(s => s.trim());
-            summaryResponse = sentences.slice(0, 2).join('. ') + '.';
-          }
-        } catch (e) {
-          console.error('Summary generation failed:', e);
-          // Fallback to simple truncation
+      // Always generate both detailed and summary versions
+      try {
+        const summaryRequest = await openAIChatRequest({
+          model: 'gpt-4o-mini',
+          max_tokens: 150,
+          temperature: 0.7,
+          messages: [
+            { role: 'system', content: 'Summarize this response in 2-3 sentences max (under 50 words). Keep the key insight and maintain conversational tone. Be punchy and direct.' },
+            { role: 'user', content: detailedResponse }
+          ]
+        });
+        summaryResponse = summaryRequest.choices?.[0]?.message?.content || '';
+        
+        // Fallback: if summary generation fails, extract first 2 sentences
+        if (!summaryResponse) {
           const sentences = detailedResponse.split(/[.!?]+/).filter(s => s.trim());
           summaryResponse = sentences.slice(0, 2).join('. ') + '.';
         }
+      } catch (e) {
+        console.error('Summary generation failed:', e);
+        // Fallback to simple truncation
+        const sentences = detailedResponse.split(/[.!?]+/).filter(s => s.trim());
+        summaryResponse = sentences.slice(0, 2).join('. ') + '.';
       }
     } catch (e) {
       console.error('Response generation failed:', e);
@@ -787,8 +785,8 @@ Respond naturally as their mentor. JSON format.` }
       summaryResponse = "Need more details to help. What specific aspect should we focus on?";
     }
 
-    // Use summary if in summary mode, otherwise use detailed
-    let aiResponse: string = responseMode === 'summary' ? summaryResponse : detailedResponse;
+    // Always use detailed response now (summary handled by UI button)
+    let aiResponse: string = detailedResponse;
     
     let suggestions: string[] = Array.isArray(modelJson?.suggestions) ? modelJson.suggestions.slice(0,4).map((s: any)=>String(s)) : [];
 
@@ -828,7 +826,7 @@ Respond naturally as their mentor. JSON format.` }
       JSON.stringify({
         response: aiResponse,
         detailedResponse: detailedResponse,  // Always include the full detailed version
-        summaryResponse: summaryResponse || aiResponse,  // Include summary (same as response if not in summary mode)
+        summaryResponse: summaryResponse,     // Always include the summary version
         suggestions,
         metadata: {
           hasIdea: !!idea,
