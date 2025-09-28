@@ -133,6 +133,60 @@ export type Database = {
           },
         ]
       }
+      idea_analyses: {
+        Row: {
+          benchmarks: Json | null
+          competitors: Json | null
+          created_at: string
+          focus_zones: Json | null
+          gtm_strategy: Json | null
+          id: string
+          idea_text: string
+          implementation_strategy: Json | null
+          last_refreshed_at: string | null
+          market_size: Json | null
+          marketing_channels: Json | null
+          personas: Json | null
+          profit_potential: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          benchmarks?: Json | null
+          competitors?: Json | null
+          created_at?: string
+          focus_zones?: Json | null
+          gtm_strategy?: Json | null
+          id?: string
+          idea_text: string
+          implementation_strategy?: Json | null
+          last_refreshed_at?: string | null
+          market_size?: Json | null
+          marketing_channels?: Json | null
+          personas?: Json | null
+          profit_potential?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          benchmarks?: Json | null
+          competitors?: Json | null
+          created_at?: string
+          focus_zones?: Json | null
+          gtm_strategy?: Json | null
+          id?: string
+          idea_text?: string
+          implementation_strategy?: Json | null
+          last_refreshed_at?: string | null
+          market_size?: Json | null
+          marketing_channels?: Json | null
+          personas?: Json | null
+          profit_potential?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ideas: {
         Row: {
           category: string | null
@@ -189,6 +243,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      implementation_tasks: {
+        Row: {
+          analysis_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_completed: boolean | null
+          task_category: string
+          task_name: string
+        }
+        Insert: {
+          analysis_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          task_category: string
+          task_name: string
+        }
+        Update: {
+          analysis_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          task_category?: string
+          task_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implementation_tasks_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "idea_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -261,6 +353,38 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      realtime_metrics: {
+        Row: {
+          analysis_id: string
+          id: string
+          metric_type: string
+          metric_value: Json
+          timestamp: string
+        }
+        Insert: {
+          analysis_id: string
+          id?: string
+          metric_type: string
+          metric_value: Json
+          timestamp?: string
+        }
+        Update: {
+          analysis_id?: string
+          id?: string
+          metric_type?: string
+          metric_value?: Json
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "realtime_metrics_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "idea_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refinements: {
         Row: {
