@@ -111,7 +111,15 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
   // Fetch AI suggestion when question changes
   useEffect(() => {
     const fetchAISuggestion = async () => {
-      if (!currentQuestion || !hasEnteredIdea) return;
+      console.log('=== fetchAISuggestion useEffect triggered ===');
+      console.log('hasEnteredIdea:', hasEnteredIdea);
+      console.log('currentQuestion:', currentQuestion);
+      console.log('ideaText:', ideaText);
+      
+      if (!currentQuestion || !hasEnteredIdea) {
+        console.log('Skipping suggestion fetch - missing requirements');
+        return;
+      }
       
       setLoadingSuggestion(true);
       setAiSuggestion('');
@@ -120,7 +128,9 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
         const conversationKey = sessionId ? `session_${sessionId}_conversation` : 'conversationHistory';
         const conversationHistory = JSON.parse(localStorage.getItem(conversationKey) || '[]');
         
-        console.log('Fetching AI suggestion for:', currentQuestion.field);
+        console.log('About to invoke generate-analysis-suggestions');
+        console.log('Field:', currentQuestion.field);
+        console.log('Question:', currentQuestion.question);
         
         const { data, error } = await supabase.functions.invoke('generate-analysis-suggestions', {
           body: {
@@ -131,7 +141,7 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
             previousAnswers: answers
           }
         });
-        console.log('Suggestion invoke result:', { data, error });
+        console.log('Suggestion invoke completed:', { data, error });
         
         if (error) {
           console.error('Error from edge function:', error);
@@ -179,6 +189,9 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
   }, [currentQuestionIndex, currentQuestion, hasEnteredIdea, ideaText]);
 
   const handleSubmitIdea = () => {
+    console.log('=== handleSubmitIdea called ===');
+    console.log('ideaInput:', ideaInput);
+    
     if (!ideaInput.trim()) {
       toast({
         title: "Idea Required",
@@ -215,9 +228,11 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
       onComplete(ideaInput);
     }
     
+    console.log('Setting ideaText and hasEnteredIdea to true');
     setIdeaText(ideaInput);
     setHasEnteredIdea(true);
     setIdeaInput('');
+    console.log('State updated - should trigger suggestion fetch');
     
   };
 
