@@ -13,6 +13,7 @@ serve(async (req) => {
 
   try {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const openAIUsageKey = Deno.env.get('OPENAI_USAGE_API_KEY');
     
     if (!openAIApiKey) {
       return new Response(
@@ -26,7 +27,7 @@ serve(async (req) => {
 
     console.log('Testing OpenAI API key validity...');
     
-    // First, test if the API key is valid by making a simple request
+    // First, test if the main API key is valid by making a simple request
     const testResponse = await fetch('https://api.openai.com/v1/models', {
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
@@ -51,25 +52,70 @@ serve(async (req) => {
       );
     }
     
-    console.log('API key is valid, attempting to fetch billing data...');
+    console.log('API key is valid');
     
-    // Note: OpenAI's billing/usage APIs are restricted and require special permissions
-    // Most API keys don't have access to billing endpoints
-    // The following endpoints are deprecated or restricted:
-    // - /v1/usage
-    // - /v1/dashboard/billing/usage
-    // - /v1/dashboard/billing/subscription
+    // If we have a separate usage key, try to fetch organization usage
+    if (openAIUsageKey) {
+      console.log('Attempting to fetch organization usage with separate usage key...');
+      
+      try {
+        // Try to fetch organization usage
+        const currentDate = new Date();
+        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        const usageResponse = await fetch(
+          `https://api.openai.com/v1/usage?date=${startDate.toISOString().split('T')[0]}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${openAIUsageKey}`,
+              'Content-Type': 'application/json',
+              'OpenAI-Organization': 'org-' // Organization ID may be needed
+            }
+          }
+        );
+        
+        if (usageResponse.ok) {
+          const usageData = await usageResponse.json();
+          console.log('Successfully fetched usage data');
+          
+          return new Response(
+            JSON.stringify({
+              status: 'success',
+              message: 'Successfully fetched OpenAI usage data',
+              usage: usageData,
+              keyInfo: {
+                valid: true,
+                keyPrefix: openAIApiKey.substring(0, 7) + '...',
+                usageKeyPrefix: openAIUsageKey.substring(0, 7) + '...'
+              }
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        } else {
+          const errorText = await usageResponse.text();
+          console.error('Failed to fetch usage data:', errorText);
+        }
+      } catch (usageError) {
+        console.error('Error fetching usage data:', usageError);
+      }
+    }
     
-    // Since billing APIs are restricted, we'll return a message about this limitation
+    // If no usage key or usage fetch failed, return standard response
     return new Response(
       JSON.stringify({
         status: 'api_key_valid',
         message: 'Your OpenAI API key is valid and working',
-        billingNote: 'OpenAI billing/usage APIs require special permissions that are not available with standard API keys',
+        billingNote: openAIUsageKey 
+          ? 'Unable to fetch usage data with the provided usage key' 
+          : 'Add OPENAI_USAGE_API_KEY to fetch organization usage data',
         recommendation: 'Track your usage through the OpenAI platform dashboard at https://platform.openai.com/usage',
         keyInfo: {
           valid: true,
-          keyPrefix: openAIApiKey.substring(0, 7) + '...'
+          keyPrefix: openAIApiKey.substring(0, 7) + '...',
+          hasUsageKey: !!openAIUsageKey
         }
       }),
       { 
