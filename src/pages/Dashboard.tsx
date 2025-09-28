@@ -1,279 +1,481 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
-import { LS_KEYS } from '@/lib/storage-keys';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Loader2, Brain, Target, TrendingUp, Clock, Search,
-  BarChart3, Zap, Briefcase, FileText, ChevronRight,
-  CircleDollarSign, Users, Globe, Sparkles, Activity
+  BarChart3, Zap, Users, Globe, Sparkles, Activity,
+  CircleDollarSign, RefreshCw, AlertCircle, CheckCircle,
+  ArrowUp, ArrowDown, Shield, Rocket, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MarketingChannels } from '@/components/dashboard/MarketingChannels';
-import { MarketingCharts } from '@/components/dashboard/MarketingCharts';
-import { useRealtimeInsights } from '@/hooks/useRealtimeInsights';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 const Dashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [analysis, setAnalysis] = useState<{ idea: string; metadata: any } | null>(null);
+  const [idea, setIdea] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [pointsBalance, setPointsBalance] = useState(1250);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Fetch real-time insights
-  const { snapshot, loading: insightsLoading, lastUpdated, refresh } = useRealtimeInsights(
-    analysis?.idea,
-    analysis?.metadata?.personas
-  );
-
+  // Load idea from localStorage
   useEffect(() => {
-    if (loading) return;
-    if (!user) return;
+    const storedIdea = localStorage.getItem('ideaText');
+    const ideaMetadata = localStorage.getItem('ideaMetadata');
     
-    // Always set demo/default data if no analysis exists
-    const idea = localStorage.getItem(LS_KEYS.userIdea) || "AI-powered startup validation platform";
-    const metaRaw = localStorage.getItem(LS_KEYS.ideaMetadata);
-    
-    let metadata;
-    try {
-      metadata = metaRaw ? JSON.parse(metaRaw) : null;
-    } catch {
-      metadata = null;
-    }
-    
-    // Use existing data or demo data
-    setAnalysis({
-      idea,
-      metadata: metadata || {
-        pmfScore: 72,
-        competitors: ['Competitor A', 'Competitor B', 'Competitor C'],
-        refinements: ['Improve onboarding', 'Add analytics', 'Enhance UI'],
-        personas: ['Founders', 'Product Managers', 'Investors']
+    if (storedIdea) {
+      try {
+        const metadata = ideaMetadata ? JSON.parse(ideaMetadata) : null;
+        setIdea(metadata?.refined || storedIdea);
+      } catch {
+        setIdea(storedIdea);
       }
-    });
-  }, [loading, user]);
+    }
+  }, []);
 
+  // Fetch real-time data
+  const { 
+    metrics, 
+    market, 
+    competition, 
+    channels, 
+    realtime, 
+    loading, 
+    error, 
+    refresh 
+  } = useDashboardData(idea);
+
+  // Auto-refresh
   useEffect(() => {
-    if (!loading && !user) navigate('/', { state: { from: { pathname: '/dashboard' }, openAuthModal: true } });
-  }, [user, loading, navigate]);
+    if (!autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      refresh();
+    }, 30000); // Refresh every 30 seconds
 
-  if (loading || !analysis) {
+    return () => clearInterval(interval);
+  }, [autoRefresh, refresh]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/', { state: { from: { pathname: '/dashboard' }, openAuthModal: true } });
+    }
+  }, [user, authLoading, navigate]);
+
+  if (authLoading || loading) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-black'>
         <div className="flex flex-col items-center gap-4">
           <Loader2 className='h-8 w-8 animate-spin text-primary' />
-          <p className="text-sm text-muted-foreground">Initializing dashboard...</p>
+          <p className="text-sm text-muted-foreground">Loading real-time insights...</p>
         </div>
       </div>
     );
   }
 
-  const { idea, metadata } = analysis;
-  const profitScore = snapshot?.profitScore || 72;
+  if (!idea) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-black'>
+        <Card className="p-8 max-w-md">
+          <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">No Idea Found</h2>
+          <p className="text-muted-foreground mb-4">Please complete your idea analysis in IdeaChat first.</p>
+          <Button onClick={() => navigate('/ideachat')} className="w-full">
+            Go to IdeaChat
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const pmfScore = metrics?.pmfScore || 0;
+  const activeUsers = realtime?.activeUsers || 0;
+  const dailyRevenue = realtime?.dailyRevenue || 0;
 
   return (
     <div className='flex-1 flex flex-col h-full bg-black'>
-      {/* Top Bar */}
+      {/* Header */}
       <header className="glass-header border-b border-white/5 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Project Switcher */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card border border-white/5 hover:border-white/10 transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card border border-white/5">
               <Brain className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-white">{idea.slice(0, 30)}...</span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <span className="text-sm font-medium text-white">{idea.slice(0, 40)}...</span>
             </div>
 
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Search insights..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-64 h-8 bg-white/5 border-white/10 text-white placeholder:text-muted-foreground focus:border-primary/50"
+                className="pl-9 w-64 h-8 bg-white/5 border-white/10"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Points Balance */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card border border-white/5">
-              <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-              <span className="text-sm font-semibold text-white">{pointsBalance.toLocaleString()}</span>
-              <span className="text-xs text-muted-foreground">points</span>
-            </div>
-
-            {/* User Menu */}
-            <Button size="sm" variant="ghost" className="h-8 px-2">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary to-primary/60" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className={cn("gap-2", autoRefresh && "border-green-500/50")}
+            >
+              <RefreshCw className={cn("h-4 w-4", autoRefresh && "animate-spin")} />
+              {autoRefresh ? "Live" : "Paused"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={refresh}>
+              Refresh Now
             </Button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 p-6 overflow-auto">
-        {/* Sidebar Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="glass-card border-white/5 p-1 w-fit">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-white/10">
-              <Activity className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="data-[state=active]:bg-white/10">
-              <Brain className="h-4 w-4 mr-2" />
-              Insights
-            </TabsTrigger>
-            <TabsTrigger value="focus" className="data-[state=active]:bg-white/10">
-              <Target className="h-4 w-4 mr-2" />
-              Focus
-            </TabsTrigger>
-            <TabsTrigger value="marketing" className="data-[state=active]:bg-white/10">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Marketing
-            </TabsTrigger>
-            <TabsTrigger value="strategy" className="data-[state=active]:bg-white/10">
-              <Briefcase className="h-4 w-4 mr-2" />
-              Strategy
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-white/10">
-              <FileText className="h-4 w-4 mr-2" />
-              Reports
-            </TabsTrigger>
+      <div className="flex-1 overflow-auto p-6">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <MetricCard
+            title="PMF Score"
+            value={pmfScore}
+            suffix="%"
+            icon={Target}
+            trend={pmfScore > 70 ? "up" : pmfScore > 40 ? "stable" : "down"}
+            color="blue"
+          />
+          <MetricCard
+            title="Active Users"
+            value={activeUsers}
+            icon={Users}
+            trend="up"
+            color="green"
+          />
+          <MetricCard
+            title="Daily Revenue"
+            value={`$${dailyRevenue}`}
+            icon={CircleDollarSign}
+            trend="up"
+            color="yellow"
+          />
+          <MetricCard
+            title="Market Size"
+            value={market?.marketSize ? `$${(market.marketSize / 1000000000).toFixed(1)}B` : "N/A"}
+            icon={Globe}
+            trend="stable"
+            color="purple"
+          />
+        </div>
+
+        {/* Live Activity Feed */}
+        {realtime?.conversionEvents && (
+          <Card className="mb-6 p-4 border-green-500/20 bg-green-500/5">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="h-5 w-5 text-green-500 animate-pulse" />
+              <h3 className="font-semibold">Live Activity</h3>
+              <Badge variant="outline" className="ml-auto">
+                {realtime.conversionEvents.length} events
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              {realtime.conversionEvents.slice(0, 5).map((event: any, idx: number) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="flex items-center justify-between p-2 bg-white/5 rounded"
+                >
+                  <span className="text-sm">{event.type || "New conversion"}</span>
+                  <span className="text-xs text-muted-foreground">{event.time || "Just now"}</span>
+                </motion.div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="market">Market</TabsTrigger>
+            <TabsTrigger value="competition">Competition</TabsTrigger>
+            <TabsTrigger value="channels">Channels</TabsTrigger>
+            <TabsTrigger value="metrics">Metrics</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              {/* Idea Refinement Panel */}
-              <Card className="glass-card border-white/5 p-6 xl:col-span-2">
-                <h3 className="text-lg font-semibold text-white mb-4">Idea Refinement</h3>
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-white/3 border border-white/5">
-                    <p className="text-sm text-white/80">{idea}</p>
-                  </div>
-                  <Button className="w-full glass-button">
-                    <Zap className="h-4 w-4 mr-2" />
-                    Refine Idea (25 points)
-                  </Button>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Growth Chart */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Growth Trajectory</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={generateGrowthData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="month" stroke="#666" />
+                    <YAxis stroke="#666" />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+                    <Area type="monotone" dataKey="users" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                  </AreaChart>
+                </ResponsiveContainer>
               </Card>
 
-              {/* Profit Potential Meter */}
-              <Card className="glass-card border-white/5 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Profit Potential</h3>
-                <div className="flex flex-col items-center">
-                  <div className="relative w-32 h-32">
-                    <svg className="w-32 h-32 transform -rotate-90">
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        stroke="rgba(255,255,255,0.1)"
-                        strokeWidth="12"
-                        fill="none"
-                      />
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        stroke="url(#gradient)"
-                        strokeWidth="12"
-                        fill="none"
-                        strokeDasharray={`${(profitScore / 100) * 352} 352`}
-                        className="transition-all duration-1000"
-                      />
-                      <defs>
-                        <linearGradient id="gradient">
-                          <stop offset="0%" stopColor="#8b5cf6" />
-                          <stop offset="100%" stopColor="#10b981" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold text-white">{profitScore}</span>
-                      <span className="text-xs text-muted-foreground">/ 100</span>
+              {/* Market Segments */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Market Segments</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={market?.segments || []}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {(market?.segments || []).map((_: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Card>
+            </div>
+
+            {/* Alerts & Predictions */}
+            {realtime?.alerts && realtime.alerts.length > 0 && (
+              <Card className="p-4 border-yellow-500/20 bg-yellow-500/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                  <h3 className="font-semibold">Alerts & Insights</h3>
+                </div>
+                <div className="space-y-2">
+                  {realtime.alerts.map((alert: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <p className="text-sm">{alert}</p>
                     </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="market" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Market Analysis</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Market Size</p>
+                    <p className="text-2xl font-bold">${(market?.marketSize / 1000000000).toFixed(1)}B</p>
                   </div>
-                  <div className="mt-4 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-emerald-500" />
-                    <span className="text-sm text-emerald-500">+8 vs last week</span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Growth Rate</p>
+                    <p className="text-xl font-semibold text-green-500">{market?.growthRate}% YoY</p>
                   </div>
+                  <Progress value={market?.growthRate || 0} className="h-2" />
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Market Opportunities</h3>
+                <div className="space-y-3">
+                  {market?.opportunities?.map((opp: any, idx: number) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="p-3 bg-white/5 rounded-lg"
+                    >
+                      <p className="text-sm font-medium">{opp.title || opp}</p>
+                      {opp.revenue && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Potential: ${opp.revenue}
+                        </p>
+                      )}
+                    </motion.div>
+                  ))}
                 </div>
               </Card>
             </div>
 
-            {/* Key Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <MetricMiniCard label="TAM" value="$2.5B" icon={Globe} />
-              <MetricMiniCard label="SAM" value="$450M" icon={Users} />
-              <MetricMiniCard label="SOM" value="$45M" icon={Target} />
-              <MetricMiniCard label="CAC Target" value="$35" icon={CircleDollarSign} />
-              <MetricMiniCard label="Payback" value="6 mo" icon={Clock} />
-            </div>
-
-            {/* Last Updated */}
-            <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-              <Activity className="h-3 w-3" />
-              <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-            </div>
-          </TabsContent>
-
-          {/* Marketing Tab */}
-          <TabsContent value="marketing" className="space-y-6">
-            {insightsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            {/* Market Trends */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Market Trends</h3>
+              <div className="flex flex-wrap gap-2">
+                {market?.trends?.map((trend: string, idx: number) => (
+                  <Badge key={idx} variant="secondary" className="gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    {trend}
+                  </Badge>
+                ))}
               </div>
-            ) : snapshot ? (
-              <>
-                <MarketingChannels 
-                  channels={snapshot.channels} 
-                  focusChannels={snapshot.focusNow}
-                />
-                <MarketingCharts trends={snapshot.trends} />
-              </>
-            ) : null}
-          </TabsContent>
-
-          {/* Other tabs with placeholder content */}
-          <TabsContent value="insights">
-            <Card className="glass-card border-white/5 p-12 text-center">
-              <Brain className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">AI Insights</h3>
-              <p className="text-sm text-muted-foreground">Deep learning analysis coming soon</p>
             </Card>
           </TabsContent>
 
-          <TabsContent value="focus">
-            <Card className="glass-card border-white/5 p-12 text-center">
-              <Target className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Priority Focus</h3>
-              <p className="text-sm text-muted-foreground">Strategic priorities will appear here</p>
+          <TabsContent value="competition" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Competitive Landscape</h3>
+              <div className="space-y-4">
+                {competition?.competitors?.map((comp: any, idx: number) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="p-4 bg-white/5 rounded-lg"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold">{comp.name}</h4>
+                      <Badge variant={comp.marketShare > 20 ? "destructive" : "secondary"}>
+                        {comp.marketShare}% market share
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Strengths</p>
+                        <p>{comp.strengths}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Weaknesses</p>
+                        <p>{comp.weaknesses}</p>
+                      </div>
+                    </div>
+                    {comp.funding && (
+                      <div className="mt-2">
+                        <Badge variant="outline">Funding: {comp.funding}</Badge>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Competitive Advantage */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Your Competitive Advantage</h3>
+              <div className="space-y-3">
+                {competition?.competitiveAdvantage?.map((adv: string, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <Shield className="h-5 w-5 text-green-500 mt-0.5" />
+                    <p className="text-sm">{adv}</p>
+                  </div>
+                ))}
+              </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="strategy">
-            <Card className="glass-card border-white/5 p-12 text-center">
-              <Briefcase className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Implementation Strategy</h3>
-              <p className="text-sm text-muted-foreground">Playbooks and budget allocation coming soon</p>
+          <TabsContent value="channels" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Marketing Channels Analysis</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={channels?.channels || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="channel" stroke="#666" />
+                  <YAxis stroke="#666" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+                  <Bar dataKey="roi" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* Top Channels */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {channels?.topChannels?.map((channel: any, idx: number) => (
+                <Card key={idx} className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Rocket className="h-5 w-5 text-primary" />
+                    <Badge>#{idx + 1}</Badge>
+                  </div>
+                  <h4 className="font-semibold mb-1">{channel.name || channel}</h4>
+                  <p className="text-sm text-muted-foreground">{channel.strategy || "Recommended channel"}</p>
+                </Card>
+              ))}
+            </div>
+
+            {/* Campaign Ideas */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Campaign Ideas</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {channels?.campaignIdeas?.map((idea: any, idx: number) => (
+                  <motion.div
+                    key={idx}
+                    whileHover={{ scale: 1.02 }}
+                    className="p-4 bg-white/5 rounded-lg cursor-pointer"
+                  >
+                    <Sparkles className="h-4 w-4 text-yellow-500 mb-2" />
+                    <p className="text-sm">{idea}</p>
+                  </motion.div>
+                ))}
+              </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="reports">
-            <Card className="glass-card border-white/5 p-12 text-center">
-              <FileText className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Export Reports</h3>
-              <p className="text-sm text-muted-foreground">PDF and presentation export coming soon</p>
+          <TabsContent value="metrics" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <MetricDetailCard
+                title="Customer Acquisition Cost"
+                value={metrics?.customerAcquisitionCost || "N/A"}
+                description="Estimated cost to acquire a customer"
+                icon={Users}
+              />
+              <MetricDetailCard
+                title="Lifetime Value"
+                value={metrics?.lifetimeValue || "N/A"}
+                description="Expected revenue per customer"
+                icon={CircleDollarSign}
+              />
+              <MetricDetailCard
+                title="Burn Rate"
+                value={metrics?.burnRate || "N/A"}
+                description="Monthly cash consumption"
+                icon={TrendingUp}
+              />
+            </div>
+
+            {/* Conversion Funnel */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Conversion Funnel</h3>
+              <div className="space-y-3">
+                <FunnelStep label="Visitors" value={1000} percentage={100} />
+                <FunnelStep label="Sign-ups" value={300} percentage={30} />
+                <FunnelStep label="Active Users" value={150} percentage={15} />
+                <FunnelStep label="Paid Users" value={45} percentage={4.5} />
+              </div>
             </Card>
+
+            {/* Predictions */}
+            {realtime?.predictions && (
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">24-Hour Predictions</h3>
+                <div className="space-y-3">
+                  {Object.entries(realtime.predictions).map(([key, value]: [string, any]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <span className="font-semibold">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -281,21 +483,69 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+// Helper Components
+const MetricCard = ({ title, value, suffix = "", icon: Icon, trend, color }: any) => {
+  const TrendIcon = trend === "up" ? ArrowUp : trend === "down" ? ArrowDown : Activity;
+  const trendColor = trend === "up" ? "text-green-500" : trend === "down" ? "text-red-500" : "text-yellow-500";
 
-const MetricMiniCard: React.FC<{ 
-  label: string; 
-  value: string; 
-  icon: React.ElementType 
-}> = ({ label, value, icon: Icon }) => (
-  <Card className="glass-card border-white/5 p-4">
-    <div className="flex items-start justify-between mb-2">
-      <Icon className="h-4 w-4 text-primary" />
-      <Badge className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-        Live
-      </Badge>
+  return (
+    <Card className="p-6 hover:shadow-lg transition-shadow">
+      <div className="flex items-center justify-between mb-2">
+        <Icon className={cn("h-8 w-8", `text-${color}-500`)} />
+        <TrendIcon className={cn("h-4 w-4", trendColor)} />
+      </div>
+      <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      <p className="text-2xl font-bold mt-1">{value}{suffix}</p>
+    </Card>
+  );
+};
+
+const MetricDetailCard = ({ title, value, description, icon: Icon }: any) => {
+  return (
+    <Card className="p-4">
+      <div className="flex items-start gap-3">
+        <Icon className="h-5 w-5 text-primary mt-0.5" />
+        <div>
+          <h4 className="font-semibold">{title}</h4>
+          <p className="text-xl font-bold mt-1">{value}</p>
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+const FunnelStep = ({ label, value, percentage }: any) => {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm">{label}</span>
+        <span className="text-sm font-semibold">{value} ({percentage}%)</span>
+      </div>
+      <Progress value={percentage} className="h-2" />
     </div>
-    <p className="text-xs text-muted-foreground mb-1">{label}</p>
-    <p className="text-lg font-semibold text-white">{value}</p>
-  </Card>
-);
+  );
+};
+
+// Helper functions
+const generateGrowthData = () => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  return months.map((month, idx) => ({
+    month,
+    users: Math.floor(100 * Math.pow(1.3, idx))
+  }));
+};
+
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+  const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+
+  return (
+    <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
+export default Dashboard;
