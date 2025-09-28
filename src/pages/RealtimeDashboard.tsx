@@ -67,25 +67,37 @@ export default function RealtimeDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
-  const [showQuestions, setShowQuestions] = useState(false);
-  const [additionalContext, setAdditionalContext] = useState('');
+  const [hasIdeaFromChat, setHasIdeaFromChat] = useState(false);
+  const [ideaContext, setIdeaContext] = useState<any>(null);
 
-  // Load idea from IdeaChat localStorage on mount
+  // Load idea and context from IdeaChat localStorage on mount
   useEffect(() => {
     const storedIdea = localStorage.getItem('ideaText');
     const ideaMetadata = localStorage.getItem('ideaMetadata');
+    const analysisCompleted = localStorage.getItem('analysisCompleted');
     
     if (storedIdea) {
       const parsedMetadata = ideaMetadata ? JSON.parse(ideaMetadata) : null;
       const ideaToUse = parsedMetadata?.refined || storedIdea;
-      setIdeaInput(ideaToUse);
       
-      // Automatically start analysis if idea is present
-      if (ideaToUse && user) {
+      setIdeaInput(ideaToUse);
+      setIdeaContext(parsedMetadata);
+      setHasIdeaFromChat(true);
+      
+      // Automatically start analysis if idea is present and analysis was completed in chat
+      if (ideaToUse && user && analysisCompleted === 'true') {
         setTimeout(() => {
-          handleAnalyzeIdea(ideaToUse);
+          performAnalysis(ideaToUse, parsedMetadata);
         }, 500);
       }
+    } else {
+      // Redirect to IdeaChat if no idea is present
+      toast({
+        title: "No Idea Found",
+        description: "Please complete your idea analysis in IdeaChat first",
+        variant: "destructive"
+      });
+      setTimeout(() => navigate('/ideachat'), 2000);
     }
   }, [user]);
 
@@ -127,39 +139,31 @@ export default function RealtimeDashboard() {
     return () => clearInterval(interval);
   }, [autoRefresh, analysisData]);
 
-  const handleAnalyzeIdea = async (ideaText?: string) => {
-    const idea = ideaText || ideaInput;
-    
-    if (!idea.trim() || !user) {
-      toast({
-        title: "Error",
-        description: "Please enter an idea to analyze",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check if we need additional context
-    if (!additionalContext && !showQuestions) {
-      setShowQuestions(true);
-      return;
-    }
-
+  const performAnalysis = async (ideaText: string, metadata?: any) => {
     setIsAnalyzing(true);
     try {
-      const fullIdea = additionalContext 
-        ? `${idea}\n\nAdditional Context: ${additionalContext}`
-        : idea;
+      // Build comprehensive context from IdeaChat data
+      let fullContext = ideaText;
+      
+      if (metadata) {
+        fullContext = `
+          ${ideaText}
+          
+          Target Audience: ${metadata.targetAudience || 'Not specified'}
+          Problem Solving: ${metadata.problemSolving || 'Not specified'}
+          Market Gap: ${metadata.marketGap || 'Not specified'}
+          Unique Value: ${metadata.uniqueValue || 'Not specified'}
+        `.trim();
+      }
 
       const { data, error } = await supabase.functions.invoke('analyze-idea', {
-        body: { idea: fullIdea }
+        body: { idea: fullContext }
       });
 
       if (error) throw error;
 
       setAnalysisData(data.analysis);
       setLastUpdated(new Date());
-      setShowQuestions(false);
       
       // Create default implementation tasks
       if (data.analysis.id) {
@@ -180,6 +184,22 @@ export default function RealtimeDashboard() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleAnalyzeIdea = async (ideaText?: string) => {
+    const idea = ideaText || ideaInput;
+    
+    if (!idea.trim() || !user) {
+      toast({
+        title: "Error",
+        description: "Please complete idea analysis in IdeaChat first",
+        variant: "destructive"
+      });
+      navigate('/ideachat');
+      return;
+    }
+
+    await performAnalysis(idea, ideaContext);
   };
 
   const handleRefreshAnalysis = async () => {
@@ -319,73 +339,60 @@ export default function RealtimeDashboard() {
               <Sparkles className="h-5 w-5 text-yellow-500" />
               Idea Refinement Panel
             </h2>
-            {showQuestions ? (
+            {hasIdeaFromChat ? (
               <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  To provide a more accurate analysis, please provide additional context:
-                </p>
-                <Input
-                  value={additionalContext}
-                  onChange={(e) => setAdditionalContext(e.target.value)}
-                  placeholder="Target market, specific features, unique value proposition..."
-                  className="w-full"
-                />
-                <div className="flex gap-4">
-                  <Button
-                    onClick={() => handleAnalyzeIdea()}
-                    disabled={isAnalyzing}
-                    className="min-w-[150px]"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket className="h-4 w-4 mr-2" />
-                        Analyze with Context
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setAdditionalContext('');
-                      handleAnalyzeIdea();
-                    }}
-                    disabled={isAnalyzing}
-                  >
-                    Skip & Analyze
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-2">Analyzing idea from IdeaChat:</p>
+                    <p className="font-medium text-lg">{ideaInput}</p>
+                  </div>
+                  {!analysisData && (
+                    <Button
+                      onClick={() => handleAnalyzeIdea()}
+                      disabled={isAnalyzing}
+                      className="min-w-[150px]"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Rocket className="h-4 w-4 mr-2" />
+                          Start Analysis
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
+                {ideaContext && (
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {ideaContext.targetAudience && (
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Target:</span>
+                        <span>{ideaContext.targetAudience}</span>
+                      </div>
+                    )}
+                    {ideaContext.problemSolving && (
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Problem:</span>
+                        <span className="truncate">{ideaContext.problemSolving}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="flex gap-4">
-                <Input
-                  value={ideaInput}
-                  onChange={(e) => setIdeaInput(e.target.value)}
-                  placeholder="Your startup idea from IdeaChat..."
-                  className="flex-1"
-                  disabled={isAnalyzing}
-                  readOnly
-                />
-                <Button
-                  onClick={() => handleAnalyzeIdea()}
-                  disabled={isAnalyzing || !ideaInput.trim()}
-                  className="min-w-[150px]"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Rocket className="h-4 w-4 mr-2" />
-                      Analyze Idea
-                    </>
-                  )}
+              <div className="text-center py-8">
+                <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  No idea found. Please complete your idea analysis in IdeaChat first.
+                </p>
+                <Button onClick={() => navigate('/ideachat')}>
+                  Go to IdeaChat
                 </Button>
               </div>
             )}
