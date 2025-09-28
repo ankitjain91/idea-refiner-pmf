@@ -1,8 +1,8 @@
-// Dashboard component - renders ValidationHub
+// Dashboard component - renders EnterpriseHub
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
-import ValidationHub from '@/pages/ValidationHub';
+import EnterpriseHub from '@/pages/EnterpriseHub';
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -15,8 +15,8 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Render the ValidationHub directly
-  return <ValidationHub />;
+  // Render the EnterpriseHub directly
+  return <EnterpriseHub />;
 };
 
 export default Dashboard;
