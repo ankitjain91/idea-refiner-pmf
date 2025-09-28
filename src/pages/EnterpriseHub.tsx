@@ -148,6 +148,8 @@ export default function EnterpriseHub() {
   
   const [refreshKey, setRefreshKey] = useState(0);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // The idea management logic is now handled by the useIdeaManagement hook
   // Fetching from Supabase is handled in a separate hook inside useIdeaManagement
@@ -178,6 +180,24 @@ export default function EnterpriseHub() {
   const handleRefreshAll = () => {
     setRefreshKey(prev => prev + 1);
   };
+
+  // Handle auto-refresh toggle
+  useEffect(() => {
+    if (autoRefresh && filters.idea_keywords.length > 0) {
+      autoRefreshIntervalRef.current = setInterval(() => {
+        setRefreshKey(prev => prev + 1);
+      }, 30000); // Refresh every 30 seconds
+    } else if (autoRefreshIntervalRef.current) {
+      clearInterval(autoRefreshIntervalRef.current);
+      autoRefreshIntervalRef.current = null;
+    }
+
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+      }
+    };
+  }, [autoRefresh, filters.idea_keywords.length]);
   
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
@@ -328,6 +348,8 @@ export default function EnterpriseHub() {
         onExport={handleExportPDF}
         onRefresh={handleRefreshAll}
         currentFilters={filters}
+        autoRefresh={autoRefresh}
+        onAutoRefreshChange={setAutoRefresh}
       />
       
       {/* Dashboard Grid */}

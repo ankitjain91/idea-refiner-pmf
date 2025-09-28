@@ -4,16 +4,26 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Filter, Download, RefreshCw } from 'lucide-react';
+import { X, Filter, Download, RefreshCw, Timer } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface GlobalFiltersProps {
   onFiltersChange: (filters: IdeaFilters) => void;
   onExport: () => void;
   onRefresh: () => void;
   currentFilters?: IdeaFilters;
+  autoRefresh?: boolean;
+  onAutoRefreshChange?: (enabled: boolean) => void;
 }
 
-export function GlobalFilters({ onFiltersChange, onExport, onRefresh, currentFilters }: GlobalFiltersProps) {
+export function GlobalFilters({ 
+  onFiltersChange, 
+  onExport, 
+  onRefresh, 
+  currentFilters, 
+  autoRefresh = false,
+  onAutoRefreshChange 
+}: GlobalFiltersProps) {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [industry, setIndustry] = useState('');
@@ -70,25 +80,38 @@ export function GlobalFilters({ onFiltersChange, onExport, onRefresh, currentFil
             <Filter className="h-5 w-5 text-muted-foreground" />
             <h3 className="font-semibold">Global Filters</h3>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRefresh}
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh All
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExport}
-              className="gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export PDF
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Timer className="h-4 w-4 text-muted-foreground" />
+              <label htmlFor="auto-refresh" className="text-sm font-medium cursor-pointer">
+                Auto-refresh (30s)
+              </label>
+              <Switch
+                id="auto-refresh"
+                checked={autoRefresh}
+                onCheckedChange={onAutoRefreshChange}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExport}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export PDF
+              </Button>
+            </div>
           </div>
         </div>
         
