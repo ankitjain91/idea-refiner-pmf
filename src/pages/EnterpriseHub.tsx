@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 import { GlobalFilters } from '@/components/hub/GlobalFilters';
 import { DataTile } from '@/components/hub/DataTile';
 import { Button } from '@/components/ui/button';
@@ -126,6 +127,7 @@ const TILES = [
 
 export default function EnterpriseHub() {
   const { user, loading: authLoading } = useAuth();
+  const { currentSession } = useSession();
   const navigate = useNavigate();
   const dashboardRef = useRef<HTMLDivElement>(null);
   
@@ -192,6 +194,24 @@ export default function EnterpriseHub() {
       
       // Priority: dashboard idea > conversation extraction > localStorage keys
       let ideaToUse = dashboardIdea || extractFromConversation();
+
+      // Fallback: current session state
+      if (!ideaToUse && currentSession?.data) {
+        const sd: any = currentSession.data;
+        if (typeof sd.currentIdea === 'string' && sd.currentIdea.trim()) {
+          ideaToUse = sd.currentIdea.trim();
+        }
+        if (!ideaToUse && Array.isArray(sd.chatHistory)) {
+          for (let i = sd.chatHistory.length - 1; i >= 0; i--) {
+            const m = sd.chatHistory[i];
+            const c = (m?.content || '').trim();
+            if (c && c.length > 10 && (m.type === 'user' || m.role === 'user')) {
+              ideaToUse = c;
+              break;
+            }
+          }
+        }
+      }
       
       if (!ideaToUse) {
         const userIdea = localStorage.getItem('userIdea') || '';
@@ -278,7 +298,7 @@ export default function EnterpriseHub() {
       window.removeEventListener('idea:updated', onIdeaUpdated as EventListener);
       window.removeEventListener('chat:activity', onIdeaUpdated as EventListener);
     };
-  }, []);
+  }, [currentSession]);
   
   // Fallback: fetch latest idea from Supabase if no keywords yet
   useEffect(() => {
