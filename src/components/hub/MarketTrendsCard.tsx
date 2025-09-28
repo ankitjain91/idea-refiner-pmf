@@ -200,6 +200,15 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               Market Trends
             </CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => mutate()}
+                disabled={isLoading}
+                className="h-8 w-8"
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              </Button>
               <Badge variant="outline" className="flex items-center gap-1">
                 {getTrendIcon()}
                 {trendDirection}
