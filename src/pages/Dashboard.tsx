@@ -142,15 +142,15 @@ const Dashboard = () => {
               </p>
               
               <div className="w-full space-y-3">
-                <Button 
-                  onClick={() => navigate('/ideachat')} 
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  <MessageSquare className="h-5 w-5" />
-                  Start Analysis
-                  <ArrowRight className="h-5 w-5 ml-auto" />
-                </Button>
+              <Button 
+                onClick={() => setShowAnalysis(true)} 
+                className="w-full gap-2"
+                size="lg"
+              >
+                <MessageSquare className="h-5 w-5" />
+                Start Analysis
+                <ArrowRight className="h-5 w-5 ml-auto" />
+              </Button>
                 
                 <div className="pt-4 border-t">
                   <p className="text-sm text-muted-foreground mb-3">What you'll get:</p>
