@@ -317,6 +317,7 @@ export default function EnterpriseHub() {
         onFiltersChange={handleFiltersChange}
         onExport={handleExportPDF}
         onRefresh={handleRefreshAll}
+        currentFilters={filters}
       />
       
       {/* Dashboard Grid */}

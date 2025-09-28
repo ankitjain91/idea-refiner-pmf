@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { IdeaFilters } from '@/hooks/useIdeaManagement';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,25 +7,48 @@ import { Badge } from '@/components/ui/badge';
 import { X, Filter, Download, RefreshCw } from 'lucide-react';
 
 interface GlobalFiltersProps {
-  onFiltersChange: (filters: any) => void;
+  onFiltersChange: (filters: IdeaFilters) => void;
   onExport: () => void;
   onRefresh: () => void;
+  currentFilters?: IdeaFilters;
 }
 
-export function GlobalFilters({ onFiltersChange, onExport, onRefresh }: GlobalFiltersProps) {
+export function GlobalFilters({ onFiltersChange, onExport, onRefresh, currentFilters }: GlobalFiltersProps) {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [industry, setIndustry] = useState('');
   const [geography, setGeography] = useState('global');
   const [timeWindow, setTimeWindow] = useState('last_12_months');
+  const initializedRef = useRef(false);
+  const skipFirstEmitRef = useRef(true);
+  
+  // Initialize from currentFilters once to avoid overwriting parent-provided filters
+  useEffect(() => {
+    if (!initializedRef.current && currentFilters) {
+      console.log('[GlobalFilters] Initializing from currentFilters', currentFilters);
+      setKeywords(currentFilters.idea_keywords || []);
+      setIndustry(currentFilters.industry || '');
+      setGeography(currentFilters.geography || 'global');
+      setTimeWindow(currentFilters.time_window || 'last_12_months');
+      initializedRef.current = true;
+    }
+  }, [currentFilters]);
   
   useEffect(() => {
-    onFiltersChange({
+    if (skipFirstEmitRef.current) {
+      // Skip first emit to avoid overwriting parent filters on mount
+      skipFirstEmitRef.current = false;
+      console.log('[GlobalFilters] Skipping first emit to preserve parent filters');
+      return;
+    }
+    const next = {
       idea_keywords: keywords,
       industry,
       geography,
       time_window: timeWindow
-    });
+    } as IdeaFilters;
+    console.log('[GlobalFilters] Emitting filters change', next);
+    onFiltersChange(next);
   }, [keywords, industry, geography, timeWindow]);
   
   const addKeyword = () => {
