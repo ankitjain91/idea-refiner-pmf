@@ -26,6 +26,7 @@ interface AnalysisQuestion {
 
 interface AnalysisChatProps {
   idea: string | null;
+  sessionId?: string;
   onComplete?: (ideaText?: string) => void;
   onUpdateData?: (data: any) => void;
 }
@@ -83,7 +84,7 @@ const ANALYSIS_QUESTIONS: AnalysisQuestion[] = [
   }
 ];
 
-export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatProps) => {
+export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: AnalysisChatProps) => {
   const [ideaText, setIdeaText] = useState<string>(idea || '');
   const [ideaInput, setIdeaInput] = useState('');
   const [hasEnteredIdea, setHasEnteredIdea] = useState(!!idea);
@@ -116,7 +117,8 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
       setAiSuggestion('');
       
       try {
-        const conversationHistory = JSON.parse(localStorage.getItem('conversationHistory') || '[]');
+        const conversationKey = sessionId ? `session_${sessionId}_conversation` : 'conversationHistory';
+        const conversationHistory = JSON.parse(localStorage.getItem(conversationKey) || '[]');
         
         console.log('Fetching AI suggestion for:', currentQuestion.field);
         
@@ -161,9 +163,27 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
       return;
     }
 
-    // Save idea to localStorage
-    localStorage.setItem('ideaText', ideaInput);
-    localStorage.setItem('ideaMetadata', JSON.stringify({ refined: ideaInput }));
+    // Save idea to session-specific localStorage
+    if (sessionId) {
+      const sessionIdeaKey = `session_${sessionId}_idea`;
+      const sessionMetadataKey = `session_${sessionId}_metadata`;
+      const sessionConversationKey = `session_${sessionId}_conversation`;
+      
+      localStorage.setItem(sessionIdeaKey, ideaInput);
+      localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: ideaInput }));
+      
+      // Initialize session-specific conversation history
+      localStorage.setItem(sessionConversationKey, JSON.stringify([
+        { role: 'user', content: `My startup idea: ${ideaInput}` }
+      ]));
+    } else {
+      // Fallback to global storage if no sessionId
+      localStorage.setItem('ideaText', ideaInput);
+      localStorage.setItem('ideaMetadata', JSON.stringify({ refined: ideaInput }));
+      localStorage.setItem('conversationHistory', JSON.stringify([
+        { role: 'user', content: `My startup idea: ${ideaInput}` }
+      ]));
+    }
     
     // Pass the idea to parent if onComplete expects it
     if (onComplete) {
@@ -174,10 +194,6 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
     setHasEnteredIdea(true);
     setIdeaInput('');
     
-    // Initialize conversation history
-    localStorage.setItem('conversationHistory', JSON.stringify([
-      { role: 'user', content: `My startup idea: ${ideaInput}` }
-    ]));
   };
 
   const handleSubmitAnswer = async () => {
@@ -199,21 +215,23 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
     };
     setAnswers(newAnswers);
     
-    // Update localStorage with enriched metadata
-    const existingMetadata = JSON.parse(localStorage.getItem('ideaMetadata') || '{}');
+    // Update session-specific localStorage with enriched metadata
+    const metadataKey = sessionId ? `session_${sessionId}_metadata` : 'ideaMetadata';
+    const existingMetadata = JSON.parse(localStorage.getItem(metadataKey) || '{}');
     const updatedMetadata = {
       ...existingMetadata,
       ...newAnswers
     };
-    localStorage.setItem('ideaMetadata', JSON.stringify(updatedMetadata));
+    localStorage.setItem(metadataKey, JSON.stringify(updatedMetadata));
     
-    // Update conversation history
-    const conversationHistory = JSON.parse(localStorage.getItem('conversationHistory') || '[]');
+    // Update session-specific conversation history
+    const conversationKey = sessionId ? `session_${sessionId}_conversation` : 'conversationHistory';
+    const conversationHistory = JSON.parse(localStorage.getItem(conversationKey) || '[]');
     conversationHistory.push(
       { role: 'assistant', content: currentQuestion.question },
       { role: 'user', content: currentAnswer }
     );
-    localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+    localStorage.setItem(conversationKey, JSON.stringify(conversationHistory));
     
     // Notify parent of data update
     if (onUpdateData) {
@@ -236,13 +254,17 @@ export const AnalysisChat = ({ idea, onComplete, onUpdateData }: AnalysisChatPro
     setIsAnalyzing(true);
     
     try {
+      // Get session-specific conversation history
+      const conversationKey = sessionId ? `session_${sessionId}_conversation` : 'conversationHistory';
+      const conversationHistory = JSON.parse(localStorage.getItem(conversationKey) || '[]');
+      
       // Validate and generate insights
       const { data, error } = await supabase.functions.invoke('dashboard-insights', {
         body: {
           idea: ideaText,
           analysisType: 'full',
           metadata: allAnswers,
-          conversation: JSON.parse(localStorage.getItem('conversationHistory') || '[]')
+          conversation: conversationHistory
         }
       });
 

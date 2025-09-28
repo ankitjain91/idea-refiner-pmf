@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { DataCompletionCard, useIdeaValidation } from '@/components/dashboard/DataValidation';
 import { AnalysisChat } from '@/components/dashboard/AnalysisChat';
@@ -27,6 +28,7 @@ const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#e
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
+  const { currentSession } = useSession();
   const navigate = useNavigate();
   const [idea, setIdea] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -34,11 +36,29 @@ const Dashboard = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [showAnalysis, setShowAnalysis] = useState(false);
 
-  // Load idea from localStorage
+  // Get storage key for session-specific idea
+  const getSessionStorageKey = (sessionId: string) => {
+    return `session_${sessionId}_idea`;
+  };
+
+  const getSessionMetadataKey = (sessionId: string) => {
+    return `session_${sessionId}_metadata`;
+  };
+
+  const getSessionConversationKey = (sessionId: string) => {
+    return `session_${sessionId}_conversation`;
+  };
+
+  // Load idea from localStorage for current session
   useEffect(() => {
     const checkForIdea = () => {
-      const storedIdea = localStorage.getItem('ideaText');
-      const ideaMetadata = localStorage.getItem('ideaMetadata');
+      if (!currentSession?.id) return;
+      
+      const sessionIdeaKey = getSessionStorageKey(currentSession.id);
+      const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
+      
+      const storedIdea = localStorage.getItem(sessionIdeaKey);
+      const ideaMetadata = localStorage.getItem(sessionMetadataKey);
       
       if (storedIdea) {
         try {
@@ -47,13 +67,16 @@ const Dashboard = () => {
         } catch {
           setIdea(storedIdea);
         }
+      } else {
+        // Clear idea if no session-specific idea exists
+        setIdea(null);
       }
     };
     
     checkForIdea();
     
-    // Check again when showAnalysis changes (idea might have been added)
-  }, [showAnalysis]);
+    // Check again when showAnalysis changes or session changes
+  }, [showAnalysis, currentSession?.id]);
 
   // Fetch real-time data
   const { 
@@ -201,12 +224,16 @@ const Dashboard = () => {
         >
           <AnalysisChat
             idea={null}
+            sessionId={currentSession?.id || ''}
             onComplete={(ideaText) => {
-              if (ideaText) {
-                console.log('Idea entered:', ideaText);
+              if (ideaText && currentSession?.id) {
+                console.log('Idea entered for session:', currentSession.id, ideaText);
+                const sessionIdeaKey = getSessionStorageKey(currentSession.id);
+                const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
+                
                 setIdea(ideaText);
-                localStorage.setItem('ideaText', ideaText);
-                localStorage.setItem('ideaMetadata', JSON.stringify({ refined: ideaText }));
+                localStorage.setItem(sessionIdeaKey, ideaText);
+                localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: ideaText }));
               }
               setShowAnalysis(false);
               // Force a refresh of data
