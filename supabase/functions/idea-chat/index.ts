@@ -15,6 +15,11 @@ function validateEnv() {
   if (!openAIApiKey) missing.push('OPENAI_API_KEY');
   if (!SUPABASE_URL) missing.push('SUPABASE_URL');
   if (!SUPABASE_ANON_KEY) missing.push('SUPABASE_ANON_KEY');
+  
+  // Log API key info for debugging (without exposing the actual key)
+  console.log('OpenAI API Key configured:', !!openAIApiKey);
+  console.log('OpenAI API Key starts with:', openAIApiKey ? openAIApiKey.substring(0, 7) + '...' : 'not set');
+  
   if (missing.length) {
     return new Response(
       JSON.stringify({ error: `Missing environment variables: ${missing.join(', ')}`, code: 'CONFIG_MISSING' }),
@@ -820,8 +825,21 @@ Respond naturally as their mentor. JSON format. Keep it CONCISE.` }
       summaryResponse = detailedResponse;
     } catch (e) {
       console.error('Response generation failed:', e);
-      detailedResponse = "I need more context to provide meaningful feedback. Could you share more details about your idea?";
-      summaryResponse = "Need more details to help. What specific aspect should we focus on?";
+      console.error('Error details:', e instanceof Error ? e.message : 'Unknown error');
+      console.error('OpenAI API Key exists:', !!openAIApiKey);
+      console.error('OpenAI API Key length:', openAIApiKey ? openAIApiKey.length : 0);
+      
+      // Return more informative error message
+      const errorMessage = e instanceof Error && e.message.includes('401') 
+        ? "OpenAI API authentication failed. Please check your API key."
+        : e instanceof Error && e.message.includes('429')
+        ? "OpenAI API rate limit exceeded. Please try again later."
+        : e instanceof Error && e.message.includes('insufficient_quota')
+        ? "OpenAI API quota exceeded. Please check your billing."
+        : "I need more context to provide meaningful feedback. Could you share more details about your idea?";
+      
+      detailedResponse = errorMessage;
+      summaryResponse = errorMessage;
     }
 
     // Always use summary response for conciseness
