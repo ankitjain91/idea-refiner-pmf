@@ -1922,9 +1922,6 @@ User submission: """${messageText}"""`;
               {currentSession?.is_anonymous && (
                 <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
               )}
-              <span className="text-[0.65rem] uppercase tracking-wide font-medium text-muted-foreground">
-                Detailed Mode
-              </span>
             </p>
             {currentIdea && (
               <p className="fluid-text-xs text-primary font-medium mt-1 max-w-[320px] break-words" title={currentIdea}>

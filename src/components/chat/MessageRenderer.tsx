@@ -120,23 +120,31 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   return (
     <>
-      <div className="prose prose-sm max-w-none dark:prose-invert relative">
-        {/* Add summarize button for bot messages with both detailed and summary content */}
-        {message.type === 'bot' && message.detailedContent && message.summaryContent && (
+      {/* Add summarize button for bot messages with both detailed and summary content */}
+      {message.type === 'bot' && message.detailedContent && message.summaryContent && (
+        <div className="flex justify-end mb-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => setIsShowingSummary(!isShowingSummary)}
-            className="absolute top-0 right-0 p-1.5 h-auto hover:bg-accent/50 z-10"
+            className="h-7 px-2 text-xs flex items-center gap-1"
             title={isShowingSummary ? 'Show detailed response' : 'Show summary'}
           >
             {isShowingSummary ? (
-              <FileText className="h-4 w-4" />
+              <>
+                <FileText className="h-3.5 w-3.5" />
+                <span>Show Details</span>
+              </>
             ) : (
-              <ListMinus className="h-4 w-4" />
+              <>
+                <ListMinus className="h-3.5 w-3.5" />
+                <span>Show Summary</span>
+              </>
             )}
           </Button>
-        )}
+        </div>
+      )}
+      <div className="prose prose-sm max-w-none dark:prose-invert">
         <ReactMarkdown
           components={{
             // Custom styling for different elements
