@@ -438,7 +438,20 @@ export default function EnterpriseHub() {
             </Alert>
 
             <div className="flex gap-3 justify-center">
-              <Button onClick={() => navigate('/ideachat')} size="lg">
+              <Button
+                size="lg"
+                onClick={() => {
+                  localStorage.setItem(
+                    'pendingQuestion',
+                    "What's your startup idea? Describe it in one sentence. I'll then guide you with AI-suggested follow-up questions."
+                  );
+                  navigate('/ideachat');
+                }}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Start AI‑Guided Questionnaire
+              </Button>
+              <Button onClick={() => navigate('/ideachat')} size="lg" variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Go to Idea Chat
               </Button>
