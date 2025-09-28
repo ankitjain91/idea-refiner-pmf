@@ -412,9 +412,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               ))}
             </div>
           )}
-        </>
-      );
-  };
           
           {/* API Status Alert for debugging */}
           {data?.insights && data.insights.some(i => i.includes('API key required')) && (
