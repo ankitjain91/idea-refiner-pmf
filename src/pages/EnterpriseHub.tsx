@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GlobalFilters } from "@/components/hub/GlobalFilters";
 import { DataTile } from "@/components/hub/DataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
+import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 
 export default function EnterpriseHub() {
   const { currentSession } = useSession();
@@ -185,13 +186,7 @@ export default function EnterpriseHub() {
           <MarketTrendsCard filters={filters} />
         </div>
         <div className="space-y-4">
-          <DataTile
-            title="Google Trends"
-            icon={Activity}
-            tileType="google_trends"
-            filters={filters}
-            description="Search trend analysis"
-          />
+          <GoogleTrendsCard filters={filters} />
         </div>
       </div>
 
