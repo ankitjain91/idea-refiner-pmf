@@ -24,8 +24,11 @@ export function useIdeaManagement() {
   // Load initial idea from localStorage + keep in sync
   useEffect(() => {
     const recompute = () => {
+      console.log('🔄 [useIdeaManagement] Starting recompute...');
+      
       // First check if we have a dashboard-specific idea
       const dashboardIdea = localStorage.getItem('dashboardIdea');
+      console.log('📋 [useIdeaManagement] dashboardIdea from localStorage:', dashboardIdea);
       
       // Extract from conversation history if available
       const extractFromConversation = () => {
@@ -57,14 +60,18 @@ export function useIdeaManagement() {
         return null;
       };
       
+      const conversationIdea = extractFromConversation();
+      console.log('💬 [useIdeaManagement] Extracted from conversation:', conversationIdea);
+      
       // Priority: dashboard idea > conversation extraction > localStorage keys
-      let ideaToUse = dashboardIdea || extractFromConversation();
+      let ideaToUse = dashboardIdea || conversationIdea;
 
       // Fallback: current session state
       if (!ideaToUse && currentSession?.data) {
         const sd: any = currentSession.data;
         if (typeof sd.currentIdea === 'string' && sd.currentIdea.trim()) {
           ideaToUse = sd.currentIdea.trim();
+          console.log('📝 [useIdeaManagement] From session data:', ideaToUse);
         }
         if (!ideaToUse && Array.isArray(sd.chatHistory)) {
           for (let i = sd.chatHistory.length - 1; i >= 0; i--) {
@@ -72,6 +79,7 @@ export function useIdeaManagement() {
             const c = (m?.content || '').trim();
             if (c && c.length > 10 && (m.type === 'user' || m.role === 'user')) {
               ideaToUse = c;
+              console.log('📜 [useIdeaManagement] From session chat history:', ideaToUse);
               break;
             }
           }
@@ -84,6 +92,13 @@ export function useIdeaManagement() {
         const ideaText = localStorage.getItem('ideaText') || '';
         const pmfCurrentIdea = localStorage.getItem('pmfCurrentIdea') || '';
         ideaToUse = userIdea || currentIdea || ideaText || pmfCurrentIdea;
+        console.log('🔍 [useIdeaManagement] From various localStorage keys:', {
+          userIdea,
+          currentIdea,
+          ideaText,
+          pmfCurrentIdea,
+          selected: ideaToUse
+        });
       }
 
       // Try metadata as fallback
@@ -96,6 +111,7 @@ export function useIdeaManagement() {
             metaKeywords = meta.keywords.slice(0, 5);
           }
           if (!ideaToUse) ideaToUse = meta?.refined || meta?.idea_text || meta?.idea || '';
+          console.log('📊 [useIdeaManagement] From metadata:', { meta, metaKeywords, ideaToUse });
         } catch {}
       }
 
@@ -106,7 +122,10 @@ export function useIdeaManagement() {
           if (enhancedRaw) {
             const msgs = JSON.parse(enhancedRaw);
             const lastUser = [...msgs].reverse().find((m: any) => (m.type === 'user' || m.role === 'user') && typeof m.content === 'string' && m.content.trim().length > 10);
-            if (lastUser?.content) ideaToUse = lastUser.content.trim();
+            if (lastUser?.content) {
+              ideaToUse = lastUser.content.trim();
+              console.log('💭 [useIdeaManagement] From enhanced chat messages:', ideaToUse);
+            }
           }
         } catch {}
       }
@@ -116,15 +135,24 @@ export function useIdeaManagement() {
           if (chatRaw) {
             const msgs = JSON.parse(chatRaw);
             const lastUser = [...msgs].reverse().find((m: any) => (m.type === 'user' || m.role === 'user') && typeof m.content === 'string' && m.content.trim().length > 10);
-            if (lastUser?.content) ideaToUse = lastUser.content.trim();
+            if (lastUser?.content) {
+              ideaToUse = lastUser.content.trim();
+              console.log('💬 [useIdeaManagement] From chat history:', ideaToUse);
+            }
           }
         } catch {}
       }
 
       const keywords = metaKeywords || (ideaToUse ? extractKeywords(ideaToUse) : []);
-      console.log('IdeaManagement recompute:', { dashboardIdea, ideaToUse, keywords });
+      console.log('✅ [useIdeaManagement] Final recompute result:', { 
+        dashboardIdea, 
+        ideaToUse, 
+        keywords,
+        keywordCount: keywords.length 
+      });
 
       if (keywords.length) {
+        console.log('🎯 [useIdeaManagement] Setting filters with keywords:', keywords);
         setFilters(prev => ({
           ...prev,
           idea_keywords: keywords,
@@ -133,25 +161,34 @@ export function useIdeaManagement() {
         // Store in session state for persistence
         sessionStorage.setItem('dashboardKeywords', JSON.stringify(keywords));
         sessionStorage.setItem('dashboardIdeaSource', ideaToUse);
+      } else {
+        console.warn('⚠️ [useIdeaManagement] No keywords extracted!');
       }
     };
 
+    console.log('🚀 [useIdeaManagement] useEffect triggered');
+    
     // Always run recompute to get the latest idea
     recompute();
     
     // After recompute, check if we should use cached keywords
     const sessionKeywords = sessionStorage.getItem('dashboardKeywords');
+    console.log('💾 [useIdeaManagement] Session keywords:', sessionKeywords);
+    
     if (sessionKeywords) {
       try {
         const keywords = JSON.parse(sessionKeywords);
         // Only use cached keywords if we didn't find any from recompute
         if (keywords.length && filters.idea_keywords.length === 0) {
+          console.log('📌 [useIdeaManagement] Using cached session keywords:', keywords);
           setFilters(prev => ({
             ...prev,
             idea_keywords: keywords,
           }));
         }
-      } catch {}
+      } catch (e) {
+        console.error('❌ [useIdeaManagement] Failed to parse session keywords:', e);
+      }
     }
 
     const onStorage = () => recompute();
@@ -179,6 +216,7 @@ export function useIdeaManagement() {
       setFilters(prev => ({ ...prev, idea_keywords: kws }));
       sessionStorage.setItem('dashboardKeywords', JSON.stringify(kws));
       sessionStorage.setItem('dashboardIdeaSource', idea);
+      console.log('✨ [useIdeaManagement] handleIdeaSubmit saved to session:', { keywords: kws, idea });
       localStorage.setItem('dashboardIdea', idea);
       toast({ title: 'Idea captured', description: 'Seeding dashboard with AI insights...' });
       setShowQuestionnaire(false);
