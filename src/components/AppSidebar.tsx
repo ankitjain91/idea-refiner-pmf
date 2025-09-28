@@ -21,7 +21,8 @@ import {
   BarChart3,
   HelpCircle,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Brain
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
@@ -82,17 +83,17 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       "border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
       className
     )} style={style}>
-      <SidebarHeader className="h-[65px] border-b flex items-center px-4">
+      <SidebarHeader className="h-[65px] border-b flex items-center justify-center px-4">
         {isOpen ? (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <span className="text-sm font-bold text-primary">S</span>
+              <Brain className="h-5 w-5 text-primary" />
             </div>
             <span className="font-semibold text-sm">SmoothBrains</span>
           </div>
         ) : (
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
-            <span className="text-sm font-bold text-primary">S</span>
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Brain className="h-5 w-5 text-primary" />
           </div>
         )}
       </SidebarHeader>
