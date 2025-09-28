@@ -230,3 +230,6 @@ verify_jwt = false
 
 [functions.analyze-idea]
 verify_jwt = true
+
+[functions.generate-analysis-suggestions]
+verify_jwt = false

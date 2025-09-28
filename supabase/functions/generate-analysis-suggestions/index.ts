@@ -9,15 +9,33 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('generate-analysis-suggestions function called');
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Check if OpenAI API key is configured
+  if (!openAIApiKey) {
+    console.error('OPENAI_API_KEY is not configured');
+    return new Response(
+      JSON.stringify({ 
+        error: 'OpenAI API key not configured',
+        suggestion: null 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 
   try {
     const { question, field, conversationHistory, ideaText, previousAnswers } = await req.json();
     
     console.log('Generating suggestion for question:', field);
+    console.log('OpenAI API key exists:', !!openAIApiKey);
     console.log('Conversation history length:', conversationHistory?.length || 0);
 
     // Build context from conversation history
