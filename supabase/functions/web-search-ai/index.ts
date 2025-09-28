@@ -17,11 +17,11 @@ serve(async (req) => {
     
     console.log('Web search request:', { query, tileType, filters });
 
-    // Return error - OpenAI functionality has been disabled
+    // Return error - AI service is disabled
     return new Response(
       JSON.stringify({
-        error: 'Service temporarily unavailable',
-        message: 'Data fetching service is currently disabled'
+        error: 'Cannot fetch AI responses',
+        message: 'AI service is currently unavailable'
       }), 
       {
         status: 503,
@@ -33,8 +33,8 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        error: 'Service error',
-        message: 'Unable to process request'
+        error: 'Cannot fetch AI responses',
+        message: 'Service error occurred'
       }), 
       {
         status: 500,

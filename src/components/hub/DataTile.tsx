@@ -73,7 +73,7 @@ export function DataTile({
     setError(null);
     
     try {
-      // First try the new web-search-ai function for real-time data
+      // Try the web-search-ai function for real-time data
       const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
         body: {
           tileType,
@@ -84,13 +84,18 @@ export function DataTile({
       
       if (fetchError) throw fetchError;
       
+      // Check if response contains an error
+      if (response?.error) {
+        throw new Error(response.message || response.error);
+      }
+      
       setData(response);
       setLastUpdate(new Date());
       setRetryCount(0);
     } catch (err: any) {
       console.error(`Error fetching ${tileType} data:`, err);
-      setError(err.message || 'Failed to fetch data');
-      // Don't set dummy data, just show error state
+      setError('Cannot fetch AI responses');
+      // No fallback data, just error state
     } finally {
       setLoading(false);
     }
@@ -179,7 +184,7 @@ export function DataTile({
     );
   }
   
-  if (error && !data) {
+  if (error) {
     return (
       <Card className={cn("p-6", className)}>
         <div className="space-y-4">
@@ -197,7 +202,7 @@ export function DataTile({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Unable to fetch data at the moment. Please try again later.
+              Cannot fetch AI responses. Service is currently unavailable.
             </AlertDescription>
           </Alert>
           <Button
