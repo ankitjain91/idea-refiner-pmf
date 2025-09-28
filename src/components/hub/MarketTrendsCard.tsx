@@ -10,11 +10,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
   TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, 
-  ExternalLink, Search, Newspaper, ChevronRight, CheckCircle, XCircle
+  ExternalLink, Search, Newspaper, ChevronRight, CheckCircle, XCircle,
+  HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import useSWR from 'swr';
+import { TileInsightsDialog } from './TileInsightsDialog';
 
 interface MarketTrendsCardProps {
   filters: {
@@ -66,6 +68,7 @@ interface TrendsData {
 
 export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) {
   const [showSources, setShowSources] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Get the idea from filters or fallback to localStorage
@@ -235,7 +238,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
 
   return (
     <>
-      <Card className={cn("h-full", className)}>
+      <Card 
+        className={cn("h-full cursor-pointer transition-all hover:shadow-lg", className)}
+        onClick={() => setShowInsights(true)}
+      >
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -267,9 +273,24 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             </div>
             <div className="flex items-center gap-2">
               <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInsights(true);
+                }}
+                className="h-8 w-8"
+                title="How this helps your product journey"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
-                onClick={handleRefresh}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRefresh();
+                }}
                 disabled={isLoading || isRefreshing || !ideaText}
                 className="h-8"
                 title={!ideaText ? "No idea configured" : "Refresh data"}
@@ -475,6 +496,13 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* Insights Dialog */}
+      <TileInsightsDialog 
+        open={showInsights}
+        onOpenChange={setShowInsights}
+        tileType="market_trends"
+      />
     </>
   );
 }

@@ -11,10 +11,11 @@ import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   RefreshCw, ChevronDown, ChevronUp, AlertCircle, Clock, 
-  ExternalLink, Download, Database, Loader2
+  ExternalLink, Download, Database, Loader2, HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { TileInsightsDialog } from './TileInsightsDialog';
 
 interface DataTileProps {
   title: string;
@@ -78,6 +79,7 @@ export function DataTile({
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [refreshCountdown, setRefreshCountdown] = useState(30);
@@ -347,7 +349,10 @@ export function DataTile({
 
   return (
     <>
-      <Card className={cn("h-full flex flex-col hover:shadow-lg transition-all duration-200 border-border/50", className)}>
+      <Card 
+        className={cn("h-full flex flex-col hover:shadow-lg transition-all duration-200 border-border/50 cursor-pointer", className)}
+        onClick={() => setShowInsights(true)}
+      >
         <CardHeader className="pb-4 px-4 pt-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -382,7 +387,26 @@ export function DataTile({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={fetchData}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowInsights(true);
+                        }}
+                        className="h-7 w-7"
+                      >
+                        <HelpCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>How this helps your journey</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fetchData();
+                        }}
                         disabled={loading}
                         className="h-7 w-7"
                       >
@@ -645,6 +669,13 @@ export function DataTile({
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* Insights Dialog */}
+      <TileInsightsDialog 
+        open={showInsights}
+        onOpenChange={setShowInsights}
+        tileType={tileType}
+      />
     </>
   );
 }
