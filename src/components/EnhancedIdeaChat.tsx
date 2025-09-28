@@ -1931,15 +1931,10 @@ User submission: """${messageText}"""`;
             <p className="fluid-text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[0.75rem] tracking-tight text-primary/90">{wrinklePoints.toFixed(1)}</span>
               <span className="text-[0.65rem] uppercase tracking-wide font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">Wrinkles</span>
-              {currentSession?.is_anonymous && (
-                <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
-              )}
-            </p>
-            {currentIdea && (
-              <p className="fluid-text-xs text-primary font-medium mt-1 max-w-[320px] break-words" title={currentIdea}>
-                💡 {ideaSummaryName || (currentIdea.length > 50 ? `${currentIdea.slice(0, 50)}...` : currentIdea)}
-              </p>
+            {currentSession?.is_anonymous && (
+              <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
             )}
+          </p>
           </div>
         </div>
       </div>
