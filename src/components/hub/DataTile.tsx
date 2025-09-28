@@ -73,11 +73,12 @@ export function DataTile({
     setError(null);
     
     try {
-      const { data: response, error: fetchError } = await supabase.functions.invoke('hub-data-fetcher', {
+      // First try the new web-search-ai function for real-time data
+      const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
         body: {
           tileType,
           filters,
-          useCache: retryCount === 0 // Use cache on first load
+          query: filters?.idea_keywords?.join(' ') || ''
         }
       });
       
@@ -101,17 +102,44 @@ export function DataTile({
       setLoading(false);
     }
   }, [tileType, filters, retryCount]);
+
+  // Set up real-time subscriptions for updates
+  useEffect(() => {
+    // Create a channel for real-time updates specific to this tile
+    const channel = supabase
+      .channel(`tile-updates-${tileType}`)
+      .on(
+        'broadcast',
+        { event: 'data-update' },
+        (payload) => {
+          if (payload.payload.tileType === tileType) {
+            console.log(`Real-time update for ${tileType}:`, payload.payload);
+            setData(payload.payload.data);
+            setLastUpdate(new Date());
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tileType]);
   
   useEffect(() => {
     fetchData();
   }, [fetchData]);
   
-  // Auto-refresh based on tile type
+  // Auto-refresh for real-time data updates
   useEffect(() => {
-    const fastMovingTiles = ['search-trends', 'social-sentiment', 'funding-pathways'];
-    const refreshInterval = fastMovingTiles.includes(tileType) ? 15 * 60 * 1000 : 60 * 60 * 1000;
+    // More frequent refresh for real-time insights
+    const refreshInterval = 30000; // 30 seconds for all tiles to get latest AI insights
     
-    const interval = setInterval(fetchData, refreshInterval);
+    const interval = setInterval(() => {
+      console.log(`Auto-refreshing ${tileType} for real-time data`);
+      fetchData();
+    }, refreshInterval);
+    
     return () => clearInterval(interval);
   }, [tileType, fetchData]);
   
@@ -209,6 +237,32 @@ export function DataTile({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {loading && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <RefreshCw className="h-4 w-4 text-primary animate-spin" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Fetching real-time data...</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {!loading && lastUpdate && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge variant="outline" className="text-xs">
+                        Live
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Real-time data • Updated {lastUpdate.toLocaleTimeString()}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               {data?.fromCache && (
                 <TooltipProvider>
                   <Tooltip>
