@@ -60,11 +60,6 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
 
   const bottomNav = [
     { 
-      title: "Dashboard", 
-      url: "/dashboard", 
-      icon: BarChart3,
-    },
-    { 
       title: "Pricing", 
       url: "/pricing", 
       icon: Crown,
