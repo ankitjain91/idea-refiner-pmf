@@ -76,7 +76,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       "border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
       className
     )} style={style}>
-      <SidebarHeader className="h-14 border-b flex items-center px-4">
+      <SidebarHeader className="h-[60px] border-b flex items-center px-4">
         {isOpen ? (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
