@@ -244,14 +244,14 @@ export function DataTile({
     return (
       <div className="grid grid-cols-2 gap-3">
         {data.metrics.slice(0, expanded ? undefined : 2).map((metric, idx) => (
-          <div key={idx} className="space-y-1">
-            <p className="text-xs text-muted-foreground">{metric.name}</p>
-            <p className="text-lg font-semibold">
+          <div key={idx} className="bg-muted/10 rounded-lg p-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{metric.name}</p>
+            <p className="text-xl font-bold mt-1">
               {metric.value}
-              {metric.unit && <span className="text-sm text-muted-foreground ml-1">{metric.unit}</span>}
+              {metric.unit && <span className="text-sm font-normal text-muted-foreground ml-1">{metric.unit}</span>}
             </p>
             {metric.explanation && expanded && (
-              <p className="text-xs text-muted-foreground">{metric.explanation}</p>
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{metric.explanation}</p>
             )}
           </div>
         ))}
@@ -264,12 +264,15 @@ export function DataTile({
     
     return (
       <div className="space-y-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latest Updates</h4>
         {data.items.slice(0, expanded ? undefined : 2).map((item, idx) => (
-          <div key={idx} className="p-2 bg-muted/30 rounded-md space-y-1">
-            <p className="text-sm font-medium line-clamp-1">{item.title}</p>
-            <p className="text-xs text-muted-foreground line-clamp-2">{item.snippet}</p>
+          <div key={idx} className="p-3 bg-muted/10 rounded-lg border border-border/50 hover:border-border transition-colors">
+            <p className="text-sm font-medium leading-tight line-clamp-2">{item.title}</p>
+            {item.snippet && (
+              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{item.snippet}</p>
+            )}
             {item.source && (
-              <p className="text-xs text-muted-foreground">Source: {item.source}</p>
+              <p className="text-xs text-muted-foreground/70 mt-2 font-medium">Source: {item.source}</p>
             )}
           </div>
         ))}
@@ -282,12 +285,12 @@ export function DataTile({
     
     return (
       <div className="space-y-2">
-        <p className="text-sm font-medium">Key Insights</p>
-        <ul className="space-y-1">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Key Insights</h4>
+        <ul className="space-y-2">
           {data.insights.slice(0, expanded ? undefined : 2).map((insight, idx) => (
-            <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
-              <span>•</span>
-              <span>{insight}</span>
+            <li key={idx} className="flex items-start gap-2 text-sm">
+              <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+              <span className="text-muted-foreground leading-relaxed">{insight}</span>
             </li>
           ))}
         </ul>
@@ -321,18 +324,28 @@ export function DataTile({
 
   return (
     <>
-      <Card className={cn("h-full flex flex-col hover:shadow-lg transition-shadow duration-200", className)}>
-        <CardHeader className="pb-3">
+      <Card className={cn("h-full flex flex-col hover:shadow-lg transition-all duration-200 border-border/50", className)}>
+        <CardHeader className="pb-4 px-4 pt-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Icon className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
+              <div className="space-y-0.5">
+                <CardTitle className="text-base font-semibold leading-none">{title}</CardTitle>
+                {description && (
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1">
               {lastRefresh && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span className="hidden sm:inline">{lastRefresh.toLocaleTimeString()}</span>
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
                     Last updated: {lastRefresh.toLocaleTimeString()}
@@ -348,9 +361,9 @@ export function DataTile({
                         size="icon"
                         onClick={fetchData}
                         disabled={loading}
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                       >
-                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Refresh data</TooltipContent>
@@ -361,9 +374,9 @@ export function DataTile({
                         variant="ghost"
                         size="icon"
                         onClick={() => setShowDetails(true)}
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>View details</TooltipContent>
@@ -376,38 +389,35 @@ export function DataTile({
                     variant="ghost"
                     size="icon"
                     onClick={() => setExpanded(!expanded)}
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                   >
-                    {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{expanded ? 'Collapse' : 'Expand'}</TooltipContent>
               </Tooltip>
             </div>
           </div>
-          {description && (
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
-          )}
         </CardHeader>
         
-        <CardContent className="flex-1 pt-0">
+        <CardContent className="flex-1 px-4 pb-4 pt-0">
           {!hasLoadedOnce && !loading ? (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="p-3 rounded-full bg-muted">
-                <Database className="h-8 w-8 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <div className="p-4 rounded-full bg-muted/20">
+                <Database className="h-8 w-8 text-muted-foreground/60" />
               </div>
               <div className="text-center space-y-2">
                 <p className="text-sm font-medium">No data loaded</p>
                 <p className="text-xs text-muted-foreground">Click to load {title.toLowerCase()} data</p>
-                <Button onClick={fetchData} size="sm" disabled={loading}>
+                <Button onClick={fetchData} size="sm" disabled={loading} variant="secondary">
                   {loading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
                       Loading...
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="h-4 w-4 mr-2" />
+                      <RefreshCw className="h-3.5 w-3.5 mr-2" />
                       Load Data
                     </>
                   )}
@@ -415,24 +425,25 @@ export function DataTile({
               </div>
             </div>
           ) : loading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+            <div className="space-y-3 py-4">
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-8 w-3/4 rounded-lg" />
             </div>
           ) : error ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="py-4">
+              <Alert variant="destructive" className="border-destructive/50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">{error}</AlertDescription>
+              </Alert>
+            </div>
           ) : data ? (
             <div className="space-y-4">
               {renderTileContent()}
-              
               {expanded && hasLoadedOnce && (
-                <div className="pt-3 border-t space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor={`auto-refresh-${tileType}`} className="text-sm">
+                <div className="pt-4 mt-4 border-t border-border/50 space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/10 rounded-lg">
+                    <Label htmlFor={`auto-refresh-${tileType}`} className="text-sm font-medium cursor-pointer">
                       Auto-refresh every 30s
                     </Label>
                     <Switch
@@ -442,23 +453,25 @@ export function DataTile({
                     />
                   </div>
                   {autoRefresh && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Next refresh in {refreshCountdown}s</span>
-                        <Progress value={(30 - refreshCountdown) * 3.33} className="w-20 h-2" />
+                    <div className="px-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Next refresh in {refreshCountdown}s</span>
+                        <Progress value={(30 - refreshCountdown) * 3.33} className="w-24 h-1.5" />
                       </div>
                     </div>
                   )}
-                  {data.fromCache && (
-                    <Badge variant="secondary" className="text-xs">
-                      Cached Data
-                    </Badge>
-                  )}
-                  {data.stale && (
-                    <Badge variant="outline" className="text-xs">
-                      May be outdated
-                    </Badge>
-                  )}
+                  <div className="flex gap-2">
+                    {data.fromCache && (
+                      <Badge variant="secondary" className="text-xs">
+                        Cached Data
+                      </Badge>
+                    )}
+                    {data.stale && (
+                      <Badge variant="outline" className="text-xs">
+                        May be outdated
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
