@@ -2054,11 +2054,9 @@ User submission: """${messageText}"""`;
       </div>
     </div>
     
-    {/* GPT-5 Powered - Floating text with sparkles */}
-<div className="absolute bottom-3 right-3 flex items-center gap-1 text-slate-500 dark:text-slate-400 fluid-text-xs font-medium">
-      <Sparkles className="h-3 w-3 text-amber-400" />
-      <span>GPT-5</span>
-      <Sparkles className="h-2 w-2 text-yellow-300" />
+    {/* GPT-5 Powered - Floating text */}
+    <div className="absolute bottom-3 right-3 flex items-center gap-1 text-slate-500 dark:text-slate-400 fluid-text-xs font-medium">
+      <span>Powered by GPT-5</span>
     </div>
   </Card>
   </TooltipProvider>
