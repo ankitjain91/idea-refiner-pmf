@@ -1808,16 +1808,25 @@ User submission: """${messageText}"""`;
           // Fallback: generate basic suggestions with explanations
           suggestions = generateFallbackSuggestions(formattedContent, 'verbose');
         }
-        
         // Generate static suggestion explanation
         const suggestionTexts = suggestions.map(s => typeof s === 'string' ? s : s?.text || String(s));
         const staticSuggestionExplanation = suggestionTexts.length > 0 ? 
           generateBrainExplanation(suggestionTexts, formattedContent) : '';
+        
+        // Prepare detailed and summary versions
+        const detailed = data.detailedResponse || formattedContent;
+        const summary = data.summaryResponse || (() => {
+          const sentences = formattedContent.split(/[.!?]+/).filter(s => s.trim());
+          const short = sentences.slice(0, 2).join('. ').trim();
+          return short ? short + (short.endsWith('.') ? '' : '.') : formattedContent;
+        })();
 
         const botMessage: Message = {
           id: Date.now().toString(),
           type: 'bot',
           content: formattedContent,
+          detailedContent: detailed,
+          summaryContent: summary,
           timestamp: new Date(),
           suggestions,
           pointsEarned: pointChange,
