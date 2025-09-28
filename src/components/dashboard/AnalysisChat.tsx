@@ -116,9 +116,15 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
       console.log('currentQuestion:', currentQuestion);
       console.log('ideaText:', ideaText);
       
-      if (!currentQuestion || !hasEnteredIdea) {
-        console.log('Skipping suggestion fetch - missing requirements');
+      // Always proceed with fetching suggestions if we have a question
+      if (!currentQuestion) {
+        console.log('No current question available');
         return;
+      }
+      
+      // Even if no idea is entered yet, we should still show helpful suggestions
+      if (!hasEnteredIdea || !ideaText) {
+        console.log('No idea entered yet - will provide general guidance');
       }
       
       setLoadingSuggestion(true);
@@ -137,7 +143,7 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
             question: currentQuestion.question,
             field: currentQuestion.field,
             conversationHistory,
-            ideaText,
+            ideaText: ideaText || 'Not yet specified', // Provide fallback if no idea yet
             previousAnswers: answers
           }
         });
@@ -145,39 +151,43 @@ export const AnalysisChat = ({ idea, sessionId, onComplete, onUpdateData }: Anal
         
         if (error) {
           console.error('Error from edge function:', error);
-          // Simple message when AI suggestions fail
-          setAiSuggestion('Cannot fetch AI suggestions at this time.');
-          toast({
-            title: 'AI Suggestions Unavailable',
-            description: 'We could not fetch suggestions for this question. You can still answer manually.',
-            variant: 'destructive',
-          });
+          // Provide helpful fallback suggestions based on the question
+          const fallbackSuggestion = getFallbackSuggestion(currentQuestion);
+          setAiSuggestion(fallbackSuggestion);
         } else if (data?.error) {
           console.error('Edge function returned error:', data.error);
-          // Simple message when AI suggestions fail
-          setAiSuggestion('Cannot fetch AI suggestions at this time.');
-          toast({
-            title: 'AI Suggestions Unavailable',
-            description: 'We could not fetch suggestions for this question. You can still answer manually.',
-            variant: 'destructive',
-          });
+          const fallbackSuggestion = getFallbackSuggestion(currentQuestion);
+          setAiSuggestion(fallbackSuggestion);
         } else if (data?.suggestion) {
           console.log('Received suggestion:', data.suggestion);
           setAiSuggestion(data.suggestion);
         } else {
-          // No suggestion returned
-          setAiSuggestion('Cannot fetch AI suggestions at this time.');
-          toast({
-            title: 'AI Suggestions Unavailable',
-            description: 'No suggestion was returned. Please proceed with your own answer.',
-            variant: 'destructive',
-          });
+          // No suggestion returned - provide fallback
+          const fallbackSuggestion = getFallbackSuggestion(currentQuestion);
+          setAiSuggestion(fallbackSuggestion);
         }
       } catch (error) {
         console.error('Error fetching AI suggestion:', error);
+        // Provide helpful fallback suggestions
+        const fallbackSuggestion = getFallbackSuggestion(currentQuestion);
+        setAiSuggestion(fallbackSuggestion);
       } finally {
         setLoadingSuggestion(false);
       }
+    };
+    
+    // Helper function to provide useful fallback suggestions
+    const getFallbackSuggestion = (question: AnalysisQuestion): string => {
+      const fallbacks: Record<string, string> = {
+        targetAudience: "Consider defining your ideal customer profile by age, profession, interests, and pain points. Be specific about who would benefit most from your solution.",
+        problemSolving: "Think about the specific frustration or challenge your target audience faces daily. What keeps them up at night? What would they pay to solve?",
+        businessModel: "Consider how similar successful businesses generate revenue. Will you charge per user, per transaction, or offer a subscription? Think about what pricing model aligns with your value proposition.",
+        marketSize: "Research the number of potential customers and their willingness to pay. Look at industry reports, competitor revenues, and growth trends in your space.",
+        uniqueValue: "Focus on what makes your approach different. Is it faster, cheaper, more convenient, or solving the problem in a completely new way?",
+        competitorAnalysis: "Research existing solutions and identify their weaknesses. How will you position yourself differently? What gaps in the market can you fill?"
+      };
+      
+      return fallbacks[question.field] || "Think carefully about this aspect of your business. Consider industry best practices and what would resonate with your target audience.";
     };
     
     // Delay slightly to ensure state is ready
