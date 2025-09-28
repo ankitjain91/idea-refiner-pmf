@@ -71,6 +71,9 @@ serve(async (req) => {
       console.error('GROQ_API_KEY not configured');
       return new Response(
         JSON.stringify({ 
+          response: "I'm having trouble connecting to the AI service. Please try again later.",
+          detailedResponse: "I'm having trouble connecting to the AI service. Please try again later.",
+          summaryResponse: "AI service connection issue. Please try again later.",
           content: "I'm having trouble connecting to the AI service. Please try again later.",
           suggestions: ["Tell me about your startup idea", "What problem are you solving?", "Who is your target customer?", "How will you make money?"]
         }),
@@ -184,6 +187,9 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        response: content,
+        detailedResponse: content,
+        summaryResponse: content,
         content,
         suggestions,
         pmfAnalysis: analysisQuestion ? { score: Math.floor(Math.random() * 30) + 70 } : undefined
@@ -194,6 +200,9 @@ serve(async (req) => {
     console.error('Error in idea-chat:', error);
     return new Response(
       JSON.stringify({ 
+        response: "I'm having trouble processing your request. Please try again.",
+        detailedResponse: "I'm having trouble processing your request. Please try again.",
+        summaryResponse: "Trouble processing request. Please try again.",
         content: "I'm having trouble processing your request. Please try again.",
         suggestions: ["Let's try a different approach", "Tell me more about your idea", "What specific help do you need?", "Can you clarify your question?"],
         error: error instanceof Error ? error.message : 'Unknown error' 
