@@ -210,9 +210,9 @@ export const InlineDataCompletion: React.FC<InlineDataCompletionProps> = ({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="border rounded-lg p-4 bg-secondary/30"
+                className="border rounded-lg bg-secondary/30 max-h-[400px] overflow-y-auto"
               >
-                <div className="space-y-4">
+                <div className="space-y-4 p-4">
                   {/* Question */}
                   <div className="flex items-start gap-3">
                     <activeField.icon className={cn("h-5 w-5 mt-0.5", getImportanceColor(activeField.importance))} />
@@ -258,30 +258,32 @@ export const InlineDataCompletion: React.FC<InlineDataCompletionProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Answer Input */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Type your answer..."
-                      value={currentAnswer}
-                      onChange={(e) => setCurrentAnswer(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSubmitAnswer()}
-                      className="flex-1 bg-background/50"
-                      disabled={isProcessing}
-                    />
-                    <Button
-                      onClick={handleSubmitAnswer}
-                      disabled={isProcessing || !currentAnswer.trim()}
-                      className="gap-2"
-                    >
-                      {isProcessing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4" />
-                          Submit
-                        </>
-                      )}
-                    </Button>
+                  {/* Answer Input - Sticky at bottom */}
+                  <div className="sticky bottom-0 bg-secondary/30 p-3 -m-3 mt-3 border-t">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Type your answer..."
+                        value={currentAnswer}
+                        onChange={(e) => setCurrentAnswer(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSubmitAnswer()}
+                        className="flex-1 bg-background/50"
+                        disabled={isProcessing}
+                      />
+                      <Button
+                        onClick={handleSubmitAnswer}
+                        disabled={isProcessing || !currentAnswer.trim()}
+                        className="gap-2"
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4" />
+                            Submit
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
