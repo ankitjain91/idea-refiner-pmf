@@ -36,18 +36,24 @@ const Dashboard = () => {
 
   // Load idea from localStorage
   useEffect(() => {
-    const storedIdea = localStorage.getItem('ideaText');
-    const ideaMetadata = localStorage.getItem('ideaMetadata');
-    
-    if (storedIdea) {
-      try {
-        const metadata = ideaMetadata ? JSON.parse(ideaMetadata) : null;
-        setIdea(metadata?.refined || storedIdea);
-      } catch {
-        setIdea(storedIdea);
+    const checkForIdea = () => {
+      const storedIdea = localStorage.getItem('ideaText');
+      const ideaMetadata = localStorage.getItem('ideaMetadata');
+      
+      if (storedIdea) {
+        try {
+          const metadata = ideaMetadata ? JSON.parse(ideaMetadata) : null;
+          setIdea(metadata?.refined || storedIdea);
+        } catch {
+          setIdea(storedIdea);
+        }
       }
-    }
-  }, []);
+    };
+    
+    checkForIdea();
+    
+    // Check again when showAnalysis changes (idea might have been added)
+  }, [showAnalysis]);
 
   // Fetch real-time data
   const { 
@@ -111,8 +117,8 @@ const Dashboard = () => {
   
   // Remove auto-redirect - let user decide when to go to IdeaChat
 
-  // Early return for loading state
-  if (authLoading || loading) {
+  // Early return for loading state - but only if we're actually fetching data
+  if ((authLoading || (loading && idea)) && !showAnalysis) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-black'>
         <div className="flex flex-col items-center gap-4">
@@ -197,11 +203,16 @@ const Dashboard = () => {
             idea={null}
             onComplete={(ideaText) => {
               if (ideaText) {
+                console.log('Idea entered:', ideaText);
                 setIdea(ideaText);
                 localStorage.setItem('ideaText', ideaText);
+                localStorage.setItem('ideaMetadata', JSON.stringify({ refined: ideaText }));
               }
               setShowAnalysis(false);
-              refresh();
+              // Force a refresh of data
+              setTimeout(() => {
+                refresh();
+              }, 100);
             }}
             onUpdateData={() => {
               refresh();
