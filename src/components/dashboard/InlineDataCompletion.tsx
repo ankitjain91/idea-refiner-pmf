@@ -33,12 +33,19 @@ export const InlineDataCompletion: React.FC<InlineDataCompletionProps> = ({
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Load existing answers
+  // Load existing answers - session-specific
   useEffect(() => {
-    const savedAnswers = localStorage.getItem('pmf.user.answers');
-    if (savedAnswers) {
-      setAnswers(JSON.parse(savedAnswers));
+    const currentSessionId = localStorage.getItem('currentSessionId');
+    setSessionId(currentSessionId);
+    
+    if (currentSessionId) {
+      const sessionAnswersKey = `session_${currentSessionId}_answers`;
+      const savedAnswers = localStorage.getItem(sessionAnswersKey);
+      if (savedAnswers) {
+        setAnswers(JSON.parse(savedAnswers));
+      }
     }
   }, []);
 
@@ -99,10 +106,13 @@ export const InlineDataCompletion: React.FC<InlineDataCompletionProps> = ({
     
     setIsProcessing(true);
     
-    // Save answer
+    // Save answer to session-specific storage
     const updatedAnswers = { ...answers, [activeQuestion]: currentAnswer };
     setAnswers(updatedAnswers);
-    localStorage.setItem('pmf.user.answers', JSON.stringify(updatedAnswers));
+    if (sessionId) {
+      const sessionAnswersKey = `session_${sessionId}_answers`;
+      localStorage.setItem(sessionAnswersKey, JSON.stringify(updatedAnswers));
+    }
     
     // Clear current state
     setCurrentAnswer('');

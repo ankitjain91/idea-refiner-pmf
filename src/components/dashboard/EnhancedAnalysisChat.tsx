@@ -117,15 +117,19 @@ export const EnhancedAnalysisChat: React.FC<EnhancedAnalysisChatProps> = ({
   const currentQuestion = ANALYSIS_QUESTIONS[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / ANALYSIS_QUESTIONS.length) * 100;
 
-  // Load existing answers from localStorage
+  // Load existing answers from localStorage - session-specific
   useEffect(() => {
-    const savedAnswers = localStorage.getItem('pmf.user.answers');
+    if (!sessionId) return;
+    
+    const sessionAnswersKey = `session_${sessionId}_answers`;
+    const savedAnswers = localStorage.getItem(sessionAnswersKey);
+    
     if (savedAnswers) {
       const parsed = JSON.parse(savedAnswers);
       // Backward compatibility: migrate legacy key
       if (parsed.competition && !parsed.competitorAnalysis) {
         parsed.competitorAnalysis = parsed.competition;
-        localStorage.setItem('pmf.user.answers', JSON.stringify(parsed));
+        localStorage.setItem(sessionAnswersKey, JSON.stringify(parsed));
       }
       setAnswers(parsed);
       
@@ -137,7 +141,7 @@ export const EnhancedAnalysisChat: React.FC<EnhancedAnalysisChatProps> = ({
         setCurrentQuestionIndex(ANALYSIS_QUESTIONS.length - 1);
       }
     }
-  }, []);
+  }, [sessionId]);
 
   // Fetch AI suggestions
   useEffect(() => {
@@ -179,22 +183,24 @@ export const EnhancedAnalysisChat: React.FC<EnhancedAnalysisChatProps> = ({
   }, [currentQuestionIndex, hasEnteredIdea]);
 
   const handleSubmitIdea = () => {
-    if (!ideaInput.trim()) return;
+    if (!ideaInput.trim() || !sessionId) return;
     
     setHasEnteredIdea(true);
-    localStorage.setItem('currentIdea', ideaInput);
-    localStorage.setItem('pmf.user.idea', ideaInput);
-    localStorage.setItem('userIdea', ideaInput);
+    // Store in session-specific keys only
+    const sessionIdeaKey = `session_${sessionId}_idea`;
+    localStorage.setItem(sessionIdeaKey, ideaInput);
   };
 
   const handleSubmitAnswer = async () => {
     if (!currentAnswer.trim() && currentQuestion.type === 'text') return;
+    if (!sessionId) return;
     
     setIsProcessing(true);
     
     const updatedAnswers = { ...answers, [currentQuestion.field]: currentAnswer };
     setAnswers(updatedAnswers);
-    localStorage.setItem('pmf.user.answers', JSON.stringify(updatedAnswers));
+    const sessionAnswersKey = `session_${sessionId}_answers`;
+    localStorage.setItem(sessionAnswersKey, JSON.stringify(updatedAnswers));
     
     if (onUpdateData) onUpdateData();
     
@@ -228,13 +234,16 @@ export const EnhancedAnalysisChat: React.FC<EnhancedAnalysisChatProps> = ({
           analysisType: 'complete',
           answers: finalAnswers,
           conversation: [],
-          context: { answers: finalAnswers }
+          context: { answers: finalAnswers, sessionId }
         }
       });
 
       if (error) throw error;
       
-      localStorage.setItem('pmf.analysis.completed', 'true');
+      // Store completion flag in session-specific key
+      if (sessionId) {
+        localStorage.setItem(`session_${sessionId}_analysis_completed`, 'true');
+      }
       
       if (onComplete) {
         onComplete(ideaInput);

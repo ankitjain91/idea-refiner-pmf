@@ -81,15 +81,23 @@ export const useIdeaValidation = () => {
   const [loading, setLoading] = useState(true);
 
   const checkValidation = async () => {
-    // Check multiple localStorage keys for idea
-    const idea = localStorage.getItem('currentIdea') || 
-                  localStorage.getItem('pmf.user.idea') || 
-                  localStorage.getItem('userIdea') ||
-                  localStorage.getItem('ideaText');
+    // Get current session ID from URL or context
+    const sessionId = window.location.pathname.includes('/dashboard') 
+      ? localStorage.getItem('currentSessionId') 
+      : null;
+    
+    // Check session-specific localStorage keys for idea
+    const idea = sessionId 
+      ? localStorage.getItem(`session_${sessionId}_idea`)
+      : null;
                   
-    // Get user answers for validation
-    const userAnswers = localStorage.getItem('pmf.user.answers') || localStorage.getItem('userAnswers');
-    const analysisCompleted = localStorage.getItem('pmf.analysis.completed') === 'true';
+    // Get session-specific user answers for validation
+    const userAnswers = sessionId 
+      ? localStorage.getItem(`session_${sessionId}_answers`)
+      : null;
+    const analysisCompleted = sessionId 
+      ? localStorage.getItem(`session_${sessionId}_analysis_completed`) === 'true'
+      : false;
     
     if (!idea) {
       setValidation({

@@ -182,13 +182,19 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         tabHistory: []
       };
       
-      // Clear localStorage to reset the chat
+      // Clear ALL generic localStorage to reset for new session
       localStorage.removeItem('chatHistory');
       localStorage.removeItem('enhancedIdeaChatMessages');
       localStorage.removeItem(LS_KEYS.userIdea);
       localStorage.removeItem('currentIdea');
+      localStorage.removeItem('pmf.user.idea');
+      localStorage.removeItem('userIdea');
+      localStorage.removeItem('pmf.user.answers');
+      localStorage.removeItem('ideaMetadata');
+      localStorage.removeItem('conversationHistory');
       localStorage.removeItem(LS_KEYS.pmfScore);
       localStorage.removeItem(LS_KEYS.analysisCompleted);
+      localStorage.removeItem('pmf.analysis.completed');
       localStorage.removeItem(LS_KEYS.ideaMetadata);
       localStorage.removeItem('wrinklePoints');
       

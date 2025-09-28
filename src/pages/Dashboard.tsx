@@ -51,92 +51,55 @@ const Dashboard = () => {
     return `session_${sessionId}_conversation`;
   };
 
-  // Load idea from localStorage for current session or conversation history
+  // Load idea from localStorage for current session ONLY
   useEffect(() => {
     const checkForIdea = () => {
+      // Only load idea if we have an active session
+      if (!currentSession?.id) {
+        setIdea(null);
+        return;
+      }
+      
       // First check if current session has data with an idea
       if (currentSession?.data?.currentIdea) {
         setIdea(currentSession.data.currentIdea);
         return;
       }
       
-      // Check multiple localStorage keys for the idea
-      const ideaFromEnhancedChat = localStorage.getItem('currentIdea');
-      const ideaFromUserIdea = localStorage.getItem('pmf.user.idea');
-      const ideaFromSimpleIdea = localStorage.getItem('userIdea');
+      // Check session-specific storage ONLY - no fallback to generic keys
+      const sessionIdeaKey = getSessionStorageKey(currentSession.id);
+      const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
+      const sessionConversationKey = getSessionConversationKey(currentSession.id);
       
-      // Also check session-specific keys if we have a session ID
-      let sessionIdea = null;
-      if (currentSession?.id) {
-        const sessionIdeaKey = getSessionStorageKey(currentSession.id);
-        const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
-        const sessionConversationKey = getSessionConversationKey(currentSession.id);
-        
-        sessionIdea = localStorage.getItem(sessionIdeaKey);
-        const ideaMetadata = localStorage.getItem(sessionMetadataKey);
-        
-        if (sessionIdea && ideaMetadata) {
-          try {
-            const metadata = JSON.parse(ideaMetadata);
-            sessionIdea = metadata?.refined || sessionIdea;
-          } catch {}
-        }
-        
-        // Try to extract from conversation if no direct idea found
-        if (!sessionIdea) {
-          const conversationHistory = localStorage.getItem(sessionConversationKey);
-          if (conversationHistory) {
-            try {
-              const history = JSON.parse(conversationHistory);
-              const ideaMessage = history.find((msg: any) => 
-                msg.role === 'user' && msg.content.toLowerCase().includes('startup idea:')
-              );
-              if (ideaMessage) {
-                sessionIdea = ideaMessage.content.replace(/^.*startup idea:\s*/i, '').trim();
-              }
-            } catch {}
-          }
-        }
+      let sessionIdea = localStorage.getItem(sessionIdeaKey);
+      const ideaMetadata = localStorage.getItem(sessionMetadataKey);
+      
+      if (sessionIdea && ideaMetadata) {
+        try {
+          const metadata = JSON.parse(ideaMetadata);
+          sessionIdea = metadata?.refined || sessionIdea;
+        } catch {}
       }
       
-      // Try enhanced chat messages if still no idea
-      if (!sessionIdea && !ideaFromEnhancedChat && !ideaFromUserIdea) {
-        const enhancedMessages = localStorage.getItem('enhancedIdeaChatMessages');
-        if (enhancedMessages) {
+      // Try to extract from session conversation if no direct idea found
+      if (!sessionIdea) {
+        const conversationHistory = localStorage.getItem(sessionConversationKey);
+        if (conversationHistory) {
           try {
-            const messages = JSON.parse(enhancedMessages);
-            const ideaMessage = messages.find((msg: any) => 
+            const history = JSON.parse(conversationHistory);
+            const ideaMessage = history.find((msg: any) => 
               msg.role === 'user' && msg.content.toLowerCase().includes('startup idea:')
             );
             if (ideaMessage) {
-              const extractedIdea = ideaMessage.content.replace(/^.*startup idea:\s*/i, '').trim();
-              setIdea(extractedIdea);
-              
-              // Save to proper keys for consistency
-              if (currentSession?.id && extractedIdea) {
-                const sessionIdeaKey = getSessionStorageKey(currentSession.id);
-                const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
-                localStorage.setItem(sessionIdeaKey, extractedIdea);
-                localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: extractedIdea }));
-              }
-              return;
+              sessionIdea = ideaMessage.content.replace(/^.*startup idea:\s*/i, '').trim();
             }
           } catch {}
         }
       }
       
-      // Set the idea based on priority
-      const finalIdea = sessionIdea || ideaFromEnhancedChat || ideaFromUserIdea || ideaFromSimpleIdea;
-      if (finalIdea) {
-        setIdea(finalIdea);
-        
-        // Save to session-specific keys if we have a session
-        if (currentSession?.id && !sessionIdea) {
-          const sessionIdeaKey = getSessionStorageKey(currentSession.id);
-          const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
-          localStorage.setItem(sessionIdeaKey, finalIdea);
-          localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: finalIdea }));
-        }
+      // Only set idea if found in this specific session
+      if (sessionIdea) {
+        setIdea(sessionIdea);
       } else {
         setIdea(null);
       }
@@ -144,8 +107,8 @@ const Dashboard = () => {
     
     checkForIdea();
     
-    // Check again when showAnalysis changes or session changes
-  }, [showAnalysis, currentSession]);
+    // Re-check when session changes
+  }, [showAnalysis, currentSession?.id]);
 
   // Fetch real-time data
   const { 
@@ -292,10 +255,16 @@ const Dashboard = () => {
                 console.log('Idea entered for session:', currentSession.id, ideaText);
                 const sessionIdeaKey = getSessionStorageKey(currentSession.id);
                 const sessionMetadataKey = getSessionMetadataKey(currentSession.id);
+                const sessionAnswersKey = `session_${currentSession.id}_answers`;
                 
                 setIdea(ideaText);
                 localStorage.setItem(sessionIdeaKey, ideaText);
                 localStorage.setItem(sessionMetadataKey, JSON.stringify({ refined: ideaText }));
+                // Clear generic keys to prevent cross-session pollution
+                localStorage.removeItem('currentIdea');
+                localStorage.removeItem('pmf.user.idea');
+                localStorage.removeItem('userIdea');
+                localStorage.removeItem('pmf.user.answers');
                 // Stay in AnalysisChat to answer questions and load AI suggestions
                 return;
               }
