@@ -136,22 +136,23 @@ export function useIdeaManagement() {
       }
     };
 
-    // Check if we have session state first
+    // Always run recompute to get the latest idea
+    recompute();
+    
+    // After recompute, check if we should use cached keywords
     const sessionKeywords = sessionStorage.getItem('dashboardKeywords');
     if (sessionKeywords) {
       try {
         const keywords = JSON.parse(sessionKeywords);
-        if (keywords.length) {
+        // Only use cached keywords if we didn't find any from recompute
+        if (keywords.length && filters.idea_keywords.length === 0) {
           setFilters(prev => ({
             ...prev,
             idea_keywords: keywords,
           }));
-          return;
         }
       } catch {}
     }
-
-    recompute();
 
     const onStorage = () => recompute();
     const onIdeaUpdated = () => recompute();
