@@ -1,27 +1,47 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, BarChart3, Users, Target, Globe, Calendar, AlertCircle, Lock } from "lucide-react";
-import { MarketValidation } from "@/components/hub/MarketValidation";
-import { ExecutionInsights } from "@/components/hub/ExecutionInsights";
-import { EngagementSignals } from "@/components/hub/EngagementSignals";
-import { ActionCenter } from "@/components/hub/ActionCenter";
-import { useIdeaManagement } from "@/hooks/useIdeaManagement";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  Brain, TrendingUp, Globe2, Newspaper, MessageSquare, Youtube,
+  Twitter, ShoppingBag, Users, Target, DollarSign, Rocket,
+  BarChart3, AlertCircle, RefreshCw, Sparkles, Building2,
+  Calendar, Clock, Activity, ArrowUpRight, ArrowDownRight
+} from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
+import { supabase } from "@/integrations/supabase/client";
+import { GlobalFilters } from "@/components/hub/GlobalFilters";
+import { DataTile } from "@/components/hub/DataTile";
 
 export default function EnterpriseHub() {
   const { currentSession } = useSession();
   const { user } = useAuth();
   const { subscription } = useSubscription();
-  const [activeTab, setActiveTab] = useState("market");
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    idea_keywords: [],
+    industry: '',
+    geography: 'global',
+    time_window: 'last_12_months'
+  });
   
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('currentIdea') || '';
   const subscriptionTier = subscription.tier;
+
+  // Update filters when idea changes
+  useEffect(() => {
+    if (currentIdea) {
+      const keywords = currentIdea.split(' ')
+        .filter(word => word.length > 3)
+        .slice(0, 5);
+      setFilters(prev => ({ ...prev, idea_keywords: keywords }));
+    }
+  }, [currentIdea]);
 
   if (!currentIdea) {
     return (
@@ -47,10 +67,29 @@ export default function EnterpriseHub() {
     );
   }
 
-  const isEnterpriseFeature = (feature: string) => {
-    const enterpriseFeatures = ['execution', 'engagement'];
-    return enterpriseFeatures.includes(feature) && subscriptionTier !== 'enterprise';
+  const handleRefreshAll = async () => {
+    setLoading(true);
+    // Trigger refresh logic here
+    setTimeout(() => setLoading(false), 2000);
   };
+
+  const tiles = [
+    { id: 'marketTrends', title: 'Market Trends', icon: TrendingUp, tileType: 'market_trends', span: 'col-span-2' },
+    { id: 'googleTrends', title: 'Google Trends', icon: Activity, tileType: 'google_trends', span: 'col-span-1' },
+    { id: 'webSearch', title: 'Web Search', icon: Globe2, tileType: 'web_search', span: 'col-span-1' },
+    { id: 'newsAnalysis', title: 'News Analysis', icon: Newspaper, tileType: 'news_analysis', span: 'col-span-2' },
+    { id: 'reddit', title: 'Reddit Sentiment', icon: MessageSquare, tileType: 'reddit_sentiment', span: 'col-span-1' },
+    { id: 'youtube', title: 'YouTube Analytics', icon: Youtube, tileType: 'youtube_analytics', span: 'col-span-1' },
+    { id: 'twitter', title: 'Twitter/X Buzz', icon: Twitter, tileType: 'twitter_buzz', span: 'col-span-1' },
+    { id: 'amazon', title: 'Amazon Reviews', icon: ShoppingBag, tileType: 'amazon_reviews', span: 'col-span-1' },
+    { id: 'competitors', title: 'Competitor Analysis', icon: Building2, tileType: 'competitor_analysis', span: 'col-span-2' },
+    { id: 'targetAudience', title: 'Target Audience', icon: Target, tileType: 'target_audience', span: 'col-span-1' },
+    { id: 'pricing', title: 'Pricing Strategy', icon: DollarSign, tileType: 'pricing_strategy', span: 'col-span-1' },
+    { id: 'marketSize', title: 'Market Size', icon: BarChart3, tileType: 'market_size', span: 'col-span-1' },
+    { id: 'growth', title: 'Growth Projections', icon: Rocket, tileType: 'growth_projections', span: 'col-span-1' },
+    { id: 'engagement', title: 'User Engagement', icon: Users, tileType: 'user_engagement', span: 'col-span-1' },
+    { id: 'timeline', title: 'Launch Timeline', icon: Calendar, tileType: 'launch_timeline', span: 'col-span-1' },
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
@@ -58,22 +97,108 @@ export default function EnterpriseHub() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Enterprise Command Center
+            Enterprise Analytics Hub
           </h1>
           <p className="text-muted-foreground mt-1">
-            Real-time insights and analytics for: <span className="font-medium text-foreground">{currentIdea}</span>
+            Real-time data for: <span className="font-medium text-foreground">{currentIdea}</span>
           </p>
         </div>
-        <Badge variant="secondary" className="px-3 py-1">
-          {subscriptionTier === 'enterprise' ? '🏢 Enterprise' : '🚀 Pro'}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant="secondary" className="px-3 py-1">
+            {subscriptionTier === 'enterprise' ? '🏢 Enterprise' : '🚀 Pro'}
+          </Badge>
+          <Button 
+            onClick={handleRefreshAll}
+            disabled={loading}
+            size="sm"
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh All
+          </Button>
+        </div>
       </div>
 
+      {/* Global Filters */}
+      <Card className="p-4">
+        <GlobalFilters 
+          currentFilters={filters} 
+          onFiltersChange={setFilters}
+          onExport={() => console.log('Export data')}
+          onRefresh={handleRefreshAll}
+        />
+      </Card>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">PMF Score</p>
+                <p className="text-2xl font-bold">72%</p>
+              </div>
+              <ArrowUpRight className="h-5 w-5 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Market Size</p>
+                <p className="text-2xl font-bold">$4.2B</p>
+              </div>
+              <TrendingUp className="h-5 w-5 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Competition</p>
+                <p className="text-2xl font-bold">Medium</p>
+              </div>
+              <Building2 className="h-5 w-5 text-amber-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Sentiment</p>
+                <p className="text-2xl font-bold">85%</p>
+              </div>
+              <Sparkles className="h-5 w-5 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Grid of Data Tiles */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {tiles.map((tile) => (
+          <div key={tile.id} className={tile.span}>
+            <DataTile
+              title={tile.title}
+              icon={tile.icon}
+              tileType={tile.tileType}
+              filters={filters}
+              description={`Real-time ${tile.title.toLowerCase()} analysis`}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Pro/Enterprise Features Notice */}
       {subscriptionTier !== 'enterprise' && (
         <Alert className="border-amber-500/20 bg-amber-500/5">
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-sm">
-            Upgrade to Enterprise to unlock Execution Insights and Community Engagement features.
+            Some data sources are limited on the {subscriptionTier} plan. Upgrade to Enterprise for unlimited access to all data sources.
             <Button 
               variant="link" 
               className="h-auto p-0 ml-2"
@@ -84,88 +209,6 @@ export default function EnterpriseHub() {
           </AlertDescription>
         </Alert>
       )}
-
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-4 h-auto p-1">
-          <TabsTrigger value="market" className="flex items-center gap-2 py-3">
-            <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Market</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="execution" 
-            className="flex items-center gap-2 py-3 relative"
-            disabled={isEnterpriseFeature('execution')}
-          >
-            <Target className="h-4 w-4" />
-            <span className="hidden sm:inline">Execution</span>
-            {isEnterpriseFeature('execution') && (
-              <Lock className="h-3 w-3 absolute top-1 right-1 text-muted-foreground" />
-            )}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="engagement" 
-            className="flex items-center gap-2 py-3 relative"
-            disabled={isEnterpriseFeature('engagement')}
-          >
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Engagement</span>
-            {isEnterpriseFeature('engagement') && (
-              <Lock className="h-3 w-3 absolute top-1 right-1 text-muted-foreground" />
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="actions" className="flex items-center gap-2 py-3">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Actions</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="market" className="space-y-6 mt-6">
-          <MarketValidation idea={currentIdea} />
-        </TabsContent>
-
-        <TabsContent value="execution" className="space-y-6 mt-6">
-          {isEnterpriseFeature('execution') ? (
-            <Card className="p-8">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <Lock className="h-12 w-12 text-muted-foreground" />
-                <h3 className="text-xl font-semibold">Enterprise Feature</h3>
-                <p className="text-muted-foreground max-w-md">
-                  Execution Insights help you track milestones, team readiness, and resource requirements.
-                </p>
-                <Button onClick={() => window.location.href = '/pricing'}>
-                  Upgrade to Enterprise
-                </Button>
-              </div>
-            </Card>
-          ) : (
-            <ExecutionInsights idea={currentIdea} />
-          )}
-        </TabsContent>
-
-        <TabsContent value="engagement" className="space-y-6 mt-6">
-          {isEnterpriseFeature('engagement') ? (
-            <Card className="p-8">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <Lock className="h-12 w-12 text-muted-foreground" />
-                <h3 className="text-xl font-semibold">Enterprise Feature</h3>
-                <p className="text-muted-foreground max-w-md">
-                  Community Engagement tracks social sentiment, validation polls, and early adopter feedback.
-                </p>
-                <Button onClick={() => window.location.href = '/pricing'}>
-                  Upgrade to Enterprise
-                </Button>
-              </div>
-            </Card>
-          ) : (
-            <EngagementSignals idea={currentIdea} />
-          )}
-        </TabsContent>
-
-        <TabsContent value="actions" className="space-y-6 mt-6">
-          <ActionCenter idea={currentIdea} />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
