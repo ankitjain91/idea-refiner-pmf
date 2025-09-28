@@ -17,8 +17,10 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
-
-// Tile configurations
+import GuidedIdeaInput from '@/components/GuidedIdeaInput';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+ 
+ // Tile configurations
 const TILES = [
   {
     id: 'search-trends',
@@ -140,8 +142,9 @@ export default function EnterpriseHub() {
     time_window: 'last_12_months'
   });
   
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+const [refreshKey, setRefreshKey] = useState(0);
+const [showDiagnostics, setShowDiagnostics] = useState(false);
+const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   
   // Load initial idea from localStorage + keep in sync
   useEffect(() => {
@@ -380,9 +383,37 @@ export default function EnterpriseHub() {
     setFilters(newFilters);
   };
   
-  const handleRefreshAll = () => {
-    setRefreshKey(prev => prev + 1);
+const handleRefreshAll = () => {
+  setRefreshKey(prev => prev + 1);
+};
+
+const handleIdeaSubmit = (idea: string, metadata: any) => {
+  const extract = (text: string) => {
+    const stop = new Set([
+      'the','and','for','with','that','this','from','your','into','about','over','using','you','are','our','their','them','they','have','has','can','will','just','very','much','more','less','when','what','how','why','where','who','app','tool','idea','project','startup','ai'
+    ]);
+    const words = (text || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w && w.length > 2 && !stop.has(w));
+    const unique = Array.from(new Set(words));
+    return unique.length ? unique.slice(0, 5) : (text ? [text.trim().slice(0, 30)] : []);
   };
+
+  let kws = extract(idea);
+  if (!kws.length && Array.isArray(metadata?.tags) && metadata.tags.length) {
+    kws = metadata.tags.slice(0, 5);
+  }
+
+  if (kws.length) {
+    setFilters(prev => ({ ...prev, idea_keywords: kws }));
+    sessionStorage.setItem('dashboardKeywords', JSON.stringify(kws));
+    sessionStorage.setItem('dashboardIdeaSource', idea);
+    localStorage.setItem('dashboardIdea', idea);
+    setShowQuestionnaire(false);
+  }
+};
   
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
@@ -438,16 +469,7 @@ export default function EnterpriseHub() {
             </Alert>
 
             <div className="flex gap-3 justify-center">
-              <Button
-                size="lg"
-                onClick={() => {
-                  localStorage.setItem(
-                    'pendingQuestion',
-                    "What's your startup idea? Describe it in one sentence. I'll then guide you with AI-suggested follow-up questions."
-                  );
-                  navigate('/ideachat');
-                }}
-              >
+              <Button size="lg" onClick={() => setShowQuestionnaire(true)}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Start AI‑Guided Questionnaire
               </Button>
@@ -479,6 +501,18 @@ export default function EnterpriseHub() {
             </div>
           </div>
         </Card>
+
+        <Dialog open={showQuestionnaire} onOpenChange={setShowQuestionnaire}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>AI‑Guided Idea Questionnaire</DialogTitle>
+              <DialogDescription>
+                Answer a few quick questions to seed the dashboard with contextual AI suggestions.
+              </DialogDescription>
+            </DialogHeader>
+            <GuidedIdeaInput onSubmit={handleIdeaSubmit} />
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
