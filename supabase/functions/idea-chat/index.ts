@@ -19,11 +19,17 @@ function validateEnv() {
   // Log API key info for debugging (without exposing the actual key)
   console.log('OpenAI API Key configured:', !!openAIApiKey);
   console.log('OpenAI API Key starts with:', openAIApiKey ? openAIApiKey.substring(0, 7) + '...' : 'not set');
+  console.log('OpenAI API Key length:', openAIApiKey ? openAIApiKey.length : 0);
   
   if (missing.length) {
+    console.error('Missing environment variables:', missing);
     return new Response(
-      JSON.stringify({ error: `Missing environment variables: ${missing.join(', ')}`, code: 'CONFIG_MISSING' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: `Missing environment variables: ${missing.join(', ')}`, 
+        code: 'CONFIG_MISSING',
+        details: `API key exists: ${!!openAIApiKey}, length: ${openAIApiKey ? openAIApiKey.length : 0}`
+      }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
   return null;
