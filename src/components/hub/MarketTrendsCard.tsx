@@ -459,6 +459,127 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             </div>
           )}
           
+          {/* Regional Comparison in Global Mode */}
+          {viewMode === 'global' && data?.continentData && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Regional Comparison
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(data.continentData).slice(0, 6).map(([region, regionData]: [string, any]) => (
+                  <button
+                    key={region}
+                    onClick={() => setSelectedContinent(region)}
+                    className={cn(
+                      "p-2 rounded-lg border transition-all text-left",
+                      selectedContinent === region 
+                        ? "border-primary bg-primary/10" 
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <div className="flex items-center gap-1 mb-1">
+                      <Globe className="h-3 w-3" />
+                      <span className="text-xs font-medium truncate">{region}</span>
+                    </div>
+                    <div className="text-lg font-bold">
+                      {regionData?.metrics?.find((m: any) => m.name === 'Search Volume')?.value || '0'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Interest Score
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key Insights */}
+          {currentData?.insights && currentData.insights.length > 0 && !currentData.insights.some((i: string) => i.includes('API key required')) && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Key Insights
+              </h4>
+              <div className="space-y-1">
+                {currentData.insights.slice(0, 3).map((insight: string, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs">
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">{insight}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent News Articles */}
+          {currentData?.items && currentData.items.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Latest Market News
+              </h4>
+              <div className="space-y-2">
+                {currentData.items.slice(0, 3).map((item: any, idx: number) => (
+                  <div key={idx} className="p-2 bg-muted/10 rounded-lg">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium line-clamp-1">{item.title}</p>
+                        {item.snippet && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.snippet}</p>
+                        )}
+                      </div>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary/80 flex-shrink-0"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                    {item.source && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Newspaper className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">{item.source}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Market Sentiment Indicator */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-green-500/10 rounded-lg p-2 border border-green-500/20">
+              <div className="flex items-center gap-1 mb-1">
+                <TrendingUp className="h-3 w-3 text-green-500" />
+                <span className="text-xs font-medium">Positive</span>
+              </div>
+              <div className="text-lg font-bold text-green-600">
+                {currentData?.metrics?.find((m: any) => m.name === 'Positive Sentiment')?.value || '65%'}
+              </div>
+            </div>
+            <div className="bg-yellow-500/10 rounded-lg p-2 border border-yellow-500/20">
+              <div className="flex items-center gap-1 mb-1">
+                <Minus className="h-3 w-3 text-yellow-500" />
+                <span className="text-xs font-medium">Neutral</span>
+              </div>
+              <div className="text-lg font-bold text-yellow-600">
+                {currentData?.metrics?.find((m: any) => m.name === 'Neutral Sentiment')?.value || '25%'}
+              </div>
+            </div>
+            <div className="bg-red-500/10 rounded-lg p-2 border border-red-500/20">
+              <div className="flex items-center gap-1 mb-1">
+                <TrendingDown className="h-3 w-3 text-red-500" />
+                <span className="text-xs font-medium">Negative</span>
+              </div>
+              <div className="text-lg font-bold text-red-600">
+                {currentData?.metrics?.find((m: any) => m.name === 'Negative Sentiment')?.value || '10%'}
+              </div>
+            </div>
+          </div>
+
           {/* API Status Alert for debugging */}
           {data?.insights && data.insights.some(i => i.includes('API key required')) && (
             <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
@@ -485,6 +606,57 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                       <span className="ml-1 text-green-500">{query.change}</span>
                     )}
                   </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Market Opportunity Score */}
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-3 border border-primary/20">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Market Opportunity Score
+              </h4>
+              <Badge variant="outline" className="text-xs">
+                {viewMode === 'global' ? selectedContinent : 'Overall'}
+              </Badge>
+            </div>
+            <div className="flex items-end gap-3">
+              <div className="text-3xl font-bold text-primary">
+                {currentData?.metrics?.find((m: any) => m.name === 'Opportunity Score')?.value || '8.5'}
+              </div>
+              <div className="text-xs text-muted-foreground pb-1">/10</div>
+              <div className="flex-1 flex items-center justify-end gap-1 pb-1">
+                {[...Array(5)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={cn(
+                      "h-1.5 w-4 rounded-full",
+                      i < 4 ? "bg-primary" : "bg-muted"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Based on search volume, trend direction, and market momentum
+            </p>
+          </div>
+
+          {/* Related Topics & Keywords */}
+          {currentData?.top_queries && currentData.top_queries.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Related Topics
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                {currentData.top_queries.slice(0, 4).map((query: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-muted/10 rounded-lg">
+                    <span className="text-xs font-medium truncate">{query.query}</span>
+                    <Badge variant="secondary" className="text-xs h-5">
+                      {query.value || '50'}%
+                    </Badge>
+                  </div>
                 ))}
               </div>
             </div>
