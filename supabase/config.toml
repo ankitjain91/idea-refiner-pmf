@@ -251,3 +251,24 @@ verify_jwt = true
 
 [functions.hub-data-fetcher]
 verify_jwt = true
+
+[functions.web-search-ai]
+verify_jwt = true
+
+[functions.web-search-optimized]
+verify_jwt = true
+
+[functions.evaluate-wrinkle-points]
+verify_jwt = true
+
+[functions.enhance-salty-response]
+verify_jwt = true
+
+[functions.help-support]
+verify_jwt = true
+
+[functions.populate-startup-ideas]
+verify_jwt = true
+
+[functions.dashboard-insights-realtime]
+verify_jwt = true
