@@ -233,3 +233,18 @@ verify_jwt = true
 
 [functions.generate-analysis-suggestions]
 verify_jwt = false
+
+[functions.market-trends]
+verify_jwt = true
+
+[functions.competitor-analysis]
+verify_jwt = true
+
+[functions.financial-analysis]
+verify_jwt = true
+
+[functions.social-sentiment]
+verify_jwt = true
+
+[functions.execution-insights]
+verify_jwt = true
