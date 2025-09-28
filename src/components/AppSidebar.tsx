@@ -83,17 +83,17 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       "border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
       className
     )} style={style}>
-      <SidebarHeader className="h-[65px] border-b flex items-center justify-center px-4">
+      <SidebarHeader className="h-[73px] border-b flex items-center justify-center px-4">
         {isOpen ? (
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Brain className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Brain className="h-6 w-6 text-primary" />
             </div>
-            <span className="font-semibold text-sm">SmoothBrains</span>
+            <span className="font-semibold text-base">SmoothBrains</span>
           </div>
         ) : (
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Brain className="h-5 w-5 text-primary" />
+          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Brain className="h-6 w-6 text-primary" />
           </div>
         )}
       </SidebarHeader>

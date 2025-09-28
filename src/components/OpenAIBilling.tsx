@@ -92,12 +92,14 @@ export function OpenAIBilling() {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-card/40 border border-border/30 hover:bg-card/50 transition-all duration-200">
+      <div className="flex items-center gap-3 px-4 py-2.5 rounded-md bg-card/40 border border-border/30 hover:bg-card/50 transition-all duration-200">
         <div className="flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary/70" />
+          <DollarSign className="h-5 w-5 text-primary/70" />
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground font-medium">OpenAI Usage</span>
-            <span className="text-sm font-semibold text-foreground tabular-nums">
+            <span className="text-xs text-muted-foreground font-medium">
+              {openAIData?.usage?.period ? 'Last 30 days' : 'OpenAI Usage'}
+            </span>
+            <span className="text-base font-semibold text-foreground tabular-nums">
               {error ? 'N/A' : formatSpend(totalSpend)}
             </span>
           </div>
@@ -107,16 +109,16 @@ export function OpenAIBilling() {
           size="sm"
           onClick={fetchOpenAIBalance}
           disabled={refreshing}
-          className="h-6 w-6 p-0 ml-1"
+          className="h-7 w-7 p-0 ml-1"
           title="Refresh usage data"
         >
-          <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''} text-muted-foreground`} />
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''} text-muted-foreground`} />
         </Button>
       </div>
       
       {openAIData?.keyInfo?.hasUsageKey === false && (
         <span className="text-xs text-muted-foreground/60">
-          (Add usage key for org data)
+          (Add usage key for actual data)
         </span>
       )}
     </div>

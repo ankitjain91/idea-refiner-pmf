@@ -59,18 +59,20 @@ serve(async (req) => {
       console.log('Attempting to fetch organization usage with separate usage key...');
       
       try {
-        // Try to fetch organization usage
+        // Calculate date range for last 30 days
         const currentDate = new Date();
-        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const endDate = currentDate.toISOString().split('T')[0];
+        const startDate = new Date(currentDate.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         
+        console.log(`Fetching usage from ${startDate} to ${endDate}`);
+        
+        // Try fetching usage from the usage endpoint
         const usageResponse = await fetch(
-          `https://api.openai.com/v1/usage?date=${startDate.toISOString().split('T')[0]}`,
+          `https://api.openai.com/v1/usage?date=${startDate}`,
           {
             headers: {
               'Authorization': `Bearer ${openAIUsageKey}`,
               'Content-Type': 'application/json',
-              'OpenAI-Organization': 'org-' // Organization ID may be needed
             }
           }
         );
@@ -79,11 +81,28 @@ serve(async (req) => {
           const usageData = await usageResponse.json();
           console.log('Successfully fetched usage data');
           
+          // Calculate total cost from usage data
+          let totalCost = 0;
+          if (usageData && usageData.data) {
+            usageData.data.forEach((day: any) => {
+              if (day.costs) {
+                totalCost += day.costs.reduce((sum: number, cost: any) => sum + (cost.amount || 0), 0);
+              }
+            });
+          }
+          
           return new Response(
             JSON.stringify({
               status: 'success',
               message: 'Successfully fetched OpenAI usage data',
-              usage: usageData,
+              usage: {
+                total_usage: totalCost * 100, // Convert to cents
+                period: {
+                  start: startDate,
+                  end: endDate
+                },
+                data: usageData.data
+              },
               keyInfo: {
                 valid: true,
                 keyPrefix: openAIApiKey.substring(0, 7) + '...',
@@ -97,6 +116,38 @@ serve(async (req) => {
         } else {
           const errorText = await usageResponse.text();
           console.error('Failed to fetch usage data:', errorText);
+          
+          // Try the organization billing endpoint as fallback
+          const billingResponse = await fetch(
+            'https://api.openai.com/v1/organization/usage',
+            {
+              headers: {
+                'Authorization': `Bearer ${openAIUsageKey}`,
+                'Content-Type': 'application/json',
+              }
+            }
+          );
+          
+          if (billingResponse.ok) {
+            const billingData = await billingResponse.json();
+            console.log('Fetched billing data as fallback');
+            
+            return new Response(
+              JSON.stringify({
+                status: 'success',
+                message: 'Fetched OpenAI billing data',
+                usage: billingData,
+                keyInfo: {
+                  valid: true,
+                  keyPrefix: openAIApiKey.substring(0, 7) + '...',
+                  usageKeyPrefix: openAIUsageKey.substring(0, 7) + '...'
+                }
+              }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              }
+            );
+          }
         }
       } catch (usageError) {
         console.error('Error fetching usage data:', usageError);
