@@ -18,7 +18,8 @@ import {
   Sparkles,
   Activity,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Clock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -533,6 +534,20 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             </Button>
           </div>
         </div>
+        {data?.updatedAt && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
+            <Clock className="h-3 w-3" />
+            <span>
+              Last updated: {new Date(data.updatedAt).toLocaleString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true,
+                month: 'short',
+                day: 'numeric'
+              })}
+            </span>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="pt-4">
