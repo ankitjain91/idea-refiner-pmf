@@ -112,6 +112,26 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   }, [hasLoadedOnce, keywords]);
 
   // Prepare AI dialog data
+  // Enhanced business analysis
+  const getEnhancedBusinessInsights = async () => {
+    if (!ideaText) return null;
+    
+    try {
+      const { data: functionData } = await supabase.functions.invoke('enhanced-business-analysis', {
+        body: { 
+          idea: ideaText,
+          trendsData: data,
+          analysisType: 'profitability'
+        }
+      });
+      
+      return functionData;
+    } catch (error) {
+      console.error('Enhanced trends analysis error:', error);
+      return null;
+    }
+  };
+
   const getAIDialogData = () => {
     if (!data) return null;
     
@@ -129,28 +149,63 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       }
     ].filter(item => item.value > 0) : undefined;
 
-    return {
-      title: "Google Trends Analysis",
-      metrics: data.metrics?.map((metric: any) => ({
-        title: metric.name,
+    // Enhanced metrics with profitability insights
+    const enhancedMetrics = data.metrics?.map((metric: any) => {
+      let businessImplication = '';
+      let revenueImpact = '';
+      
+      switch (metric.name) {
+        case 'trend_direction':
+          businessImplication = 'Search trend direction indicates market momentum and customer interest timing';
+          revenueImpact = metric.value === 'rising' ? 'Optimal timing for product launch and premium pricing' : 
+                         metric.value === 'declining' ? 'Focus on differentiation and value positioning' :
+                         'Stable market - emphasize consistent customer acquisition';
+          break;
+        default:
+          businessImplication = `Search pattern analysis: ${metric.name}`;
+          revenueImpact = 'Monitor search trends for demand forecasting and pricing optimization';
+      }
+
+      return {
+        title: metric.name.replace('_', ' ').toUpperCase(),
         value: String(metric.value),
         icon: TrendingUp,
         color: "text-blue-500",
         levels: [
-          { title: "Overview", content: `Current ${metric.name}: ${metric.value}` },
-          { title: "Analysis", content: metric.explanation || "Detailed trend analysis" },
-          { title: "Strategy", content: "Strategic insights based on search trends" }
+          { 
+            title: "Trend Overview", 
+            content: `${businessImplication}. Current trend: ${metric.value}` 
+          },
+          { 
+            title: "Revenue Analysis", 
+            content: `${revenueImpact}. ${metric.explanation || "Search trends directly correlate with customer demand and market timing for revenue optimization."}` 
+          },
+          { 
+            title: "Profit Strategy", 
+            content: `Market positioning: ${metric.value === 'rising' ? 'Capitalize on growing demand with strategic pricing and rapid customer acquisition' : metric.value === 'declining' ? 'Focus on customer retention and market repositioning for sustained profitability' : 'Maintain steady growth with optimized conversion strategies'}. Time market entry for maximum ROI.` 
+          }
         ]
-      })) || [],
+      };
+    }) || [];
+
+    return {
+      title: "Search Trends & Profitability Analysis",
+      metrics: enhancedMetrics,
       chartData: validChartData,
       sources: [
         {
           label: "Google Trends API",
           url: "https://trends.google.com",
-          description: "Real-time search trend data from Google"
+          description: "Real-time search trend data for market demand analysis"
         }
       ],
-      insights: []
+      insights: [
+        "🔍 Search volume trends indicate customer demand intensity and market timing",
+        "💡 Rising search interest suggests premium pricing opportunities and market entry timing",
+        "📊 Trend analysis helps optimize marketing spend and customer acquisition costs",
+        "⏰ Search patterns reveal seasonal demand for revenue forecasting and inventory planning",
+        "🎯 Geographic search data identifies high-value market segments for targeted expansion"
+      ]
     };
   };
 
