@@ -436,56 +436,34 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               </CardTitle>
               {/* Data source and cache indicator */}
               {data && (
-                <>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Badge variant={data.insights?.some(i => i.includes('API key required')) ? "destructive" : "secondary"} className="h-5">
-                        {data.insights?.some(i => i.includes('API key required')) ? (
-                          <XCircle className="h-3 w-3 mr-1" />
-                        ) : (
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                        )}
-                        {data.insights?.some(i => i.includes('API key required')) ? 'Mock' : 'Live'}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {data.insights?.some(i => i.includes('API key required')) 
-                        ? 'Using mock data - Serper API key may not be configured'
-                        : 'Using real data from Serper API'
-                      }
-                    </TooltipContent>
-                  </Tooltip>
-                  {data && (
-                    <div>
-                      {data.fromCache ? (
-                        <Badge 
-                          variant="secondary" 
-                          className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
-                        >
-                          <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
-                          Cached • {(() => {
-                            if (!data.cacheTimestamp) return 'cached';
-                            const age = Date.now() - data.cacheTimestamp;
-                            const hours = Math.floor(age / (1000 * 60 * 60));
-                            const days = Math.floor(hours / 24);
-                            if (days > 0) return `${days}d ago`;
-                            if (hours > 0) return `${hours}h ago`;
-                            const minutes = Math.floor(age / (1000 * 60));
-                            return `${minutes}m ago`;
-                          })()}
-                        </Badge>
-                      ) : (
-                        <Badge 
-                          variant="secondary" 
-                          className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
-                        >
-                          <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
-                          Fresh data
-                        </Badge>
-                      )}
-                    </div>
+                <div>
+                  {data.fromCache ? (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
+                      Cached • {(() => {
+                        if (!data.cacheTimestamp) return 'cached';
+                        const age = Date.now() - data.cacheTimestamp;
+                        const hours = Math.floor(age / (1000 * 60 * 60));
+                        const days = Math.floor(hours / 24);
+                        if (days > 0) return `${days}d ago`;
+                        if (hours > 0) return `${hours}h ago`;
+                        const minutes = Math.floor(age / (1000 * 60));
+                        return `${minutes}m ago`;
+                      })()}
+                    </Badge>
+                  ) : (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
+                      Fresh data
+                    </Badge>
                   )}
-                </>
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2">
