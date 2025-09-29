@@ -121,7 +121,7 @@ export function DataTile({
         market_trends: 'market-trends',
         google_trends: 'google-trends',
         web_search: 'web-search',
-        news_analysis: 'gdelt-news',
+        news_analysis: 'news-analysis',
         reddit_sentiment: 'reddit-search',
         youtube_analytics: 'youtube-search',
         twitter_buzz: 'twitter-search',

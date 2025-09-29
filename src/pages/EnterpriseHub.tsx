@@ -20,7 +20,6 @@ import { DataTile } from "@/components/hub/DataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchCard } from "@/components/dashboard/WebSearchCard";
-import { NewsAnalysisCard } from "@/components/dashboard/NewsAnalysisCard";
 import { cn } from "@/lib/utils";
 
 export default function EnterpriseHub() {
@@ -192,21 +191,11 @@ export default function EnterpriseHub() {
         </div>
       </div>
 
-      {/* Main Grid with WebSearchCard, NewsAnalysisCard and Data Tiles */}
+      {/* Main Grid with WebSearchCard and Data Tiles */}
       <div className="space-y-6">
-        {/* Web Search Card */}
+        {/* Web Search Card - Larger size */}
         <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
           <WebSearchCard 
-            idea={currentIdea}
-            industry={filters.industry}
-            geography={filters.geography}
-            timeWindow={filters.time_window}
-          />
-        </div>
-        
-        {/* News Analysis Card */}
-        <div className="animate-fade-in" style={{ animationDelay: '150ms' }}>
-          <NewsAnalysisCard 
             idea={currentIdea}
             industry={filters.industry}
             geography={filters.geography}
