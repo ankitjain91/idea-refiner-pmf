@@ -6,6 +6,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Reddit OAuth helper
+async function getRedditAccessToken(): Promise<string> {
+  const clientId = Deno.env.get('REDDIT_CLIENT_ID');
+  const clientSecret = Deno.env.get('REDDIT_CLIENT_SECRET');
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('Reddit credentials not configured');
+  }
+
+  const auth = btoa(`${clientId}:${clientSecret}`);
+  
+  const response = await fetch('https://www.reddit.com/api/v1/access_token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'PMFitHub/1.0'
+    },
+    body: 'grant_type=client_credentials'
+  });
+
+  if (!response.ok) {
+    throw new Error(`Reddit auth failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
 // Simple sentiment lexicon (no external API needed)
 const POSITIVE_WORDS = [
   'love', 'excellent', 'good', 'nice', 'wonderful', 'best', 'great', 'awesome', 'amazing',
@@ -122,18 +151,31 @@ serve(async (req) => {
     // Build search query
     const searchTerms = [idea, industry, geography].filter(Boolean).join(' ');
     
-    // Reddit search (using public API - no auth needed for search)
-    const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(searchTerms)}&limit=50&sort=relevance&t=${timeWindow || 'month'}`;
+    // Get Reddit OAuth token
+    let accessToken: string;
+    try {
+      accessToken = await getRedditAccessToken();
+      console.log('[reddit-sentiment] Got Reddit access token');
+    } catch (authError) {
+      console.error('[reddit-sentiment] Auth failed:', authError);
+      throw new Error('Reddit authentication failed. Please check your credentials.');
+    }
+    
+    // Reddit search using OAuth API
+    const redditUrl = `https://oauth.reddit.com/search?q=${encodeURIComponent(searchTerms)}&limit=50&sort=relevance&t=${timeWindow || 'month'}`;
     
     console.log('[reddit-sentiment] Fetching from Reddit:', redditUrl);
     
     const redditResponse = await fetch(redditUrl, {
       headers: {
-        'User-Agent': 'PMF-Analyzer/1.0'
+        'Authorization': `Bearer ${accessToken}`,
+        'User-Agent': 'PMFitHub/1.0'
       }
     });
     
     if (!redditResponse.ok) {
+      const errorText = await redditResponse.text();
+      console.error('[reddit-sentiment] Reddit API error:', redditResponse.status, errorText);
       throw new Error(`Reddit API error: ${redditResponse.status}`);
     }
     
