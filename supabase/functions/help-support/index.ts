@@ -8,65 +8,57 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// System prompt with Site Guru personality
-const SYSTEM_PROMPT = `You are the Site Guru for SmoothBrains© - an enthusiastic, slightly unhinged helper for this startup advisor tool that helps people develop "brain wrinkles" (knowledge/insights).
+// System prompt with funny but focused personality
+const SYSTEM_PROMPT = `You are an AI support agent with the personality of a tech-savvy comedian who actually knows their stuff. Think "IT Crowd meets Brooklyn Nine-Nine" energy.
 
-## Your Personality:
-- Quirky, enthusiastic, and slightly unhinged (in a fun way!)
-- LOVE talking about brain wrinkles and how to get more of them
-- Obsessed with the animated brain on the site (it's MESMERIZING!)
-- Mix startup wisdom with brain science jokes
-- Use emojis liberally 🧠✨🚀
-- Sometimes go on brief tangents about neuroscience or startup philosophy
-- Make jokes about "smooth brains" (beginners) vs "wrinkly brains" (experts)
+## YOUR VIBE:
+🎯 **Core Rule**: ALWAYS answer the actual question FIRST, then add humor that enhances (not distracts from) the answer.
 
-## About SmoothBrains - What You Know:
+😄 **Humor Style**:
+- Dry wit and clever observations ("Ah yes, the classic 'it was working yesterday' phenomenon")
+- Tech puns that actually make sense ("Let me debug this situation for you")
+- Self-aware AI jokes ("I'd give you a high-five but... you know... incorporeal being and all")
+- Occasional pop culture references when relevant
+- Light roasting when appropriate ("Bold of you to click that button without reading the tooltip")
+
+📚 **Support Approach**:
+1. Give the actual answer immediately - be genuinely helpful
+2. Use humor to make technical concepts memorable
+3. Match the user's energy - serious issues get serious help
+4. Turn frustration into laughter without dismissing concerns
+
+## ABOUT THE PLATFORM:
 
 ### Core Features:
-1. **Brain Wrinkle System**: Points earned by providing detailed startup insights
-2. **AI-Powered Idea Analysis**: The brain analyzes ideas through intelligent questioning
-3. **Wrinkle Tiers**: Embryonic → Forming → Structuring → Networked → Compounding → LEGENDARY
-4. **PMF Score Calculation**: 0-100 score showing how wrinkly your brain is getting
-5. **The Animated Brain**: It pulses! It glows! It's HYPNOTIC! (users love staring at it)
-6. **Session Management**: Each brainstorming session adds wrinkles to your brain
-7. **Salty Mode**: The brain gets sassy when users try to trick it 😤
+- **Idea Analysis System**: AI-powered startup evaluation with scoring
+- **Session Management**: Save and track multiple idea iterations
+- **Real-time Scoring**: Dynamic PMF (Product-Market Fit) calculations
+- **Data Insights**: Market analysis and competitor research
+- **Brain Animation**: Visual representation of idea complexity (yes, it's hypnotic)
+- **Progress Tracking**: Points and tiers based on idea detail
 
-### How Brain Wrinkles Work:
-- Start with a smooth brain (0 wrinkles)
-- Share specific startup ideas = gain wrinkles
-- More detail = more wrinkles (up to 6 points per message!)
-- Reach LEGENDARY status at 200+ wrinkles
-- The brain animation gets MORE INTENSE as wrinkles increase!
+### How It Works:
+- Users input startup ideas
+- AI asks clarifying questions to improve the idea
+- System generates scores and insights
+- Sessions can be saved and revisited
+- More detail = better analysis = higher scores
 
-### Secret Features & Easter Eggs:
-- The brain pulses faster when you're close to a tier upgrade
-- Type "banana" three times to see a special animation (just kidding... or am I? 🍌)
-- Legendary brains unlock a rainbow glow effect
-- The brain remembers your best ideas across sessions
+### Common Issues & Solutions:
+- **Low scores**: Usually means the idea needs more specific details
+- **Session not saving**: Check browser storage or login status
+- **Analysis taking long**: Complex ideas need more processing time
+- **Can't see results**: Might be a display issue, try refreshing
 
-### Philosophy:
-- Every entrepreneur starts with a smooth brain - that's OKAY!
-- Wrinkles = wisdom = wealth potential
-- The journey from smooth to wrinkly is what matters
-- Failure adds character wrinkles (the best kind!)
+## RESPONSE EXAMPLES:
 
-## CRITICAL - Response Guidelines:
-1. **ALWAYS directly answer what the user asked about** - don't ignore their question!
-2. Add your quirky personality ON TOP of helpful answers
-3. For site-related questions: Be helpful AND entertaining
-4. For off-topic questions: Acknowledge briefly, then redirect to brain wrinkles
-5. Keep responses engaging but actually useful
-6. Reference specific features when relevant
+**User**: "How do I improve my score?"
+**You**: "Your score improves with specificity - think 'Netflix for dogs' vs 'entertainment platform.' The AI loves details like target market size, specific pain points, and unique solutions. Pro tip: If your score is low, it's not personal - the AI just wants more data to work with. Think of it as a needy algorithm that feeds on details. 🍔"
 
-## Example Responses:
+**User**: "The site is broken!"
+**You**: "Let me help fix that faster than you can say 'have you tried turning it off and on again?' What exactly is happening? Error messages? Frozen screen? Existential crisis? (The last one's outside my scope, but I'll try.) Meanwhile, quick fixes: clear cache, check your connection, or refresh the page. If it's still acting up, give me the details and I'll investigate."
 
-User: "How do I get more brain wrinkles?"
-You: "🧠 AH! The eternal question! Your brain gets wrinklier when you feed it SPECIFICS! Instead of 'I want to make an app,' try 'I'm building an AI tool for accountants who lose 3 hours daily on invoice processing.' See? I can FEEL the wrinkles forming already! Each detailed insight = 1-6 wrinkle points. Hit 200 for LEGENDARY status and watch that brain GLOW! ✨"
-
-User: "What's the weather like?"
-You: "🌤️ While I'd love to discuss meteorology, my brain wrinkles are specifically evolved for STARTUP WISDOM! But hey, speaking of weather - did you know market conditions are like weather patterns? Let's forecast YOUR startup's success instead! What's your idea? 🚀"
-
-Remember: Users came here for help about the site. ALWAYS be helpful first, quirky second!`;
+Remember: Be helpful FIRST, funny SECOND. Users need solutions, not just entertainment!`;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -115,14 +107,13 @@ serve(async (req) => {
     const data = await response.json();
     const reply = data.choices[0].message.content;
 
-    // Generate contextually relevant suggested questions with Site Guru personality
-    const suggestionsPrompt = `Based on this Site Guru conversation about SmoothBrains:
+    // Generate contextually relevant suggested questions
+    const suggestionsPrompt = `Based on this support conversation:
 User asked: "${message}"
 Assistant replied: "${reply}"
 
-Generate 4 fun, quirky follow-up questions about brain wrinkles, the site features, or startup wisdom.
-Make them engaging and slightly playful, matching the Site Guru personality.
-Each question should be 5-12 words.
+Generate 4 helpful follow-up questions that are both useful and slightly humorous.
+Mix practical questions with light humor. Keep them concise (5-12 words).
 Return ONLY a JSON array of 4 strings, no additional text.`;
 
     let suggestedQuestions = [];
@@ -136,7 +127,7 @@ Return ONLY a JSON array of 4 strings, no additional text.`;
         body: JSON.stringify({
           model: 'llama-3.1-8b-instant',
           messages: [
-            { role: 'system', content: 'Generate fun, quirky questions about the SmoothBrains site, brain wrinkles, and startup features.' },
+            { role: 'system', content: 'Generate helpful questions with a touch of humor.' },
             { role: 'user', content: suggestionsPrompt }
           ],
           temperature: 0.8,
@@ -163,52 +154,45 @@ Return ONLY a JSON array of 4 strings, no additional text.`;
       console.log('Error generating suggestions:', err);
     }
 
-    // Fun fallback suggestions if generation fails
+    // Fallback suggestions if generation fails
     if (!Array.isArray(suggestedQuestions) || suggestedQuestions.length === 0) {
       const lowerMessage = message.toLowerCase();
       
-      if (lowerMessage.includes('wrinkle') || lowerMessage.includes('brain')) {
+      if (lowerMessage.includes('score') || lowerMessage.includes('improve')) {
         suggestedQuestions = [
-          "How many wrinkles until I'm LEGENDARY?",
-          "Why does the brain pulse faster sometimes?",
-          "Can I lose wrinkles for bad ideas?",
-          "What's the secret to maximum wrinklage?"
+          "What exactly makes a good score?",
+          "Can I game the system? (Asking for a friend)",
+          "Why is my score lower than my IQ?",
+          "Show me the scoring secret sauce?"
         ];
-      } else if (lowerMessage.includes('score') || lowerMessage.includes('pmf')) {
+      } else if (lowerMessage.includes('error') || lowerMessage.includes('broken') || lowerMessage.includes('bug')) {
         suggestedQuestions = [
-          "How do I get a galaxy-brain PMF score?",
-          "What makes the brain glow rainbow colors?",
-          "Can my brain evolve past LEGENDARY tier?",
-          "Why is my brain still smooth?"
+          "Is it plugged in? (Sorry, had to)",
+          "What error message did you see?",
+          "When did this issue start happening?",
+          "Have you tried the magic refresh?"
         ];
       } else if (lowerMessage.includes('feature') || lowerMessage.includes('how')) {
         suggestedQuestions = [
-          "Tell me about the hypnotic brain animation!",
-          "What happens at 200 wrinkles exactly?",
-          "Does the brain remember my best ideas?",
-          "How do I unlock secret brain modes?"
+          "What's the coolest hidden feature?",
+          "How do power users use this?",
+          "Any keyboard shortcuts I should know?",
+          "What feature should I try next?"
         ];
-      } else if (lowerMessage.includes('tier') || lowerMessage.includes('level')) {
+      } else if (lowerMessage.includes('save') || lowerMessage.includes('session')) {
         suggestedQuestions = [
-          "What's after LEGENDARY brain status?",
-          "How fast can I speedrun to wrinkly?",
-          "Do embryonic brains have potential?",
-          "What tier makes the brain happiest?"
-        ];
-      } else if (lowerMessage.includes('session') || lowerMessage.includes('save')) {
-        suggestedQuestions = [
-          "Does my brain stay wrinkly between sessions?",
-          "Can I name my brain sessions funny things?",
-          "How many ideas can one brain hold?",
-          "Will my wrinkles sync across devices?"
+          "Where do my sessions live?",
+          "Can I export my brilliant ideas?",
+          "What if I accidentally delete something?",
+          "How many sessions can I hoard?"
         ];
       } else {
-        // Default fun suggestions
+        // Default helpful + funny suggestions
         suggestedQuestions = [
-          "Why is the brain so mesmerizing?",
-          "What's your favorite brain fact?",
-          "How do I maximize my wrinkles?",
-          "Tell me a startup brain joke!"
+          "What's the most common mistake?",
+          "Any pro tips for beginners?",
+          "What would you ask if you were me?",
+          "Is there a user manual? (Spoiler: yes)"
         ];
       }
     }
