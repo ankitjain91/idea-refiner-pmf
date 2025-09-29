@@ -445,18 +445,34 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowInsights(true);
-                }}
-                className="h-8 w-8"
-                title="How this helps your product journey"
-              >
-                <HelpCircle className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowInsights(true);
+                    }}
+                    className="h-8 w-8"
+                    title="How this helps your product journey"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="space-y-2">
+                    <p className="font-semibold">What is Market Trends helpful for?</p>
+                    <ul className="text-sm space-y-1">
+                      <li>• Track real-time search interest and news sentiment</li>
+                      <li>• Identify emerging opportunities and market gaps</li>
+                      <li>• Monitor competitor activity and industry shifts</li>
+                      <li>• Validate demand before building features</li>
+                      <li>• Optimize timing for product launches</li>
+                    </ul>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
               <Button
                 variant="outline"
                 size="sm"
