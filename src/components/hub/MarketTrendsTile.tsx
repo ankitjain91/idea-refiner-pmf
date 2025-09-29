@@ -605,43 +605,7 @@ export function MarketTrendsTile({
               </CardTitle>
             </div>
             <div className="flex items-center gap-2">
-              {/* Brain Icon for AI Insights - Purple */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowInsights(true)}
-                    className="h-8 w-8 hover:bg-violet-500/10"
-                  >
-                    <Brain className="h-4 w-4 text-violet-500 animate-pulse" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs p-3 bg-card border-border">
-                  <div className="space-y-2">
-                    <p className="font-semibold text-xs text-violet-500 flex items-center gap-1">
-                      <Brain className="h-3 w-3" />
-                      AI-Powered Insights
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Get detailed analysis, recommendations, and actionable insights powered by AI
-                    </p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-              
-              {/* Refresh Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRefresh}
-                disabled={isLoading || isRefreshing}
-                className="h-8 w-8 hover:bg-primary/10"
-              >
-                <RefreshCw className={cn("h-4 w-4", (isLoading || isRefreshing) && "animate-spin")} />
-              </Button>
-              
-              {/* Subtle Data Source Indicator - Same position as Overview */}
+              {/* Subtle Data Source Indicator - Same as Overview */}
               {data && (
                 <Tooltip>
                   <TooltipTrigger>
@@ -658,6 +622,28 @@ export function MarketTrendsTile({
                   </TooltipContent>
                 </Tooltip>
               )}
+              
+              {/* Refresh Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading || isRefreshing}
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", (isLoading || isRefreshing) && "animate-spin")} />
+              </Button>
+              
+              {/* Brain Icon for AI Insights - Purple and Square like Overview */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowInsights(true)}
+                className="h-8 w-8 p-0"
+                disabled={!data}
+              >
+                <Brain className="h-3.5 w-3.5 text-violet-500" />
+              </Button>
             </div>
           </div>
           {description && (
