@@ -19,7 +19,7 @@ import { GlobalFilters } from "@/components/hub/GlobalFilters";
 import { DataTile } from "@/components/hub/DataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
-import { WebSearchCard } from "@/components/dashboard/WebSearchCard";
+import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
 import { cn } from "@/lib/utils";
 
 export default function EnterpriseHub() {
@@ -195,7 +195,7 @@ export default function EnterpriseHub() {
       <div className="space-y-6">
         {/* Web Search Card - Larger size */}
         <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <WebSearchCard 
+          <WebSearchDataTile 
             idea={currentIdea}
             industry={filters.industry}
             geography={filters.geography}

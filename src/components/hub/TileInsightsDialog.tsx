@@ -160,6 +160,30 @@ const tileInsights: Record<string, TileInsight> = {
       "Monitor competitor press releases",
       "Time announcements with industry events"
     ]
+  },
+  web_search: {
+    title: "Web Search Analysis",
+    description: "Comprehensive market profitability and competition analysis",
+    icon: Target,
+    whyItMatters: [
+      "Quantifies market opportunity with profitability scores",
+      "Identifies direct and indirect competitors",
+      "Estimates development costs and timeline",
+      "Reveals unmet needs in the market"
+    ],
+    howToUse: [
+      "Profitability >70% = Strong profit potential",
+      "Competition Level 'Low' = Easier market entry",
+      "Market Size >$1B = Large addressable market",
+      "High unmet needs count = Innovation opportunity"
+    ],
+    profitImpact: "Products launched in markets with 70%+ profitability scores have 2.5x higher profit margins",
+    actionItems: [
+      "Analyze competitor pricing to position competitively",
+      "Use unmet needs to define unique value proposition",
+      "Budget based on MVP cost estimates",
+      "Target market segments with highest sentiment scores"
+    ]
   }
 };
 

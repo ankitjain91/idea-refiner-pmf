@@ -19,7 +19,8 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Clock
+  Clock,
+  HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -38,6 +39,7 @@ import {
   AreaChart
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { TileInsightsDialog } from './TileInsightsDialog';
 
 interface GoogleTrendsCardProps {
   filters: {
@@ -76,6 +78,9 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [isFromCache, setIsFromCache] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [groqInsights, setGroqInsights] = useState<any>(null);
 
   // Get the idea from filters or fallback to localStorage
   const ideaKeywords = filters.idea_keywords || [];
@@ -99,6 +104,37 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   console.log('[GoogleTrendsCard] Simplified keywords for trends:', keywords);
   const geo = filters.geo || 'US';
   const timeWindow = filters.time_window || 'last_12_months';
+
+  // Analyze with Groq
+  const analyzeWithGroq = async () => {
+    if (!data || isAnalyzing) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data: response, error } = await supabase.functions.invoke('groq-synthesis', {
+        body: {
+          googleTrendsData: {
+            idea: ideaText,
+            metrics: data?.metrics,
+            series: data?.series,
+            top_queries: data?.top_queries,
+            viewMode,
+            selectedContinent,
+            continentData: data?.continentData
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      setGroqInsights(response.analysis);
+      setShowInsights(true);
+    } catch (error) {
+      console.error('Error analyzing with Groq:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const fetchTrendsData = async (fetchContinents = false) => {
     if (keywords.length === 0) return;
@@ -570,7 +606,8 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   }
 
   return (
-    <Card className={cn("overflow-hidden bg-gradient-to-br from-background to-muted/10", className)}>
+    <>
+      <Card className={cn("overflow-hidden bg-gradient-to-br from-background to-muted/10", className)}>
       <CardHeader className="bg-gradient-to-r from-primary/5 to-secondary/5 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -619,6 +656,27 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
               </TabsList>
             </Tabs>
             
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={analyzeWithGroq}
+              disabled={isAnalyzing || !data}
+              className="h-8 hover:bg-primary/10"
+            >
+              {isAnalyzing ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowInsights(true)}
+              className="h-8 hover:bg-primary/10"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -682,5 +740,13 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         )}
       </CardContent>
     </Card>
+
+    {/* Insights Dialog */}
+    <TileInsightsDialog
+      open={showInsights}
+      onOpenChange={setShowInsights}
+      tileType="google_trends"
+    />
+  </>
   );
 }
