@@ -77,20 +77,133 @@ export function StandardizedMarketTile({
   };
 
   const fetchTileData = async () => {
-    if (!currentIdea) return null;
-
-    const functionName = functionMap[tileType];
-    if (!functionName) {
-      console.warn(`No edge function mapped for tile type: ${tileType}`);
+    if (!currentIdea) {
+      console.warn(`[${tileType}] No idea provided, skipping fetch`);
       return null;
     }
 
+    console.log(`[${tileType}] Starting data fetch for idea: "${currentIdea}"`);
+    
+    // 1. First check localStorage cache (fastest)
+    const cacheKey = `tile_cache_${tileType}_${currentIdea}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        const cacheAge = Date.now() - parsed.timestamp;
+        const maxCacheAge = 30 * 60 * 1000; // 30 minutes
+        
+        if (cacheAge < maxCacheAge) {
+          console.log(`[${tileType}] ✅ Using localStorage cache (age: ${Math.round(cacheAge/1000)}s)`);
+          return { 
+            ...parsed.data, 
+            fromCache: true, 
+            cacheAge: Math.round(cacheAge/1000),
+            source: 'localStorage'
+          };
+        } else {
+          console.log(`[${tileType}] ⚠️ Cache expired (age: ${Math.round(cacheAge/1000)}s)`);
+        }
+      } catch (e) {
+        console.error(`[${tileType}] Failed to parse cache:`, e);
+      }
+    } else {
+      console.log(`[${tileType}] No localStorage cache found`);
+    }
+    
+    // 2. Database check will be handled by useTileData hook
+    console.log(`[${tileType}] Will check database via useTileData hook...`);
+    
+    // 3. If not in cache or DB, make API call with extreme detail
+    const functionName = functionMap[tileType];
+    if (!functionName) {
+      console.error(`[${tileType}] ❌ No edge function mapped for tile type`);
+      throw new Error(`No function mapping for tile type: ${tileType}`);
+    }
+
+    console.log(`[${tileType}] 📡 Making API call to ${functionName}...`);
+    const startTime = Date.now();
+    
     const { data, error } = await supabase.functions.invoke(functionName, {
-      body: { idea: currentIdea }
+      body: { 
+        idea: currentIdea,
+        // Request maximum detail from API
+        detailed: true,
+        includeAll: true,
+        depth: 'comprehensive',
+        filters: {
+          timeRange: filters?.timeRange || '12months',
+          industry: filters?.industry || 'all',
+          detailed: true,
+          includeCompetitors: true,
+          includeMarketData: true,
+          includeTrends: true,
+          includeProjections: true,
+          includeRisks: true,
+          includeOpportunities: true,
+          includeRecommendations: true,
+          includeMetrics: true,
+          includeAnalysis: true,
+          includeInsights: true,
+          includeSources: true,
+          includeConfidence: true,
+          includeMethodology: true,
+          maxCompetitors: 10,
+          maxInsights: 20,
+          maxRecommendations: 15,
+          granularity: 'high'
+        }
+      }
     });
 
-    if (error) throw error;
-    return data;
+    const apiTime = Date.now() - startTime;
+
+    if (error) {
+      console.error(`[${tileType}] ❌ API call failed after ${apiTime}ms:`, error);
+      throw error;
+    }
+    
+    console.log(`[${tileType}] ✅ API call successful (${apiTime}ms)`);
+    
+    // Save to localStorage cache for next time
+    if (data) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          data: {
+            ...data,
+            fetchedAt: new Date().toISOString(),
+            apiResponseTime: apiTime
+          },
+          timestamp: Date.now()
+        }));
+        console.log(`[${tileType}] 💾 Data cached to localStorage`);
+      } catch (e) {
+        console.error(`[${tileType}] Failed to cache data:`, e);
+        // Clear old cache entries if localStorage is full
+        try {
+          const keys = Object.keys(localStorage);
+          const cacheKeys = keys.filter(k => k.startsWith('tile_cache_'));
+          if (cacheKeys.length > 50) {
+            // Remove oldest 25% of cache entries
+            cacheKeys.slice(0, Math.ceil(cacheKeys.length * 0.25)).forEach(k => {
+              localStorage.removeItem(k);
+            });
+            console.log(`[${tileType}] Cleared old cache entries`);
+          }
+        } catch (cleanupError) {
+          console.error(`[${tileType}] Failed to cleanup cache:`, cleanupError);
+        }
+      }
+    }
+    
+    return { 
+      ...data, 
+      fromApi: true,
+      apiResponseTime: apiTime,
+      source: 'api',
+      fetchedAt: new Date().toISOString()
+    };
   };
 
   const { data, isLoading: loading, error, loadData: refresh } = useTileData(
@@ -145,39 +258,198 @@ export function StandardizedMarketTile({
   const renderBasicContent = () => {
     if (!data) return null;
     
-    // Generic content rendering for tiles without specific charts
+    // Render extreme detail from all available data fields
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[400px] overflow-y-auto">
+        {/* Primary Analysis */}
         {data?.analysis && (
-          <Alert className="border-primary/20 bg-primary/5">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {typeof data.analysis === 'string' 
-                ? data.analysis 
-                : data.analysis.summary || 'Analysis available'}
-            </AlertDescription>
-          </Alert>
+          <div className="space-y-2">
+            <Alert className="border-primary/20 bg-primary/5">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {typeof data.analysis === 'string' 
+                  ? data.analysis 
+                  : data.analysis.summary || data.analysis.overview || 'Analysis available'}
+              </AlertDescription>
+            </Alert>
+            
+            {/* Detailed analysis sections */}
+            {data.analysis.detailed && (
+              <div className="pl-4 border-l-2 border-primary/20">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Detailed Analysis</p>
+                <p className="text-sm">{data.analysis.detailed}</p>
+              </div>
+            )}
+            
+            {data.analysis.methodology && (
+              <div className="pl-4 border-l-2 border-primary/20">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Methodology</p>
+                <p className="text-sm">{data.analysis.methodology}</p>
+              </div>
+            )}
+          </div>
         )}
         
+        {/* All Metrics with extreme detail */}
         {data?.metrics && (
-          <div className="grid grid-cols-2 gap-3">
-            {(Array.isArray(data.metrics) ? data.metrics : Object.entries(data.metrics))
-              .slice(0, 4).map((item: any, idx: number) => {
-                const isArray = Array.isArray(data.metrics);
-                const key = isArray ? item.name : item[0];
-                const value = isArray ? item.value : item[1];
-                return (
-                  <div key={idx} className="bg-muted/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {key?.replace(/_/g, ' ')}
-                    </p>
-                    <p className="text-lg font-semibold mt-1">
-                      {typeof value === 'number' ? value.toLocaleString() : String(value)}
-                      {isArray && item.unit ? ` ${item.unit}` : ''}
-                    </p>
-                  </div>
-                );
-              })}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Key Metrics</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(Array.isArray(data.metrics) ? data.metrics : Object.entries(data.metrics))
+                .map((item: any, idx: number) => {
+                  const isArray = Array.isArray(data.metrics);
+                  const key = isArray ? item.name : item[0];
+                  const value = isArray ? item.value : item[1];
+                  const unit = isArray ? item.unit : '';
+                  const confidence = isArray ? item.confidence : null;
+                  const explanation = isArray ? item.explanation : null;
+                  
+                  return (
+                    <div key={idx} className="bg-muted/50 rounded-lg p-2.5 border border-muted">
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {key?.replace(/_/g, ' ')}
+                      </p>
+                      <p className="text-base font-semibold mt-0.5">
+                        {typeof value === 'number' ? value.toLocaleString() : String(value)}
+                        {unit ? ` ${unit}` : ''}
+                      </p>
+                      {confidence !== null && confidence !== undefined && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary/60 rounded-full"
+                              style={{ width: `${confidence * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {Math.round(confidence * 100)}%
+                          </span>
+                        </div>
+                      )}
+                      {explanation && (
+                        <p className="text-[10px] text-muted-foreground mt-1">{explanation}</p>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+        
+        {/* Opportunities */}
+        {data?.opportunities && data.opportunities.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Opportunities</p>
+            <div className="space-y-1">
+              {data.opportunities.map((opp: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="text-primary text-xs mt-0.5">•</span>
+                  <p className="text-sm">{typeof opp === 'string' ? opp : opp.description || opp.title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Risks */}
+        {data?.risks && data.risks.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Risk Factors</p>
+            <div className="space-y-1">
+              {data.risks.map((risk: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="text-destructive text-xs mt-0.5">⚠</span>
+                  <p className="text-sm">{typeof risk === 'string' ? risk : risk.description || risk.title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Recommendations */}
+        {data?.recommendations && data.recommendations.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Recommendations</p>
+            <div className="space-y-1">
+              {data.recommendations.map((rec: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="text-green-600 text-xs mt-0.5">✓</span>
+                  <p className="text-sm">{typeof rec === 'string' ? rec : rec.description || rec.title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Insights */}
+        {data?.insights && data.insights.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Key Insights</p>
+            <div className="space-y-1">
+              {data.insights.map((insight: any, idx: number) => (
+                <div key={idx} className="pl-3 border-l-2 border-primary/20">
+                  <p className="text-sm">{typeof insight === 'string' ? insight : insight.description || insight.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Competitors */}
+        {data?.competitors && data.competitors.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Competitors</p>
+            <div className="grid grid-cols-2 gap-2">
+              {data.competitors.slice(0, 6).map((comp: any, idx: number) => (
+                <div key={idx} className="bg-muted/30 rounded p-2">
+                  <p className="text-xs font-medium">{comp.name || comp}</p>
+                  {comp.marketShare && (
+                    <p className="text-[10px] text-muted-foreground">Share: {comp.marketShare}%</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Trends */}
+        {data?.trends && data.trends.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Market Trends</p>
+            <div className="space-y-1">
+              {data.trends.map((trend: any, idx: number) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <TrendingUp className="h-3 w-3 text-primary" />
+                  <p className="text-sm">{typeof trend === 'string' ? trend : trend.name || trend.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Data Source Info */}
+        {(data?.source || data?.fetchedAt || data?.apiResponseTime) && (
+          <div className="pt-2 border-t border-muted">
+            <div className="flex flex-wrap gap-4 text-[10px] text-muted-foreground">
+              {data.source && <span>Source: {data.source}</span>}
+              {data.fetchedAt && <span>Fetched: {new Date(data.fetchedAt).toLocaleTimeString()}</span>}
+              {data.apiResponseTime && <span>Response: {data.apiResponseTime}ms</span>}
+              {data.cacheAge && <span>Cache Age: {data.cacheAge}s</span>}
+            </div>
+          </div>
+        )}
+        
+        {/* Sources/Citations */}
+        {data?.sources && data.sources.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-muted">
+            <p className="text-xs font-semibold text-muted-foreground">Sources</p>
+            <div className="space-y-1">
+              {data.sources.slice(0, 5).map((source: any, idx: number) => (
+                <div key={idx} className="text-[10px] text-muted-foreground">
+                  {typeof source === 'string' ? source : source.name || source.url}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
