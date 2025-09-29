@@ -824,17 +824,30 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               size="sm"
               onClick={analyzeWithGroq}
               disabled={isAnalyzing || !data}
-              className="flex-1"
+              className="flex-1 relative overflow-hidden group bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-yellow-500/10 hover:from-yellow-500/20 hover:via-amber-500/20 hover:to-yellow-500/20 border-amber-500/30 hover:border-amber-500/50 transition-all duration-300"
             >
+              {/* Sparkle animation background */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="absolute top-1 left-2 w-1 h-1 bg-yellow-400 rounded-full animate-pulse" />
+                <div className="absolute top-3 right-4 w-0.5 h-0.5 bg-amber-400 rounded-full animate-ping" />
+                <div className="absolute bottom-2 left-1/3 w-1 h-1 bg-yellow-300 rounded-full animate-pulse delay-150" />
+                <div className="absolute top-2 left-1/2 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping delay-300" />
+                <div className="absolute bottom-1 right-3 w-1 h-1 bg-yellow-400 rounded-full animate-pulse delay-500" />
+              </div>
+              
               {isAnalyzing ? (
                 <>
-                  <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
-                  Analyzing...
+                  <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin text-amber-600" />
+                  <span className="text-amber-700 dark:text-amber-400">Analyzing...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-3.5 w-3.5 mr-2" />
-                  Analyze with Sparkles
+                  <div className="relative">
+                    <HelpCircle className="h-3.5 w-3.5 mr-2 text-amber-600 dark:text-amber-400" />
+                    <Sparkles className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 text-yellow-500 animate-pulse" />
+                  </div>
+                  <span className="text-amber-700 dark:text-amber-400 font-medium">How This Helps</span>
+                  <Sparkles className="h-3 w-3 ml-1.5 text-yellow-500 animate-pulse" />
                 </>
               )}
             </Button>
