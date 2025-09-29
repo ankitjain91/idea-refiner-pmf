@@ -1,8 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
-
+import { useEffect, useState } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,10 +11,16 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) => {
   const { user, session, loading, initialized, refreshSession } = useAuth();
   const location = useLocation();
+  const [isValidating, setIsValidating] = useState(true);
 
   useEffect(() => {
     // Check token validity on mount and route changes
     const checkToken = async () => {
+      if (!initialized) {
+        setIsValidating(true);
+        return;
+      }
+      
       if (session && !loading) {
         const expiresAt = session.expires_at;
         if (expiresAt) {
@@ -29,16 +34,17 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
           }
         }
       }
+      
+      setIsValidating(false);
     };
     
     checkToken();
-  }, [session, loading, refreshSession, location.pathname]);
+  }, [session, loading, refreshSession, location.pathname, initialized]);
 
-  // Show loading spinner while auth state is initializing
-  // But keep it minimal and centered to avoid jarring transitions
-  if (loading || !initialized) {
+  // Show loading only on initial load, not on every route change
+  if (!initialized || (isValidating && !session)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground mt-2">Loading session...</p>
@@ -48,7 +54,7 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
   }
 
   // If authentication is required and user is not authenticated
-  if (requireAuth && !user) {
+  if (requireAuth && !user && initialized && !isValidating) {
     console.log("ProtectedRoute redirecting to / with auth modal:", { initialized, loading, hasUser: !!user, path: location.pathname });
     // Redirect to landing page and open auth modal, preserving original location
     return <Navigate to="/" state={{ from: location, openAuthModal: true }} replace />;
