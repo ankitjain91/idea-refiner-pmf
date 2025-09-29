@@ -523,7 +523,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
               )}
 
               {/* Unmet Needs */}
-              {data?.unmet_needs && data.unmet_needs.length > 0 && (
+              {data?.unmet_needs && Array.isArray(data.unmet_needs) && data.unmet_needs.length > 0 && (
                 <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
                   <h4 className="font-semibold text-green-700 dark:text-green-300 mb-2">
                     Unmet Needs & Opportunities
@@ -556,7 +556,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                           )}
                         </div>
                       </div>
-                      {comp.prices.length > 0 && (
+                      {comp.prices && Array.isArray(comp.prices) && comp.prices.length > 0 && (
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Pricing:</p>
                           <div className="flex flex-wrap gap-2">
@@ -589,7 +589,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                       <div key={idx} className="p-4 border rounded-lg">
                         <h4 className="font-semibold mb-2">{item.title}</h4>
                         <p className="text-sm text-muted-foreground mb-3">{item.snippet}</p>
-                        {item.evidence && item.evidence.length > 0 && (
+                        {item.evidence && Array.isArray(item.evidence) && item.evidence.length > 0 && (
                           <div className="mb-3">
                             <p className="text-xs font-medium mb-1">Key Evidence:</p>
                             <ul className="space-y-1">
