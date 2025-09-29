@@ -23,6 +23,9 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 import {
   LineChart,
   Line,
@@ -58,6 +61,8 @@ interface TrendData {
   warnings?: string[];
   continentData?: Record<string, any>;
   type?: 'single' | 'continental';
+  fromDatabase?: boolean;
+  fromCache?: boolean;
 }
 
 const CONTINENT_COLORS = {
@@ -80,6 +85,8 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const [isFromCache, setIsFromCache] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
   const [groqInsights, setGroqInsights] = useState<any>(null);
 
   // Get the idea from filters or fallback to localStorage
@@ -150,7 +157,28 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     const trendsKeywords = keywords.slice(0, 1); // Use the strongest single keyword for accuracy
     console.log('[GoogleTrendsCard] Using keywords:', trendsKeywords);
     
-    // Check cache first
+    // First, try to load from database if user is authenticated and not manually refreshing
+    if (user?.id && !loading) {
+      try {
+        const dbData = await DashboardDataService.getData({
+          userId: user.id,
+          sessionId: currentSession?.id,
+          tileType: 'google_trends'
+        });
+        
+        if (dbData) {
+          console.log('[GoogleTrendsCard] Loaded from database:', dbData);
+          setData(dbData);
+          setLastFetched(new Date());
+          setIsFromCache(true); // Mark as cached data
+          return;
+        }
+      } catch (dbError) {
+        console.warn('[GoogleTrendsCard] Database load failed:', dbError);
+      }
+    }
+    
+    // Fallback to localStorage cache
     const cacheKey = `google-trends:${trendsKeywords.join(',')}:${geo}:${timeWindow}:${fetchContinents}`;
     const cachedData = localStorage.getItem(cacheKey);
     
@@ -197,11 +225,29 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       setLastFetched(new Date());
       setIsFromCache(false);
       
-      // Cache the data
+      // Cache the data in localStorage
       localStorage.setItem(cacheKey, JSON.stringify({
         data: trendsData,
         timestamp: Date.now()
       }));
+      
+      // Save to database if user is authenticated
+      if (user?.id && trendsData) {
+        try {
+          await DashboardDataService.saveData(
+            {
+              userId: user.id,
+              sessionId: currentSession?.id,
+              tileType: 'google_trends'
+            },
+            trendsData,
+            10080 // 7 days in minutes (7 * 24 * 60)
+          );
+          console.log('[GoogleTrendsCard] Saved to database');
+        } catch (saveError) {
+          console.warn('[GoogleTrendsCard] Database save failed:', saveError);
+        }
+      }
       
       setHasLoadedOnce(true);
     } catch (err: any) {
@@ -212,7 +258,12 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     }
   };
 
-  // Removed auto-load effect - require manual load
+  // Auto-load data when keywords are available
+  useEffect(() => {
+    if (hasLoadedOnce && keywords.length > 0) {
+      fetchTrendsData(viewMode === 'global');
+    }
+  }, [hasLoadedOnce, keywords, viewMode]);
 
   const handleViewModeChange = (mode: 'global' | 'single') => {
     console.log('[GoogleTrendsCard] Changing view mode to:', mode);
@@ -623,35 +674,26 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             </div>
             <div>
               <CardTitle className="text-base font-bold">Google Trends Analysis</CardTitle>
-              {lastFetched && (
-                <div className="mt-1">
-                  {isFromCache ? (
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
-                    >
-                      <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
-                      Cached • {(() => {
-                        const age = Date.now() - lastFetched.getTime();
-                        const hours = Math.floor(age / (1000 * 60 * 60));
-                        const days = Math.floor(hours / 24);
-                        if (days > 0) return `${days}d ago`;
-                        if (hours > 0) return `${hours}h ago`;
-                        const minutes = Math.floor(age / (1000 * 60));
-                        return `${minutes}m ago`;
-                      })()}
+              {data && (() => {
+                let source = 'API';
+                let variant: 'default' | 'secondary' | 'outline' = 'default';
+                
+                if (data.fromDatabase) {
+                  source = 'DB';
+                  variant = 'default';
+                } else if (isFromCache) {
+                  source = 'Cache';
+                  variant = 'secondary';
+                }
+                
+                return (
+                  <div className="mt-1">
+                    <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+                      {source}
                     </Badge>
-                  ) : (
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
-                    >
-                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
-                      Fresh data
-                    </Badge>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
           

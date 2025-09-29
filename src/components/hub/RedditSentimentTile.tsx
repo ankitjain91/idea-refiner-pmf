@@ -17,6 +17,9 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import useSWR from 'swr';
 import { TileInsightsDialog } from './TileInsightsDialog';
+import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 interface RedditSentimentTileProps {
   idea: string;
@@ -54,6 +57,9 @@ interface RedditData {
   }>;
   warnings: string[];
   totalPosts: number;
+  fromDatabase?: boolean;
+  fromCache?: boolean;
+  fromApi?: boolean;
 }
 
 export function RedditSentimentTile({ idea, industry, geography, timeWindow, className }: RedditSentimentTileProps) {
@@ -64,13 +70,34 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
   const [showInsights, setShowInsights] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { currentSession } = useSession();
 
   const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
-  const cacheKey = hasLoadedOnce && actualIdea ? `reddit-sentiment:${actualIdea}:${industry}:${geography}:${timeWindow}` : null;
+  const cacheKey = actualIdea ? `reddit-sentiment:${actualIdea}:${industry}:${geography}:${timeWindow}` : null;
 
   const { data, error, isLoading, mutate } = useSWR<RedditData>(
     cacheKey,
     async () => {
+      // First, try to load from database if user is authenticated
+      if (user?.id) {
+        try {
+          const dbData = await DashboardDataService.getData({
+            userId: user.id,
+            sessionId: currentSession?.id,
+            tileType: 'reddit_sentiment'
+          });
+          
+          if (dbData) {
+            console.log('[RedditSentimentTile] Loaded from database:', dbData);
+            return { ...dbData, fromDatabase: true };
+          }
+        } catch (dbError) {
+          console.warn('[RedditSentimentTile] Database load failed:', dbError);
+        }
+      }
+
+      // Fallback to localStorage cache
       const cacheKeyStorage = `reddit-cache:${actualIdea}|${industry}|${geography}|${timeWindow}`;
       const cachedData = localStorage.getItem(cacheKeyStorage);
       
@@ -84,6 +111,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
         }
       }
       
+      // Fetch from API as last resort
       const { data, error } = await supabase.functions.invoke('reddit-sentiment', {
         body: { 
           idea: actualIdea,
@@ -96,13 +124,32 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
       if (error) throw error;
       
       if (data) {
+        // Save to localStorage
         localStorage.setItem(cacheKeyStorage, JSON.stringify({
           data,
           timestamp: Date.now()
         }));
+        
+        // Save to database if user is authenticated
+        if (user?.id) {
+          try {
+            await DashboardDataService.saveData(
+              {
+                userId: user.id,
+                sessionId: currentSession?.id,
+                tileType: 'reddit_sentiment'
+              },
+              data,
+              15 // 15 minutes cache
+            );
+            console.log('[RedditSentimentTile] Saved to database');
+          } catch (saveError) {
+            console.warn('[RedditSentimentTile] Database save failed:', saveError);
+          }
+        }
       }
       
-      return data;
+      return { ...data, fromApi: true };
     },
     {
       revalidateOnFocus: false,
@@ -255,6 +302,30 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
               Reddit Sentiment
             </CardTitle>
             <div className="flex items-center gap-2">
+              {data && (() => {
+                let source = 'API';
+                let variant: 'default' | 'secondary' | 'outline' = 'default';
+                
+                console.log('[RedditSentimentTile] Badge logic - data flags:', {
+                  fromDatabase: data.fromDatabase,
+                  fromCache: data.fromCache,
+                  fromApi: data.fromApi
+                });
+                
+                if (data.fromDatabase) {
+                  source = 'DB';
+                  variant = 'default';
+                } else if (data.fromCache) {
+                  source = 'Cache';
+                  variant = 'secondary';
+                }
+                
+                return (
+                  <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+                    {source}
+                  </Badge>
+                );
+              })()}
               <div className="flex items-center gap-2">
                 <Label htmlFor="auto-refresh" className="text-xs">Auto</Label>
                 <Switch

@@ -305,7 +305,7 @@ export function useTileData<T = any>(
     cacheMinutes?: number;
   }
 ) {
-  const [data, setData] = useState<T | null>(null);
+  const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -327,7 +327,11 @@ export function useTileData<T = any>(
         });
         
         if (dbData) {
-          setData(dbData);
+          // Mark data as coming from database
+          const enrichedData = typeof dbData === 'object' ? 
+            { ...dbData, fromDatabase: true } : 
+            { data: dbData, fromDatabase: true };
+          setData(enrichedData);
           setIsLoading(false);
           return;
         }
@@ -335,7 +339,12 @@ export function useTileData<T = any>(
       
       // Fetch from API if not in database
       const result = await fetchFunction();
-      setData(result);
+      
+      // Mark data as coming from API
+      const enrichedResult = typeof result === 'object' ? 
+        { ...result, fromApi: true } : 
+        { data: result, fromApi: true };
+      setData(enrichedResult);
       
       // Save to database if enabled
       if (options?.useDatabase && options?.tileType && user?.id && result) {

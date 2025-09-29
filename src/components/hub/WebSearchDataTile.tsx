@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import useSWR from 'swr';
 import { TileInsightsDialog } from './TileInsightsDialog';
+import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 interface WebSearchDataTileProps {
   idea: string;
@@ -28,6 +31,8 @@ interface WebSearchDataTileProps {
 export function WebSearchDataTile({ idea, industry, geography, timeWindow, className }: WebSearchDataTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [isExpanded, setIsExpanded] = useState(true);
   const [showInsights, setShowInsights] = useState(false);
@@ -35,11 +40,30 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
   const { toast } = useToast();
 
   const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
-  const cacheKey = hasLoadedOnce && actualIdea ? `web-search-profitability:${actualIdea}:${industry}:${geography}` : null;
+  const cacheKey = actualIdea ? `web-search-profitability:${actualIdea}:${industry}:${geography}` : null;
 
   const { data, error, isLoading, mutate } = useSWR(
     cacheKey,
     async () => {
+      // First, try to load from database if user is authenticated
+      if (user?.id) {
+        try {
+          const dbData = await DashboardDataService.getData({
+            userId: user.id,
+            sessionId: currentSession?.id,
+            tileType: 'web_search'
+          });
+          
+          if (dbData) {
+            console.log('[WebSearchDataTile] Loaded from database:', dbData);
+            return { ...dbData, fromDatabase: true };
+          }
+        } catch (dbError) {
+          console.warn('[WebSearchDataTile] Database load failed:', dbError);
+        }
+      }
+
+      // Fallback to localStorage cache
       const cacheKeyStorage = `web-search-cache:${actualIdea}:${industry}:${geography}`;
       const cachedData = localStorage.getItem(cacheKeyStorage);
       
@@ -53,6 +77,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
         }
       }
       
+      // Fetch from API as last resort
       const { data, error } = await supabase.functions.invoke('web-search-profitability', {
         body: { 
           idea: actualIdea,
@@ -65,13 +90,32 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       if (error) throw error;
       
       if (data) {
+        // Save to localStorage
         localStorage.setItem(cacheKeyStorage, JSON.stringify({
           data,
           timestamp: Date.now()
         }));
+        
+        // Save to database if user is authenticated
+        if (user?.id) {
+          try {
+            await DashboardDataService.saveData(
+              {
+                userId: user.id,
+                sessionId: currentSession?.id,
+                tileType: 'web_search'
+              },
+              data,
+              30 // 30 minutes cache
+            );
+            console.log('[WebSearchDataTile] Saved to database');
+          } catch (saveError) {
+            console.warn('[WebSearchDataTile] Database save failed:', saveError);
+          }
+        }
       }
       
-      return data;
+      return { ...data, fromApi: true };
     },
     {
       revalidateOnFocus: false,
@@ -246,15 +290,31 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
             <Search className="h-5 w-5" />
             Web Search Analysis
           </CardTitle>
-          <div className="flex items-center gap-2">
-            {data?.fromCache && (
-              <Badge 
-                variant="secondary" 
-                className="text-xs py-0 px-1.5 h-5"
-              >
-                Cached
-              </Badge>
-            )}
+                    <div className="flex items-center gap-2">
+            {data && (() => {
+              let source = 'API';
+              let variant: 'default' | 'secondary' | 'outline' = 'default';
+              
+              console.log('[WebSearchDataTile] Badge logic - data flags:', {
+                fromDatabase: data.fromDatabase,
+                fromCache: data.fromCache,
+                fromApi: data.fromApi
+              });
+              
+              if (data.fromDatabase) {
+                source = 'DB';
+                variant = 'default';
+              } else if (data.fromCache) {
+                source = 'Cache';
+                variant = 'secondary';
+              }
+              
+              return (
+                <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+                  {source}
+                </Badge>
+              );
+            })()}
             <Button
               variant="ghost"
               size="icon"

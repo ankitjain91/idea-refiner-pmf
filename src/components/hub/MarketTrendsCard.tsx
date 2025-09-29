@@ -20,6 +20,9 @@ import { cn } from '@/lib/utils';
 import useSWR from 'swr';
 import { TileInsightsDialog } from './TileInsightsDialog';
 import { useDashboardPersistence } from '@/hooks/useDashboardPersistence';
+import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 interface MarketTrendsCardProps {
   filters: {
@@ -69,6 +72,7 @@ interface TrendsData {
   warnings?: string[];
   continentData?: Record<string, any>;
   fromCache?: boolean;
+  fromDatabase?: boolean;
   cacheTimestamp?: number;
   stale?: boolean;
 }
@@ -92,6 +96,8 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [groqInsights, setGroqInsights] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
   
   // Use persistence hook
   const { persistComponentData } = useDashboardPersistence();
@@ -127,14 +133,32 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const ideaText = actualIdea;
   
   // Include viewMode in cache key to refetch when switching modes
-  const cacheKey = hasLoadedOnce && ideaText ? `market-trends:${ideaText}:${viewMode}` : null;
+  const cacheKey = ideaText ? `market-trends:${ideaText}:${viewMode}` : null;
   
   const { data, error, isLoading, mutate } = useSWR<TrendsData>(
     cacheKey,
     async (key) => {
       const [, idea, mode] = key.split(':');
       
-      // Check localStorage for cached data first
+      // First, try to load from database if user is authenticated
+      if (user?.id) {
+        try {
+          const dbData = await DashboardDataService.getData({
+            userId: user.id,
+            sessionId: currentSession?.id,
+            tileType: 'market_trends'
+          });
+          
+          if (dbData) {
+            console.log('[MarketTrendsCard] Loaded from database:', dbData);
+            return { ...dbData, fromDatabase: true };
+          }
+        } catch (dbError) {
+          console.warn('[MarketTrendsCard] Database load failed:', dbError);
+        }
+      }
+      
+      // Fallback to localStorage cache
       const cacheKeyStorage = `market-trends-cache:${idea}:${mode}`;
       const cachedData = localStorage.getItem(cacheKeyStorage);
       
@@ -169,6 +193,24 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
         
         // Persist to session
         persistComponentData('marketTrends', data);
+        
+        // Save to database if user is authenticated
+        if (user?.id) {
+          try {
+            await DashboardDataService.saveData(
+              {
+                userId: user.id,
+                sessionId: currentSession?.id,
+                tileType: 'market_trends'
+              },
+              data,
+              10080 // 7 days in minutes (7 * 24 * 60)
+            );
+            console.log('[MarketTrendsCard] Saved to database');
+          } catch (saveError) {
+            console.warn('[MarketTrendsCard] Database save failed:', saveError);
+          }
+        }
       }
       
       return data;
@@ -186,10 +228,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   
   // Auto-load on mount
   useEffect(() => {
-    if (!hasLoadedOnce && filters?.idea_keywords?.length > 0) {
+    if (!hasLoadedOnce && ideaText) {
       setHasLoadedOnce(true);
     }
-  }, [hasLoadedOnce, filters?.idea_keywords]);
+  }, [hasLoadedOnce, ideaText]);
   
   // Manual refresh handler - bypasses cache
   const handleRefresh = async () => {
@@ -444,37 +486,25 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 <Search className="h-5 w-5" />
                 Market Trends
               </CardTitle>
-              {/* Data source and cache indicator */}
-              {data && (
-                <div>
-                  {data.fromCache ? (
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
-                    >
-                      <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
-                      Cached • {(() => {
-                        if (!data.cacheTimestamp) return 'cached';
-                        const age = Date.now() - data.cacheTimestamp;
-                        const hours = Math.floor(age / (1000 * 60 * 60));
-                        const days = Math.floor(hours / 24);
-                        if (days > 0) return `${days}d ago`;
-                        if (hours > 0) return `${hours}h ago`;
-                        const minutes = Math.floor(age / (1000 * 60));
-                        return `${minutes}m ago`;
-                      })()}
-                    </Badge>
-                  ) : (
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
-                    >
-                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
-                      Fresh data
-                    </Badge>
-                  )}
-                </div>
-              )}
+              {/* Data source indicator */}
+              {data && (() => {
+                let source = 'API';
+                let variant: 'default' | 'secondary' | 'outline' = 'default';
+                
+                if (data.fromDatabase) {
+                  source = 'DB';
+                  variant = 'default';
+                } else if (data.fromCache) {
+                  source = 'Cache';
+                  variant = 'secondary';
+                }
+                
+                return (
+                  <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+                    {source}
+                  </Badge>
+                );
+              })()}
             </div>
             <div className="flex items-center gap-2">
               <Tooltip>

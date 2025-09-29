@@ -5,6 +5,8 @@ import { TileInsightsDialog } from './TileInsightsDialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 interface QuickStatsTileProps {
   title: string;
@@ -22,6 +24,8 @@ export function QuickStatsTile({
   onAnalyze
 }: QuickStatsTileProps) {
   const [showInsights, setShowInsights] = useState(false);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
 
   const fetchTileData = async () => {
     if (!currentIdea) return null;
@@ -201,6 +205,40 @@ export function QuickStatsTile({
     }
   };
 
+  const getDataSourceBadge = () => {
+    if (!data) return null;
+    
+    let source = 'API';
+    let variant: 'default' | 'secondary' | 'outline' = 'default';
+    
+    // Debug logging
+    console.log(`[${tileType}] Data source check:`, {
+      fromDatabase: data.fromDatabase,
+      fromCache: data.fromCache,
+      dataKeys: Object.keys(data),
+      user: user?.id,
+      session: currentSession?.id
+    });
+    
+    if (data?.fromDatabase) {
+      source = 'DB';
+      variant = 'default';
+      console.log(`[${tileType}] Using DB source`);
+    } else if (data?.fromCache) {
+      source = 'Cache';
+      variant = 'secondary';
+      console.log(`[${tileType}] Using Cache source`);
+    } else {
+      console.log(`[${tileType}] Using API source - fromApi:`, data?.fromApi);
+    }
+    
+    return (
+      <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+        {source}
+      </Badge>
+    );
+  };
+
   return (
     <>
       <BaseTile
@@ -212,6 +250,7 @@ export function QuickStatsTile({
         onLoad={loadData}
         autoLoad={true}
         className="h-full"
+        headerActions={getDataSourceBadge()}
       >
         {renderTileContent()}
       </BaseTile>

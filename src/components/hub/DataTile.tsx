@@ -19,6 +19,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { TileInsightsDialog } from './TileInsightsDialog';
 import { useDashboardPersistence } from '@/hooks/useDashboardPersistence';
+import { useTileData } from './BaseTile';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 interface DataTileProps {
   title: string;
@@ -83,6 +86,7 @@ interface TileData {
     total_api_cost: string;
   };
   fromCache?: boolean;
+  fromDatabase?: boolean;
   stale?: boolean;
 }
 
@@ -94,9 +98,8 @@ export function DataTile({
   className,
   description 
 }: DataTileProps) {
-  const [data, setData] = useState<TileData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
   const [expanded, setExpanded] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
@@ -113,6 +116,18 @@ export function DataTile({
   // Use 15 minute interval for news analysis, 30 seconds for others
   const refreshInterval = tileType === 'news_analysis' ? 15 * 60 : 30;
   const refreshIntervalMs = refreshInterval * 1000;
+
+  // Create fetch function for useTileData hook
+  const fetchFunction = async (): Promise<TileData> => {
+    return fetchTileData(tileType, filters);
+  };
+
+  // Use database-first loading with useTileData hook
+  const { data, isLoading: loading, error, loadData } = useTileData(fetchFunction, [tileType, filters], {
+    tileType: `data_tile_${tileType}`,
+    useDatabase: true,
+    cacheMinutes: Math.floor(refreshInterval / 60) // Convert seconds to minutes
+  });
 
   const fetchTileData = async (tileType: string, filters: any): Promise<TileData> => {
     try {
@@ -254,30 +269,27 @@ export function DataTile({
     };
   };
 
+  // Enhanced loadData function that includes persistence
   const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const tileData = await fetchTileData(tileType, filters);
-      setData(tileData);
+      await loadData(); // Use the useTileData loadData function
       setLastRefresh(new Date());
       setHasLoadedOnce(true);
       setRefreshCountdown(refreshInterval);
       
-      // Persist the tile data
-      persistTileData(tileType, tileData);
-      
-      // Also persist component-specific data
-      if (tileType) {
-        persistComponentData(tileType, tileData);
+      // Persist the tile data if we have it
+      if (data) {
+        persistTileData(tileType, data);
+        
+        // Also persist component-specific data
+        if (tileType) {
+          persistComponentData(tileType, data);
+        }
       }
     } catch (err) {
       console.error(`Error fetching data for ${tileType}:`, err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-    } finally {
-      setLoading(false);
     }
-  }, [tileType, filters, persistTileData, persistComponentData]);
+  }, [loadData, tileType, data, persistTileData, persistComponentData, refreshInterval]);
 
   // Auto-load data on mount
   useEffect(() => {
@@ -543,6 +555,24 @@ export function DataTile({
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              {data && (() => {
+                let source = 'API';
+                let variant: 'default' | 'secondary' | 'outline' = 'outline';
+                
+                if (data.fromDatabase) {
+                  source = 'DB';
+                  variant = 'default';
+                } else if (data.fromCache) {
+                  source = 'Cache';
+                  variant = 'secondary';
+                }
+                
+                return (
+                  <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+                    {source}
+                  </Badge>
+                );
+              })()}
               {lastRefresh && (
                 <Tooltip>
                   <TooltipTrigger asChild>
