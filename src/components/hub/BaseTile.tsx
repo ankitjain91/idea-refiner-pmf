@@ -308,12 +308,11 @@ export function useTileData<T = any>(
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
 
   const loadData = async () => {
-    if (!user || isLoading) return;
+    if (!user) return;
     
     setIsLoading(true);
     setError(null);
@@ -333,7 +332,6 @@ export function useTileData<T = any>(
             { ...dbData, fromDatabase: true } : 
             { data: dbData, fromDatabase: true };
           setData(enrichedData);
-          setHasLoadedOnce(true);
           setIsLoading(false);
           return;
         }
@@ -347,7 +345,6 @@ export function useTileData<T = any>(
         { ...result, fromApi: true } : 
         { data: result, fromApi: true };
       setData(enrichedResult);
-      setHasLoadedOnce(true);
       
       // Save to database if enabled
       if (options?.useDatabase && options?.tileType && user?.id && result) {
@@ -363,19 +360,16 @@ export function useTileData<T = any>(
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
-      setHasLoadedOnce(true);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    // Only reset if this is the first time or dependencies have actually changed
-    if (!hasLoadedOnce) {
-      setData(null);
-      setError(null);
-    }
+    // Reset when dependencies change
+    setData(null);
+    setError(null);
   }, dependencies);
 
-  return { data, isLoading, error, loadData, setData, hasLoadedOnce };
+  return { data, isLoading, error, loadData, setData };
 }

@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useTileData } from './BaseTile';
+import { BaseTile, useTileData } from './BaseTile';
 import { TileInsightsDialog } from './TileInsightsDialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
-import { ExpandableTile } from '@/components/dashboard/ExpandableTile';
-import { metricExplanations } from '@/lib/metric-explanations';
 
 interface QuickStatsTileProps {
   title: string;
@@ -26,7 +24,6 @@ export function QuickStatsTile({
   onAnalyze
 }: QuickStatsTileProps) {
   const [showInsights, setShowInsights] = useState(false);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
 
@@ -208,143 +205,55 @@ export function QuickStatsTile({
     }
   };
 
-  // Process data for expandable tile
-  const processDataForExpandable = () => {
-    if (!data) return { metrics: {}, chartData: [], sources: [], insights: [] };
-
-    const metrics: Record<string, any> = {};
-    const chartData: any[] = [];
-    const sources: any[] = [];
-    const insights: string[] = [];
-
-    try {
-      switch (tileType) {
-        case 'pmf_score':
-          metrics.score = data.score || 0;
-          metrics.confidence = data.confidence || 0;
-          if (data.factors) {
-            Object.entries(data.factors).forEach(([key, value]: [string, any]) => {
-              metrics[key] = value.score || value;
-            });
-          }
-          insights.push(
-            `Your idea scores ${data.score || 0}% on product-market fit`,
-            'This score combines market demand, competition, and feasibility',
-            data.score >= 70 ? 'Strong potential for success' : 'Areas for improvement identified'
-          );
-          break;
-
-        case 'market_size':
-          metrics.tam = data.tam || data.market_size?.tam || 0;
-          metrics.sam = data.sam || data.market_size?.sam || 0;
-          metrics.som = metrics.sam * 0.1;
-          insights.push(
-            `Total addressable market of $${(metrics.tam / 1e6).toFixed(1)}M`,
-            `Serviceable market opportunity of $${(metrics.sam / 1e6).toFixed(1)}M`,
-            'Market size indicates significant opportunity for growth'
-          );
-          break;
-
-        case 'competition':
-          metrics.competition_level = data.competition_level || data.level;
-          metrics.competitor_count = data.competitors?.length || 0;
-          if (data.competitors) {
-            chartData.push(...data.competitors.slice(0, 5).map((comp: any, i: number) => ({
-              name: comp.name || comp,
-              value: 100 - (i * 15),
-              strength: comp.strength
-            })));
-          }
-          insights.push(
-            `Competition level is ${data.level || 'unknown'}`,
-            `${data.competitors?.length || 0} main competitors identified`,
-            data.level === 'Low' ? 'Good opportunity for market entry' : 'Differentiation strategy needed'
-          );
-          break;
-
-        case 'sentiment':
-          metrics.overall_sentiment = data.overall_sentiment || data.sentiment;
-          metrics.positive_percentage = data.positive_percentage || data.positive || 0;
-          if (data.sentiment_breakdown) {
-            chartData.push(
-              { name: 'Positive', value: data.sentiment_breakdown.positive || 0, color: '#22c55e' },
-              { name: 'Neutral', value: data.sentiment_breakdown.neutral || 0, color: '#eab308' },
-              { name: 'Negative', value: data.sentiment_breakdown.negative || 0, color: '#ef4444' }
-            );
-          }
-          insights.push(
-            `Overall sentiment is ${data.overall_sentiment || 'neutral'}`,
-            `${data.positive_percentage || 0}% of mentions are positive`,
-            'Sentiment analysis helps gauge market reception'
-          );
-          break;
-      }
-    } catch (error) {
-      console.error('Error processing data for expandable tile:', error);
-      insights.push('Data processing encountered an issue. Please try refreshing.');
-    }
-
-    return { metrics, chartData, sources, insights };
-  };
-
-  const { metrics, chartData, sources, insights } = processDataForExpandable();
-
-  // Get metric explanations
-  const availableExplanations: Record<string, any> = {};
-  if (metrics && typeof metrics === 'object') {
-    Object.keys(metrics).forEach(key => {
-      if (metricExplanations[key]) {
-        availableExplanations[key] = metricExplanations[key];
-      }
-    });
-  }
-
   const getDataSourceBadge = () => {
     if (!data) return null;
     
     let source = 'API';
     let variant: 'default' | 'secondary' | 'outline' = 'default';
     
+    // Debug logging
+    console.log(`[${tileType}] Data source check:`, {
+      fromDatabase: data.fromDatabase,
+      fromCache: data.fromCache,
+      dataKeys: Object.keys(data),
+      user: user?.id,
+      session: currentSession?.id
+    });
+    
     if (data?.fromDatabase) {
       source = 'DB';
       variant = 'default';
+      console.log(`[${tileType}] Using DB source`);
     } else if (data?.fromCache) {
       source = 'Cache';
       variant = 'secondary';
+      console.log(`[${tileType}] Using Cache source`);
+    } else {
+      console.log(`[${tileType}] Using API source - fromApi:`, data?.fromApi);
     }
     
-    return { label: source, variant };
+    return (
+      <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+        {source}
+      </Badge>
+    );
   };
-
-  const Icon = icon;
 
   return (
     <>
-      <ExpandableTile
+      <BaseTile
         title={title}
-        icon={<Icon className="h-5 w-5" />}
-        loading={isLoading}
-        error={error ? String(error) : undefined}
+        icon={icon}
+        isLoading={isLoading}
+        error={error}
         data={data}
-        chartData={chartData}
-        sources={sources}
-        metrics={metrics}
-        metricExplanations={availableExplanations}
-        insights={insights}
-        rawData={data}
-        chartType={tileType === 'sentiment' ? 'pie' : 'bar'}
+        onLoad={loadData}
+        autoLoad={true}
         className="h-full"
-        quickInfo={`Quick overview of ${title.toLowerCase()}. Click to explore detailed metrics and insights.`}
-        badge={getDataSourceBadge()}
-        onExpand={() => {
-          console.log(`Expanding ${tileType} quick stat with data:`, data);
-          if (!hasLoadedOnce && loadData) {
-            loadData();
-          }
-        }}
+        headerActions={getDataSourceBadge()}
       >
         {renderTileContent()}
-      </ExpandableTile>
+      </BaseTile>
 
       <TileInsightsDialog
         open={showInsights}
