@@ -1,28 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, 
-  ExternalLink, Search, Newspaper, ChevronRight, CheckCircle, XCircle,
-  HelpCircle, Globe, Map, Clock, Sparkles
+  Search, Activity, Globe, Clock, Brain
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import useSWR from 'swr';
-import { TileInsightsDialog } from './TileInsightsDialog';
-import { useDashboardPersistence } from '@/hooks/useDashboardPersistence';
 import { DashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { AITileDialog } from '../dashboard/AITileDialog';
 
 interface MarketTrendsCardProps {
   filters: {
@@ -86,21 +80,16 @@ const CONTINENT_COLORS = {
   'Oceania': '#06b6d4'
 };
 
-
 export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) {
-  const [showSources, setShowSources] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'global' | 'single'>('single');
   const [selectedContinent, setSelectedContinent] = useState<string>('North America');
-  const [groqInsights, setGroqInsights] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [showAIDialog, setShowAIDialog] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<string>('');
+  const [analysisLevel, setAnalysisLevel] = useState<'overview' | 'detailed' | 'strategic'>('overview');
   const { user } = useAuth();
   const { currentSession } = useSession();
-  
-  // Use persistence hook
-  const { persistComponentData } = useDashboardPersistence();
   
   // Get the idea from filters or fallback to the actual startup idea
   const storedIdea = typeof window !== 'undefined' ? 
@@ -190,9 +179,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           data,
           timestamp: Date.now()
         }));
-        
-        // Persist to session
-        persistComponentData('marketTrends', data);
         
         // Save to database if user is authenticated
         if (user?.id) {
@@ -327,52 +313,31 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     }
   };
 
-  const handleRetry = () => {
-    mutate();
-  };
-
-  // Analyze market trends with Groq for profit insights
-  const analyzeWithGroq = async () => {
-    if (!data || isAnalyzing) return;
+  // Prepare AI dialog data
+  const getAIDialogData = () => {
+    if (!data) return null;
     
-    setIsAnalyzing(true);
-    try {
-      const { data: response, error } = await supabase.functions.invoke('groq-synthesis', {
-        body: {
-          marketTrendsData: {
-            idea: ideaText,
-            metrics: data.metrics,
-            continentData: data.continentData,
-            top_queries: currentData?.top_queries,
-            sentiment: {
-              positive: (() => {
-                const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
-                return sentiment > 0 ? Math.min(Math.round(sentiment * 20 + 50), 100) : 0;
-              })(),
-              neutral: (() => {
-                const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
-                return Math.max(50 - Math.abs(sentiment * 10), 0);
-              })(),
-              negative: (() => {
-                const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
-                return sentiment < 0 ? Math.min(Math.abs(sentiment * 20), 100) : 0;
-              })()
-            },
-            insights: data.insights,
-            series: data.series
-          }
-        }
-      });
-
-      if (error) throw error;
-      
-      setGroqInsights(response.analysis);
-      setShowInsights(true);
-    } catch (error) {
-      console.error('Error analyzing with Groq:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
+    return {
+      title: "Market Trends Analysis",
+      metrics: data.metrics?.map((metric: any) => ({
+        title: metric.name,
+        value: String(metric.value),
+        icon: Activity,
+        color: "text-emerald-500",
+        levels: [
+          { title: "Overview", content: `Current ${metric.name}: ${metric.value}` },
+          { title: "Analysis", content: metric.explanation || "Detailed analysis pending" },
+          { title: "Strategy", content: "Strategic recommendations based on this metric" }
+        ]
+      })) || [],
+      chartData: chartData,
+      sources: data.citations?.map((citation: any) => ({
+        title: citation.label,
+        url: citation.url,
+        published: citation.published
+      })) || [],
+      insights: data.insights || []
+    };
   };
 
   if (!ideaText) {
@@ -395,7 +360,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       </Card>
     );
   }
-
 
   if (error) {
     return (
@@ -433,10 +397,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-48 w-full" />
+          <div className="h-48 bg-muted animate-pulse rounded" />
           <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
+            <div className="h-20 bg-muted animate-pulse rounded" />
+            <div className="h-20 bg-muted animate-pulse rounded" />
           </div>
         </CardContent>
       </Card>
@@ -445,16 +409,54 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
 
   return (
     <>
-      <Card 
-        className={cn("h-full", className)}
-      >
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base">Market Trends Analysis</CardTitle>
+      <Card className={cn("h-full group relative", className)}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
+                <Activity className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-medium">Market Trends</CardTitle>
+                <p className="text-xs text-muted-foreground">Real-time analysis</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {data && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAIDialog(true)}
+                  className="h-8 w-8 p-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 hover:border-violet-500/40 transition-all duration-200"
+                >
+                  <Brain className="h-4 w-4 text-violet-600" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+              </Button>
+            </div>
+          </div>
+          
+          {data && (
+            <div className="flex items-center gap-2 mt-2">
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'global' | 'single')}>
+                <TabsList className="h-7 bg-muted/50">
+                  <TabsTrigger value="single" className="text-xs px-2 h-6">Local</TabsTrigger>
+                  <TabsTrigger value="global" className="text-xs px-2 h-6">Global</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
               {viewMode === 'global' && data?.continentData && (
                 <Select value={selectedContinent} onValueChange={setSelectedContinent}>
-                  <SelectTrigger className="w-[160px] h-8">
+                  <SelectTrigger className="w-[140px] h-7 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -466,28 +468,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                   </SelectContent>
                 </Select>
               )}
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'global' | 'single')}>
-                <TabsList className="h-8">
-                  <TabsTrigger value="single" className="text-xs">Single</TabsTrigger>
-                  <TabsTrigger value="global" className="text-xs">Global</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {data?.updatedAt && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>{new Date(data.updatedAt).toLocaleTimeString()}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Market Trends
-              </CardTitle>
+              
               {/* Data source indicator */}
-              {data && (() => {
+              {(() => {
                 let source = 'API';
                 let variant: 'default' | 'secondary' | 'outline' = 'default';
                 
@@ -500,689 +483,128 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 }
                 
                 return (
-                  <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+                  <Badge variant={variant} className="text-xs h-5">
                     {source}
                   </Badge>
                 );
               })()}
             </div>
-            <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowInsights(true);
-                    }}
-                    className="h-8 w-8"
-                    title="How this helps your product journey"
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <div className="space-y-2">
-                    <p className="font-semibold">What is Market Trends helpful for?</p>
-                    <ul className="text-sm space-y-1">
-                      <li>• Track real-time search interest and news sentiment</li>
-                      <li>• Identify emerging opportunities and market gaps</li>
-                      <li>• Monitor competitor activity and industry shifts</li>
-                      <li>• Validate demand before building features</li>
-                      <li>• Optimize timing for product launches</li>
-                    </ul>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRefresh();
-                }}
-                disabled={isLoading || isRefreshing || !ideaText}
-                className="h-8"
-                title={!ideaText ? "No idea configured" : "Refresh data"}
-              >
-                <RefreshCw className={cn("h-4 w-4 mr-1", (isLoading || isRefreshing) && "animate-spin")} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
-              {data && (
-                <>
-                  <Badge variant="outline" className="flex items-center gap-1">
+          )}
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gradient-to-br from-emerald-500/5 to-teal-500/10 rounded-xl p-3 border border-emerald-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Trend Direction</p>
+                  <div className="flex items-center gap-2 mt-1">
                     {getTrendIcon()}
-                    {trendDirection}
-                  </Badge>
-                  <Badge variant="secondary">
-                    Momentum: {momentum}%
-                  </Badge>
-                </>
-              )}
+                    <span className="text-lg font-bold capitalize">{trendDirection}</span>
+                  </div>
+                </div>
+                <TrendingUp className="h-5 w-5 text-emerald-500/60" />
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/10 rounded-xl p-3 border border-blue-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">News Momentum</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-lg font-bold">{momentum}</span>
+                    <Badge variant="outline" className="text-xs">stories</Badge>
+                  </div>
+                </div>
+                <Globe className="h-5 w-5 text-blue-500/60" />
+              </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          
-          {/* Dual-series chart */}
-          {hasLoadedOnce && chartData.length > 0 && (
-            <ChartContainer config={{
-              searchInterest: {
-                label: "Search Interest",
-                color: "hsl(var(--primary))",
-              },
-              newsVolume: {
-                label: "News Volume",
-                color: "hsl(var(--secondary))",
-              },
-            }} className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+
+          {/* Chart */}
+          {chartData.length > 0 && (
+            <div className="bg-card/50 rounded-xl p-4 border border-border/50">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Market Interest Over Time
+              </h3>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="searchInterest" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
                   <XAxis 
                     dataKey="week" 
                     className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                   />
                   <YAxis 
                     className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                   />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  <Line 
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Area 
                     type="monotone" 
                     dataKey="searchInterest" 
-                    stroke="hsl(var(--primary))" 
+                    stroke="hsl(var(--primary))"
                     strokeWidth={2}
-                    dot={false}
-                    name="Search Interest"
+                    fill="url(#searchInterest)"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="newsVolume" 
-                    stroke="hsl(var(--secondary))" 
-                    strokeWidth={2}
-                    dot={false}
-                    name="News Volume"
-                  />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
-            </ChartContainer>
-          )}
-
-          {/* Key metrics */}
-          {currentData?.metrics && currentData.metrics.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              {currentData.metrics.slice(0, 4).map((metric: any, idx: number) => (
-                <div key={idx} className="bg-muted/10 rounded-lg p-3">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {metric.name}
-                  </p>
-                  <p className="text-lg font-bold mt-1">
-                    {metric.value}
-                    {metric.unit && (
-                      <span className="text-sm font-normal text-muted-foreground ml-1">
-                        {metric.unit}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Regional Comparison in Global Mode */}
-          {viewMode === 'global' && data?.continentData && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Regional Comparison
-              </h4>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.entries(data.continentData).slice(0, 6).map(([region, regionData]: [string, any]) => (
-                  <button
-                    key={region}
-                    onClick={() => setSelectedContinent(region)}
-                    className={cn(
-                      "p-2 rounded-lg border transition-all text-left",
-                      selectedContinent === region 
-                        ? "border-primary bg-primary/10" 
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <div className="flex items-center gap-1 mb-1">
-                      <Globe className="h-3 w-3" />
-                      <span className="text-xs font-medium truncate">{region}</span>
-                    </div>
-                    <div className="text-lg font-bold">
-                      {regionData?.metrics?.find((m: any) => m.name === 'Search Volume')?.value || '0'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Interest Score
-                    </div>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
-          {/* Key Insights */}
-          {currentData?.insights && currentData.insights.length > 0 && !currentData.insights.some((i: string) => i.includes('API key required')) && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Key Insights
-              </h4>
-              <div className="space-y-1">
-                {currentData.insights.slice(0, 3).map((insight: string, idx: number) => (
-                  <div key={idx} className="flex items-start gap-2 text-xs">
-                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-muted-foreground">{insight}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recent News Articles */}
-          {currentData?.items && currentData.items.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Latest Market News
-              </h4>
-              <div className="space-y-2">
-                {currentData.items.slice(0, 3).map((item: any, idx: number) => (
-                  <div key={idx} className="p-2 bg-muted/10 rounded-lg">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium line-clamp-1">{item.title}</p>
-                        {item.snippet && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.snippet}</p>
-                        )}
-                      </div>
-                      {item.url && (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:text-primary/80 flex-shrink-0"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                    {item.source && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Newspaper className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{item.source}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Market Sentiment Indicator */}
-          {currentData?.error ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Unable to fetch live data. Please check your API connections.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-green-500/10 rounded-lg p-2 border border-green-500/20">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  <span className="text-xs font-medium">Positive</span>
-                </div>
-                <div className="text-lg font-bold text-green-600">
-                  {(() => {
-                    const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
-                    if (!sentimentMetric || sentimentMetric.value === 'N/A' || sentimentMetric.value === undefined) return 'N/A';
-                    const sentiment = parseFloat(sentimentMetric.value);
-                    if (isNaN(sentiment)) return 'N/A';
-                    return sentiment > 0 ? `${Math.min(Math.round(sentiment * 20 + 50), 100)}%` : '0%';
-                  })()}
-                </div>
-              </div>
-              <div className="bg-yellow-500/10 rounded-lg p-2 border border-yellow-500/20">
-                <div className="flex items-center gap-1 mb-1">
-                  <Minus className="h-3 w-3 text-yellow-500" />
-                  <span className="text-xs font-medium">Neutral</span>
-                </div>
-                <div className="text-lg font-bold text-yellow-600">
-                  {(() => {
-                    const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
-                    if (!sentimentMetric || sentimentMetric.value === 'N/A' || sentimentMetric.value === undefined) return 'N/A';
-                    const sentiment = parseFloat(sentimentMetric.value);
-                    if (isNaN(sentiment)) return 'N/A';
-                    return `${Math.max(50 - Math.abs(sentiment * 10), 0)}%`;
-                  })()}
-                </div>
-              </div>
-              <div className="bg-red-500/10 rounded-lg p-2 border border-red-500/20">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                  <span className="text-xs font-medium">Negative</span>
-                </div>
-                <div className="text-lg font-bold text-red-600">
-                  {(() => {
-                    const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
-                    if (!sentimentMetric || sentimentMetric.value === 'N/A' || sentimentMetric.value === undefined) return 'N/A';
-                    const sentiment = parseFloat(sentimentMetric.value);
-                    if (isNaN(sentiment)) return 'N/A';
-                    return sentiment < 0 ? `${Math.min(Math.abs(sentiment * 20), 100)}%` : '0%';
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* API Status Alert for debugging */}
-          {data?.insights && data.insights.some(i => i.includes('API key required')) && (
-            <Alert variant="default" className="border-amber-500/50 bg-amber-500/10">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-              <AlertDescription className="text-sm">
-                <strong>Serper API Not Connected</strong><br/>
-                The Serper API key may not be configured correctly. The card is showing mock data.
-                Click refresh to retry with your API key.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Top rising queries */}
+          {/* Top Queries */}
           {currentData?.top_queries && currentData.top_queries.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Top Rising Queries {viewMode === 'global' && `- ${selectedContinent}`}
-              </h4>
+            <div className="bg-card/50 rounded-xl p-4 border border-border/50">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Related Searches
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {currentData.top_queries.slice(0, 6).map((query: any, idx: number) => {
-                  // Extract the query text properly and ensure it's a string
-                  let queryText = '';
-                  if (typeof query === 'string') {
-                    queryText = query;
-                  } else if (query && typeof query === 'object') {
-                    const candidate = typeof query.query === 'string'
-                      ? query.query
-                      : (typeof query.text === 'string'
-                        ? query.text
-                        : (typeof query.term === 'string' ? query.term : ''));
-                    queryText = candidate;
-                  }
-                  
-                  // Skip if no valid text found or if it's just a number
-                  if (!queryText || /^\d+$/.test(String(queryText))) {
-                    return null;
-                  }
-                  
+                  const queryText = typeof query === 'string' ? query : query.query;
                   return (
-                    <Badge key={idx} variant="secondary" className="text-xs">
-                      {String(queryText)}
-                      {query && typeof query === 'object' && query?.change && (
-                        <span className="ml-1 text-green-500">{query.change}</span>
-                      )}
+                    <Badge 
+                      key={idx} 
+                      variant="outline"
+                      className="text-xs py-1 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:border-primary/40 transition-colors"
+                    >
+                      {queryText}
                     </Badge>
                   );
-                }).filter(Boolean)}
+                })}
               </div>
             </div>
           )}
-
-          {/* Market Opportunity Score */}
-          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-3 border border-primary/20">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Market Opportunity Score
-              </h4>
-              <Badge variant="outline" className="text-xs">
-                {viewMode === 'global' ? selectedContinent : 'Overall'}
-              </Badge>
-            </div>
-            <div className="flex items-end gap-3">
-              <div className="text-3xl font-bold text-primary">
-                {(() => {
-                  // Calculate opportunity score based on available metrics
-                  const searchVolumeMetric = currentData?.metrics?.find((m: any) => m.name === 'Search Volume');
-                  const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
-                  const momentumMetric = currentData?.metrics?.find((m: any) => m.name === 'News Momentum');
-                  
-                  if (!searchVolumeMetric || searchVolumeMetric.value === 'N/A' || 
-                      !sentimentMetric || sentimentMetric.value === 'N/A' || 
-                      !momentumMetric || momentumMetric.value === 'N/A' || 
-                      currentData?.error) {
-                    return 'N/A';
-                  }
-                  
-                  const searchVolume = parseInt(searchVolumeMetric.value);
-                  const sentiment = parseFloat(sentimentMetric.value);
-                  const momentum = parseFloat(momentumMetric.value);
-                  
-                  if (isNaN(searchVolume) || isNaN(sentiment) || isNaN(momentum) || searchVolume === 0) {
-                    return 'N/A';
-                  }
-                  
-                  // Calculate score: base on search volume (0-100 -> 0-5 points), sentiment (-5 to 5 -> 0-3 points), momentum (-20 to 20 -> 0-2 points)
-                  const searchScore = Math.min(searchVolume / 20, 5);
-                  const sentimentScore = Math.max(0, (sentiment + 5) / 3.33);
-                  const momentumScore = Math.max(0, (momentum + 20) / 20);
-                  
-                  const totalScore = Math.min(10, searchScore + sentimentScore + momentumScore).toFixed(1);
-                  return totalScore;
-                })()}
-              </div>
-              <div className="text-xs text-muted-foreground pb-1">/10</div>
-              <div className="flex-1 flex items-center justify-end gap-1 pb-1">
-                {[...Array(5)].map((_, i) => (
-                  <div 
-                    key={i} 
-                    className={cn(
-                      "h-1.5 w-4 rounded-full",
-                      i < 4 ? "bg-primary" : "bg-muted"
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Based on search volume, trend direction, and market momentum
-            </p>
-          </div>
-
-          {/* Related Topics & Keywords */}
-          {currentData?.top_queries && currentData.top_queries.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Related Topics
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                {currentData.top_queries.slice(0, 4).map((query: any, idx: number) => {
-                  // Extract the query text properly and ensure it's a string
-                  let queryText = '';
-                  let queryValue: number = 50;
-                  
-                  if (typeof query === 'string') {
-                    queryText = query;
-                  } else if (query && typeof query === 'object') {
-                    const candidate = typeof query.query === 'string'
-                      ? query.query
-                      : (typeof query.text === 'string'
-                        ? query.text
-                        : (typeof query.term === 'string' ? query.term : ''));
-                    queryText = candidate;
-                    const rawVal = (query as any).value ?? (query as any).score;
-                    const numVal = typeof rawVal === 'string' ? parseFloat(rawVal) : (typeof rawVal === 'number' ? rawVal : NaN);
-                    queryValue = Number.isFinite(numVal) ? Math.round(numVal) : 50;
-                  }
-                  
-                  // Skip if no valid text found or if it's just a number
-                  if (!queryText || /^\d+$/.test(String(queryText))) {
-                    return null;
-                  }
-                  
-                  return (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-muted/10 rounded-lg">
-                      <span className="text-xs font-medium truncate">
-                        {String(queryText)}
-                      </span>
-                      <Badge variant="secondary" className="text-xs h-5">
-                        {queryValue}%
-                      </Badge>
-                    </div>
-                  );
-                }).filter(Boolean)}
-              </div>
-            </div>
-          )}
-
-          {/* Warnings */}
-          {currentData?.warnings && currentData.warnings.length > 0 && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                {currentData.warnings[0]}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* View sources button */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={analyzeWithGroq}
-              disabled={isAnalyzing || !data}
-              className="flex-1 relative overflow-hidden group bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-yellow-500/10 hover:from-yellow-500/20 hover:via-amber-500/20 hover:to-yellow-500/20 border-amber-500/30 hover:border-amber-500/50 transition-all duration-300"
-            >
-              {/* Sparkle animation background */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div className="absolute top-1 left-2 w-1 h-1 bg-yellow-400 rounded-full animate-pulse" />
-                <div className="absolute top-3 right-4 w-0.5 h-0.5 bg-amber-400 rounded-full animate-ping" />
-                <div className="absolute bottom-2 left-1/3 w-1 h-1 bg-yellow-300 rounded-full animate-pulse delay-150" />
-                <div className="absolute top-2 left-1/2 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping delay-300" />
-                <div className="absolute bottom-1 right-3 w-1 h-1 bg-yellow-400 rounded-full animate-pulse delay-500" />
-              </div>
-              
-              {isAnalyzing ? (
-                <>
-                  <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin text-amber-600" />
-                  <span className="text-amber-700 dark:text-amber-400">Analyzing...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5 mr-2 text-yellow-500 animate-pulse" />
-                  <span className="text-amber-700 dark:text-amber-400 font-medium">Analyze</span>
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSources(true)}
-              className="flex-1"
-            >
-              View Sources
-              <ChevronRight className="h-3.5 w-3.5 ml-2" />
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Sources drawer */}
-      <Sheet open={showSources} onOpenChange={setShowSources}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>Data Sources & Citations</SheetTitle>
-            <SheetDescription>
-              {data?.updatedAt ? `Last updated: ${new Date(data.updatedAt).toLocaleString()}` : 'Loading...'}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {/* Citations */}
-            {data?.citations && data.citations.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Citations</h4>
-                <div className="space-y-2">
-                  {data.citations.map((citation, idx) => (
-                    <a
-                      key={idx}
-                      href={citation.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2 bg-muted/10 rounded-lg hover:bg-muted/20 transition-colors"
-                    >
-                      <span className="text-sm">
-                        {typeof citation === 'string' ? citation : 
-                         (typeof citation.label === 'string' ? citation.label : 'Source')}
-                      </span>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Recent items */}
-            {data?.items && data.items.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Recent Articles</h4>
-                <div className="space-y-2">
-                  {data.items.map((item, idx) => (
-                    <div key={idx} className="p-3 bg-muted/10 rounded-lg">
-                      <p className="text-sm font-medium">
-                        {typeof item === 'object' && item.title ? 
-                         (typeof item.title === 'string' ? item.title : 'Article') : 
-                         'Article'}
-                      </p>
-                      {item.snippet && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {typeof item.snippet === 'string' ? item.snippet : ''}
-                        </p>
-                      )}
-                      {item.url && (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline mt-2 inline-flex items-center gap-1"
-                        >
-                          Read more
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-      
-      {/* Insights Dialog - Show Groq Analysis */}
-      {groqInsights ? (
-        <Sheet open={showInsights} onOpenChange={setShowInsights}>
-          <SheetContent className="w-[600px] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle className="text-xl font-bold">Profit Maximization Strategy</SheetTitle>
-              <SheetDescription>
-                AI-powered analysis of market trends to identify highest profit opportunities
-              </SheetDescription>
-            </SheetHeader>
-            
-            <div className="mt-6 space-y-6">
-              {/* Profit Actions */}
-              {groqInsights.profitActions && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    High-Profit Actions
-                  </h3>
-                  {groqInsights.profitActions.map((action: any, idx: number) => (
-                    <div key={idx} className="border rounded-lg p-4 space-y-2 bg-gradient-to-r from-green-500/5 to-emerald-500/5">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium">{action.action}</p>
-                          <p className="text-sm text-muted-foreground mt-1">{action.reasoning}</p>
-                        </div>
-                        <Badge 
-                          variant={action.profitPotential === 'high' ? 'default' : 'secondary'}
-                          className={action.profitPotential === 'high' ? 'bg-green-500' : ''}
-                        >
-                          {action.profitPotential}
-                        </Badge>
-                      </div>
-                      <div className="flex gap-2 text-xs">
-                        <Badge variant="outline">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {action.timeframe}
-                        </Badge>
-                        {action.estimatedROI && (
-                          <Badge variant="outline" className="text-green-600">
-                            ROI: {action.estimatedROI}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Best Markets */}
-              {groqInsights.bestMarkets && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-blue-500" />
-                    Best Markets to Target
-                  </h3>
-                  {groqInsights.bestMarkets.map((market: any, idx: number) => (
-                    <div key={idx} className="border rounded-lg p-3 bg-gradient-to-r from-blue-500/5 to-cyan-500/5">
-                      <div className="font-medium flex items-center gap-2">
-                        <Map className="h-4 w-4" />
-                        {market.region}
-                      </div>
-                      <p className="text-sm mt-1">{market.opportunity}</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        <strong>Entry Strategy:</strong> {market.entryStrategy}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Competitive Advantage */}
-              {groqInsights.competitiveAdvantage && (
-                <div className="border rounded-lg p-4 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
-                  <h3 className="font-semibold mb-2">Your Competitive Edge</h3>
-                  <p className="text-sm">{groqInsights.competitiveAdvantage}</p>
-                </div>
-              )}
-              
-              {/* Pricing Strategy */}
-              {groqInsights.pricingStrategy && (
-                <div className="border rounded-lg p-4 bg-gradient-to-r from-yellow-500/5 to-orange-500/5">
-                  <h3 className="font-semibold mb-2">Pricing Strategy</h3>
-                  <p className="text-sm">{groqInsights.pricingStrategy}</p>
-                </div>
-              )}
-              
-              {/* Execution Priority */}
-              {groqInsights.executionPriority && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Execution Roadmap</h3>
-                  <div className="space-y-2">
-                    {groqInsights.executionPriority.map((step: string, idx: number) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold">
-                          {idx + 1}
-                        </div>
-                        <p className="text-sm flex-1">{step}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Risk Mitigation */}
-              {groqInsights.riskMitigation && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Risk to Watch:</strong> {groqInsights.riskMitigation}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <TileInsightsDialog 
-          open={showInsights}
-          onOpenChange={setShowInsights}
-          tileType="market_trends"
+      {/* AI Dialog */}
+      {showAIDialog && data && (
+        <AITileDialog
+          open={showAIDialog}
+          onOpenChange={setShowAIDialog}
+          data={getAIDialogData()}
+          selectedLevel={analysisLevel}
+          onLevelChange={setAnalysisLevel}
+          onAnalyze={(metric, level) => {
+            setSelectedMetric(metric);
+            setAnalysisLevel(level);
+          }}
         />
       )}
     </>
