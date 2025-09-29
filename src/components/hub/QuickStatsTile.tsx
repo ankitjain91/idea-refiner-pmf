@@ -79,7 +79,7 @@ export function QuickStatsTile({
             </div>
             {data.factors && (
               <div className="space-y-2">
-                {Object.entries(data.factors).slice(0, 3).map(([key, value]: [string, any]) => (
+                {Object.entries(data.factors).map(([key, value]: [string, any]) => (
                   <div key={key} className="flex justify-between text-xs">
                     <span className="text-muted-foreground capitalize">
                       {key.replace(/_/g, ' ')}
@@ -140,7 +140,7 @@ export function QuickStatsTile({
             </div>
             {data.competitors && data.competitors.length > 0 && (
               <div className="space-y-1">
-                {data.competitors.slice(0, 3).map((comp: any, idx: number) => (
+                {data.competitors.slice(0, 5).map((comp: any, idx: number) => (
                   <div key={idx} className="text-xs flex justify-between">
                     <span className="text-muted-foreground truncate">{comp.name || comp}</span>
                     {comp.strength && (

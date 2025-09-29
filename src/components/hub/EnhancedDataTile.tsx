@@ -62,10 +62,10 @@ export function EnhancedDataTile({
 
     return (
       <div className="space-y-4">
-        {/* Metrics Grid */}
+        {/* Metrics Grid - SHOW ALL METRICS */}
         {data.metrics && data.metrics.length > 0 && (
           <div className="grid grid-cols-2 gap-3">
-            {data.metrics.slice(0, 4).map((metric: any, idx: number) => (
+            {data.metrics.map((metric: any, idx: number) => (
               <MetricCard
                 key={idx}
                 label={metric.label}
@@ -116,7 +116,7 @@ export function EnhancedDataTile({
           </div>
         )}
 
-        {/* Key Drivers */}
+        {/* Key Drivers - SHOW ALL */}
         {data.drivers && data.drivers.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Growth Drivers</h4>
@@ -138,7 +138,7 @@ export function EnhancedDataTile({
           </div>
         )}
 
-        {/* Milestones Timeline */}
+        {/* Milestones Timeline - SHOW ALL */}
         {data.milestones && data.milestones.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Timeline</h4>
@@ -159,10 +159,10 @@ export function EnhancedDataTile({
           </div>
         )}
 
-        {/* Items List */}
+        {/* Items List - SHOW MORE ITEMS */}
         {data.items && data.items.length > 0 && (
           <div className="space-y-2">
-            {data.items.slice(0, 5).map((item: any, idx: number) => (
+            {data.items.slice(0, 10).map((item: any, idx: number) => (
               <ListItem
                 key={idx}
                 title={item.name || item.title}

@@ -100,7 +100,7 @@ export function DataTile({
 }: DataTileProps) {
   const { user } = useAuth();
   const { currentSession } = useSession();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true); // Show expanded by default
   const [showDetails, setShowDetails] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
