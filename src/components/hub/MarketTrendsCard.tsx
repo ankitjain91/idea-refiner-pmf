@@ -483,6 +483,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     );
   }
 
+  // Extract key metrics for business analysis
+  const searchVolume = currentData?.metrics?.find((m: any) => m.name === 'Search Volume')?.value || 0;
+  const growth = currentData?.metrics?.find((m: any) => m.name === 'Growth Rate')?.value || 0;
+
   return (
     <>
       <Card className={cn("h-full group relative", className)}>
@@ -568,12 +572,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
         </CardHeader>
 
-        {/* Extract key metrics for business analysis */}
-        {(() => {
-          const searchVolume = currentData?.metrics?.find((m: any) => m.name === 'Search Volume')?.value || 0;
-          const growth = currentData?.metrics?.find((m: any) => m.name === 'Growth Rate')?.value || 0;
-          
-          return (
         <CardContent className="space-y-4">
           {/* Enhanced Business Profitability Metrics */}
           <div className="grid grid-cols-2 gap-3">
@@ -623,9 +621,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               </div>
               <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
                 ${searchVolume > 80 ? '10M+' : searchVolume > 50 ? '1-10M' : '100K-1M'}
-          </div>
-          );
-        })()}
+              </div>
               <div className="text-xs text-purple-700 dark:text-purple-300">
                 Estimated TAM
               </div>
