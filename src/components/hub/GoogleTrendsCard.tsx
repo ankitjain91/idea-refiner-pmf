@@ -266,26 +266,28 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             <div className="flex flex-wrap gap-2">
               {data.top_queries.map((query: any, idx: number) => {
                 let queryText = '';
+                let changeText = '';
+                
+                // Handle both string and object formats
                 if (typeof query === 'string') {
                   queryText = query;
                 } else if (query && typeof query === 'object') {
-                  const candidate = typeof (query as any).query === 'string'
-                    ? (query as any).query
-                    : (typeof (query as any).text === 'string'
-                      ? (query as any).text
-                      : (typeof (query as any).term === 'string' ? (query as any).term : ''));
-                  queryText = candidate;
+                  queryText = String(query.query || query.text || query.term || '');
+                  changeText = query.change || '';
                 }
-                if (!queryText || /^\d+$/.test(String(queryText))) return null;
+                
+                // Skip if no valid text found or if it's just a number
+                if (!queryText || /^\d+$/.test(queryText)) return null;
+                
                 return (
                   <Badge 
                     key={idx} 
                     variant="outline"
                     className="py-1 px-2.5 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:border-primary/40 transition-colors text-xs"
                   >
-                    {String(queryText)}
-                    {query && typeof query === 'object' && (query as any)?.change && (
-                      <span className="ml-1 text-green-500">{(query as any).change}</span>
+                    {queryText}
+                    {changeText && (
+                      <span className="ml-1 text-green-500">{changeText}</span>
                     )}
                   </Badge>
                 );
@@ -477,12 +479,19 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                 <div className="flex flex-wrap gap-2">
                   {selectedData.top_queries.map((query: any, idx: number) => {
                     let queryText = '';
+                    let changeText = '';
+                    
+                    // Handle both string and object formats
                     if (typeof query === 'string') {
                       queryText = query;
                     } else if (query && typeof query === 'object') {
-                      queryText = query.query || query.text || query.term || '';
+                      queryText = String(query.query || query.text || query.term || '');
+                      changeText = query.change || '';
                     }
-                    if (!queryText || /^\d+$/.test(String(queryText))) return null;
+                    
+                    // Skip if no valid text found or if it's just a number
+                    if (!queryText || /^\d+$/.test(queryText)) return null;
+                    
                     return (
                       <Badge 
                         key={idx} 
@@ -493,9 +502,9 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                           backgroundColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '10'
                         }}
                       >
-                        {String(queryText)}
-                        {query && typeof query === 'object' && query?.change && (
-                          <span className="ml-1 text-green-500">{query.change}</span>
+                        {queryText}
+                        {changeText && (
+                          <span className="ml-1 text-green-500">{changeText}</span>
                         )}
                       </Badge>
                     );
