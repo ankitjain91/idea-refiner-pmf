@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, RefreshCw } from 'lucide-react';
-import { BaseTile } from '@/components/hub/BaseTile';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Brain, RefreshCw, AlertCircle } from 'lucide-react';
 import { useOptimizedDashboardData } from '@/hooks/useOptimizedDashboardData';
 import { toast } from '@/hooks/use-toast';
 import { MarketSizeChart } from './MarketSizeChart';
@@ -13,9 +15,7 @@ import { LaunchTimelineChart } from './LaunchTimelineChart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TileInsightsDialog } from '@/components/hub/TileInsightsDialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, TrendingUp } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface StandardizedMarketTileProps {
   title: string;
@@ -151,7 +151,7 @@ export function StandardizedMarketTile({
                   <ul className="space-y-2">
                     {analysis.opportunities.map((opp: string, idx: number) => (
                       <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <TrendingUp className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-green-600">•</span>
                         <span>{opp}</span>
                       </li>
                     ))}
@@ -191,40 +191,133 @@ export function StandardizedMarketTile({
     );
   };
 
-  const headerActions = (
-    <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleRefresh}
-        className="h-8 w-8"
-        disabled={isRefreshing}
-      >
-        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setIsDialogOpen(true)}
-        className="h-8 w-8"
-      >
-        <Brain className="h-4 w-4" />
-      </Button>
-    </div>
-  );
+  // Show loading state
+  if (loading && !data) {
+    return (
+      <Card className="h-full">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                {description && <p className="text-xs text-muted-foreground">{description}</p>}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-48 bg-muted animate-pulse rounded" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-20 bg-muted animate-pulse rounded" />
+            <div className="h-20 bg-muted animate-pulse rounded" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Card className="h-full">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                {description && <p className="text-xs text-muted-foreground">{description}</p>}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {typeof error === 'string' ? error : 'Failed to load data'}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleRefresh} className="mt-4" variant="outline" size="sm">
+            <RefreshCw className="h-3.5 w-3.5 mr-2" />
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
-      <BaseTile
-        title={title}
-        icon={Icon as any}
-        description={description}
-        isLoading={loading}
-        error={error ? "Unable to load data" : undefined}
-        headerActions={headerActions}
-      >
-        {renderChart()}
-      </BaseTile>
+      <Card className={cn("h-full group relative")}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                {description && <p className="text-xs text-muted-foreground">{description}</p>}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {/* Data source indicator */}
+              {data && (() => {
+                let source = 'API';
+                let variant: 'default' | 'secondary' | 'outline' = 'default';
+                
+                if ((data as any).fromDatabase) {
+                  source = 'DB';
+                  variant = 'default';
+                } else if ((data as any).fromCache) {
+                  source = 'Cache';
+                  variant = 'secondary';
+                }
+                
+                return (
+                  <Badge variant={variant} className="text-xs h-5">
+                    {source}
+                  </Badge>
+                );
+              })()}
+              
+              {/* Refresh button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+              </Button>
+              
+              {/* Brain AI button */}
+              {data && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsDialogOpen(true)}
+                  className="h-8 w-8 p-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 hover:border-violet-500/40 transition-all duration-200"
+                >
+                  <Brain className="h-4 w-4 text-violet-600" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {renderChart()}
+        </CardContent>
+      </Card>
 
       {/* AI Analysis Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
