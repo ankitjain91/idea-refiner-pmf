@@ -310,6 +310,9 @@ verify_jwt = true
 [functions.web-search-profitability]
 verify_jwt = false
 
+[functions.reddit-sentiment]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

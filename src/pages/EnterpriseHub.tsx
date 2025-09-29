@@ -20,6 +20,7 @@ import { DataTile } from "@/components/hub/DataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
+import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
 import { cn } from "@/lib/utils";
 
 export default function EnterpriseHub() {
@@ -191,16 +192,26 @@ export default function EnterpriseHub() {
         </div>
       </div>
 
-      {/* Main Grid with WebSearchCard and Data Tiles */}
+      {/* Main Grid with WebSearchCard, Reddit, and Data Tiles */}
       <div className="space-y-6">
-        {/* Web Search Card - Larger size */}
-        <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <WebSearchDataTile 
-            idea={currentIdea}
-            industry={filters.industry}
-            geography={filters.geography}
-            timeWindow={filters.time_window}
-          />
+        {/* Web Search and Reddit Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <WebSearchDataTile 
+              idea={currentIdea}
+              industry={filters.industry}
+              geography={filters.geography}
+              timeWindow={filters.time_window}
+            />
+          </div>
+          <div className="animate-fade-in" style={{ animationDelay: '150ms' }}>
+            <RedditSentimentTile 
+              idea={currentIdea}
+              industry={filters.industry}
+              geography={filters.geography}
+              timeWindow={filters.time_window}
+            />
+          </div>
         </div>
         
         {/* Other Data Tiles - Grid layout */}
