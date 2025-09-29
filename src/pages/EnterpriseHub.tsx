@@ -22,8 +22,7 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 
-import { MarketTrendsTile } from "@/components/hub/MarketTrendsTile";
-import { EnhancedMarketTrendsTile } from "@/components/market/EnhancedMarketTrendsTile";
+import { StandardizedMarketTile } from "@/components/market/StandardizedMarketTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
@@ -459,7 +458,7 @@ export default function EnterpriseHub() {
 
           <TabsContent value="market" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <EnhancedMarketTrendsTile
+              <StandardizedMarketTile
                 title="Market Size Analysis"
                 icon={BarChart3}
                 tileType="market_size"
@@ -467,7 +466,7 @@ export default function EnterpriseHub() {
                 description="TAM, SAM, SOM breakdown"
                 currentIdea={currentIdea}
               />
-              <EnhancedMarketTrendsTile
+              <StandardizedMarketTile
                 title="Growth Projections"
                 icon={Rocket}
                 tileType="growth_projections"
@@ -475,7 +474,7 @@ export default function EnterpriseHub() {
                 description="5-year forecasts"
                 currentIdea={currentIdea}
               />
-              <EnhancedMarketTrendsTile
+              <StandardizedMarketTile
                 title="Launch Timeline"
                 icon={Calendar}
                 tileType="launch_timeline"
@@ -488,7 +487,7 @@ export default function EnterpriseHub() {
 
           <TabsContent value="competitive" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="Competitor Analysis"
                 icon={Building2}
                 tileType="competitor_analysis"
@@ -496,7 +495,7 @@ export default function EnterpriseHub() {
                 description="Competitive landscape"
                 currentIdea={currentIdea}
               />
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="Pricing Strategy"
                 icon={DollarSign}
                 tileType="pricing_strategy"
@@ -506,7 +505,7 @@ export default function EnterpriseHub() {
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="Twitter/X Buzz"
                 icon={Twitter}
                 tileType="twitter_buzz"
@@ -514,7 +513,7 @@ export default function EnterpriseHub() {
                 description="Social media sentiment"
                 currentIdea={currentIdea}
               />
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="Amazon Reviews"
                 icon={ShoppingBag}
                 tileType="amazon_reviews"
@@ -527,7 +526,7 @@ export default function EnterpriseHub() {
 
           <TabsContent value="audience" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="Target Audience"
                 icon={Target}
                 tileType="target_audience"
@@ -535,7 +534,7 @@ export default function EnterpriseHub() {
                 description="Demographics & personas"
                 currentIdea={currentIdea}
               />
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="User Engagement"
                 icon={Users}
                 tileType="user_engagement"
@@ -545,7 +544,7 @@ export default function EnterpriseHub() {
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="YouTube Analytics"
                 icon={Youtube}
                 tileType="youtube_analytics"
@@ -553,7 +552,7 @@ export default function EnterpriseHub() {
                 description="Video content trends"
                 currentIdea={currentIdea}
               />
-              <MarketTrendsTile
+              <StandardizedMarketTile
                 title="News Analysis"
                 icon={Newspaper}
                 tileType="news_analysis"
