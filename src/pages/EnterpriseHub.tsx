@@ -34,7 +34,7 @@ import {
 } from "@/lib/data-adapter";
 
 export default function EnterpriseHub() {
-  const { currentSession } = useSession();
+  const { currentSession, saveCurrentSession } = useSession();
   const { user } = useAuth();
   const { subscription } = useSubscription();
   const [activeTab, setActiveTab] = useState("overview");
@@ -46,8 +46,37 @@ export default function EnterpriseHub() {
   });
   const [tilesKey, setTilesKey] = useState(0);
   
+  // Get current idea from session or localStorage
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('currentIdea') || '';
   const subscriptionTier = subscription.tier;
+  
+  // Load dashboard data from session on mount
+  useEffect(() => {
+    if (currentSession?.data?.dashboardData) {
+      const { dashboardData } = currentSession.data;
+      
+      // Restore dashboard state from session
+      if (dashboardData.currentTab) {
+        setActiveTab(dashboardData.currentTab);
+      }
+    }
+  }, [currentSession]);
+  
+  // Save dashboard state changes to session
+  useEffect(() => {
+    // Only save if we have a current session and it's been at least 2 seconds since last change
+    if (!currentSession || !currentIdea) return;
+    
+    const timeoutId = setTimeout(() => {
+      // Update localStorage with current dashboard state  
+      localStorage.setItem('currentTab', activeTab);
+      
+      // Trigger session save to persist dashboard data
+      saveCurrentSession();
+    }, 2000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, currentSession, currentIdea, saveCurrentSession]);
 
   // Update filters when idea changes
   useEffect(() => {

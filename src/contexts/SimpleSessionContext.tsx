@@ -10,6 +10,17 @@ interface SessionData {
   analysisCompleted: boolean;
   wrinklePoints?: number;
   lastActivity: string;
+  // Dashboard specific data
+  dashboardData?: {
+    marketSize?: string;
+    competition?: string;
+    sentiment?: string;
+    smoothBrainsScore?: number;
+    tileCaches?: Record<string, any>;
+    lastRefreshTimes?: Record<string, string>;
+    currentTab?: string;
+    analysisResults?: any;
+  };
 }
 
 interface BrainstormingSession {
@@ -92,6 +103,31 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       
       // Get wrinkle points if available
       const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
+      
+      // Collect dashboard data
+      const dashboardData: any = {
+        marketSize: localStorage.getItem('market_size_value'),
+        competition: localStorage.getItem('competition_value'),
+        sentiment: localStorage.getItem('sentiment_value'),
+        smoothBrainsScore: parseInt(localStorage.getItem('smoothBrainsScore') || '0'),
+        currentTab: localStorage.getItem('currentTab'),
+        analysisResults: JSON.parse(localStorage.getItem('analysisResults') || '{}'),
+        tileCaches: {},
+        lastRefreshTimes: {}
+      };
+      
+      // Collect all tile caches and refresh times
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.startsWith('tile_cache_')) {
+          try {
+            dashboardData.tileCaches[key] = JSON.parse(localStorage.getItem(key) || '{}');
+          } catch {}
+        }
+        if (key.startsWith('tile_last_refresh_')) {
+          dashboardData.lastRefreshTimes[key] = localStorage.getItem(key) || '';
+        }
+      });
 
       return {
         chatHistory,
@@ -100,7 +136,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         pmfScore: isNaN(pmfScore) ? 0 : pmfScore,
         analysisCompleted,
         wrinklePoints: isNaN(wrinklePoints) ? 0 : wrinklePoints,
-        lastActivity: new Date().toISOString()
+        lastActivity: new Date().toISOString(),
+        dashboardData
       };
     } catch (error) {
       console.error('Error getting current session data:', error);
@@ -111,7 +148,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         pmfScore: 0,
         analysisCompleted: false,
         wrinklePoints: 0,
-        lastActivity: new Date().toISOString()
+        lastActivity: new Date().toISOString(),
+        dashboardData: {}
       };
     }
   }, []);
@@ -171,7 +209,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setLoading(true);
     try {
       // Clear the chat and reset to fresh state
-      const freshSessionData = {
+      const freshSessionData: SessionData = {
         chatHistory: [],
         currentIdea: '',
         analysisData: {},
@@ -179,7 +217,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         analysisCompleted: false,
         lastActivity: new Date().toISOString(),
         wrinklePoints: 0,
-        tabHistory: []
+        dashboardData: {} // Initialize empty dashboard data
       };
       
       // Clear ALL generic localStorage to reset for new session
@@ -411,6 +449,35 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Restore wrinkle points if available
       if (session.data.wrinklePoints !== undefined) {
         localStorage.setItem('wrinklePoints', String(session.data.wrinklePoints));
+      }
+      
+      // Restore dashboard data if available
+      if (session.data.dashboardData) {
+        const { dashboardData } = session.data;
+        
+        // Restore dashboard values
+        if (dashboardData.marketSize) localStorage.setItem('market_size_value', dashboardData.marketSize);
+        if (dashboardData.competition) localStorage.setItem('competition_value', dashboardData.competition);
+        if (dashboardData.sentiment) localStorage.setItem('sentiment_value', dashboardData.sentiment);
+        if (dashboardData.smoothBrainsScore) localStorage.setItem('smoothBrainsScore', String(dashboardData.smoothBrainsScore));
+        if (dashboardData.currentTab) localStorage.setItem('currentTab', dashboardData.currentTab);
+        if (dashboardData.analysisResults) localStorage.setItem('analysisResults', JSON.stringify(dashboardData.analysisResults));
+        
+        // Restore tile caches
+        if (dashboardData.tileCaches) {
+          Object.entries(dashboardData.tileCaches).forEach(([key, value]) => {
+            try {
+              localStorage.setItem(key, JSON.stringify(value));
+            } catch {}
+          });
+        }
+        
+        // Restore refresh times
+        if (dashboardData.lastRefreshTimes) {
+          Object.entries(dashboardData.lastRefreshTimes).forEach(([key, value]) => {
+            if (value) localStorage.setItem(key, value as string);
+          });
+        }
       }
 
       // Update last accessed time
