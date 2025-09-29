@@ -391,6 +391,7 @@ export function EnhancedDataTile({
                     <span className="font-medium">
                       {typeof value === 'number' ? value.toLocaleString() : 
                        Array.isArray(value) ? `${value.length} items` : 
+                       typeof value === 'object' && value !== null ? JSON.stringify(value) :
                        value}
                     </span>
                   </div>
