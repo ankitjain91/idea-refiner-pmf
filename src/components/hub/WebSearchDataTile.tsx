@@ -24,68 +24,19 @@ interface WebSearchDataTileProps {
   className?: string;
 }
 
-interface ProfitabilityData {
-  updatedAt: string;
-  filters: any;
-  metrics: {
-    profitability_score: number;
-    market_sentiment: number;
-    competition_level: string;
-    market_size_estimate: string;
-    unmet_needs: number;
-  };
-  top_queries: Array<{
-    query: string;
-    impressions: number;
-    difficulty: string;
-  }>;
-  competitors: Array<{
-    name: string;
-    domain: string;
-    pricing: string;
-    features: string[];
-  }>;
-  citations: Array<{
-    title: string;
-    url: string;
-    snippet: string;
-  }>;
-  insights: {
-    summary: string;
-    opportunities: string[];
-    challenges: string[];
-    recommendations: string[];
-  };
-  cost_estimates?: {
-    mvp_cost: string;
-    monthly_operating: string;
-    time_to_market: string;
-  };
-  search_results?: {
-    unmet_needs: Array<{
-      title: string;
-      url: string;
-      snippet: string;
-      snippet_highlighted_words?: string[];
-    }>;
-  };
-  fromCache?: boolean;
-  cacheTimestamp?: number;
-}
-
 export function WebSearchDataTile({ idea, industry, geography, timeWindow, className }: WebSearchDataTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('overview');
-  const [isExpanded, setIsExpanded] = useState(true); // Start expanded to show all details
+  const [isExpanded, setIsExpanded] = useState(true);
   const { toast } = useToast();
 
   const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
   const cacheKey = hasLoadedOnce && actualIdea ? `web-search-profitability:${actualIdea}:${industry}:${geography}` : null;
 
-  const { data, error, isLoading, mutate } = useSWR<ProfitabilityData>(
+  const { data, error, isLoading, mutate } = useSWR(
     cacheKey,
-    async (key) => {
+    async () => {
       const cacheKeyStorage = `web-search-cache:${actualIdea}:${industry}:${geography}`;
       const cachedData = localStorage.getItem(cacheKeyStorage);
       
@@ -102,9 +53,9 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       const { data, error } = await supabase.functions.invoke('web-search-profitability', {
         body: { 
           idea: actualIdea,
-          industry,
-          geography,
-          timeWindow 
+          industry: industry || '',
+          geography: geography || 'global',
+          timeWindow: timeWindow || 'last_12_months'
         }
       });
       
@@ -144,6 +95,41 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     }
   };
 
+  // Parse metrics into more usable format
+  const parseMetrics = (data: any) => {
+    if (!data) return null;
+    
+    const result: any = {
+      profitability_score: 0,
+      market_sentiment: 0,
+      competition_level: 'Unknown',
+      market_size: 'Unknown',
+      unmet_needs: 0
+    };
+
+    if (data.metrics && Array.isArray(data.metrics)) {
+      data.metrics.forEach((metric: any) => {
+        if (metric.name === 'Competition Intensity') {
+          result.competition_level = metric.value;
+        } else if (metric.name === 'Monetization Potential') {
+          result.market_sentiment = metric.value === 'high' ? 85 : metric.value === 'medium' ? 60 : 35;
+        } else if (metric.name === 'Market Maturity') {
+          result.profitability_score = metric.value === 'mature' ? 75 : metric.value === 'emerging' ? 50 : 25;
+        }
+      });
+    }
+
+    if (data.unmet_needs) {
+      result.unmet_needs = data.unmet_needs.length;
+    }
+
+    if (data.insights?.marketGap) {
+      result.market_size = '$10B-50B'; // Default estimate
+    }
+
+    return result;
+  };
+
   const getMetricStyle = (value: number | string, type: string) => {
     if (type === 'profitability_score' || type === 'market_sentiment') {
       const numValue = typeof value === 'number' ? value : parseFloat(value);
@@ -152,8 +138,9 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       return { color: 'text-red-600 dark:text-red-400', icon: <TrendingDown className="h-3 w-3" /> };
     }
     if (type === 'competition_level') {
-      if (value === 'Low') return { color: 'text-green-600 dark:text-green-400' };
-      if (value === 'Medium') return { color: 'text-yellow-600 dark:text-yellow-400' };
+      const val = typeof value === 'string' ? value.toLowerCase() : '';
+      if (val === 'low') return { color: 'text-green-600 dark:text-green-400' };
+      if (val === 'medium') return { color: 'text-yellow-600 dark:text-yellow-400' };
       return { color: 'text-red-600 dark:text-red-400' };
     }
     return { color: 'text-muted-foreground', icon: null };
@@ -229,6 +216,8 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     );
   }
 
+  const metrics = parseMetrics(data);
+
   return (
     <Card className={cn("h-full", className)}>
       <CardHeader className="pb-3">
@@ -272,22 +261,22 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {data && (
+        {data && metrics && (
           <>
             {/* Summary Metrics - Always visible */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Profitability</p>
                 <div className="flex items-center gap-1">
-                  <span className={cn("text-xl font-bold", getMetricStyle(data.metrics.profitability_score, 'profitability_score').color)}>
-                    {data.metrics.profitability_score}%
+                  <span className={cn("text-xl font-bold", getMetricStyle(metrics.profitability_score, 'profitability_score').color)}>
+                    {metrics.profitability_score}%
                   </span>
-                  {getMetricStyle(data.metrics.profitability_score, 'profitability_score').icon}
+                  {getMetricStyle(metrics.profitability_score, 'profitability_score').icon}
                 </div>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Market Size</p>
-                <p className="text-sm font-medium truncate">{data.metrics.market_size_estimate}</p>
+                <p className="text-sm font-medium truncate">{metrics.market_size}</p>
               </div>
             </div>
 
@@ -308,33 +297,33 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                       <Card className="p-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">Sentiment</span>
-                          <span className={`text-sm font-bold ${getMetricStyle(data.metrics.market_sentiment, 'market_sentiment').color}`}>
-                            {data.metrics.market_sentiment}%
+                          <span className={`text-sm font-bold ${getMetricStyle(metrics.market_sentiment, 'market_sentiment').color}`}>
+                            {metrics.market_sentiment}%
                           </span>
                         </div>
-                        <Progress value={data.metrics.market_sentiment} className="h-1 mt-1" />
+                        <Progress value={metrics.market_sentiment} className="h-1 mt-1" />
                       </Card>
                       
                       <Card className="p-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">Competition</span>
-                          <Badge variant={data.metrics.competition_level === 'Low' ? 'default' : 
-                                        data.metrics.competition_level === 'Medium' ? 'secondary' : 'destructive'}
+                          <Badge variant={metrics.competition_level === 'low' ? 'default' : 
+                                        metrics.competition_level === 'medium' ? 'secondary' : 'destructive'}
                                  className="text-xs">
-                            {data.metrics.competition_level}
+                            {metrics.competition_level}
                           </Badge>
                         </div>
                       </Card>
                     </div>
 
-                    {/* Market Size & Unmet Needs */}
+                    {/* Unmet Needs */}
                     <div className="grid grid-cols-2 gap-2">
                       <Card className="p-2">
                         <div className="flex items-center gap-1">
                           <Target className="h-3 w-3 text-muted-foreground" />
                           <div>
                             <p className="text-xs text-muted-foreground">Unmet Needs</p>
-                            <p className="text-xs font-medium">{data.metrics.unmet_needs} found</p>
+                            <p className="text-xs font-medium">{metrics.unmet_needs} found</p>
                           </div>
                         </div>
                       </Card>
@@ -344,7 +333,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                           <DollarSign className="h-3 w-3 text-muted-foreground" />
                           <div>
                             <p className="text-xs text-muted-foreground">Size</p>
-                            <p className="text-xs font-medium truncate">{data.metrics.market_size_estimate}</p>
+                            <p className="text-xs font-medium truncate">{metrics.market_size}</p>
                           </div>
                         </div>
                       </Card>
@@ -355,18 +344,11 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                       <Card className="p-2">
                         <p className="text-xs font-medium mb-1">Top Searches</p>
                         <div className="space-y-0.5">
-                          {data.top_queries.slice(0, 3).map((query, idx) => (
+                          {data.top_queries.slice(0, 3).map((query: string, idx: number) => (
                             <div key={idx} className="flex items-center justify-between">
                               <span className="text-xs text-muted-foreground truncate flex-1 mr-1">
-                                {query.query}
+                                {query}
                               </span>
-                              <Badge 
-                                variant={query.difficulty === 'Low' ? 'default' : 
-                                        query.difficulty === 'Medium' ? 'secondary' : 'destructive'}
-                                className="text-xs h-4 px-1"
-                              >
-                                {query.difficulty}
-                              </Badge>
                             </div>
                           ))}
                         </div>
@@ -375,108 +357,87 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                   </TabsContent>
                   
                   <TabsContent value="competitors" className="space-y-2 mt-3">
-                    {data.competitors && data.competitors.map((competitor, idx) => (
+                    {data.competitors && data.competitors.map((competitor: any, idx: number) => (
                       <Card key={idx} className="p-2">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-medium">{competitor.name}</h4>
-                            <Badge variant="outline" className="text-xs h-4 px-1">{competitor.pricing}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{competitor.domain}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {competitor.features.slice(0, 3).map((feature, fidx) => (
-                              <Badge key={fidx} variant="secondary" className="text-xs h-4 px-1">
-                                {feature}
-                              </Badge>
-                            ))}
+                            <h4 className="text-xs font-medium">{competitor.domain}</h4>
+                            <Badge variant="outline" className="text-xs h-4 px-1">
+                              {competitor.appearances} appearances
+                            </Badge>
                           </div>
                         </div>
                       </Card>
                     ))}
+                    {(!data.competitors || data.competitors.length === 0) && (
+                      <Card className="p-2">
+                        <p className="text-xs text-muted-foreground">No competitors found</p>
+                      </Card>
+                    )}
                   </TabsContent>
                   
                   <TabsContent value="insights" className="space-y-2 mt-3">
-                    {/* Summary */}
-                    <Card className="p-2">
-                      <p className="text-xs text-muted-foreground mb-1">Summary</p>
-                      <p className="text-xs line-clamp-3">{data.insights.summary}</p>
-                    </Card>
-
-                    {/* Opportunities */}
-                    {data.insights.opportunities.length > 0 && (
+                    {/* Market Gap */}
+                    {data.insights?.marketGap && (
                       <Card className="p-2">
-                        <div className="flex items-center gap-1 mb-1">
-                          <CheckCircle className="h-3 w-3 text-green-500" />
-                          <p className="text-xs font-medium">Opportunities</p>
-                        </div>
-                        <ul className="space-y-0.5">
-                          {data.insights.opportunities.slice(0, 2).map((opp, idx) => (
-                            <li key={idx} className="text-xs text-muted-foreground">• {opp}</li>
-                          ))}
-                        </ul>
+                        <p className="text-xs text-muted-foreground mb-1">Market Gap</p>
+                        <p className="text-xs line-clamp-3">{data.insights.marketGap}</p>
                       </Card>
                     )}
 
-                    {/* Challenges */}
-                    {data.insights.challenges.length > 0 && (
+                    {/* Pricing Strategy */}
+                    {data.insights?.pricingStrategy && (
                       <Card className="p-2">
                         <div className="flex items-center gap-1 mb-1">
-                          <AlertCircle className="h-3 w-3 text-yellow-500" />
-                          <p className="text-xs font-medium">Challenges</p>
+                          <DollarSign className="h-3 w-3 text-green-500" />
+                          <p className="text-xs font-medium">Pricing Strategy</p>
                         </div>
-                        <ul className="space-y-0.5">
-                          {data.insights.challenges.slice(0, 2).map((challenge, idx) => (
-                            <li key={idx} className="text-xs text-muted-foreground">• {challenge}</li>
-                          ))}
-                        </ul>
+                        <p className="text-xs text-muted-foreground">{data.insights.pricingStrategy}</p>
                       </Card>
                     )}
 
-                    {/* Recommendations */}
-                    {data.insights.recommendations.length > 0 && (
+                    {/* Differentiator */}
+                    {data.insights?.differentiator && (
                       <Card className="p-2">
                         <div className="flex items-center gap-1 mb-1">
                           <Lightbulb className="h-3 w-3 text-blue-500" />
-                          <p className="text-xs font-medium">Recommendations</p>
+                          <p className="text-xs font-medium">Key Differentiator</p>
                         </div>
-                        <ul className="space-y-0.5">
-                          {data.insights.recommendations.slice(0, 2).map((rec, idx) => (
-                            <li key={idx} className="text-xs text-muted-foreground">• {rec}</li>
-                          ))}
-                        </ul>
+                        <p className="text-xs text-muted-foreground">{data.insights.differentiator}</p>
+                      </Card>
+                    )}
+
+                    {/* Quick Win */}
+                    {data.insights?.quickWin && (
+                      <Card className="p-2">
+                        <div className="flex items-center gap-1 mb-1">
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                          <p className="text-xs font-medium">Quick Win</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{data.insights.quickWin}</p>
                       </Card>
                     )}
                   </TabsContent>
                   
                   <TabsContent value="costs" className="space-y-2 mt-3">
-                    {data.cost_estimates && (
+                    {data.cost_estimate && (
                       <>
                         <Card className="p-2">
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3 text-muted-foreground" />
                             <div>
-                              <p className="text-xs text-muted-foreground">MVP Cost</p>
-                              <p className="text-xs font-medium">{data.cost_estimates.mvp_cost || 'N/A'}</p>
+                              <p className="text-xs text-muted-foreground">API Cost</p>
+                              <p className="text-xs font-medium">{data.cost_estimate.total_api_cost}</p>
                             </div>
                           </div>
                         </Card>
                         
                         <Card className="p-2">
                           <div className="flex items-center gap-1">
-                            <DollarSign className="h-3 w-3 text-muted-foreground" />
+                            <Search className="h-3 w-3 text-muted-foreground" />
                             <div>
-                              <p className="text-xs text-muted-foreground">Monthly Operating</p>
-                              <p className="text-xs font-medium">{data.cost_estimates.monthly_operating || 'N/A'}</p>
-                            </div>
-                          </div>
-                        </Card>
-                        
-                        <Card className="p-2">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <div>
-                              <p className="text-xs text-muted-foreground">Time to Market</p>
-                              <p className="text-xs font-medium">{data.cost_estimates.time_to_market || 'N/A'}</p>
+                              <p className="text-xs text-muted-foreground">Data Points</p>
+                              <p className="text-xs font-medium">{data.cost_estimate.data_points} collected</p>
                             </div>
                           </div>
                         </Card>
@@ -488,7 +449,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                       <Card className="p-2">
                         <p className="text-xs font-medium mb-1">Sources</p>
                         <div className="space-y-1">
-                          {data.citations.slice(0, 2).map((citation, idx) => (
+                          {data.citations.slice(0, 2).map((citation: any, idx: number) => (
                             <div key={idx} className="space-y-0.5">
                               <a 
                                 href={citation.url}
@@ -496,11 +457,8 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                                 rel="noopener noreferrer"
                                 className="text-xs text-primary hover:underline line-clamp-1"
                               >
-                                {citation.title}
+                                {citation.label}
                               </a>
-                              <p className="text-xs text-muted-foreground line-clamp-1">
-                                {citation.snippet}
-                              </p>
                             </div>
                           ))}
                         </div>
