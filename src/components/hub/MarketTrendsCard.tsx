@@ -13,7 +13,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { 
   TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, 
   ExternalLink, Search, Newspaper, ChevronRight, CheckCircle, XCircle,
-  HelpCircle, Globe, Map, Clock
+  HelpCircle, Globe, Map, Clock, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -833,8 +833,8 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 </>
               ) : (
                 <>
-                  <HelpCircle className="h-3.5 w-3.5 mr-2" />
-                  How This Helps
+                  <Sparkles className="h-3.5 w-3.5 mr-2" />
+                  Analyze with Sparkles
                 </>
               )}
             </Button>
