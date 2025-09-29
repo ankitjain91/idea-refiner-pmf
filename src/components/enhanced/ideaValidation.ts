@@ -57,7 +57,7 @@ export async function validateFirstIdea(messageText: string, wrinklePoints: numb
   // Check for obvious non-ideas (greetings, gibberish, etc)
   const isObviouslyNotAnIdea = 
     messageText.length < 8 ||
-    messageText.toLowerCase().match(/^(hi+|hello+|hey+|yo+|sup+|test+|testing+|asdf+|qwerty+|lol+|haha+|hehe+|ok+|yes+|no+|maybe+|idk+|bruh+|dude+|what+|why+|how+|when+|where+|\\?+|\\!+|\\.\\.+)$/i) ||
+    messageText.toLowerCase().match(/^(hi+|hello+|hey+|yo+|sup+|test+|testing+|asdf+|qwerty+|lol+|haha+|hehe+|ok+|yes+|no+|maybe+|idk+|bruh+|dude+|what+|why+|how+|when+|where+|\?+|!+|\.\.+)$/i) ||
     messageText.toLowerCase().match(/^(what'?s? up|how are you|good morning|good evening|good night|bye+|goodbye|see ya|later)$/i) ||
     // Just emojis or punctuation
     messageText.match(/^[\s\p{Emoji}\p{P}]+$/u);

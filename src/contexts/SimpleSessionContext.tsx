@@ -208,6 +208,23 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem('userRefinements');
       localStorage.removeItem('pmfFeatures');
       localStorage.removeItem('pmfTabHistory');
+      localStorage.removeItem('market_size_value');
+      localStorage.removeItem('competition_value');
+      localStorage.removeItem('sentiment_value');
+      localStorage.removeItem('smoothBrainsScore');
+      
+      // Clear all tile caches
+      const dashboardKeys = Object.keys(localStorage);
+      dashboardKeys.forEach(key => {
+        if (key.includes('tile_cache_') || 
+            key.includes('tile_last_refresh_') ||
+            key.includes('trends_cache_') ||
+            key.includes('market_data_') ||
+            key.includes('reddit_sentiment_') ||
+            key.includes('web_search_')) {
+          localStorage.removeItem(key);
+        }
+      });
       
       // Clear ALL session-specific storage from previous sessions
       const allKeys = Object.keys(localStorage);
@@ -331,7 +348,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem(LS_KEYS.ideaMetadata);
       localStorage.removeItem('wrinklePoints');
       
-      // Clear dashboard specific data
+      // Clear dashboard specific data when switching sessions
       localStorage.removeItem('dashboardValidation');
       localStorage.removeItem('dashboardAccessGrant');
       localStorage.removeItem('showAnalysisDashboard');
@@ -341,6 +358,23 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem('userRefinements');
       localStorage.removeItem('pmfFeatures');
       localStorage.removeItem('pmfTabHistory');
+      localStorage.removeItem('market_size_value');
+      localStorage.removeItem('competition_value');
+      localStorage.removeItem('sentiment_value');
+      localStorage.removeItem('smoothBrainsScore');
+      
+      // Clear all tile caches for dashboard
+      const dashboardKeys = Object.keys(localStorage);
+      dashboardKeys.forEach(key => {
+        if (key.includes('tile_cache_') || 
+            key.includes('tile_last_refresh_') ||
+            key.includes('trends_cache_') ||
+            key.includes('market_data_') ||
+            key.includes('reddit_sentiment_') ||
+            key.includes('web_search_')) {
+          localStorage.removeItem(key);
+        }
+      });
       
       // Clear any session-specific storage from other sessions
       const allKeys = Object.keys(localStorage);

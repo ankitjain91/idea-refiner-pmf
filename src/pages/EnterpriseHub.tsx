@@ -59,6 +59,63 @@ export default function EnterpriseHub() {
     }
   }, [currentIdea]);
 
+  // Listen for session reset events to clear dashboard data
+  useEffect(() => {
+    const handleSessionReset = () => {
+      // Clear all dashboard-related cached data
+      const keysToRemove = [
+        'dashboardValidation',
+        'dashboardAccessGrant',
+        'showAnalysisDashboard',
+        'currentTab',
+        'analysisResults',
+        'pmfScore',
+        'userRefinements',
+        'pmfFeatures',
+        'pmfTabHistory',
+        'market_size_value',
+        'competition_value',
+        'sentiment_value',
+        'smoothBrainsScore'
+      ];
+      
+      // Clear tile caches
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.includes('tile_cache_') || 
+            key.includes('tile_last_refresh_') ||
+            key.includes('trends_cache_') ||
+            key.includes('market_data_') ||
+            key.includes('reddit_sentiment_') ||
+            key.includes('web_search_') ||
+            keysToRemove.includes(key)) {
+          try {
+            localStorage.removeItem(key);
+          } catch (err) {
+            console.warn(`Failed to clear ${key}:`, err);
+          }
+        }
+      });
+      
+      // Force reload the page to ensure clean state
+      window.location.reload();
+    };
+
+    const handleFullReset = () => {
+      // Same handling for full reset
+      handleSessionReset();
+    };
+
+    // Listen for both session reset events
+    window.addEventListener('session:reset', handleSessionReset);
+    window.addEventListener('session:fullReset', handleFullReset);
+    
+    return () => {
+      window.removeEventListener('session:reset', handleSessionReset);
+      window.removeEventListener('session:fullReset', handleFullReset);
+    };
+  }, []);
+
   // Force refresh tiles when component mounts
   useEffect(() => {
     setTilesKey(prev => prev + 1);
