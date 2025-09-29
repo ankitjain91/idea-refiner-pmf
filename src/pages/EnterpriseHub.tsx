@@ -28,6 +28,7 @@ import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
 import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
 import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
+import { DashboardInitializer } from "@/components/dashboard/DashboardInitializer";
 import { cn } from "@/lib/utils";
 
 
@@ -581,6 +582,8 @@ export default function EnterpriseHub() {
           </Alert>
         )}
       </div>
+      {/* Dashboard Data Initializer */}
+      <DashboardInitializer />
     </div>
   );
 }

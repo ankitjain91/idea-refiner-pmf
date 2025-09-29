@@ -328,6 +328,7 @@ export function useTileData<T = any>(
         });
         
         if (dbData) {
+          console.log(`[${options.tileType}] Found data in database`);
           // Mark data as coming from database
           const enrichedData = typeof dbData === 'object' ? 
             { ...dbData, fromDatabase: true } : 
@@ -335,30 +336,47 @@ export function useTileData<T = any>(
           setData(enrichedData);
           setIsLoading(false);
           return;
+        } else {
+          console.log(`[${options.tileType}] No data in database, fetching from API...`);
         }
       }
       
       // Fetch from API if not in database
       const result = await fetchFunction();
       
-      // Mark data as coming from API
-      const enrichedResult = typeof result === 'object' ? 
-        { ...result, fromApi: true } : 
-        { data: result, fromApi: true };
-      setData(enrichedResult);
+      // IMPORTANT: Only persist REAL API data, not mock data
+      // Check if result has indicators of being mock data
+      const resultAny = result as any;
+      const isMockData = resultAny?.isMockData || resultAny?.isTestData || false;
       
-      // Save to database if enabled
-      if (options?.useDatabase && options?.tileType && user?.id && result) {
-        await dashboardDataService.saveData(
-          {
-            userId: user.id,
-            ideaText: localStorage.getItem('pmfCurrentIdea') || '',
-            tileType: options.tileType,
-            sessionId: currentSession?.id
-          },
-          result,
-          options.cacheMinutes || 30
-        );
+      if (result && !isMockData) {
+        // Mark data as coming from API
+        const enrichedResult = typeof result === 'object' ? 
+          { ...result, fromApi: true } : 
+          { data: result, fromApi: true };
+        setData(enrichedResult);
+        
+        // Save REAL data to database if enabled
+        if (options?.useDatabase && options?.tileType && user?.id) {
+          console.log(`[${options.tileType}] Persisting real API data to database...`);
+          await dashboardDataService.saveData(
+            {
+              userId: user.id,
+              ideaText: localStorage.getItem('pmfCurrentIdea') || '',
+              tileType: options.tileType,
+              sessionId: currentSession?.id
+            },
+            result,
+            options.cacheMinutes || 30
+          );
+        }
+      } else if (result) {
+        // If it's mock data, show it but DON'T persist
+        console.warn(`[${options.tileType}] Received mock/test data, not persisting to database`);
+        setData({ ...result, fromApi: true, isMockData: true });
+      } else {
+        console.log(`[${options.tileType}] No data returned from API`);
+        setData(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
