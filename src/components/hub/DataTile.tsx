@@ -120,7 +120,22 @@ export function DataTile({
         throw new Error('No idea configured');
       }
       
-      // Primary path: consolidated AI search
+      // Special handling for news_analysis - call dedicated edge function directly
+      if (tileType === 'news_analysis') {
+        const { data: newsData, error: newsError } = await supabase.functions.invoke('news-analysis', {
+          body: { 
+            idea: currentIdea,
+            industry: filters?.industry || '',
+            geo: filters?.geography || 'global',
+            time_window: filters?.time_window || 'last_90_days'
+          }
+        });
+        
+        if (newsError) throw newsError;
+        return newsData as TileData;
+      }
+      
+      // Primary path: consolidated AI search for other tile types
       const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
         body: { tileType, filters, query: currentIdea }
       });
