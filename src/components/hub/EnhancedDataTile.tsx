@@ -120,11 +120,7 @@ export function EnhancedDataTile({
     }
   };
 
-  useEffect(() => {
-    if (!data) {
-      fetchData();
-    }
-  }, []);
+// Intentionally do not auto-fetch; wait for user to click Load Data
 
   const renderMetric = (metric: any) => {
     const trend = metric.trend || metric.change;
