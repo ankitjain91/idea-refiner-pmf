@@ -83,9 +83,12 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     }
   );
 
-  const handleInitialLoad = async () => {
-    setHasLoadedOnce(true);
-  };
+  // Auto-load on mount
+  useEffect(() => {
+    if (!hasLoadedOnce && actualIdea) {
+      setHasLoadedOnce(true);
+    }
+  }, [hasLoadedOnce, actualIdea]);
 
   const analyzeWithGroq = async () => {
     if (!data || isAnalyzing) return;
@@ -187,30 +190,6 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     return { color: 'text-muted-foreground', icon: null };
   };
 
-  if (!hasLoadedOnce) {
-    return (
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Web Search Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
-          <div className="text-center space-y-2">
-            <Brain className="h-12 w-12 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">
-              Analyze market profitability and competition
-            </p>
-          </div>
-          <Button onClick={handleInitialLoad} variant="default">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Load Data
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (isLoading && !data) {
     return (

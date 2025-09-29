@@ -8,8 +8,16 @@ import {
   Brain, TrendingUp, Globe2, Newspaper, MessageSquare, Youtube,
   Twitter, ShoppingBag, Users, Target, DollarSign, Rocket,
   BarChart3, AlertCircle, RefreshCw, Sparkles, Building2,
-  Calendar, Clock, Activity, Layers, Shield, Zap, RotateCw
+  Calendar, Clock, Activity, Layers, Shield, Zap, RotateCw, Globe, ChevronDown
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
@@ -46,6 +54,7 @@ export default function EnterpriseHub() {
   });
   const [tilesKey, setTilesKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedContinent, setSelectedContinent] = useState('global');
   
   // Get current idea from session or localStorage
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('currentIdea') || '';
@@ -151,6 +160,25 @@ export default function EnterpriseHub() {
     setTilesKey(prev => prev + 1);
   }, []);
 
+  // Handle continent change
+  const handleContinentChange = (continent: string) => {
+    setSelectedContinent(continent);
+    setFilters(prev => ({ ...prev, geography: continent }));
+    
+    // Clear cached data for new region
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(key => {
+      if (key.includes('tile_cache_') || 
+          key.includes('trends_cache_') ||
+          key.includes('web_search_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Force refresh tiles
+    setTilesKey(prev => prev + 1);
+  };
+
   // Global refresh function
   const handleGlobalRefresh = () => {
     setIsRefreshing(true);
@@ -228,16 +256,81 @@ export default function EnterpriseHub() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGlobalRefresh}
-              disabled={isRefreshing}
-              className="gap-2"
-            >
-              <RotateCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-              {isRefreshing ? "Refreshing..." : "Refresh All"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  {selectedContinent === 'global' ? 'Global' :
+                   selectedContinent === 'north_america' ? 'North America' :
+                   selectedContinent === 'europe' ? 'Europe' :
+                   selectedContinent === 'asia' ? 'Asia' :
+                   selectedContinent === 'south_america' ? 'South America' :
+                   selectedContinent === 'africa' ? 'Africa' :
+                   selectedContinent === 'oceania' ? 'Oceania' : 'Global'}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-background border-border">
+                <DropdownMenuLabel>Select Region</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => handleContinentChange('global')}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  <Globe className="mr-2 h-4 w-4" />
+                  Global
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleContinentChange('north_america')}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  North America
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleContinentChange('europe')}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  Europe
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleContinentChange('asia')}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  Asia
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleContinentChange('south_america')}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  South America
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleContinentChange('africa')}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  Africa
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleContinentChange('oceania')}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  Oceania
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={handleGlobalRefresh}
+                  disabled={isRefreshing}
+                  className="cursor-pointer hover:bg-muted"
+                >
+                  <RotateCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
+                  Refresh All Data
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Badge 
               variant="secondary" 
               className={cn(

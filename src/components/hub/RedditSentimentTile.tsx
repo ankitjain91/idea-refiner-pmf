@@ -115,9 +115,12 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
     }
   );
 
-  const handleInitialLoad = async () => {
-    setHasLoadedOnce(true);
-  };
+  // Auto-load on mount
+  useEffect(() => {
+    if (!hasLoadedOnce && actualIdea) {
+      setHasLoadedOnce(true);
+    }
+  }, [hasLoadedOnce, actualIdea]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -183,29 +186,6 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
     return 'secondary';
   };
 
-  if (!hasLoadedOnce) {
-    return (
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Reddit Sentiment
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
-          <div className="text-center space-y-2">
-            <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">
-              No data loaded
-            </p>
-          </div>
-          <Button onClick={handleInitialLoad} variant="default">
-            Load Data
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (isLoading && !data) {
     return (
