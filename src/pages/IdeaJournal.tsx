@@ -18,7 +18,9 @@ import {
   BarChart3,
   ArrowLeft,
   Search,
-  Sparkles
+  Sparkles,
+  ChartBar,
+  ExternalLink
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { UserMenu } from '@/components/UserMenu';
@@ -68,6 +70,15 @@ const IdeaJournal = () => {
     try {
       await loadSession(sessionId);
       navigate('/ideachat');
+    } catch (error) {
+      console.error('Error loading session:', error);
+    }
+  };
+
+  const handleLoadDashboard = async (sessionId: string) => {
+    try {
+      await loadSession(sessionId);
+      navigate('/hub');
     } catch (error) {
       console.error('Error loading session:', error);
     }
@@ -274,10 +285,9 @@ const IdeaJournal = () => {
                     filteredSessions.map((session) => (
                       <div
                         key={session.id}
-                        className="group flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => handleLoadSession(session.id)}
+                        className="group flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleLoadSession(session.id)}>
                           {editingSession === session.id ? (
                             <div className="flex gap-2">
                               <Input
@@ -332,6 +342,32 @@ const IdeaJournal = () => {
                         </div>
                         
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLoadSession(session.id);
+                            }}
+                            title="Open in Chat"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                          {session.data.analysisCompleted && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLoadDashboard(session.id);
+                              }}
+                              title="View Dashboard"
+                            >
+                              <ChartBar className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
