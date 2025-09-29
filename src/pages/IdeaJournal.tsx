@@ -304,7 +304,12 @@ const IdeaJournal = () => {
                           ) : (
                             <>
                               <h3 className="font-medium truncate">{session.name}</h3>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              {session.data.currentIdea && (
+                                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                  {session.data.currentIdea}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
                                   {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true })}
@@ -316,9 +321,10 @@ const IdeaJournal = () => {
                                   </span>
                                 )}
                                 {session.data.analysisCompleted && (
-                                  <span className="text-green-600 text-xs">
-                                    ✓ Analyzed
-                                  </span>
+                                  <Badge variant="default" className="text-xs">
+                                    <BarChart3 className="h-3 w-3 mr-1" />
+                                    Analyzed
+                                  </Badge>
                                 )}
                               </div>
                             </>

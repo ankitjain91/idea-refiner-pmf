@@ -393,7 +393,12 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                         ) : (
                           <>
                             <h3 className="font-medium truncate">{session.name}</h3>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            {session.data.currentIdea && (
+                              <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
+                                {session.data.currentIdea}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true })}
