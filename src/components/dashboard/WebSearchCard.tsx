@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,13 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
 
   // Fallback to localStorage if idea is not provided
   const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
+
+// Auto-load when an idea is present
+  useEffect(() => {
+    if (actualIdea && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+    }
+  }, [actualIdea, hasLoadedOnce]);
 
   // Build cache key
   const cacheKey = hasLoadedOnce && actualIdea ? 
@@ -595,8 +602,10 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                         <div key={idx} className="p-3 rounded-lg border bg-card">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="font-medium text-sm">{item.title}</div>
-                              <div className="text-xs text-muted-foreground mt-1">{item.source}</div>
+<div className="font-medium text-sm">{item.title}</div>
+                              <div className="text-xs text-muted-foreground mt-1">{
+                                (item as any).source || (item as any).domain || (() => { try { return new URL(item.url).hostname.replace('www.',''); } catch { return '' } })()
+                              }</div>
                             </div>
                             {item.hasPricing && (
                               <Badge variant="default" className="text-xs ml-2">
