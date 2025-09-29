@@ -42,7 +42,8 @@ import {
   AreaChart
 } from 'recharts';
 import { cn } from '@/lib/utils';
-import { TileInsightsDialog } from './TileInsightsDialog';
+import { ExpandableTile } from '@/components/dashboard/ExpandableTile';
+import { metricExplanations } from '@/lib/metric-explanations';
 
 interface GoogleTrendsCardProps {
   filters: {
@@ -258,13 +259,90 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     }
   };
 
-  // Auto-load data when keywords are available - only once
-  useEffect(() => {
-    if (!hasLoadedOnce && keywords.length > 0 && !loading && !data) {
-      setHasLoadedOnce(true);
-      fetchTrendsData(viewMode === 'global');
+  // Process data for expandable tile
+  const processDataForExpandable = () => {
+    if (!data) return { metrics: {}, chartData: [], sources: [], insights: [] };
+
+    const metrics: Record<string, any> = {};
+    const chartData: any[] = [];
+    const sources: any[] = [];
+    const insights: string[] = [];
+
+    try {
+      // Extract metrics
+      if (data.metrics) {
+        data.metrics.forEach((metric: any) => {
+          metrics[metric.name.toLowerCase().replace(/ /g, '_')] = metric.value;
+        });
+      }
+
+      // Process chart data from series
+      if (data.series?.[0]?.points) {
+        chartData.push(...data.series[0].points.map(([date, value]: [string, number]) => ({
+          name: typeof date === 'string' ? (date.split('–')[0]?.trim() || date) : String(date),
+          value
+        })));
+      }
+
+      // Add default sources
+      sources.push({
+        name: 'Google Trends',
+        description: 'Search interest and related queries data',
+        url: 'https://trends.google.com',
+        reliability: 'high' as const
+      });
+
+      // Add insights
+      const trendMetric = data.metrics?.find(m => m.name === 'trend_direction');
+      if (trendMetric) {
+        insights.push(
+          `Search trend is currently ${trendMetric.value}`,
+          'Based on Google Trends analysis',
+          `Confidence level: ${Math.round((trendMetric.confidence || 0) * 100)}%`
+        );
+      } else {
+        insights.push(
+          'Google Trends analysis for your idea',
+          'Search interest patterns over time',
+          'Related queries and market interest indicators'
+        );
+      }
+    } catch (error) {
+      console.error('Error processing Google Trends data:', error);
+      insights.push('Data processing encountered an issue. Please try refreshing.');
     }
-  }, [keywords.length, viewMode]); // Removed hasLoadedOnce and keywords from deps to prevent loops
+
+    return { metrics, chartData, sources, insights };
+  };
+
+  const { metrics, chartData, sources, insights } = processDataForExpandable();
+
+  // Get metric explanations
+  const availableExplanations: Record<string, any> = {};
+  if (metrics && typeof metrics === 'object') {
+    Object.keys(metrics).forEach(key => {
+      if (metricExplanations[key]) {
+        availableExplanations[key] = metricExplanations[key];
+      }
+    });
+  }
+
+  const getBadgeInfo = () => {
+    if (!data) return undefined;
+    
+    let source = 'API';
+    let variant: 'default' | 'secondary' | 'outline' = 'default';
+    
+    if (data.fromDatabase) {
+      source = 'DB';
+      variant = 'default';
+    } else if (data.fromCache) {
+      source = 'Cache';
+      variant = 'secondary';
+    }
+    
+    return { label: source, variant };
+  };
 
   const handleViewModeChange = (mode: 'global' | 'single') => {
     console.log('[GoogleTrendsCard] Changing view mode to:', mode);

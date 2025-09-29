@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, Maximize2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TileDetailPanel } from './TileDetailPanel';
+import { AITileDialog } from './AITileDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ExpandableTileProps {
@@ -195,7 +195,7 @@ export function ExpandableTile({
       </Card>
 
       {expandable && (
-        <TileDetailPanel
+        <AITileDialog
           open={detailOpen}
           onOpenChange={setDetailOpen}
           title={title}
@@ -211,7 +211,7 @@ export function ExpandableTile({
           accentColor={accentColor}
         >
           {children}
-        </TileDetailPanel>
+        </AITileDialog>
       )}
     </>
   );
