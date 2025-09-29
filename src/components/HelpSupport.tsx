@@ -41,7 +41,7 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
     {
       id: 'welcome',
       role: 'assistant',
-      content: "🎉 YO SMOOTHBRAIN! Welcome to the chat zone! I'm your slightly-unhinged Site Guru.\n\n💡 I know EVERYTHING about this brain-wrinkle-inducing startup advisor tool:\n• How to maximize your brain wrinkles 🧠\n• Secret tricks for better PMF scores 📈\n• Why our brain animation is HYPNOTIC ✨\n• The deep lore of SmoothBrains© philosophy\n\nAsk me anything or just vibe! What's on your mind?",
+      content: "🎉 YO SMOOTHBRAIN! Welcome to the chat zone! I'm your slightly-unhinged Site Guru.\n\n💡 I know EVERYTHING about this brain-wrinkle-inducing startup advisor tool:\n• How to maximize your brain wrinkles 🧠\n• Secret tricks for better SmoothBrains scores 📈\n• Why our brain animation is HYPNOTIC ✨\n• The deep lore of SmoothBrains© philosophy\n\nAsk me anything or just vibe! What's on your mind?",
       timestamp: new Date()
     }
   ]);
@@ -101,7 +101,7 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
         "How do I get LEGENDARY status?",
         "Tell me about the secret features!",
         "Why SmoothBrains?",
-        "What's the highest PMF score possible?",
+        "What's the highest SmoothBrains score possible?",
         "Can you roast my startup idea?",
         "What's the brain animation's secret?",
         "How many wrinkles do YOU have?"

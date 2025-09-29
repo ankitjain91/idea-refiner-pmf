@@ -145,7 +145,7 @@ const ActionTips = ({ score, metadata }: ActionTipsProps) => {
       <div>
         <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
           <Calculator className="w-5 h-5" />
-          PMF Score Calculation
+          SmoothBrains Score Calculation
         </h3>
         
         <div className="space-y-3">
@@ -177,7 +177,7 @@ const ActionTips = ({ score, metadata }: ActionTipsProps) => {
         
         <div className="mt-4 p-3 bg-muted/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold">Total PMF Score</span>
+            <span className="text-sm font-semibold">Total SmoothBrains Score</span>
             <span className="text-2xl font-bold gradient-text">{score}%</span>
           </div>
           <p className="text-xs text-muted-foreground">

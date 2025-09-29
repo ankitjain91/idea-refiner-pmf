@@ -47,7 +47,7 @@ serve(async (req) => {
           {
             headers: {
               'Authorization': `Bearer ${access_token}`,
-              'User-Agent': 'web:pmfit:v1.0 (by /u/meltdown91)'
+              'User-Agent': 'web:smoothbrains:v1.0 (by /u/meltdown91)'
             }
           }
         );

@@ -438,7 +438,7 @@ async function fetchGDELTNewsWithLocation(query: string, location: string) {
     const res = await fetch(gdeltUrl, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'PMFHub/1.0'
+        'User-Agent': 'SmoothBrainsHub/1.0'
       }
     });
     

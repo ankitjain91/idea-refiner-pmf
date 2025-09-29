@@ -501,7 +501,7 @@ export default function Settings() {
                   <div className="grid gap-3">
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-600" />
-                      <span className="text-sm">Unlimited PM-Fit Analysis</span>
+                      <span className="text-sm">Unlimited SmoothBrains Analysis</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-600" />
@@ -535,7 +535,7 @@ export default function Settings() {
                       <p className="text-2xl font-bold">24</p>
                     </div>
                     <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">PM-Fit Score Avg</p>
+                      <p className="text-sm text-muted-foreground">SmoothBrains Score Avg</p>
                       <p className="text-2xl font-bold">76%</p>
                     </div>
                   </div>

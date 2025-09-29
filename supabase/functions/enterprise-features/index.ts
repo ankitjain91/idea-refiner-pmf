@@ -47,7 +47,7 @@ serve(async (req) => {
         break;
         
       case 'value_gating':
-        prompt = `Determine which insights should be free vs paid in a PMF analysis tool.
+        prompt = `Determine which insights should be free vs paid in a market analysis tool.
         User's idea: ${data.idea}
         All features: ${JSON.stringify(data.allFeatures)}
         

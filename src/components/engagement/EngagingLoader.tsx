@@ -23,7 +23,7 @@ const PRODUCT_FACTS = [
   'Refining positioning early reduces wasted feature dev by ~30%.',
   'Talking to 10 real users beats 100 speculative assumptions.',
   'Define who it is NOT for to sharpen resonance.',
-  'Retention patterns in week 2 often predict long-term PMF.',
+  'Retention patterns in week 2 often predict long-term market fit.',
   'Users buy progress, not features.',
   'A strong “problem statement” copy test outperforms redesigns.',
   'Instrumenting activation beats adding onboarding steps.',

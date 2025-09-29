@@ -22,7 +22,7 @@ async function getRedditAccessToken(): Promise<string> {
     headers: {
       'Authorization': `Basic ${auth}`,
       'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'PMFitHub/1.0'
+      'User-Agent': 'SmoothBrainsHub/1.0'
     },
     body: 'grant_type=client_credentials&scope=read'
   });
@@ -210,7 +210,7 @@ serve(async (req) => {
     console.log('[reddit-sentiment] Fetching from Reddit:', redditUrl);
 
     const headers: Record<string, string> = {
-      'User-Agent': 'web:pmfithub:v1.0 (by u/meltdown91)',
+      'User-Agent': 'web:smoothbrainshub:v1.0 (by u/meltdown91)',
       'Accept': 'application/json'
     };
     if (!usePublic && accessToken) {

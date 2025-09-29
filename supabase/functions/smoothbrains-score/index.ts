@@ -13,12 +13,12 @@ serve(async (req) => {
   try {
     const { idea, marketSize, competition, sentiment } = await req.json();
     
-    console.log('[pmf-score] Calculating PMF for:', idea);
+    console.log('[smoothbrains-score] Calculating SmoothBrains score for:', idea);
     
-    // Use Groq to calculate PMF Score based on inputs
+    // Use Groq to calculate SmoothBrains Score based on inputs
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
-    let pmfScore = 50; // Default
-    let rationale = "Moderate product-market fit potential";
+    let smoothBrainsScore = 50; // Default
+    let rationale = "Moderate market fit potential";
     
     if (groqApiKey) {
       try {
@@ -33,11 +33,11 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are a PMF analyst. Calculate a Product-Market Fit score (0-100%) based on market size, competition, and sentiment. Respond with ONLY a JSON object: {"score": number, "rationale": "one sentence explanation"}'
+                content: 'You are a market analyst. Calculate a SmoothBrains score (0-100%) based on market size, competition, and sentiment. Respond with ONLY a JSON object: {"score": number, "rationale": "one sentence explanation"}'
               },
               {
                 role: 'user',
-                content: `Calculate PMF score for: ${idea}
+                content: `Calculate SmoothBrains score for: ${idea}
                 Market Size: ${marketSize || 'Unknown'}
                 Competition: ${competition || 'Medium'}
                 Sentiment: ${sentiment || '50%'}
@@ -57,14 +57,14 @@ serve(async (req) => {
         if (data.choices?.[0]?.message?.content) {
           try {
             const result = JSON.parse(data.choices[0].message.content);
-            pmfScore = result.score || 50;
+            smoothBrainsScore = result.score || 50;
             rationale = result.rationale || "Calculated based on market signals";
           } catch (e) {
-            console.error('[pmf-score] Failed to parse Groq response:', e);
+            console.error('[smoothbrains-score] Failed to parse Groq response:', e);
           }
         }
       } catch (err) {
-        console.error('[pmf-score] Groq API error:', err);
+        console.error('[smoothbrains-score] Groq API error:', err);
       }
     }
     
@@ -84,13 +84,13 @@ serve(async (req) => {
       if (sentiment && parseInt(sentiment) > 70) score += 15;
       else if (sentiment && parseInt(sentiment) < 30) score -= 15;
       
-      pmfScore = Math.max(0, Math.min(100, score));
+      smoothBrainsScore = Math.max(0, Math.min(100, score));
       rationale = `Based on ${competition || 'medium'} competition and ${sentiment || 'mixed'} sentiment`;
     }
     
     const response = {
       updatedAt: new Date().toISOString(),
-      score: pmfScore,
+      score: smoothBrainsScore,
       rationale,
       factors: {
         marketSize: marketSize || 'Analyzing...',
@@ -98,14 +98,14 @@ serve(async (req) => {
         sentiment: sentiment || '50%'
       },
       confidence: 0.7,
-      trend: pmfScore > 60 ? 'positive' : pmfScore > 40 ? 'neutral' : 'negative'
+      trend: smoothBrainsScore > 60 ? 'positive' : smoothBrainsScore > 40 ? 'neutral' : 'negative'
     };
     
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('[pmf-score] Error:', error);
+    console.error('[smoothbrains-score] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'An error occurred' }),
       { 

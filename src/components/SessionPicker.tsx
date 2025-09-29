@@ -204,7 +204,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
               Choose Your Smoothbrain
             </DialogTitle>
             <DialogDescription>
-              Select an existing smoothbrain or create a new one to continue your PMF analysis journey.
+              Select an existing smoothbrain or create a new one to continue your analysis journey.
             </DialogDescription>
           </DialogHeader>        <div className="space-y-6">
           {/* Create New Session */}

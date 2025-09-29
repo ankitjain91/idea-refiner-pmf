@@ -18,8 +18,8 @@ export function PMFScoreDisplay({ currentScore, previousScore }: PMFScoreDisplay
   };
   
   const getScoreLabel = (score: number) => {
-    if (score >= 75) return 'Strong PM-Fit';
-    if (score >= 50) return 'Moderate PM-Fit';
+    if (score >= 75) return 'Strong Market Fit';
+    if (score >= 50) return 'Moderate Market Fit';
     return 'Needs Improvement';
   };
 
@@ -28,7 +28,7 @@ export function PMFScoreDisplay({ currentScore, previousScore }: PMFScoreDisplay
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground mb-2">Current PM-Fit Score</p>
+            <p className="text-sm text-muted-foreground mb-2">Current SmoothBrains Score</p>
             <div className="flex items-baseline gap-4">
               <span className={cn("text-5xl font-bold", getScoreColor(currentScore))}>
                 {currentScore}%

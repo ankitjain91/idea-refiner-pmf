@@ -84,7 +84,7 @@ serve(async (req) => {
         ${conversationContext}
         
         Return JSON with:
-        - pmfScore: product-market fit score 1-100 with reasoning
+        - pmfScore: market fit score 1-100 with reasoning
         - customerAcquisitionCost: estimated CAC with breakdown
         - lifetimeValue: estimated LTV with calculation
         - burnRate: monthly burn estimate

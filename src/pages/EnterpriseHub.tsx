@@ -139,11 +139,11 @@ export default function EnterpriseHub() {
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" key={tilesKey}>
           <QuickStatsTile
-            title="PMF Score"
+            title="SmoothBrains Score"
             icon={Activity}
             tileType="pmf_score"
             currentIdea={currentIdea}
-            onAnalyze={() => console.log('Analyze PMF Score')}
+            onAnalyze={() => console.log('Analyze SmoothBrains Score')}
           />
           <QuickStatsTile
             title="Market Size"

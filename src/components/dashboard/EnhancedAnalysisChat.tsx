@@ -343,7 +343,7 @@ export const EnhancedAnalysisChat: React.FC<EnhancedAnalysisChatProps> = ({
 
               <div className="grid grid-cols-2 gap-3 pt-4 border-t">
                 {[
-                  { icon: Target, text: "PMF Analysis", color: "text-green-500" },
+                  { icon: Target, text: "SmoothBrains Analysis", color: "text-green-500" },
                   { icon: TrendingUp, text: "Market Insights", color: "text-blue-500" },
                   { icon: Users, text: "User Metrics", color: "text-purple-500" },
                   { icon: DollarSign, text: "Revenue Strategy", color: "text-yellow-500" }

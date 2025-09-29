@@ -273,7 +273,7 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
       }, 1500);
     } else {
       // All steps completed, run analysis
-      setTypingMessage('Generating comprehensive PM-Fit analysis...');
+      setTypingMessage('Generating comprehensive SmoothBrains analysis...');
       await runPMFAnalysis(newAnswers);
     }
   };
@@ -331,7 +331,7 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
   try { localStorage.setItem(LS_KEYS.analysisCompleted, 'true'); } catch {}
       
       // Add analysis complete message
-      const fullAnalysisSummary = `🎯 Fantastic work! Your PM-Fit analysis is complete with a score of ${pmfAnalysis.pmfScore}/100! \n\nI've identified strong market opportunities and key areas for growth. Your dashboard is now loaded with:\n• Real-time market signals and competitor analysis\n• Personalized improvement strategies\n• Growth projections and target demographics\n• Actionable next steps for validation\n\nLet's dive into your results! 🚀`;
+      const fullAnalysisSummary = `🎯 Fantastic work! Your SmoothBrains analysis is complete with a score of ${pmfAnalysis.pmfScore}/100! \n\nI've identified strong market opportunities and key areas for growth. Your dashboard is now loaded with:\n• Real-time market signals and competitor analysis\n• Personalized improvement strategies\n• Growth projections and target demographics\n• Actionable next steps for validation\n\nLet's dive into your results! 🚀`;
       const analysisMessage: Message = {
         id: 'analysis-complete',
         type: 'bot',
@@ -349,7 +349,7 @@ const StreamlinedPMFChat: React.FC<StreamlinedPMFChatProps> = ({ onAnalysisReady
 
       toast({
         title: "🎉 Analysis Complete!",
-        description: `Your PM-Fit Score: ${pmfAnalysis.pmfScore}/100 - Dashboard ready!`,
+        description: `Your SmoothBrains Score: ${pmfAnalysis.pmfScore}/100 - Dashboard ready!`,
       });
 
     } catch (error) {

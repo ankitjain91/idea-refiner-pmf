@@ -3,7 +3,7 @@ import type { AnalysisResult } from '@/types/analysis';
 export function buildMarkdownReport(result: AnalysisResult) {
   const { pmfAnalysis, meta } = result;
   const lines: string[] = [];
-  lines.push('# PMF Analysis Report');
+  lines.push('# SmoothBrains Analysis Report');
   lines.push(`Generated: ${new Date(meta.completedAt).toLocaleString()}`);
   lines.push('');
   lines.push(`**Overall Score:** ${pmfAnalysis.pmfScore}/100`);

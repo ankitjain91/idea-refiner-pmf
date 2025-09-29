@@ -1846,7 +1846,7 @@ Return ONLY a JSON array of 5 strings. Example format: ["Answer 1", "Answer 2", 
     const welcomeMessage: Message = {
       id: `msg-welcome-${Date.now()}`,
       type: 'system',
-      content: `I'm here to help you ${ANALYSIS_VERB.toLowerCase()} your startup idea for Product-Market Fit! 🚀\n\nShare your product concept, and I'll guide you through refining it before running a comprehensive PMF analysis.`,
+      content: `I'm here to help you ${ANALYSIS_VERB.toLowerCase()} your startup idea for Product-Market Fit! 🚀\n\nShare your product concept, and I'll guide you through refining it before running a comprehensive SmoothBrains analysis.`,
       timestamp: new Date(),
       suggestions: [
         'AI-powered personal finance app for Gen Z',

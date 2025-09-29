@@ -220,7 +220,7 @@ export default function EnterpriseAuth() {
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-semibold">PMF Validator</span>
+            <span className="text-2xl font-semibold">SmoothBrains</span>
           </Link>
           
           <div className="space-y-8 mt-20">
@@ -254,7 +254,7 @@ export default function EnterpriseAuth() {
         </div>
         
         <div className="text-sm text-muted-foreground">
-          © 2024 PMF Validator. All rights reserved.
+          © 2024 SmoothBrains. All rights reserved.
         </div>
       </div>
 

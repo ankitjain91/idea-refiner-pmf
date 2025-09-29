@@ -455,7 +455,7 @@ export default function RealDataPMFAnalyzer({ idea, assumptions = {} }: Props) {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h2 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                PM-Fit Score: {data.scores.pmFitScore}
+                SmoothBrains Score: {data.scores.pmFitScore}
               </h2>
               <p className="text-muted-foreground font-medium flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />

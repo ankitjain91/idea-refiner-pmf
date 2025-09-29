@@ -18,7 +18,7 @@ interface AIInsightChatProps {
   planTrigger?: number; // when this changes, auto-send plan prompt
 }
 
-const SYSTEM_BASE = `You are an expert product strategist and PMF analyst.
+const SYSTEM_BASE = `You are an expert product strategist and market analyst.
 You have structured analysis data about a user's startup idea. Answer with:
 - Clear, concise, high-signal insights
 - Bullet lists when enumerating

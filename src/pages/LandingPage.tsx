@@ -247,7 +247,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-6 w-6 text-primary" />
-              <span className="font-semibold text-lg">PMFit</span>
+              <span className="font-semibold text-lg">SmoothBrains</span>
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
@@ -426,9 +426,9 @@ export default function LandingPage() {
       <section className="container mx-auto px-4 py-20 border-t border-border/50">
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <h2 className="text-3xl font-bold">Ready to validate your idea?</h2>
-          <p className="text-muted-foreground">
-            Join thousands of entrepreneurs using PMFit to build successful startups
-          </p>
+            <p className="text-muted-foreground">
+              Join thousands of entrepreneurs using SmoothBrains to build successful startups
+            </p>
           <Button 
             size="lg" 
             onClick={() => setShowAuthModal(true)}
@@ -445,7 +445,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">© 2024 PMFit. All rights reserved.</span>
+              <span className="text-sm text-muted-foreground">© 2024 SmoothBrains. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-6">
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">

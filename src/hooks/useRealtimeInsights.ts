@@ -74,7 +74,7 @@ const generateMockInsight = (channel: ChannelKey): ChannelInsight => {
     communities: [
       "Tap into high-intent, self-organized groups",
       "Great for feedback loops and early traction signals",
-      "Authentic discussions lead to stronger PMF insights"
+      "Authentic discussions lead to stronger market insights"
     ],
     marketplace: [
       "Built-in discovery and trust from platform",
