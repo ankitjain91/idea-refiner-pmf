@@ -677,8 +677,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 </div>
                 <div className="text-lg font-bold text-green-600">
                   {(() => {
-                    const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
-                    if (currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value === 'N/A') return 'N/A';
+                    const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
+                    if (!sentimentMetric || sentimentMetric.value === 'N/A' || sentimentMetric.value === undefined) return 'N/A';
+                    const sentiment = parseFloat(sentimentMetric.value);
+                    if (isNaN(sentiment)) return 'N/A';
                     return sentiment > 0 ? `${Math.min(Math.round(sentiment * 20 + 50), 100)}%` : '0%';
                   })()}
                 </div>
@@ -690,8 +692,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 </div>
                 <div className="text-lg font-bold text-yellow-600">
                   {(() => {
-                    const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
-                    if (currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value === 'N/A') return 'N/A';
+                    const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
+                    if (!sentimentMetric || sentimentMetric.value === 'N/A' || sentimentMetric.value === undefined) return 'N/A';
+                    const sentiment = parseFloat(sentimentMetric.value);
+                    if (isNaN(sentiment)) return 'N/A';
                     return `${Math.max(50 - Math.abs(sentiment * 10), 0)}%`;
                   })()}
                 </div>
@@ -703,8 +707,10 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 </div>
                 <div className="text-lg font-bold text-red-600">
                   {(() => {
-                    const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
-                    if (currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value === 'N/A') return 'N/A';
+                    const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
+                    if (!sentimentMetric || sentimentMetric.value === 'N/A' || sentimentMetric.value === undefined) return 'N/A';
+                    const sentiment = parseFloat(sentimentMetric.value);
+                    if (isNaN(sentiment)) return 'N/A';
                     return sentiment < 0 ? `${Math.min(Math.abs(sentiment * 20), 100)}%` : '0%';
                   })()}
                 </div>
@@ -731,20 +737,29 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 Top Rising Queries {viewMode === 'global' && `- ${selectedContinent}`}
               </h4>
               <div className="flex flex-wrap gap-2">
-                {currentData.top_queries.slice(0, 6).map((query: any, idx: number) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
-                    {typeof query === 'string'
-                      ? query
-                      : (typeof query?.query === 'string'
-                          ? query.query
-                          : (typeof query?.value === 'number' || typeof query?.value === 'string'
-                              ? String(query.value)
-                              : ''))}
-                    {typeof query === 'object' && query?.change && (
-                      <span className="ml-1 text-green-500">{query.change}</span>
-                    )}
-                  </Badge>
-                ))}
+                {currentData.top_queries.slice(0, 6).map((query: any, idx: number) => {
+                  // Extract the query text properly
+                  let queryText = '';
+                  if (typeof query === 'string') {
+                    queryText = query;
+                  } else if (typeof query === 'object' && query !== null) {
+                    queryText = query.query || query.text || query.term || '';
+                  }
+                  
+                  // Skip if no valid text found or if it's just a number
+                  if (!queryText || /^\d+$/.test(queryText.toString())) {
+                    return null;
+                  }
+                  
+                  return (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {queryText}
+                      {typeof query === 'object' && query?.change && (
+                        <span className="ml-1 text-green-500">{query.change}</span>
+                      )}
+                    </Badge>
+                  );
+                }).filter(Boolean)}
               </div>
             </div>
           )}
@@ -763,11 +778,24 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               <div className="text-3xl font-bold text-primary">
                 {(() => {
                   // Calculate opportunity score based on available metrics
-                  const searchVolume = parseInt(currentData?.metrics?.find((m: any) => m.name === 'Search Volume')?.value || '0');
-                  const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
-                  const momentum = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Momentum')?.value || '0');
+                  const searchVolumeMetric = currentData?.metrics?.find((m: any) => m.name === 'Search Volume');
+                  const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
+                  const momentumMetric = currentData?.metrics?.find((m: any) => m.name === 'News Momentum');
                   
-                  if (currentData?.error || searchVolume === 0) return 'N/A';
+                  if (!searchVolumeMetric || searchVolumeMetric.value === 'N/A' || 
+                      !sentimentMetric || sentimentMetric.value === 'N/A' || 
+                      !momentumMetric || momentumMetric.value === 'N/A' || 
+                      currentData?.error) {
+                    return 'N/A';
+                  }
+                  
+                  const searchVolume = parseInt(searchVolumeMetric.value);
+                  const sentiment = parseFloat(sentimentMetric.value);
+                  const momentum = parseFloat(momentumMetric.value);
+                  
+                  if (isNaN(searchVolume) || isNaN(sentiment) || isNaN(momentum) || searchVolume === 0) {
+                    return 'N/A';
+                  }
                   
                   // Calculate score: base on search volume (0-100 -> 0-5 points), sentiment (-5 to 5 -> 0-3 points), momentum (-20 to 20 -> 0-2 points)
                   const searchScore = Math.min(searchVolume / 20, 5);
@@ -803,22 +831,34 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 Related Topics
               </h4>
               <div className="grid grid-cols-2 gap-2">
-                {currentData.top_queries.slice(0, 4).map((query: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-2 bg-muted/10 rounded-lg">
-                    <span className="text-xs font-medium truncate">
-                      {typeof query === 'string'
-                        ? query
-                        : (typeof query?.query === 'string'
-                            ? query.query
-                            : (typeof query?.value === 'number' || typeof query?.value === 'string'
-                                ? String(query.value)
-                                : ''))}
-                    </span>
-                    <Badge variant="secondary" className="text-xs h-5">
-                      {query.value || '50'}%
-                    </Badge>
-                  </div>
-                ))}
+                {currentData.top_queries.slice(0, 4).map((query: any, idx: number) => {
+                  // Extract the query text properly
+                  let queryText = '';
+                  let queryValue = 50;
+                  
+                  if (typeof query === 'string') {
+                    queryText = query;
+                  } else if (typeof query === 'object' && query !== null) {
+                    queryText = query.query || query.text || query.term || '';
+                    queryValue = query.value || query.score || 50;
+                  }
+                  
+                  // Skip if no valid text found or if it's just a number
+                  if (!queryText || /^\d+$/.test(queryText.toString())) {
+                    return null;
+                  }
+                  
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-muted/10 rounded-lg">
+                      <span className="text-xs font-medium truncate">
+                        {queryText}
+                      </span>
+                      <Badge variant="secondary" className="text-xs h-5">
+                        {queryValue}%
+                      </Badge>
+                    </div>
+                  );
+                }).filter(Boolean)}
               </div>
             </div>
           )}

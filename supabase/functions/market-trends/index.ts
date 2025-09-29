@@ -274,17 +274,25 @@ function processSerperData(data: any, query: string, location?: string) {
     }],
     top_queries: relatedSearches.length > 0 
       ? relatedSearches.slice(0, 6).map((q: any) => ({
-          query: q,
+          query: typeof q === 'string' ? q : (q.query || q.text || ''),
           value: Math.floor(Math.random() * 80 + 20),
           type: 'rising' as const,
           change: '+' + Math.floor(Math.random() * 50 + 5) + '%'
-        }))
-      : organic.slice(0, 6).map((r: any, idx: number) => ({
-          query: r.title || query,
-          value: Math.floor(Math.random() * 80 + 20),
-          type: 'top' as const,
-          change: '+' + Math.floor(Math.random() * 50 + 5) + '%'
-        })),
+        })).filter((item: any) => item.query && item.query.length > 0)
+      : organic.slice(0, 6)
+          .map((r: any) => {
+            // Extract meaningful keywords from title or use fallback
+            const title = r.title || '';
+            const cleanTitle = title.replace(/[0-9]+/g, '').trim();
+            if (!cleanTitle || cleanTitle.length < 3) return null;
+            
+            return {
+              query: cleanTitle.length > 50 ? cleanTitle.substring(0, 50) + '...' : cleanTitle,
+              value: Math.floor(Math.random() * 80 + 20),
+              type: 'top' as const,
+              change: '+' + Math.floor(Math.random() * 50 + 5) + '%'
+            };
+          }).filter(Boolean),
     items: organic.slice(0, 5).map((r: any) => ({
       title: r.title,
       snippet: r.snippet,
