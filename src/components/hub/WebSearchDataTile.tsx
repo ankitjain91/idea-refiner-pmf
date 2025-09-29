@@ -460,15 +460,15 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
                         <p className="text-muted-foreground">MVP Cost</p>
-                        <p className="font-medium">{data.cost_estimates.mvp_cost}</p>
+                        <p className="font-medium">{data.cost_estimates.mvp_cost || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Monthly</p>
-                        <p className="font-medium">{data.cost_estimates.monthly_operating}</p>
+                        <p className="font-medium">{data.cost_estimates.monthly_operating || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Timeline</p>
-                        <p className="font-medium">{data.cost_estimates.time_to_market}</p>
+                        <p className="font-medium">{data.cost_estimates.time_to_market || 'N/A'}</p>
                       </div>
                     </div>
                   )}
@@ -573,23 +573,25 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                 </div>
                 
                 {/* Cost Estimates */}
-                <div className="space-y-3">
-                  <h3 className="font-medium">Development Estimates</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">MVP Cost</p>
-                      <p className="font-medium mt-1">{data.cost_estimates.mvp_cost}</p>
-                    </div>
-                    <div className="p-3 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Monthly Operating</p>
-                      <p className="font-medium mt-1">{data.cost_estimates.monthly_operating}</p>
-                    </div>
-                    <div className="p-3 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Time to Market</p>
-                      <p className="font-medium mt-1">{data.cost_estimates.time_to_market}</p>
+                {data.cost_estimates && (
+                  <div className="space-y-3">
+                    <h3 className="font-medium">Development Estimates</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-muted-foreground">MVP Cost</p>
+                        <p className="font-medium mt-1">{data.cost_estimates.mvp_cost || 'N/A'}</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-muted-foreground">Monthly Operating</p>
+                        <p className="font-medium mt-1">{data.cost_estimates.monthly_operating || 'N/A'}</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-muted-foreground">Time to Market</p>
+                        <p className="font-medium mt-1">{data.cost_estimates.time_to_market || 'N/A'}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </TabsContent>
               
               <TabsContent value="competitors" className="space-y-4 mt-4">
