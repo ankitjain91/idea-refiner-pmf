@@ -463,7 +463,7 @@ export function EnhancedDataTile({
               {title}
             </CardTitle>
             <div className="flex items-center gap-2">
-              {/* Brain Icon for Insights */}
+              {/* Brain Icon for AI Insights - Purple */}
               <TooltipProvider>
                 <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>
@@ -471,14 +471,14 @@ export function EnhancedDataTile({
                       onClick={() => setShowInsights(true)}
                       variant="ghost"
                       size="sm"
-                      className="h-8 px-2 hover:bg-primary/10 text-primary animate-pulse"
+                      className="h-8 px-2 hover:bg-violet-500/10"
                     >
-                      <Brain className="h-4 w-4" />
+                      <Brain className="h-4 w-4 text-violet-500 animate-pulse" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs p-3 bg-card border-border">
                     <div className="space-y-2">
-                      <p className="font-semibold text-xs text-primary flex items-center gap-1">
+                      <p className="font-semibold text-xs text-violet-500 flex items-center gap-1">
                         <Brain className="h-3 w-3" />
                         AI-Powered Insights
                       </p>
