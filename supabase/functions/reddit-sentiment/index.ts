@@ -24,7 +24,7 @@ async function getRedditAccessToken(): Promise<string> {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'PMFitHub/1.0'
     },
-    body: 'grant_type=client_credentials'
+    body: 'grant_type=client_credentials&scope=read'
   });
 
   if (!response.ok) {
@@ -142,14 +142,26 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // Prepare variables for logging and fallback
+  let idea: string | undefined;
+  let industry: string | undefined;
+  let geography: string | undefined;
+  let timeWindow: string | undefined;
+  let analyzeType: string | undefined;
+  let searchTerms = '';
 
   try {
-    const { idea, industry, geography, timeWindow, analyzeType } = await req.json();
+    const body = await req.json();
+    idea = body?.idea;
+    industry = body?.industry;
+    geography = body?.geography;
+    timeWindow = body?.timeWindow;
+    analyzeType = body?.analyzeType;
     
     console.log('[reddit-sentiment] Processing request:', { idea, industry, geography, timeWindow, analyzeType });
     
     // Build search query
-    const searchTerms = [idea, industry, geography].filter(Boolean).join(' ');
+    searchTerms = [idea, industry, geography].filter(Boolean).join(' ');
     
     // Get Reddit OAuth token
     let accessToken: string;
@@ -280,8 +292,32 @@ serve(async (req) => {
   } catch (error) {
     console.error('[reddit-sentiment] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
+
+    // Build deterministic fallback so UI can render gracefully
+    const now = new Date().toISOString();
+    const q = [idea, industry, geography].filter(Boolean).join(' ');
+    const fallback = {
+      updatedAt: now,
+      filters: { idea, industry, geography, timeWindow },
+      metrics: [
+        { name: 'sentiment_positive', value: 0, unit: '%', explanation: 'share of positive posts', confidence: 0.5 },
+        { name: 'sentiment_neutral', value: 100, unit: '%', explanation: 'share of neutral posts', confidence: 0.5 },
+        { name: 'sentiment_negative', value: 0, unit: '%', explanation: 'share of negative posts', confidence: 0.5 },
+        { name: 'engagement_score', value: 0, unit: '/100', explanation: 'avg upvotes & posts/week', confidence: 0.5 },
+        { name: 'community_positivity_score', value: 0, unit: '/100', explanation: '0.8*sentiment_core+0.2*engagement', confidence: 0.5 }
+      ],
+      themes: [],
+      pain_points: [],
+      items: [],
+      citations: [ { label: 'Reddit Search', url: `https://reddit.com/search?q=${encodeURIComponent(q)}` } ],
+      warnings: [
+        'Using fallback data due to Reddit API error. Results may be incomplete.',
+        errorMessage
+      ],
+      totalPosts: 0
+    };
+
+    return new Response(JSON.stringify(fallback), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
