@@ -10,6 +10,8 @@ import { Sparkles, TrendingUp, TrendingDown, Target, DollarSign, Calendar, Users
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { ExpandableTile } from '@/components/dashboard/ExpandableTile';
+import { metricExplanations } from '@/lib/metric-explanations';
 
 interface EnhancedDataTileProps {
   title: string;
@@ -52,216 +54,384 @@ export function EnhancedDataTile({
     cacheMinutes: 30
   });
 
-  const renderBeautifulContent = () => {
-    if (!data) return null;
+  // Process data for the expandable tile
+  const processDataForExpandable = () => {
+    if (!data) return {};
 
-    // Custom render function provided
-    if (renderContent) {
-      return renderContent(data);
+    const metrics: Record<string, any> = {};
+    const chartData: any[] = [];
+    const sources: any[] = [];
+    const insights: string[] = [];
+
+    // Extract metrics based on tile type
+    switch (tileType) {
+      case 'market_size':
+        if (data.metrics) {
+          data.metrics.forEach((m: any) => {
+            metrics[m.name.toLowerCase()] = m.value;
+          });
+        }
+        if (data.segments) {
+          chartData.push(...data.segments.map((s: any) => ({
+            name: s.name,
+            value: s.share,
+            growth: s.growth
+          })));
+        }
+        if (data.sources) {
+          sources.push(...data.sources.map((s: any) => ({
+            name: s.title || 'Market Research',
+            description: s.snippet || 'Market size data source',
+            url: s.link,
+            reliability: 'medium' as const
+          })));
+        }
+        insights.push(
+          `TAM of $${metrics.tam || 0}M represents a significant opportunity`,
+          `Focus on capturing ${metrics.som || 0}M in the next 3 years`,
+          `Market growing at ${metrics.cagr || 15}% annually`
+        );
+        break;
+
+      case 'competition':
+        metrics.competition_level = data.level;
+        metrics.total_competitors = data.metrics?.total || 0;
+        metrics.direct_competitors = data.metrics?.direct || 0;
+        
+        if (data.competitors) {
+          chartData.push(...data.competitors.map((c: any, i: number) => ({
+            name: c.name,
+            value: 100 - (i * 15), // Mock market share
+            type: c.type
+          })));
+        }
+        
+        insights.push(...(data.insights || []));
+        break;
+
+      case 'growth_projections':
+        if (data.metrics) {
+          data.metrics.forEach((m: any) => {
+            const key = m.name.toLowerCase().replace(/ /g, '_');
+            metrics[key] = m.value;
+          });
+        }
+        
+        if (data.series) {
+          const series = data.series.find((s: any) => s.name === 'Base Case');
+          if (series) {
+            series.data.forEach((value: number, index: number) => {
+              chartData.push({
+                name: series.labels?.[index] || `Month ${index + 1}`,
+                value,
+                conservative: data.series.find((s: any) => s.name === 'Conservative')?.data[index],
+                aggressive: data.series.find((s: any) => s.name === 'Aggressive')?.data[index]
+              });
+            });
+          }
+        }
+        
+        insights.push(
+          'Growth trajectory shows strong momentum',
+          'Multiple expansion scenarios indicate scalability',
+          'Market conditions favor rapid growth'
+        );
+        break;
+
+      case 'reddit_sentiment':
+        metrics.sentiment_score = data.sentiment?.score || 0;
+        metrics.total_mentions = data.mentions || 0;
+        metrics.trending_score = data.trending || 0;
+        
+        if (data.posts) {
+          chartData.push(...data.posts.slice(0, 10).map((post: any) => ({
+            name: post.subreddit || 'reddit',
+            value: post.score || 0
+          })));
+        }
+        
+        insights.push(
+          `Community sentiment is ${data.sentiment?.label || 'neutral'}`,
+          `${data.mentions || 0} recent discussions found`,
+          'Reddit can be an early indicator of market interest'
+        );
+        
+        sources.push({
+          name: 'Reddit API',
+          description: 'Real-time community discussions and sentiment',
+          url: 'https://reddit.com',
+          reliability: 'medium' as const
+        });
+        break;
+
+      case 'google_trends':
+        metrics.search_interest = data.interest_over_time?.average || 0;
+        metrics.trend_direction = data.trend?.direction || 'stable';
+        
+        if (data.interest_over_time?.data) {
+          chartData.push(...data.interest_over_time.data.map((point: any) => ({
+            name: point.date,
+            value: point.value
+          })));
+        }
+        
+        insights.push(
+          `Search interest is ${data.trend?.direction || 'stable'}`,
+          'Google Trends shows market awareness levels',
+          'Higher search volume indicates growing demand'
+        );
+        
+        sources.push({
+          name: 'Google Trends',
+          description: 'Search interest and related queries',
+          url: 'https://trends.google.com',
+          reliability: 'high' as const
+        });
+        break;
+
+      default:
+        // Generic data processing
+        if (data.value) metrics.value = data.value;
+        if (data.trend) metrics.trend = data.trend;
+        if (data.items) {
+          chartData.push(...data.items.slice(0, 10).map((item: any) => ({
+            name: item.title || item.name,
+            value: item.value || Math.random() * 100
+          })));
+        }
     }
 
-    return (
-      <div className="space-y-4">
-        {/* Metrics Grid */}
-        {data.metrics && data.metrics.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            {data.metrics.slice(0, 4).map((metric: any, idx: number) => (
-              <MetricCard
-                key={idx}
-                label={metric.label}
-                value={metric.value}
-                change={metric.change}
-                icon={metric.icon}
-                trend={metric.trend}
-              />
-            ))}
-          </div>
-        )}
+    return { metrics, chartData, sources, insights };
+  };
 
-        {/* Chart Section */}
-        {data.chart && data.chart.data && data.chart.data.length > 0 && (
-          <div className="p-4 bg-muted/20 rounded-xl">
-            <h4 className="text-sm font-medium mb-3">{data.chart.title || 'Trend Analysis'}</h4>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={data.chart.data}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="label" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+  const { metrics, chartData, sources, insights } = processDataForExpandable();
 
-        {/* Segments or Categories */}
-        {data.segments && data.segments.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Key Segments</h4>
-            {data.segments.map((segment: any, idx: number) => (
-              <div key={idx} className="flex items-center justify-between p-2 bg-muted/20 rounded">
-                <span className="text-sm">{segment.name}</span>
-                <div className="flex items-center gap-2">
-                  <Progress value={segment.percentage} className="w-20 h-2" />
-                  <span className="text-xs font-medium">{segment.percentage}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+  // Determine explanations based on available metrics
+  const availableExplanations: Record<string, any> = {};
+  Object.keys(metrics).forEach(key => {
+    if (metricExplanations[key]) {
+      availableExplanations[key] = metricExplanations[key];
+    }
+  });
 
-        {/* Key Drivers */}
-        {data.drivers && data.drivers.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Growth Drivers</h4>
-            <div className="space-y-2">
-              {data.drivers.map((driver: any, idx: number) => (
-                <ListItem
-                  key={idx}
-                  title={driver.name}
-                  subtitle={driver.description}
-                  value={driver.impact}
-                  icon={TrendingUp}
-                  badge={driver.priority ? { 
-                    text: driver.priority, 
-                    variant: driver.priority === 'High' ? 'default' : 'secondary' 
-                  } : undefined}
-                />
-              ))}
+  // Default content rendering
+  const defaultRenderContent = () => {
+    if (!data) return null;
+
+    // Market Size specific rendering
+    if (tileType === 'market_size' && data.metrics) {
+      const tam = data.metrics.find((m: any) => m.name === 'TAM');
+      const sam = data.metrics.find((m: any) => m.name === 'SAM');
+      const som = data.metrics.find((m: any) => m.name === 'SOM');
+
+      return (
+        <div className="space-y-4">
+          {tam && (
+            <div>
+              <div className="text-2xl font-bold">${tam.value}M</div>
+              <div className="text-xs text-muted-foreground">Total Addressable Market</div>
             </div>
-          </div>
-        )}
-
-        {/* Milestones Timeline */}
-        {data.milestones && data.milestones.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Timeline</h4>
-            <div className="space-y-1">
-              {data.milestones.map((milestone: any, idx: number) => (
-                <div key={idx} className="flex items-center gap-2 p-2">
-                  <Calendar className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs">{milestone.date}</span>
-                  <span className="text-sm flex-1">{milestone.title}</span>
-                  {milestone.status && (
-                    <Badge variant={milestone.status === 'Completed' ? 'default' : 'outline'} className="text-xs">
-                      {milestone.status}
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Items List */}
-        {data.items && data.items.length > 0 && (
-          <div className="space-y-2">
-            {data.items.slice(0, 5).map((item: any, idx: number) => (
-              <ListItem
-                key={idx}
-                title={item.name || item.title}
-                subtitle={item.description}
-                value={item.value}
-                badge={item.category ? { text: item.category } : undefined}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Profit Insights */}
-        {data.profit_insights && (
-          <div className="p-4 bg-gradient-to-br from-green-500/10 to-green-500/5 rounded-xl border border-green-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-4 w-4 text-green-600" />
-              <h4 className="text-sm font-medium">Profitability Analysis</h4>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+          )}
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {sam && (
               <div>
-                <p className="text-xs text-muted-foreground">Margin</p>
-                <p className="text-lg font-bold text-green-600">{data.profit_insights.margin}%</p>
+                <div className="font-semibold">${sam.value}M</div>
+                <div className="text-xs text-muted-foreground">SAM</div>
               </div>
+            )}
+            {som && (
               <div>
-                <p className="text-xs text-muted-foreground">Break-even</p>
-                <p className="text-lg font-bold">{data.profit_insights.breakeven}</p>
+                <div className="font-semibold">${som.value}M</div>
+                <div className="text-xs text-muted-foreground">SOM</div>
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
+      );
+    }
 
-        {/* Action Button */}
-        {data && (
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowInsights(true)}
-              className="w-full"
+    // Competition specific rendering
+    if (tileType === 'competition' && data.level) {
+      return (
+        <div className="space-y-3">
+          <div>
+            <Badge 
+              variant={
+                data.level === 'Low' ? 'default' : 
+                data.level === 'Medium' ? 'secondary' : 
+                'destructive'
+              }
             >
-              <Sparkles className="mr-1 h-3 w-3" />
-              Analyze Insights
-            </Button>
+              {data.level} Competition
+            </Badge>
           </div>
+          {data.competitors && data.competitors.length > 0 && (
+            <div className="space-y-2">
+              {data.competitors.slice(0, 3).map((c: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span>{c.name}</span>
+                  <Badge variant="outline" className="text-xs">{c.type}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Growth projections specific rendering
+    if (tileType === 'growth_projections' && data.series) {
+      const baseCase = data.series.find((s: any) => s.name === 'Base Case');
+      if (baseCase && baseCase.data.length > 0) {
+        const growth = ((baseCase.data[baseCase.data.length - 1] - baseCase.data[0]) / baseCase.data[0]) * 100;
+        return (
+          <div className="space-y-3">
+            <div>
+              <div className="text-2xl font-bold">+{growth.toFixed(0)}%</div>
+              <div className="text-xs text-muted-foreground">Projected Growth</div>
+            </div>
+            <div className="h-20">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData.slice(0, 6)}>
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    // Reddit sentiment specific rendering
+    if (tileType === 'reddit_sentiment' && data.sentiment) {
+      return (
+        <div className="space-y-3">
+          <div>
+            <div className="text-2xl font-bold">{data.sentiment.score?.toFixed(1) || '0'}</div>
+            <div className="text-xs text-muted-foreground">Sentiment Score</div>
+          </div>
+          {data.posts && data.posts.length > 0 && (
+            <div className="space-y-1">
+              {data.posts.slice(0, 2).map((post: any, i: number) => (
+                <div key={i} className="text-xs text-muted-foreground truncate">
+                  r/{post.subreddit}: {post.title}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Generic fallback with proper data display
+    return (
+      <div className="space-y-3">
+        {/* Primary metric display */}
+        {(data.value !== undefined || data.metrics?.length > 0) && (
+          <div>
+            <div className="text-2xl font-bold">
+              {data.value || data.metrics?.[0]?.value || '—'}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {data.label || data.metrics?.[0]?.name || 'Primary Metric'}
+            </div>
+          </div>
+        )}
+
+        {/* Secondary metrics */}
+        {data.metrics && data.metrics.length > 1 && (
+          <div className="grid grid-cols-2 gap-2">
+            {data.metrics.slice(1, 3).map((metric: any, i: number) => (
+              <div key={i}>
+                <div className="text-sm font-medium">{metric.value}</div>
+                <div className="text-xs text-muted-foreground">{metric.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Simple list items */}
+        {data.items && data.items.length > 0 && (
+          <div className="space-y-1">
+            {data.items.slice(0, 2).map((item: any, i: number) => (
+              <div key={i} className="text-sm truncate">
+                {item.title || item.name}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.description && (
+          <p className="text-sm text-muted-foreground">{data.description}</p>
         )}
       </div>
     );
   };
 
-  const getDataSourceBadge = () => {
-    if (!data) return null;
-    
-    let source = 'API';
-    let variant: 'default' | 'secondary' | 'outline' = 'default';
-    
-    // Debug logging
-    console.log(`[${tileType}] Data source check:`, {
-      fromDatabase: data.fromDatabase,
-      fromCache: data.fromCache,
-      dataKeys: Object.keys(data),
-      user: user?.id,
-      session: currentSession?.id
-    });
-    
-    if (data?.fromDatabase) {
-      source = 'DB';
-      variant = 'default';
-      console.log(`[${tileType}] Using DB source`);
-    } else if (data?.fromCache) {
-      source = 'Cache';
-      variant = 'secondary';
-      console.log(`[${tileType}] Using Cache source`);
-    } else {
-      console.log(`[${tileType}] Using API source - fromApi:`, data?.fromApi);
+  const Icon = icon;
+  
+  // Determine chart type based on tile type
+  const getChartType = () => {
+    switch (tileType) {
+      case 'market_size': return 'pie';
+      case 'competition': return 'bar';
+      case 'growth_projections': return 'area';
+      case 'reddit_sentiment': return 'bar';
+      case 'google_trends': return 'line';
+      default: return 'line';
     }
-    
-    return (
-      <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
-        {source}
-      </Badge>
-    );
+  };
+
+  // Get data source indicator
+  const getDataSource = () => {
+    if (data?.fromDatabase) return 'Database';
+    if (data?.fromCache) return 'Cached';
+    return 'Live';
   };
 
   return (
     <>
-      <BaseTile
+      <ExpandableTile
         title={title}
-        icon={icon}
         description={description}
-        isLoading={isLoading}
-        error={error}
+        icon={<Icon className="h-5 w-5" />}
         data={data}
-        onLoad={loadData}
-        autoLoad={true}
+        chartData={chartData}
+        sources={sources}
+        metrics={metrics}
+        metricExplanations={availableExplanations}
+        insights={insights}
+        rawData={data}
+        chartType={getChartType()}
         className={className}
-        headerActions={getDataSourceBadge()}
+        loading={isLoading}
+        error={error ? String(error) : undefined}
+        quickInfo={`This tile shows ${title.toLowerCase()} data. Click to explore detailed metrics, calculations, and insights.`}
+        badge={
+          data ? {
+            label: getDataSource(),
+            variant: data.fromDatabase ? 'default' : data.fromCache ? 'secondary' : 'outline'
+          } : undefined
+        }
+        trend={
+          data?.trend ? {
+            value: data.trend,
+            label: 'vs last period',
+            positive: data.trend > 0
+          } : undefined
+        }
+        onExpand={() => {
+          console.log(`Expanding ${tileType} tile with data:`, data);
+        }}
       >
-        {renderBeautifulContent()}
-      </BaseTile>
+        {renderContent ? renderContent(data) : defaultRenderContent()}
+      </ExpandableTile>
 
       <TileInsightsDialog
         open={showInsights}
