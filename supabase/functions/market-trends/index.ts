@@ -1,8 +1,12 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -313,57 +317,46 @@ function processSerperData(data: any, query: string, location?: string) {
 
 async function fetchGDELTNews(query: string) {
   try {
-    // Encode the query properly and use a simpler search
-    const encodedQuery = encodeURIComponent(query.slice(0, 50)); // Limit query length
-    const end = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, ''); // 30 days instead of 365
-    
-    // Use simpler GDELT query format
-    const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=artlist&maxrecords=25&startdatetime=${start}000000&enddatetime=${end}235959&format=json`;
-    
-    console.log('[market-trends] Fetching GDELT data');
-    const res = await fetch(gdeltUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'PMFHub/1.0'
+    // Use internal gdelt-news edge function for robust parsing and sentiment
+    const end = new Date();
+    const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // last 30 days
+    const { data, error } = await supabase.functions.invoke('gdelt-news', {
+      body: {
+        query,
+        startDate: end.toISOString().slice(0, 10),
+        endDate: end.toISOString().slice(0, 10),
+        maxRecords: 100
       }
     });
-    
-    if (!res.ok) {
-      console.error('[market-trends] GDELT API error:', res.status);
+
+    if (error || !data || (data && (data as any).error)) {
+      console.error('[market-trends] gdelt-news error:', error || (data as any).error);
       return generateMockNewsData(query);
     }
-    
-    const text = await res.text();
-    
-    // Check if response is HTML error page
-    if (text.includes('<html') || text.startsWith('Your query') || text.startsWith('One or more')) {
-      console.error('[market-trends] GDELT returned HTML error page instead of JSON');
-      return generateMockNewsData(query);
-    }
-    
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (parseError) {
-      console.error('[market-trends] Failed to parse GDELT response as JSON');
-      return generateMockNewsData(query);
-    }
-    const articles = data.articles || [];
-    console.log('[market-trends] GDELT returned', articles.length, 'articles');
-    
-    // Generate weekly news volume series
+
+    const result: any = data;
+    const articles = (result.articles || []).map((a: any) => ({
+      title: a.title,
+      url: a.url,
+      domain: a.source,
+      seendate: a.publishedDate || a.published || new Date().toISOString()
+    }));
+
+    // Generate weekly news volume series from returned articles
     const series = generateNewsSeries(articles);
-    
-    // Calculate momentum
-    const recentAvg = series.data.slice(-4).reduce((a: number, b: number) => a + b, 0) / 4;
-    const baselineAvg = series.data.slice(0, 8).reduce((a: number, b: number) => a + b, 0) / 8;
+
+    // Calculate momentum vs. early baseline
+    const recentAvg = series.data.slice(-4).reduce((a: number, b: number) => a + b, 0) / Math.max(1, Math.min(4, series.data.slice(-4).length));
+    const baselineAvg = series.data.slice(0, 8).reduce((a: number, b: number) => a + b, 0) / Math.max(1, Math.min(8, series.data.slice(0, 8).length));
     const momentum = baselineAvg > 0 ? ((recentAvg - baselineAvg) / baselineAvg) * 100 : 0;
-    
+
+    const avgSentiment = typeof result?.sentiment?.average === 'number' ? result.sentiment.average : NaN;
+
     return {
       metrics: [
-        { name: 'News Volume', value: articles.length, unit: 'articles', explanation: 'Total news mentions', confidence: 0.9 },
-        { name: 'News Momentum', value: momentum.toFixed(1), unit: '%', explanation: 'vs 26-week baseline', confidence: 0.8 },
+        { name: 'News Volume', value: result.totalArticles || articles.length, unit: 'articles', explanation: 'Total news mentions', confidence: 0.9 },
+        { name: 'News Sentiment', value: Number.isFinite(avgSentiment) ? Number(avgSentiment.toFixed(2)) : 'N/A', unit: 'tone', explanation: 'Average GDELT tone (-10..10)', confidence: Number.isFinite(avgSentiment) ? 0.85 : 0 },
+        { name: 'News Momentum', value: Number(momentum.toFixed(1)), unit: '%', explanation: 'vs 26-week baseline', confidence: 0.8 },
         { name: 'Trend Direction', value: momentum > 10 ? 'up' : momentum < -10 ? 'down' : 'flat', unit: '', confidence: 0.75 }
       ],
       series: [{
@@ -373,19 +366,19 @@ async function fetchGDELTNews(query: string) {
       }],
       items: articles.slice(0, 3).map((article: any) => ({
         title: article.title || 'News Article',
-        snippet: `Published on ${article.seendate || new Date().toISOString()}`,
+        snippet: `Published on ${article.seendate}`,
         url: article.url,
         source: article.domain || 'News Source',
-        published: article.seendate || new Date().toISOString()
+        published: article.seendate
       })),
       citations: articles.slice(0, 2).map((article: any) => ({
         url: article.url,
         label: article.domain || 'GDELT',
-        published: article.seendate || new Date().toISOString()
+        published: article.seendate
       })),
       insights: [
-        `${articles.length} news articles found for "${query}"`,
-        `News momentum is ${momentum > 0 ? 'positive' : momentum < 0 ? 'negative' : 'neutral'}`
+        `${result.totalArticles || articles.length} news articles found for "${query}"`,
+        Number.isFinite(avgSentiment) ? `Average sentiment (tone): ${avgSentiment.toFixed(2)}` : 'Sentiment not available'
       ]
     };
   } catch (e) {
