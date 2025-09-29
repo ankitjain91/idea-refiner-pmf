@@ -191,7 +191,7 @@ export class DashboardDataFetcher {
 
     // Map card types to their respective edge functions
     const functionMap: Record<CardType, string> = {
-      'web-search': 'web-search-optimized',
+      'web-search': 'web-search',
       'news-analysis': 'gdelt-news',
       'reddit-sentiment': 'reddit-search',
       'youtube-analytics': 'youtube-search',

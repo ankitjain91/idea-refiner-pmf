@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { useToast } from '@/hooks/use-toast';
 import { InteractiveDataCard } from '@/components/dashboard/InteractiveDataCard';
+import { WebSearchCard } from '@/components/dashboard/WebSearchCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -350,6 +351,19 @@ export function IdeaAnalysisDashboard() {
           <TabsContent value={activeCategory} className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {visibleCards.map((config) => {
+                // Use WebSearchCard for web-search type, InteractiveDataCard for others
+                if (config.type === 'web-search') {
+                  return (
+                    <WebSearchCard
+                      key={config.type}
+                      idea={filters.idea_keywords}
+                      industry={filters.industry}
+                      geography={filters.geography}
+                      timeWindow={filters.time_window}
+                    />
+                  );
+                }
+                
                 return (
                   <InteractiveDataCard
                     key={config.type}

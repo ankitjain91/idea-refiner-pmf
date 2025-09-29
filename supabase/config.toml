@@ -301,6 +301,9 @@ verify_jwt = true
 [functions.gdelt-news]
 verify_jwt = false
 
+[functions.web-search]
+verify_jwt = false
+
 [functions.groq-synthesis]
 verify_jwt = true
 
