@@ -20,7 +20,7 @@ serve(async (req) => {
 
     console.log('[web-search-profitability] Processing query:', { idea, industry, geo });
 
-    const serpApiKey = Deno.env.get('SERPAPI_API_KEY');
+    const serperApiKey = Deno.env.get('SERPER_API_KEY');
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
@@ -29,7 +29,7 @@ serve(async (req) => {
     const query = `${idea} ${industry || ''} ${geo || ''} ${commercialTerms}`.trim();
     
     // ============================
-    // 1. Discovery Phase (ONE SerpApi call)
+    // 1. Discovery Phase (Serper API)
     // ============================
     let searchResults: any = null;
     let organicResults: any[] = [];
@@ -37,8 +37,8 @@ serve(async (req) => {
     let relatedQueries: string[] = [];
     let allCompetitors: Map<string, number> = new Map();
 
-    if (!serpApiKey) {
-      console.log('[web-search-profitability] No SerpApi key - using mock data');
+    if (!serperApiKey) {
+      console.log('[web-search-profitability] No Serper API key - using mock data');
       // Enhanced mock data for development
       searchResults = {
         organic_results: [
@@ -85,23 +85,46 @@ serve(async (req) => {
         ]
       };
     } else {
-      const params = new URLSearchParams({
-        engine: 'google',
+      const payload = {
         q: query,
-        num: '30', // Increased from 20 to get more results
-        api_key: serpApiKey,
         gl: geo === 'United States' ? 'us' : (geo?.toLowerCase().substring(0, 2) || 'us'),
-        hl: 'en'
+        num: 30
+      };
+
+      const serperResponse = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': serperApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
 
-      const serpResponse = await fetch(`https://serpapi.com/search?${params}`);
-      
-      if (!serpResponse.ok) {
-        console.error('[web-search-profitability] SerpApi error:', serpResponse.status);
-        throw new Error(`SerpApi returned ${serpResponse.status}`);
+      if (!serperResponse.ok) {
+        const errText = await serperResponse.text();
+        console.error('[web-search-profitability] Serper API error:', serperResponse.status, errText);
+        throw new Error(`Serper API error: ${serperResponse.status}`);
       }
 
-      searchResults = await serpResponse.json();
+      const data = await serperResponse.json();
+
+      // Normalize Serper response to our expected structure
+      searchResults = {
+        organic_results: (data.organic || []).map((o: any) => ({
+          title: o.title,
+          link: o.link,
+          snippet: o.snippet,
+        })),
+        ads: data.ads || [],
+        shopping_results: data.shopping || [],
+        inline_shopping: data.inlineShopping || [],
+        related_searches: (data.relatedSearches || []).map((q: any) =>
+          typeof q === 'string' ? { query: q } : { query: q?.query || '' }
+        ),
+        related_questions: (data.peopleAlsoAsk || []).map((p: any) => ({
+          question: p?.question || (typeof p === 'string' ? p : ''),
+        })),
+      };
     }
 
     // Extract comprehensive data from SerpApi results
@@ -372,7 +395,7 @@ serve(async (req) => {
         market_size_indicators: organicResults.filter(r => /market size|billion|million|users|customers/i.test(r.snippet)).slice(0, 3)
       },
       citations: [
-        { label: 'Google SERP (via SerpApi)', url: `https://www.google.com/search?q=${encodeURIComponent(query)}`, published: 'real-time' },
+        { label: 'Google SERP (via Serper)', url: `https://www.google.com/search?q=${encodeURIComponent(query)}`, published: 'real-time' },
         ...competitorEvidence.slice(0, 5).map(e => ({
           label: e.domain,
           url: e.url,
@@ -381,7 +404,7 @@ serve(async (req) => {
       ],
       insights: aiInsights,
       unmet_needs: unmetNeeds,
-      warnings: !serpApiKey ? ['Using mock data - SerpApi key required for real analysis'] : [],
+      warnings: !serperApiKey ? ['Using mock data - Serper API key required for real analysis'] : [],
       cost_estimate: {
         serp_calls: 1,
         firecrawl_urls: competitorEvidence.length,
