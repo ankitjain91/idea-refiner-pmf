@@ -359,7 +359,7 @@ export function IdeaAnalysisDashboard() {
           </TabsList>
 
           <TabsContent value={activeCategory} className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-6">
               {visibleCards.map((config) => {
                 // Use WebSearchCard for web-search type, InteractiveDataCard for others
                 if (config.type === 'web-search') {

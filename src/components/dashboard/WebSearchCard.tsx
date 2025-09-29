@@ -13,7 +13,7 @@ import useSWR from 'swr';
 import { 
   Search, TrendingUp, DollarSign, RefreshCw, ExternalLink, 
   ChevronRight, AlertCircle, Clock, Sparkles, Download, FileJson,
-  Target, ShoppingCart, HelpCircle, AlertTriangle
+  Target, ShoppingCart, HelpCircle, AlertTriangle, BarChart3, Users
 } from 'lucide-react';
 
 interface WebSearchCardProps {
@@ -215,16 +215,18 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Unloaded state
   if (!hasLoadedOnce) {
     return (
-      <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200">
-        <CardHeader className="pb-3">
+      <Card className="col-span-2 row-span-2 border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in bg-gradient-to-br from-card to-background">
+        <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 animate-scale-in">
+                <DollarSign className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">Web Search (Profitability)</CardTitle>
-                <CardDescription className="text-xs mt-1">
+                <CardTitle className="text-2xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Web Search (Profitability)
+                </CardTitle>
+                <CardDescription className="text-sm mt-1">
                   Analyze commercial intent & competition
                 </CardDescription>
               </div>
@@ -233,21 +235,29 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
         </CardHeader>
         <CardContent>
           {!actualIdea ? (
-            <div className="text-center py-4">
-              <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <div className="text-center py-8 animate-fade-in">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3 animate-pulse" />
               <p className="text-sm text-muted-foreground">
                 No idea configured. Please enter an idea first.
               </p>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 space-y-3">
-              <Target className="h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-12 space-y-4 animate-fade-in">
+              <div className="relative">
+                <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full animate-pulse" />
+                <Target className="h-16 w-16 text-primary relative" />
+              </div>
+              <p className="text-base text-muted-foreground font-medium">
                 Discover monetization opportunities
               </p>
-              <Button onClick={handleInitialLoad} variant="default" size="sm">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Load Data
+              <Button 
+                onClick={handleInitialLoad} 
+                variant="default" 
+                size="lg"
+                className="hover-scale bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Analyze Market Profitability
               </Button>
             </div>
           )}
@@ -259,30 +269,38 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Loading state
   if (isLoading && !data) {
     return (
-      <Card className="border-border/50 shadow-sm">
-        <CardHeader className="pb-3">
+      <Card className="col-span-2 row-span-2 border-border/50 shadow-lg bg-gradient-to-br from-card to-background animate-fade-in">
+        <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 animate-pulse">
+                <DollarSign className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-lg">Web Search (Profitability)</CardTitle>
-                <CardDescription className="text-xs mt-1">
+                <CardTitle className="text-2xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Web Search (Profitability)
+                </CardTitle>
+                <CardDescription className="text-sm mt-1">
                   Analyzing commercial signals...
                 </CardDescription>
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-8 w-32" />
+        <CardContent className="space-y-6">
+          <div className="flex gap-3">
+            <Skeleton className="h-10 w-36 rounded-lg" />
+            <Skeleton className="h-10 w-36 rounded-lg" />
+            <Skeleton className="h-10 w-36 rounded-lg" />
           </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
+          <div className="space-y-3">
+            <Skeleton className="h-6 w-full rounded-lg" />
+            <Skeleton className="h-6 w-3/4 rounded-lg" />
+            <Skeleton className="h-6 w-5/6 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
           </div>
         </CardContent>
       </Card>
@@ -292,27 +310,27 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Error state
   if (error && !data) {
     return (
-      <Card className="border-border/50 shadow-sm">
-        <CardHeader className="pb-3">
+      <Card className="col-span-2 row-span-2 border-destructive/20 shadow-lg bg-gradient-to-br from-destructive/5 to-background animate-fade-in">
+        <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertCircle className="h-4 w-4 text-destructive" />
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-destructive/10 animate-scale-in">
+                <AlertCircle className="h-6 w-6 text-destructive" />
               </div>
               <div>
-                <CardTitle className="text-lg">Web Search (Profitability)</CardTitle>
-                <CardDescription className="text-xs mt-1 text-destructive">
+                <CardTitle className="text-2xl">Web Search (Profitability)</CardTitle>
+                <CardDescription className="text-sm mt-1 text-destructive">
                   {error || 'Failed to load profitability data'}
                 </CardDescription>
               </div>
             </div>
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
+              size="default"
               onClick={handleRefresh}
-              className="h-8 px-2"
+              className="hover-scale"
             >
-              <RefreshCw className="h-3 w-3 mr-1" />
+              <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
           </div>
@@ -332,28 +350,30 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   return (
     <>
       <Card 
-        className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+        className="col-span-2 row-span-2 border-border/30 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-card via-card to-background/50 animate-fade-in group"
         onClick={() => setSheetOpen(true)}
       >
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-6">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 animate-scale-in group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
+                <DollarSign className="h-8 w-8 text-primary" />
               </div>
-              <div className="flex flex-col">
-                <CardTitle className="text-lg">Web Search (Profitability)</CardTitle>
-                <CardDescription className="text-xs mt-1">
-                  {totalDataPoints > 0 ? `${totalDataPoints} data points analyzed` : 'Commercial intent analysis'}
+              <div className="flex flex-col space-y-1">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Web Search (Profitability)
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  {totalDataPoints > 0 ? `${totalDataPoints} data points analyzed` : 'Commercial intent & competition analysis'}
                 </CardDescription>
                 {/* Cache/Fresh indicator */}
-                <div className="mt-1">
+                <div className="mt-2">
                   {data?.fromCache ? (
                     <Badge 
                       variant="secondary" 
-                      className="text-xs py-0 px-1.5 h-5 w-fit bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
+                      className="text-xs py-1 px-2 bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 text-yellow-700 dark:text-yellow-300"
                     >
-                      <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
+                      <div className="h-2 w-2 rounded-full bg-yellow-500 mr-1.5 animate-pulse" />
                       Cached • {(() => {
                         if (!data.cacheTimestamp) return 'cached';
                         const age = Date.now() - data.cacheTimestamp;
@@ -366,73 +386,82 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                   ) : (
                     <Badge 
                       variant="secondary" 
-                      className="text-xs py-0 px-1.5 h-5 w-fit bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                      className="text-xs py-1 px-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-700 dark:text-green-300"
                     >
-                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
+                      <div className="h-2 w-2 rounded-full bg-green-500 mr-1.5" />
                       Fresh data
                     </Badge>
                   )}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="default"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRefresh();
                 }}
                 disabled={isRefreshing}
-                className="h-8 px-2"
+                className="hover-scale"
               >
-                <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Metrics Badges - Show all 3 metrics */}
-          <div className="flex flex-wrap gap-2">
-            <Badge 
-              variant="secondary" 
-              className={`font-medium ${getIntensityColor(competitionIntensity)}`}
-            >
-              <TrendingUp className="h-3 w-3 mr-1" />
-              Competition: {competitionIntensity}
-            </Badge>
-            <Badge 
-              variant="secondary"
-              className={`font-medium ${getPotentialColor(monetizationPotential)}`}
-            >
-              <ShoppingCart className="h-3 w-3 mr-1" />
-              Monetization: {monetizationPotential}
-            </Badge>
+        <CardContent className="space-y-6">
+          {/* Metrics Cards - Beautiful grid */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className={`p-3 rounded-xl ${getIntensityColor(competitionIntensity)} backdrop-blur-sm border border-border/30 animate-scale-in`} style={{animationDelay: '100ms'}}>
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-xs font-semibold">Competition</span>
+              </div>
+              <div className="text-lg font-bold capitalize">{competitionIntensity}</div>
+            </div>
+            <div className={`p-3 rounded-xl ${getPotentialColor(monetizationPotential)} backdrop-blur-sm border border-border/30 animate-scale-in`} style={{animationDelay: '200ms'}}>
+              <div className="flex items-center gap-2 mb-1">
+                <ShoppingCart className="h-4 w-4" />
+                <span className="text-xs font-semibold">Monetization</span>
+              </div>
+              <div className="text-lg font-bold capitalize">{monetizationPotential}</div>
+            </div>
             {marketMaturity !== 'unknown' && (
-              <Badge 
-                variant="secondary"
-                className="font-medium text-muted-foreground"
-              >
-                Market: {marketMaturity}
-              </Badge>
+              <div className="p-3 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/30 animate-scale-in" style={{animationDelay: '300ms'}}>
+                <div className="flex items-center gap-2 mb-1">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground">Market</span>
+                </div>
+                <div className="text-lg font-bold capitalize text-muted-foreground">{marketMaturity}</div>
+              </div>
             )}
           </div>
 
-          {/* Top Commercial Queries Chips - Show more */}
+          {/* Top Commercial Queries - Beautiful tags */}
           {topQueries.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">
-                Top {topQueries.length} Money Keywords:
-              </p>
-              <div className="flex flex-wrap gap-1">
+            <div className="space-y-3 animate-fade-in" style={{animationDelay: '400ms'}}>
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">
+                  Top {topQueries.length} Money Keywords
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {topQueries.slice(0, 8).map((query: string, idx: number) => (
-                  <Badge key={idx} variant="outline" className="text-xs py-0.5">
+                  <Badge 
+                    key={idx} 
+                    variant="outline" 
+                    className="py-1 px-3 hover-scale cursor-pointer hover:bg-primary/10 transition-all"
+                    style={{animationDelay: `${500 + idx * 50}ms`}}
+                  >
                     {query.length > 30 ? query.substring(0, 30) + '...' : query}
                   </Badge>
                 ))}
                 {topQueries.length > 8 && (
-                  <Badge variant="outline" className="text-xs py-0.5">
+                  <Badge variant="secondary" className="py-1 px-3">
                     +{topQueries.length - 8} more
                   </Badge>
                 )}
@@ -440,13 +469,19 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
             </div>
           )}
 
-          {/* Price Ranges if available */}
+          {/* Price Ranges - Beautiful pricing display */}
           {marketInsights.pricing_ranges && marketInsights.pricing_ranges.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Market Pricing:</p>
-              <div className="flex flex-wrap gap-1">
+            <div className="space-y-3 animate-fade-in" style={{animationDelay: '600ms'}}>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <p className="text-sm font-semibold">Market Pricing</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {marketInsights.pricing_ranges.slice(0, 4).map((price: string, idx: number) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
+                  <Badge 
+                    key={idx} 
+                    className="py-1.5 px-3 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-700 dark:text-green-300 font-mono font-semibold"
+                  >
                     {price}
                   </Badge>
                 ))}
@@ -454,18 +489,24 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
             </div>
           )}
 
-          {/* Enhanced Competitor Table */}
+          {/* Enhanced Competitor Display */}
           {competitors.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">
-                Top {competitors.length} Competitors:
-              </p>
-              <div className="space-y-1 text-xs">
+            <div className="space-y-3 animate-fade-in" style={{animationDelay: '700ms'}}>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <p className="text-sm font-semibold">
+                  Top {competitors.length} Competitors
+                </p>
+              </div>
+              <div className="space-y-2">
                 {competitors.slice(0, 5).map((comp: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between">
-                    <span className="truncate flex-1">{comp.domain}</span>
-                    <Badge variant="outline" className="text-xs ml-2">
-                      {comp.appearances} mentions
+                  <div 
+                    key={idx} 
+                    className="flex items-center justify-between p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <span className="font-medium text-sm truncate flex-1">{comp.domain}</span>
+                    <Badge variant="secondary" className="ml-2">
+                      {comp.appearances} {comp.appearances === 1 ? 'mention' : 'mentions'}
                     </Badge>
                   </div>
                 ))}
@@ -473,19 +514,38 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
             </div>
           )}
 
-          {/* Results count and cost */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
-            <span>{data?.items?.length || 0} results analyzed</span>
+          {/* Bottom actions bar */}
+          <div className="flex items-center justify-between pt-4 border-t border-border/30">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {data?.items?.length || 0} results
+              </Badge>
+              {data?.cost_estimate && (
+                <Badge variant="outline" className="text-xs">
+                  Cost: {data.cost_estimate.total_api_cost}
+                </Badge>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs"
+              className="text-xs hover-scale"
               onClick={(e) => {
                 e.stopPropagation();
                 setAutoRefresh(autoRefresh === 'off' ? '15m' : 'off');
               }}
             >
-              Auto: {autoRefresh === 'off' ? '🔁 Off' : '🔁 15m'}
+              {autoRefresh === 'off' ? (
+                <>
+                  <Clock className="h-3 w-3 mr-1" />
+                  Enable Auto-refresh
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                  Auto-refresh: 15m
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
