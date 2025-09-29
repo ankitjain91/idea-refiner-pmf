@@ -279,36 +279,12 @@ export function DataTile({
     }
   }, [tileType, filters, persistTileData, persistComponentData]);
 
-  // Auto-refresh logic
+  // Auto-load data on mount
   useEffect(() => {
-    if (autoRefresh && hasLoadedOnce) {
-      // Set up countdown
-      countdownRef.current = setInterval(() => {
-        setRefreshCountdown(prev => {
-          if (prev <= 1) {
-            fetchData();
-            return refreshInterval;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      // Set up actual refresh interval
-      intervalRef.current = setInterval(() => {
-        fetchData();
-      }, refreshIntervalMs);
-
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (countdownRef.current) clearInterval(countdownRef.current);
-      };
-    } else {
-      // Clear intervals when auto-refresh is disabled
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      setRefreshCountdown(refreshInterval);
+    if (!hasLoadedOnce && !data) {
+      fetchData();
     }
-  }, [autoRefresh, fetchData, hasLoadedOnce, refreshInterval, refreshIntervalMs]);
+  }, [hasLoadedOnce, data, fetchData]);
 
   const renderMetrics = () => {
     if (!data?.metrics || data.metrics.length === 0) return null;
@@ -605,23 +581,6 @@ export function DataTile({
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          fetchData();
-                        }}
-                        disabled={loading}
-                        className="h-7 w-7 hover-scale"
-                      >
-                        <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Refresh</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
                           setShowDetails(true);
                         }}
                         className="h-7 w-7 hover-scale"
@@ -654,33 +613,7 @@ export function DataTile({
         </CardHeader>
         
         <CardContent className="flex-1 px-5 pb-5 pt-0 overflow-hidden">
-          {!hasLoadedOnce && !loading ? (
-            <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-fade-in">
-              <div className="relative">
-                <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full animate-pulse" />
-                <div className="p-6 rounded-full bg-gradient-to-br from-muted/40 to-muted/20 relative">
-                  <Database className="h-12 w-12 text-primary" />
-                </div>
-              </div>
-              <div className="text-center space-y-3">
-                <p className="text-base font-semibold">No data loaded</p>
-                <p className="text-sm text-muted-foreground">Click to load {title.toLowerCase()} data</p>
-                <Button onClick={fetchData} size="lg" disabled={loading} className="hover-scale bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Load Data
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          ) : loading ? (
+          {loading && !data ? (
             <div className="space-y-4 py-8 animate-fade-in">
               <Skeleton className="h-16 w-full rounded-xl" />
               <Skeleton className="h-16 w-full rounded-xl" />

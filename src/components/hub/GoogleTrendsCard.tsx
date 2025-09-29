@@ -104,6 +104,13 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   console.log('[GoogleTrendsCard] Simplified keywords for trends:', keywords);
   const geo = filters.geo || 'US';
   const timeWindow = filters.time_window || 'last_12_months';
+  
+  // Auto-load on mount
+  useEffect(() => {
+    if (!hasLoadedOnce && keywords.length > 0) {
+      setHasLoadedOnce(true);
+    }
+  }, [hasLoadedOnce, keywords]);
 
   // Analyze with Groq
   const analyzeWithGroq = async () => {

@@ -184,11 +184,12 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     }
   );
   
-  // Initial load handler
-  const handleInitialLoad = async () => {
-    setHasLoadedOnce(true);
-    // This will trigger the SWR hook to fetch data
-  };
+  // Auto-load on mount
+  useEffect(() => {
+    if (!hasLoadedOnce && filters?.idea_keywords?.length > 0) {
+      setHasLoadedOnce(true);
+    }
+  }, [hasLoadedOnce, filters?.idea_keywords]);
   
   // Manual refresh handler - bypasses cache
   const handleRefresh = async () => {
@@ -353,31 +354,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     );
   }
 
-  // Show Load Data button if not loaded once
-  if (!hasLoadedOnce) {
-    return (
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Market Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
-          <div className="text-center space-y-2">
-            <Globe className="h-12 w-12 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">
-              Analyze market trends and search patterns
-            </p>
-          </div>
-          <Button onClick={handleInitialLoad} variant="default">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Load Data
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (error) {
     return (
@@ -558,16 +534,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Show Load Data button if not loaded yet */}
-          {!hasLoadedOnce && !isLoading && (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <p className="text-sm text-muted-foreground">No data loaded</p>
-              <Button onClick={handleInitialLoad} variant="default">
-                <Search className="h-4 w-4 mr-2" />
-                Load Data
-              </Button>
-            </div>
-          )}
           
           {/* Dual-series chart */}
           {hasLoadedOnce && chartData.length > 0 && (

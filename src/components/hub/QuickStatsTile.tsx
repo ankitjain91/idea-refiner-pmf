@@ -150,6 +150,13 @@ export function QuickStatsTile({
     }
   }, [currentIdea, hasCheckedCache]);
 
+  // Auto-load data on mount if not already loaded
+  useEffect(() => {
+    if (!data && !loading && currentIdea) {
+      fetchData();
+    }
+  }, [data, loading, currentIdea]);
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -162,14 +169,10 @@ export function QuickStatsTile({
     
     if (!data) {
       return (
-        <Button 
-          size="sm" 
-          variant="outline"
-          onClick={() => fetchData()}
-          className="text-xs"
-        >
-          Load Data
-        </Button>
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-3 w-32" />
+        </div>
       );
     }
     
@@ -301,16 +304,6 @@ export function QuickStatsTile({
                 )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => fetchData(true)}
-              disabled={loading}
-              title="Refresh (limited to once per 10 minutes)"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            </Button>
           </div>
           
           {renderContent()}

@@ -8,7 +8,7 @@ import {
   Brain, TrendingUp, Globe2, Newspaper, MessageSquare, Youtube,
   Twitter, ShoppingBag, Users, Target, DollarSign, Rocket,
   BarChart3, AlertCircle, RefreshCw, Sparkles, Building2,
-  Calendar, Clock, Activity, Layers, Shield, Zap
+  Calendar, Clock, Activity, Layers, Shield, Zap, RotateCw
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -45,6 +45,7 @@ export default function EnterpriseHub() {
     time_window: 'last_12_months'
   });
   const [tilesKey, setTilesKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Get current idea from session or localStorage
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('currentIdea') || '';
@@ -150,6 +151,33 @@ export default function EnterpriseHub() {
     setTilesKey(prev => prev + 1);
   }, []);
 
+  // Global refresh function
+  const handleGlobalRefresh = () => {
+    setIsRefreshing(true);
+    
+    // Clear all cached data
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(key => {
+      if (key.includes('tile_cache_') || 
+          key.includes('tile_last_refresh_') ||
+          key.includes('trends_cache_') ||
+          key.includes('market_data_') ||
+          key.includes('reddit_sentiment_') ||
+          key.includes('web_search_') ||
+          key.includes('quick_stats_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Force refresh all tiles by changing key
+    setTilesKey(prev => prev + 1);
+    
+    // Reset refreshing state after a delay
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 2000);
+  };
+
   if (!currentIdea) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -199,27 +227,39 @@ export default function EnterpriseHub() {
               {currentIdea}
             </p>
           </div>
-          <Badge 
-            variant="secondary" 
-            className={cn(
-              "font-normal",
-              subscriptionTier === 'enterprise' 
-                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" 
-                : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
-            )}
-          >
-            {subscriptionTier === 'enterprise' ? (
-              <>
-                <Shield className="mr-1 h-3 w-3" />
-                Enterprise
-              </>
-            ) : (
-              <>
-                <Zap className="mr-1 h-3 w-3" />
-                Pro
-              </>
-            )}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGlobalRefresh}
+              disabled={isRefreshing}
+              className="gap-2"
+            >
+              <RotateCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "Refreshing..." : "Refresh All"}
+            </Button>
+            <Badge 
+              variant="secondary" 
+              className={cn(
+                "font-normal",
+                subscriptionTier === 'enterprise' 
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" 
+                  : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
+              )}
+            >
+              {subscriptionTier === 'enterprise' ? (
+                <>
+                  <Shield className="mr-1 h-3 w-3" />
+                  Enterprise
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-1 h-3 w-3" />
+                  Pro
+                </>
+              )}
+            </Badge>
+          </div>
         </div>
 
         {/* Key Metrics */}

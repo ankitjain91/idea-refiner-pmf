@@ -96,6 +96,13 @@ export function EnhancedDataTile({
     }
   }, [tileType, filters, fetchAdapter, loading]);
 
+  // Auto-load data on mount
+  useEffect(() => {
+    if (!data && !loading && !hasInitialized) {
+      fetchData();
+    }
+  }, [data, loading, hasInitialized, fetchData]);
+
   const renderBeautifulContent = () => {
     if (!data) return null;
 
@@ -421,15 +428,6 @@ export function EnhancedDataTile({
               <Icon className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">{title}</CardTitle>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => fetchData(true)}
-              disabled={loading}
-            >
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            </Button>
           </div>
           {description && (
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
@@ -441,37 +439,6 @@ export function EnhancedDataTile({
             <div className="space-y-3">
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
-            </div>
-          ) : !hasInitialized ? (
-            <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-fade-in">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/30 blur-3xl animate-pulse" />
-                <Database className="h-16 w-16 text-primary relative z-10" />
-              </div>
-              <div className="text-center space-y-2">
-                <h3 className="font-semibold text-lg">Ready to Load Data</h3>
-                <p className="text-sm text-muted-foreground max-w-[250px]">
-                  Click the button below to fetch real-time data for this analysis
-                </p>
-              </div>
-              <Button 
-                onClick={() => fetchData()} 
-                disabled={loading}
-                size="lg"
-                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                {loading ? (
-                  <>
-                    <Database className="mr-2 h-5 w-5 animate-spin" />
-                    Loading Data...
-                  </>
-                ) : (
-                  <>
-                    <Database className="mr-2 h-5 w-5" />
-                    Load Data
-                  </>
-                )}
-              </Button>
             </div>
           ) : error ? (
             <Alert variant="destructive">
@@ -494,15 +461,6 @@ export function EnhancedDataTile({
               >
                 <Sparkles className="mr-1 h-3 w-3" />
                 Analyze
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchData(true)}
-                disabled={loading}
-              >
-                <RefreshCw className={cn("mr-1 h-3 w-3", loading && "animate-spin")} />
-                Refresh
               </Button>
             </div>
           )}
