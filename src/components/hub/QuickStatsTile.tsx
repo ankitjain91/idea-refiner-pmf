@@ -119,8 +119,9 @@ export function QuickStatsTile({
     }
   };
 
+  // Don't auto-load - user must click Load Data button
   useEffect(() => {
-    // Auto-fetch on mount if idea exists and not already loaded
+    // Check cache only when idea changes
     if (currentIdea && !hasCheckedCache) {
       setHasCheckedCache(true);
       
@@ -136,16 +137,8 @@ export function QuickStatsTile({
         if (cacheAge < ONE_HOUR) {
           setData(parsedCache.data);
           setLastRefresh(new Date(parsedCache.timestamp));
-          return;
         }
       }
-      
-      // If no valid cache, fetch fresh data
-      // Stagger the requests slightly to avoid overwhelming the API
-      const delay = tileType === 'pmf_score' ? 1000 : Math.random() * 500;
-      setTimeout(() => {
-        fetchData();
-      }, delay);
     }
   }, [currentIdea, hasCheckedCache]);
 
@@ -160,7 +153,16 @@ export function QuickStatsTile({
     }
     
     if (!data) {
-      return null; // Data will auto-load
+      return (
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => fetchData()}
+          className="text-xs"
+        >
+          Load Data
+        </Button>
+      );
     }
     
     switch (tileType) {
