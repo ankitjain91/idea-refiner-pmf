@@ -608,40 +608,24 @@ function generateMockTrendsData(query: string) {
 }
 
 function generateMockNewsData(query: string, location?: string) {
-  // Generate estimated news data as fallback
-  const estimatedVolume = Math.floor(Math.random() * 20 + 5);
-  const estimatedSentiment = (Math.random() * 2 - 1).toFixed(1); // -1 to 1
-  const estimatedMomentum = (Math.random() * 20 - 10).toFixed(1); // -10 to 10
-  
-  // Generate a simple trend series
-  const weeks = 12;
-  const baseVolume = 10;
-  const data = [];
-  const labels = [];
-  
-  for (let i = 0; i < weeks; i++) {
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - ((weeks - i - 1) * 7));
-    labels.push(weekStart.toISOString());
-    data.push(Math.floor(baseVolume + Math.random() * 5 + (i * 0.5)));
-  }
-  
+  // Return error state instead of mock data
   return {
+    error: true,
     metrics: [
-      { name: 'News Volume', value: estimatedVolume, unit: 'articles (est)', explanation: 'Estimated news mentions', confidence: 0.3 },
-      { name: 'News Sentiment', value: estimatedSentiment, unit: '', explanation: 'Estimated sentiment', confidence: 0.3 },
-      { name: 'News Momentum', value: estimatedMomentum, unit: '%', explanation: 'Estimated trend', confidence: 0.3 }
+      { name: 'News Volume', value: 'Unavailable', unit: '', explanation: 'Unable to fetch data', confidence: 0 },
+      { name: 'News Sentiment', value: 'N/A', unit: '', explanation: 'Data not available', confidence: 0 },
+      { name: 'News Momentum', value: 'N/A', unit: '', explanation: 'Data not available', confidence: 0 }
     ],
     series: [{
       name: 'news_volume',
-      data: data,
-      labels: labels  
+      data: [],
+      labels: []  
     }],
     items: [],
     citations: [],
     insights: [
-      'Using estimated data due to API limitations',
-      location ? `Showing estimates for ${location}` : 'Regional news data estimated'
+      'Unable to fetch live news data',
+      'GDELT API is temporarily unavailable'
     ]
   };
 }
