@@ -350,28 +350,28 @@ export function DataTile({
   return (
     <>
       <Card 
-        className={cn("h-full flex flex-col hover:shadow-lg transition-all duration-200 border-border/50", className)}
+        className={cn("col-span-2 row-span-2 h-full flex flex-col hover:shadow-2xl transition-all duration-300 border-border/30 shadow-lg bg-gradient-to-br from-card via-card to-background/50 animate-fade-in group", className)}
       >
-        <CardHeader className="pb-4 px-4 pt-4">
+        <CardHeader className="pb-6 px-6 pt-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Icon className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-3">
+              <div className="p-4 bg-gradient-to-br from-primary/25 to-primary/10 rounded-2xl animate-scale-in group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
+                <Icon className="h-6 w-6 text-primary" />
               </div>
-              <div className="space-y-0.5">
-                <CardTitle className="text-base font-semibold leading-none">{title}</CardTitle>
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">{title}</CardTitle>
                 {description && (
-                  <p className="text-xs text-muted-foreground">{description}</p>
+                  <p className="text-sm text-muted-foreground">{description}</p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {lastRefresh && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span className="hidden sm:inline">{lastRefresh.toLocaleTimeString()}</span>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded-lg">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline font-medium">{lastRefresh.toLocaleTimeString()}</span>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -384,15 +384,15 @@ export function DataTile({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowInsights(true);
                         }}
-                        className="h-7 w-7"
+                        className="h-8 w-8 hover-scale"
                       >
-                        <HelpCircle className="h-3.5 w-3.5" />
+                        <HelpCircle className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>How this helps your journey</TooltipContent>
@@ -400,16 +400,16 @@ export function DataTile({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           fetchData();
                         }}
                         disabled={loading}
-                        className="h-7 w-7"
+                        className="h-8 w-8 hover-scale"
                       >
-                        <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Refresh data</TooltipContent>
@@ -417,15 +417,15 @@ export function DataTile({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowDetails(true);
                         }}
-                        className="h-7 w-7"
+                        className="h-8 w-8 hover-scale"
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
+                        <ExternalLink className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>View details</TooltipContent>
@@ -435,15 +435,15 @@ export function DataTile({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       setExpanded(!expanded);
                     }}
-                    className="h-7 w-7"
+                    className="h-8 w-8 hover-scale"
                   >
-                    {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{expanded ? 'Collapse' : 'Expand'}</TooltipContent>
@@ -452,24 +452,27 @@ export function DataTile({
           </div>
         </CardHeader>
         
-        <CardContent className="flex-1 px-4 pb-4 pt-0">
+        <CardContent className="flex-1 px-6 pb-6 pt-0">
           {!hasLoadedOnce && !loading ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <div className="p-4 rounded-full bg-muted/20">
-                <Database className="h-8 w-8 text-muted-foreground/60" />
+            <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-fade-in">
+              <div className="relative">
+                <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full animate-pulse" />
+                <div className="p-6 rounded-full bg-gradient-to-br from-muted/40 to-muted/20 relative">
+                  <Database className="h-12 w-12 text-primary" />
+                </div>
               </div>
-              <div className="text-center space-y-2">
-                <p className="text-sm font-medium">No data loaded</p>
-                <p className="text-xs text-muted-foreground">Click to load {title.toLowerCase()} data</p>
-                <Button onClick={fetchData} size="sm" disabled={loading} variant="secondary">
+              <div className="text-center space-y-3">
+                <p className="text-base font-semibold">No data loaded</p>
+                <p className="text-sm text-muted-foreground">Click to load {title.toLowerCase()} data</p>
+                <Button onClick={fetchData} size="lg" disabled={loading} className="hover-scale bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
                   {loading ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Loading...
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                      <RefreshCw className="h-4 w-4 mr-2" />
                       Load Data
                     </>
                   )}
@@ -477,10 +480,10 @@ export function DataTile({
               </div>
             </div>
           ) : loading ? (
-            <div className="space-y-3 py-4">
-              <Skeleton className="h-12 w-full rounded-lg" />
-              <Skeleton className="h-12 w-full rounded-lg" />
-              <Skeleton className="h-8 w-3/4 rounded-lg" />
+            <div className="space-y-4 py-8 animate-fade-in">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-12 w-3/4 rounded-xl" />
             </div>
           ) : error || (data as any)?.error ? (
             <div className="py-4">
