@@ -123,7 +123,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const ideaText = actualIdea;
   
   // Include viewMode in cache key to refetch when switching modes
-  const cacheKey = ideaText && hasLoadedOnce ? `market-trends:${ideaText}:${viewMode}` : null;
+  const cacheKey = hasLoadedOnce && ideaText ? `market-trends:${ideaText}:${viewMode}` : null;
   
   const { data, error, isLoading, mutate } = useSWR<TrendsData>(
     cacheKey,
@@ -325,26 +325,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     }
   };
 
-  if (isLoading && !data) {
-    return (
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Market Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-48 w-full" />
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (!ideaText) {
     return (
       <Card className={cn("h-full", className)}>
@@ -366,7 +346,33 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
     );
   }
 
-  if (error || (!data && !isLoading)) {
+  // Show Load Data button if not loaded once
+  if (!hasLoadedOnce) {
+    return (
+      <Card className={cn("h-full", className)}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Market Trends
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
+          <div className="text-center space-y-2">
+            <Globe className="h-12 w-12 text-muted-foreground mx-auto" />
+            <p className="text-sm text-muted-foreground">
+              Analyze market trends and search patterns
+            </p>
+          </div>
+          <Button onClick={handleInitialLoad} variant="default">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Load Data
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
     return (
       <Card className={cn("h-full", className)}>
         <CardHeader>
@@ -386,13 +392,27 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             <RefreshCw className="h-3.5 w-3.5 mr-2" />
             Retry
           </Button>
-          {!filters.idea_keywords?.length && (
-            <Alert className="mt-4">
-              <AlertDescription>
-                Tip: Make sure you have an active idea configured
-              </AlertDescription>
-            </Alert>
-          )}
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Show loading state only when actually fetching
+  if (isLoading && !data) {
+    return (
+      <Card className={cn("h-full", className)}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Market Trends
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-48 w-full" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
         </CardContent>
       </Card>
     );
