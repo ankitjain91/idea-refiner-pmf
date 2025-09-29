@@ -44,9 +44,12 @@ interface ProfitabilityData {
     snippet: string;
     url: string;
     source: string;
+    domain?: string;
     evidence: string[];
     prices?: string[];
     hasPricing?: boolean;
+    hasFreeTier?: boolean;
+    features?: string[];
   }>;
   competitors: Array<{
     domain: string;
@@ -65,6 +68,16 @@ interface ProfitabilityData {
     serp_calls: number;
     firecrawl_urls: number;
     total_api_cost: string;
+  };
+  market_insights?: {
+    pricing_ranges?: string[];
+    common_features?: string[];
+    market_size_indicators?: Array<{
+      position: number;
+      title: string;
+      snippet: string;
+      snippet_highlighted_words?: string[];
+    }>;
   };
   fromCache?: boolean;
   cacheTimestamp?: number;
@@ -279,8 +292,8 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   const competitionIntensity = data?.metrics?.[0] || { name: 'Competition Intensity', value: 'unknown', explanation: '' };
   const monetizationPotential = data?.metrics?.[1] || { name: 'Monetization Potential', value: 'unknown', explanation: '' };
   const marketMaturity = data?.metrics?.[2] || { name: 'Market Maturity', value: 'unknown', explanation: '' };
-  const topQueries = data?.top_queries || [];
-  const competitors = data?.competitors || [];
+  const topQueries = Array.isArray(data?.top_queries) ? data.top_queries : [];
+  const competitors = Array.isArray(data?.competitors) ? data.competitors : [];
 
   return (
     <>
@@ -391,7 +404,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
           </div>
 
           {/* Top Search Queries */}
-          {topQueries.length > 0 && (
+          {topQueries && topQueries.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Top Search Queries</p>
               <div className="flex flex-wrap gap-1.5">
@@ -413,6 +426,33 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                   </Badge>
                 )}
               </div>
+            </div>
+          )}
+          
+          {/* Market Insights Preview */}
+          {data?.insights && (
+            <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+              <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                Market Insights
+              </p>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {typeof data.insights === 'object' ? 
+                  (data.insights.marketGap || data.insights.insight || JSON.stringify(data.insights).slice(0, 100)) :
+                  String(data.insights).slice(0, 100)}
+              </p>
+            </div>
+          )}
+          
+          {/* Cost Estimate */}
+          {data?.cost_estimate && (
+            <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">API Cost</span>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {data.cost_estimate.total_api_cost}
+              </Badge>
             </div>
           )}
 
@@ -582,51 +622,208 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
             </TabsContent>
 
             <TabsContent value="insights" className="space-y-4 mt-4">
-              {data?.items && data.items.length > 0 ? (
-                <ScrollArea className="h-[500px]">
-                  <div className="space-y-4">
-                    {data.items.map((item, idx) => (
-                      <div key={idx} className="p-4 border rounded-lg">
-                        <h4 className="font-semibold mb-2">{item.title}</h4>
-                        <p className="text-sm text-muted-foreground mb-3">{item.snippet}</p>
-                        {item.evidence && Array.isArray(item.evidence) && item.evidence.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs font-medium mb-1">Key Evidence:</p>
-                            <ul className="space-y-1">
-                              {item.evidence.map((ev, eidx) => (
-                                <li key={eidx} className="text-xs text-muted-foreground flex items-start gap-1">
-                                  <span>•</span>
-                                  <span>{ev}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+              <ScrollArea className="h-[600px]">
+                <div className="space-y-4">
+                  {/* Market Insights Analysis */}
+                  {data?.insights && (
+                    <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                      <h4 className="font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        AI Market Analysis
+                      </h4>
+                      <div className="space-y-3">
+                        {typeof data.insights === 'object' ? (
+                          <>
+                            {data.insights.marketGap && (
+                              <div className="p-3 bg-background rounded-lg">
+                                <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Market Gap</p>
+                                <p className="text-sm">{data.insights.marketGap}</p>
+                              </div>
+                            )}
+                            {data.insights.pricingStrategy && (
+                              <div className="p-3 bg-background rounded-lg">
+                                <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">Pricing Strategy</p>
+                                <p className="text-sm">{data.insights.pricingStrategy}</p>
+                              </div>
+                            )}
+                            {data.insights.insight && (
+                              <div className="p-3 bg-background rounded-lg">
+                                <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">Key Insight</p>
+                                <p className="text-sm">{data.insights.insight}</p>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm">{String(data.insights)}</p>
                         )}
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs">
-                            {item.source}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(item.url, '_blank')}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                        </div>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    No detailed insights available.
-                  </AlertDescription>
-                </Alert>
-              )}
+                    </div>
+                  )}
+
+                  {/* Market Size Indicators */}
+                  {data?.market_insights?.market_size_indicators && data.market_insights.market_size_indicators.length > 0 && (
+                    <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                      <h4 className="font-semibold text-purple-700 dark:text-purple-300 mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Market Size Indicators
+                      </h4>
+                      <div className="space-y-2">
+                        {data.market_insights.market_size_indicators.slice(0, 5).map((indicator: any, idx: number) => (
+                          <div key={idx} className="p-3 bg-background rounded-lg">
+                            <div className="flex items-start justify-between mb-1">
+                              <h5 className="font-medium text-sm line-clamp-1">{indicator.title}</h5>
+                              <Badge variant="outline" className="text-xs ml-2">
+                                #{indicator.position}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{indicator.snippet}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pricing Ranges */}
+                  {data?.market_insights?.pricing_ranges && data.market_insights.pricing_ranges.length > 0 && (
+                    <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                      <h4 className="font-semibold text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        Market Pricing Ranges
+                      </h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        {data.market_insights.pricing_ranges.map((price: string, idx: number) => (
+                          <div key={idx} className="p-2 bg-background rounded-lg text-center">
+                            <p className="font-semibold text-green-600 dark:text-green-400">{price}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Search Results / Items */}
+                  {data?.items && data.items.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Search className="h-4 w-4" />
+                        Search Results ({data.items.length})
+                      </h4>
+                      {data.items.map((item, idx) => (
+                        <div key={idx} className="p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                          <div className="flex items-start justify-between mb-2">
+                            <h5 className="font-semibold text-sm flex-1">{item.title}</h5>
+                            <Badge variant="outline" className="text-xs ml-2">
+                              {item.domain || item.source || 'Web'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-3">{item.snippet}</p>
+                          
+                          {/* Prices if available */}
+                          {item.prices && Array.isArray(item.prices) && item.prices.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium mb-1">Pricing Found:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {item.prices.map((price, pidx) => (
+                                  <Badge key={pidx} variant="secondary" className="text-xs">
+                                    {price}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Features if available */}
+                          {item.features && Array.isArray(item.features) && item.features.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium mb-1">Features:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {item.features.map((feature: string, fidx: number) => (
+                                  <Badge key={fidx} variant="outline" className="text-xs">
+                                    {feature}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Evidence */}
+                          {item.evidence && Array.isArray(item.evidence) && item.evidence.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium mb-1">Key Evidence:</p>
+                              <ul className="space-y-0.5">
+                                {item.evidence.slice(0, 3).map((ev, eidx) => (
+                                  <li key={eidx} className="text-xs text-muted-foreground flex items-start gap-1">
+                                    <span className="mt-0.5">•</span>
+                                    <span>{ev}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex gap-2">
+                              {item.hasPricing && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <DollarSign className="h-3 w-3 mr-0.5" />
+                                  Has Pricing
+                                </Badge>
+                              )}
+                              {item.hasFreeTier && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Free Tier
+                                </Badge>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(item.url, '_blank');
+                              }}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Unmet Needs */}
+                  {data?.unmet_needs && Array.isArray(data.unmet_needs) && data.unmet_needs.length > 0 && (
+                    <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                      <h4 className="font-semibold text-amber-700 dark:text-amber-300 mb-3 flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        Unmet Needs & Opportunities
+                      </h4>
+                      <ul className="space-y-2">
+                        {data.unmet_needs.map((need, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <Sparkles className="h-3 w-3 mt-0.5 text-amber-600 dark:text-amber-400" />
+                            <span className="text-sm">{need}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {data?.warnings && Array.isArray(data.warnings) && data.warnings.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <ul className="space-y-1 mt-2">
+                          {data.warnings.map((warning, idx) => (
+                            <li key={idx} className="text-xs">{warning}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </ScrollArea>
             </TabsContent>
 
             <TabsContent value="sources" className="space-y-4 mt-4">
