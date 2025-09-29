@@ -197,7 +197,33 @@ export function EnhancedDataTile({
     setError(null);
     
     try {
-      // Check database cache first
+      // 1. Check localStorage cache first (fastest)
+      const lsCacheKey = `tile-${tileType}-${ideaText}`;
+      const cachedLocalData = localStorage.getItem(lsCacheKey);
+      
+      if (cachedLocalData && !isRefreshing) {
+        try {
+          const parsed = JSON.parse(cachedLocalData);
+          const cacheAge = Date.now() - parsed.timestamp;
+          const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+          
+          if (cacheAge < CACHE_DURATION) {
+            setData({
+              ...parsed.data,
+              fromCache: true,
+              fromDatabase: false,
+              fromApi: false,
+              cacheTimestamp: parsed.timestamp
+            });
+            setIsLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing localStorage cache:', e);
+        }
+      }
+      
+      // 2. Check database cache (if user is logged in)
       if (user && !isRefreshing) {
         const dbData = await dashboardDataService.getData({
           userId: user.id,
@@ -211,14 +237,28 @@ export function EnhancedDataTile({
           const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
           
           if (cacheAge < CACHE_DURATION) {
-            setData({ ...dbData, fromCache: true, cacheTimestamp: new Date(dbData.timestamp).getTime() });
+            const dataWithSource = { 
+              ...dbData, 
+              fromCache: false,
+              fromDatabase: true,
+              fromApi: false,
+              cacheTimestamp: new Date(dbData.timestamp).getTime() 
+            };
+            
+            // Also update localStorage
+            localStorage.setItem(lsCacheKey, JSON.stringify({
+              data: dataWithSource,
+              timestamp: Date.now()
+            }));
+            
+            setData(dataWithSource);
             setIsLoading(false);
             return;
           }
         }
       }
       
-      // Fetch fresh data
+      // 3. Fetch fresh data from API
       const response = await fetchAdapter(filters);
       
       if (!response) {
@@ -228,6 +268,14 @@ export function EnhancedDataTile({
       // Transform and save data
       const transformedData = transformToStandardFormat(tileType, response);
       
+      // Save to localStorage cache
+      const storageCacheKey = `tile-${tileType}-${ideaText}`;
+      localStorage.setItem(storageCacheKey, JSON.stringify({
+        data: transformedData,
+        timestamp: Date.now()
+      }));
+      
+      // Save to database if user is logged in
       if (transformedData && user) {
         await dashboardDataService.saveData(
           {
@@ -263,8 +311,15 @@ export function EnhancedDataTile({
       insights: response?.insights || [],
       items: response?.items || [],
       fromCache: false,
+      fromDatabase: false,
+      fromApi: true, // Default to API if it's a fresh fetch
       stale: false
     };
+
+    // Check data source flags
+    if (response?.fromCache) standardData.fromCache = true;
+    if (response?.fromDatabase) standardData.fromDatabase = true;
+    if (response?.fromApi) standardData.fromApi = true;
 
     // Add metric info to each metric
     if (standardData.metrics && metricInfoMap[type]) {
@@ -288,6 +343,9 @@ export function EnhancedDataTile({
   // Manual refresh handler
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    // Clear localStorage cache to force fresh fetch
+    const cacheKeyToRemove = `tile-${tileType}-${ideaText}`;
+    localStorage.removeItem(cacheKeyToRemove);
     try {
       await fetchData();
     } finally {
@@ -405,12 +463,39 @@ export function EnhancedDataTile({
               {title}
             </CardTitle>
             <div className="flex items-center gap-2">
-              {data?.fromCache && (
-                <Badge variant="outline" className="text-xs border-primary/20 bg-primary/5">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Cached
-                </Badge>
-              )}
+              {/* Data Source Badge - Always visible */}
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs font-semibold",
+                  data?.fromDatabase ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                  data?.fromCache ? "border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400" :
+                  data?.fromApi ? "border-violet-500/50 bg-violet-500/10 text-violet-600 dark:text-violet-400" :
+                  "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                )}
+              >
+                {data?.fromDatabase ? (
+                  <>
+                    <Activity className="h-3 w-3 mr-1" />
+                    Database
+                  </>
+                ) : data?.fromCache ? (
+                  <>
+                    <Clock className="h-3 w-3 mr-1" />
+                    Cached
+                  </>
+                ) : data?.fromApi ? (
+                  <>
+                    <Zap className="h-3 w-3 mr-1" />
+                    Live API
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Loading
+                  </>
+                )}
+              </Badge>
               <Button
                 onClick={handleRefresh}
                 variant="ghost"
