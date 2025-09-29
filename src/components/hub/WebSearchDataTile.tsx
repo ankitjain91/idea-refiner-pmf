@@ -43,7 +43,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
   const cacheKey = actualIdea ? `web-search-profitability:${actualIdea}:${industry}:${geography}` : null;
 
   const { data, error, isLoading, mutate } = useSWR(
-    cacheKey,
+    hasLoadedOnce ? cacheKey : null,
     async () => {
       // Cache -> DB -> API loading order
       if (user?.id) {

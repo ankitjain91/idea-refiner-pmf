@@ -17,7 +17,7 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
-    const { searchResults, pageContent, tileType, filters, marketTrendsData } = await req.json();
+    const { searchResults, pageContent, tileType, filters, marketTrendsData, redditData, webSearchData } = await req.json();
     
     // Handle market trends analysis request
     if (marketTrendsData) {
@@ -105,10 +105,81 @@ Return a JSON object with this structure:
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    // Handle Reddit data analysis
+    if (redditData) {
+      console.log('Analyzing Reddit data for business insights');
+      
+      const systemPrompt = `You are a business intelligence analyst specializing in Reddit sentiment analysis and market validation.`;
+      
+      const userPrompt = `
+Analyze this Reddit sentiment data for "${redditData.idea}" and provide actionable business insights.
+
+Reddit Data:
+- Sentiment: ${redditData.sentiment.positive}% positive, ${redditData.sentiment.neutral}% neutral, ${redditData.sentiment.negative}% negative
+- Mentions: ${redditData.mentions}
+- Engagement: ${redditData.engagement.upvotes} upvotes, ${redditData.engagement.comments} comments
+- Top Subreddits: ${redditData.topSubreddits?.join(', ') || 'N/A'}
+- Trending Topics: ${redditData.trendingTopics?.join(', ') || 'N/A'}
+- Key Insights: ${redditData.insights?.join('. ') || 'N/A'}
+
+Provide a JSON response with:
+{
+  "insights": ["actionable insight 1", "actionable insight 2", "actionable insight 3"],
+  "marketValidation": "assessment of market validation based on sentiment",
+  "communityStrategy": "recommendations for engaging with the community",
+  "risks": ["potential risk 1", "potential risk 2"],
+  "opportunities": ["business opportunity 1", "business opportunity 2"],
+  "nextSteps": ["immediate action 1", "immediate action 2"]
+}`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.4,
+          max_tokens: 1500,
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Groq API error for Reddit analysis:', error);
+        throw new Error(`Groq API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const analysis = JSON.parse(data.choices[0].message.content);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          insights: analysis.insights || [],
+          marketValidation: analysis.marketValidation || '',
+          communityStrategy: analysis.communityStrategy || '',
+          risks: analysis.risks || [],
+          opportunities: analysis.opportunities || [],
+          nextSteps: analysis.nextSteps || [],
+          usage: {
+            model: 'llama-3.1-8b-instant',
+            tokens: data.usage?.total_tokens || 0
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
-    // Original search results synthesis logic
+    // Original validation and search results logic
     if (!searchResults && !pageContent) {
-      throw new Error('Either searchResults or pageContent is required');
+      throw new Error('Either searchResults, pageContent, redditData, or webSearchData is required');
     }
 
     console.log('Groq synthesis for tile:', tileType);

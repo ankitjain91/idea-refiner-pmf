@@ -68,7 +68,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
   const cacheKey = actualIdea ? `reddit-sentiment:${actualIdea}:${industry}:${geography}:${timeWindow}` : null;
 
   const { data, error, isLoading, mutate } = useSWR<RedditData>(
-    cacheKey,
+    hasLoadedOnce ? cacheKey : null,
     async () => {
       // Cache -> DB -> API loading order
       if (user?.id) {
