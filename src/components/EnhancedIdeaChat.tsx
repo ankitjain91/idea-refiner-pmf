@@ -1336,126 +1336,134 @@ const ChatMessageItem = useMemo(() => {
     const keysToRemove = [
       // Chat and idea related
       'enhancedIdeaChatMessages',
-      'currentIdea',
-      'wrinklePoints',
-      'conversationHistory',
-      'ideaMetadata',
-      'userIdea',
-      'pmf.user.idea',
-      'pmf.user.answers',
-      'pmf.analysis.completed',
-      'pmf.score',
-      'pmf.ideaMetadata',
-      'analysisCompleted',
-      
-      // Dashboard related
-      'dashboardValidation',
-      'dashboardAccessGrant',
-      'showAnalysisDashboard',
-      'currentTab',
-      'dashboardIdea',
-      'dashboardConversationHistory',
-      
-      // Analysis related
-      'analysisResults',
+      'pmfCurrentIdea',
       'pmfScore',
-      'userRefinements',
       'pmfFeatures',
       'pmfTabHistory',
+      'pmfUserIdea',
+      'pmfAnalysisData',
+      'userIdea',
+      'currentIdea',
+      'ideaText',
+      'ideaInput',
+      'ideaMetadata',
+      'ideaChatAnswers',
+      'ideaDescription',
+      'market_size_value',
+      'competition_value',
+      'sentiment_value',
+      'smoothBrainsScore',
+      
+      // Session related  
+      'currentSessionId',
+      'currentSession',
+      
+      // User progress
+      'userAnswers',
+      'hasAnalyzed',
+      'analysisCompleted',
+      'analysisInProgress',
+      'hasCompletedOnboarding',
       
       // UI state
+      'expandedSections',
+      'activeTab',
       'pmf.ui.returnToChat',
+      'insightsExpanded',
+      'promptHistory',
       
-      // Clear ALL localStorage keys that start with LS_KEYS values
-      LS_KEYS.userIdea,
-      LS_KEYS.ideaMetadata,
-      LS_KEYS.analysisCompleted,
-      LS_KEYS.pmfScore,
+      // Chat metadata
+      'streamlinedProgress',
+      'streamlinedMessages',
+      'streamlinedIdeas',
+      
+      // Wrinkling system
+      'wrinkleLevel',
+      'wrinklePoints',
+      'wrinkleHistory',
+      'accumulatedWrinkles',
+      
+      // Dashboard tiles cache - clear all tile caches
+      ...Array.from({ length: 10 }, (_, i) => [
+        `tile_cache_pmf-score_`,
+        `tile_cache_market-size_`,
+        `tile_cache_competition_`,
+        `tile_cache_sentiment_`,
+        `tile_last_refresh_pmf-score_`,
+        `tile_last_refresh_market-size_`,
+        `tile_last_refresh_competition_`,
+        `tile_last_refresh_sentiment_`,
+      ]).flat()
     ];
     
-    // Remove all generic keys
-    keysToRemove.forEach(key => {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {
-        console.error(`Failed to remove ${key}:`, e);
-      }
-    });
-    
-    // Clear session storage for dashboard
-    sessionStorage.removeItem('dashboardKeywords');
-    sessionStorage.removeItem('dashboardIdeaSource');
-    
-    // Remove ALL session-specific data for the current session
-    const sid = currentSession?.id;
-    if (sid) {
-      // Get all localStorage keys and remove any that contain this session ID
-      const allKeys = Object.keys(localStorage);
-      allKeys.forEach(key => {
-        if (key.includes(sid) || key.includes(`session_${sid}`)) {
-          try {
-            localStorage.removeItem(key);
-          } catch (e) {
-            console.error(`Failed to remove session key ${key}:`, e);
-          }
-        }
-      });
-    }
-    
-    // Also clear any keys that start with 'session_' to be thorough
+    // Clear all localStorage keys that match patterns
     const allKeys = Object.keys(localStorage);
     allKeys.forEach(key => {
-      if (key.startsWith('session_') || 
-          key.includes('dashboard') || 
-          key.includes('analysis') || 
+      // Remove if it matches any of our patterns
+      if (keysToRemove.some(pattern => key.includes(pattern)) ||
           key.includes('pmf') ||
           key.includes('idea') ||
-          key.includes('wrinkle') ||
-          key.includes('ideaSummaryName')) {
+          key.includes('session') ||
+          key.includes('tile_cache') ||
+          key.includes('tile_last_refresh') ||
+          key.includes('analysis') ||
+          key.includes('wrinkle')) {
         try {
           localStorage.removeItem(key);
-        } catch (e) {
-          console.error(`Failed to remove key ${key}:`, e);
+        } catch (err) {
+          console.warn(`Failed to clear ${key}:`, err);
         }
       }
     });
+    
+    // Clear sessionStorage as well
+    try {
+      sessionStorage.clear();
+    } catch (err) {
+      console.warn('Failed to clear sessionStorage:', err);
+    }
     
     // Dispatch event to notify other components
     window.dispatchEvent(new CustomEvent('session:fullReset'));
+    
+    // If we're on the dashboard, reload the page to ensure clean state
+    const currentPath = window.location.pathname;
+    if (currentPath === '/dashboard' || currentPath === '/') {
+      // Small delay to ensure storage is cleared before reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      return; // Exit early since page will reload
+    }
     
     // Fetch new random ideas for the reset
     const randomIdeas = await fetchRandomIdeas();
     const suggestions = randomIdeas && randomIdeas.length > 0 
       ? randomIdeas.slice(0, 4)
       : [
-          "AI-powered tool that predicts customer churn before it happens",
-          "Marketplace connecting retired experts with startups needing advisors",
-          "Automated compliance checker for SaaS companies entering new markets",
-          "Platform that turns customer feedback into actionable product roadmaps"
-        ];
+        "AI-powered personal nutritionist app",
+        "Sustainable packaging marketplace", 
+        "Virtual interior design assistant",
+        "Peer-to-peer skill sharing platform"
+      ];
     
-    const welcomeMessage: Message = {
+    setMessages([{
       id: 'welcome',
       type: 'bot',
-      content: `🧠 Fresh session! Share your startup idea and I'll help you maximize its profitability through strategic analysis and market insights.
-
-Focus on: WHO has WHAT problem and your solution approach.`,
+      content: `Welcome to SmoothBrains advisor! I'm here to help transform your startup idea into reality. 🚀\n\nI'll guide you through analyzing your concept, understanding your market, and developing a solid strategy.`,
       timestamp: new Date(),
       suggestions
-    };
+    }]);
     
-    setMessages([welcomeMessage]);
-    setInput('');
-    setIsTyping(false);
-    setConversationStarted(false);
-    setIsRefining(false);
     setCurrentIdea('');
     setIdeaSummaryName('');
+    setIsTyping(false);
+    setInput('');
     setWrinklePoints(0);
     setHasValidIdea(false);
     setAnonymous(false);
     setOffTopicAttempts(0);
-      onReset?.();
+    onReset?.();
   }, [onReset, fetchRandomIdeas, anonymous]);
   
   // Add retry handler for failed messages
