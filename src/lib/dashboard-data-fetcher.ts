@@ -57,21 +57,21 @@ export type CardType =
   | 'user-engagement'
   | 'launch-timeline';
 
-// TTL configuration in minutes (24 hours = 1440 minutes for all cards)
+// TTL configuration in minutes (7 days = 10080 minutes for all cards)
 const TTL_CONFIG: Record<CardType, number> = {
-  'web-search': 1440,          // 24 hours (1 day)
-  'news-analysis': 1440,       // 24 hours (1 day)
-  'reddit-sentiment': 1440,    // 24 hours (1 day)
-  'youtube-analytics': 1440,   // 24 hours (1 day)
-  'twitter-buzz': 1440,        // 24 hours (1 day)
-  'amazon-reviews': 1440,      // 24 hours (1 day)
-  'competitor-analysis': 1440, // 24 hours (1 day)
-  'target-audience': 1440,     // 24 hours (1 day)
-  'pricing-strategy': 1440,    // 24 hours (1 day)
-  'market-size': 1440,         // 24 hours (1 day)
-  'growth-projections': 1440,  // 24 hours (1 day)
-  'user-engagement': 1440,     // 24 hours (1 day)
-  'launch-timeline': 1440,     // 24 hours (1 day)
+  'web-search': 10080,          // 7 days
+  'news-analysis': 10080,       // 7 days
+  'reddit-sentiment': 10080,    // 7 days
+  'youtube-analytics': 10080,   // 7 days
+  'twitter-buzz': 10080,        // 7 days
+  'amazon-reviews': 10080,      // 7 days
+  'competitor-analysis': 10080, // 7 days
+  'target-audience': 10080,     // 7 days
+  'pricing-strategy': 10080,    // 7 days
+  'market-size': 10080,         // 7 days
+  'growth-projections': 10080,  // 7 days
+  'user-engagement': 10080,     // 7 days
+  'launch-timeline': 10080,     // 7 days
 };
 
 export class DashboardDataFetcher {
