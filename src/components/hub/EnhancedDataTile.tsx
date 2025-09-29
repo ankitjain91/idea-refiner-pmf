@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   RefreshCw, AlertCircle, Clock, Sparkles, ChevronRight,
-  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle, Database
+  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -247,16 +247,13 @@ export function EnhancedDataTile({
             </div>
           ) : !hasInitialized ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-2">
-                Ready to fetch real-time data
-              </p>
+              <p className="text-sm text-muted-foreground">No data yet</p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => fetchData()}
-                className="gap-2"
+                className="mt-2"
               >
-                <Database className="h-4 w-4" />
                 Load Data
               </Button>
             </div>
