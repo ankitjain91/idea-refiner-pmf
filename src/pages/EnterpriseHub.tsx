@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { supabase } from "@/integrations/supabase/client";
-import { GlobalFilters } from "@/components/hub/GlobalFilters";
+
 import { DataTile } from "@/components/hub/DataTile";
 import { EnhancedDataTile } from "@/components/hub/EnhancedDataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
@@ -85,11 +85,6 @@ export default function EnterpriseHub() {
     );
   }
 
-  const handleRefreshAll = async () => {
-    setLoading(true);
-    // Trigger refresh logic here
-    setTimeout(() => setLoading(false), 2000);
-  };
 
   const tiles = [
     { id: 'marketTrends', title: 'Market Trends', icon: TrendingUp, tileType: 'market_trends', span: 'col-span-2' },
@@ -120,32 +115,11 @@ export default function EnterpriseHub() {
             Real-time data for: <span className="font-medium text-foreground">{currentIdea}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary" className="px-3 py-1">
-            {subscriptionTier === 'enterprise' ? '🏢 Enterprise' : '🚀 Pro'}
-          </Badge>
-          <Button 
-            onClick={handleRefreshAll}
-            disabled={loading}
-            size="sm"
-            variant="outline"
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh All
-          </Button>
-        </div>
+        <Badge variant="secondary" className="px-3 py-1">
+          {subscriptionTier === 'enterprise' ? '🏢 Enterprise' : '🚀 Pro'}
+        </Badge>
       </div>
 
-      {/* Global Filters */}
-      <Card className="p-4">
-        <GlobalFilters 
-          currentFilters={filters} 
-          onFiltersChange={setFilters}
-          onExport={() => console.log('Export data')}
-          onRefresh={handleRefreshAll}
-        />
-      </Card>
 
       {/* Quick Stats - Updated with real-time data */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
