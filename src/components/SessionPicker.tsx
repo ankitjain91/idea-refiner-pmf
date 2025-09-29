@@ -203,81 +203,91 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
         >
         <div className="space-y-6">
           {/* Create New Session */}
-          {!showCreateForm ? (
-            <Button 
-              onClick={() => setShowCreateForm(true)}
-              className="w-full"
-              size="lg"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create New Session
-            </Button>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Create New Session</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter session name..."
-                    value={newSessionName}
-                    onChange={(e) => setNewSessionName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleCreateSession();
-                      if (e.key === 'Escape') {
+          <div className="relative min-h-[60px]">
+            {!showCreateForm ? (
+              <div className="animate-fade-in">
+                <Button 
+                  onClick={() => setShowCreateForm(true)}
+                  className="w-full transition-all duration-300 hover:scale-[1.02]"
+                  size="lg"
+                >
+                  <Plus className="h-5 w-5 mr-2 transition-transform duration-300 group-hover:rotate-90" />
+                  Create New Session
+                </Button>
+              </div>
+            ) : (
+              <div className="animate-fade-in">
+                <Card className="transition-all duration-300 border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Create New Session</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex gap-2 animate-scale-in" style={{ animationDelay: '50ms' }}>
+                      <Input
+                        placeholder="Enter session name..."
+                        value={newSessionName}
+                        onChange={(e) => setNewSessionName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleCreateSession();
+                          if (e.key === 'Escape') {
+                            setShowCreateForm(false);
+                            setNewSessionName('');
+                          }
+                        }}
+                        autoFocus
+                        className="transition-all duration-200 focus:scale-[1.01]"
+                      />
+                      <Button 
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setNewSessionName(generateFunName())}
+                        title="Generate AI name"
+                        className="transition-all duration-200 hover:rotate-12"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        onClick={handleCreateSession}
+                        disabled={!newSessionName.trim() || isCreating}
+                        className="transition-all duration-200"
+                      >
+                        {isCreating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                        Create
+                      </Button>
+                    </div>
+                    <div className="flex items-center space-x-2 animate-scale-in" style={{ animationDelay: '100ms' }}>
+                      <Checkbox 
+                        id="anonymous" 
+                        checked={isAnonymous}
+                        onCheckedChange={(checked) => setIsAnonymous(checked === true)}
+                        className="transition-all duration-200"
+                      />
+                      <label htmlFor="anonymous" className="text-sm text-muted-foreground cursor-pointer transition-colors duration-200 hover:text-foreground">
+                        Create as anonymous (won't be saved to your account)
+                      </label>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
                         setShowCreateForm(false);
                         setNewSessionName('');
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <Button 
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setNewSessionName(generateFunName())}
-                    title="Generate AI name"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    onClick={handleCreateSession}
-                    disabled={!newSessionName.trim() || isCreating}
-                  >
-                    {isCreating ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}
-                    Create
-                  </Button>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="anonymous" 
-                    checked={isAnonymous}
-                    onCheckedChange={(checked) => setIsAnonymous(checked === true)}
-                  />
-                  <label htmlFor="anonymous" className="text-sm text-muted-foreground">
-                    Create as anonymous (won't be saved to your account)
-                  </label>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setNewSessionName('');
-                    setIsAnonymous(false);
-                  }}
-                  className="w-full"
-                >
-                  Cancel
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+                        setIsAnonymous(false);
+                      }}
+                      className="w-full transition-all duration-200 hover:bg-muted/50"
+                    >
+                      Cancel
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
 
           {/* Divider with OR */}
           {sessions.length > 0 && (
