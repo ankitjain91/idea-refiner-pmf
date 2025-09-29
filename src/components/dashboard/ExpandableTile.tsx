@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, Maximize2, Info } from 'lucide-react';
+import { Brain, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AITileDialog } from './AITileDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -76,11 +76,9 @@ export function ExpandableTile({
     <>
       <Card
         className={cn(
-          'relative transition-all duration-200 hover:shadow-lg',
-          expandable && 'cursor-pointer hover:scale-[1.02]',
+          'relative transition-all duration-200',
           className
         )}
-        onClick={expandable && !loading ? handleExpand : undefined}
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -119,18 +117,27 @@ export function ExpandableTile({
                   {badge.label}
                 </Badge>
               )}
-              {expandable && !loading && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleExpand();
-                  }}
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </Button>
+              {expandable && !loading && !error && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-primary/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExpand();
+                        }}
+                      >
+                        <Brain className="h-4 w-4 text-primary" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">AI Deep Dive Analysis</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </div>
@@ -172,23 +179,6 @@ export function ExpandableTile({
               )}
               
               {children}
-              
-              {expandable && !loading && (
-                <div className="flex items-center justify-end mt-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleExpand();
-                    }}
-                  >
-                    View Details
-                    <ChevronRight className="h-3 w-3 ml-1" />
-                  </Button>
-                </div>
-              )}
             </>
           )}
         </CardContent>
