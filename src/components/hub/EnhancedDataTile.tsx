@@ -1,373 +1,498 @@
-import { useState, useCallback } from 'react';
-import { BaseTile, MetricCard, ListItem, useTileData } from './BaseTile';
-import { TileInsightsDialog } from './TileInsightsDialog';
+import { useState, useCallback, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Sparkles, TrendingUp, TrendingDown, Target, DollarSign, Calendar, Users, ArrowUpRight, ArrowDownRight, Minus, ChevronRight, Activity, Zap, BarChart3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { 
+  RefreshCw, AlertCircle, ExternalLink, Clock, HelpCircle, Info,
+  TrendingUp, TrendingDown, Minus, CheckCircle, Newspaper,
+  Globe, Target, DollarSign, BarChart3, Activity, Sparkles
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { TileInsightsDialog } from './TileInsightsDialog';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
-import { motion } from 'framer-motion';
+import { dashboardDataService } from '@/lib/dashboard-data-service';
 
 interface EnhancedDataTileProps {
   title: string;
-  icon: any;
+  icon: React.ElementType;
   tileType: string;
   filters: any;
+  className?: string;
   description?: string;
   fetchAdapter: (filters: any) => Promise<any>;
-  renderContent?: (data: any) => React.ReactNode;
-  className?: string;
+  currentIdea?: string;
 }
 
-const chartColors = {
-  primary: 'hsl(var(--primary))',
-  secondary: 'hsl(var(--secondary))',
-  accent: 'hsl(var(--accent))',
-  success: 'hsl(var(--success))',
-  warning: 'hsl(var(--warning))',
-  destructive: 'hsl(var(--destructive))'
+interface MetricInfo {
+  calculation: string;
+  impact: string;
+  target: string;
+  action: string;
+}
+
+const metricInfoMap: Record<string, Record<string, MetricInfo>> = {
+  market_size: {
+    'TAM': {
+      calculation: "Total Addressable Market = Total market demand × Average price point",
+      impact: "Defines the maximum revenue opportunity if you captured 100% market share",
+      target: "TAM > $1B indicates a large scalable opportunity",
+      action: "Use TAM to justify investment and show growth potential to stakeholders"
+    },
+    'SAM': {
+      calculation: "Serviceable Addressable Market = TAM × Geographic reach × Product fit percentage",
+      impact: "Realistic market you can serve with current business model",
+      target: "SAM should be 10-40% of TAM for focused go-to-market",
+      action: "Target SAM segments first before expanding to full TAM"
+    },
+    'SOM': {
+      calculation: "Serviceable Obtainable Market = SAM × Realistic market share (2-5% for new entrants)",
+      impact: "Achievable revenue in next 3-5 years with current resources",
+      target: "SOM > $10M validates initial market viability",
+      action: "Set revenue targets based on SOM and work backwards to customer acquisition"
+    }
+  },
+  growth_projections: {
+    'Growth Rate': {
+      calculation: "Year-over-year growth = ((Current - Previous) / Previous) × 100",
+      impact: "Indicates market momentum and timing opportunity",
+      target: ">20% YoY suggests high growth market",
+      action: "High growth = aggressive expansion; Low growth = focus on differentiation"
+    },
+    'Market Maturity': {
+      calculation: "Based on adoption curve position and competitor density",
+      impact: "Determines strategy: education vs competition vs disruption",
+      target: "Early/Growth stage markets offer best entry opportunities",
+      action: "Early stage = educate market; Mature = differentiate or disrupt"
+    }
+  },
+  pmf_score: {
+    'PMF Score': {
+      calculation: "Weighted average of: Market demand (40%) + Competition (20%) + Sentiment (20%) + Growth (20%)",
+      impact: "Predicts likelihood of achieving product-market fit",
+      target: ">70% indicates strong PMF potential",
+      action: "Score <40%: Pivot idea; 40-70%: Refine positioning; >70%: Accelerate development"
+    }
+  },
+  sentiment: {
+    'Sentiment Score': {
+      calculation: "Positive mentions / Total mentions × Sentiment strength factor",
+      impact: "Indicates market receptiveness and pain point severity",
+      target: ">60% positive sentiment shows market need",
+      action: "Use negative feedback to improve product; positive to guide messaging"
+    }
+  }
 };
 
-const getTrendIcon = (trend?: string) => {
-  if (!trend) return <Minus className="h-3 w-3 text-muted-foreground" />;
-  if (trend === 'up') return <ArrowUpRight className="h-3 w-3 text-success" />;
-  if (trend === 'down') return <ArrowDownRight className="h-3 w-3 text-destructive" />;
-  return <Minus className="h-3 w-3 text-muted-foreground" />;
-};
+export function EnhancedDataTile({ 
+  title, 
+  icon: Icon, 
+  tileType, 
+  filters,
+  className,
+  description,
+  fetchAdapter,
+  currentIdea
+}: EnhancedDataTileProps) {
+  const [data, setData] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSources, setShowSources] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
+  
+  // Get the current idea
+  const ideaText = currentIdea || 
+    filters?.idea_keywords?.join(' ') || 
+    (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
 
-const formatMetricValue = (value: any, unit?: string) => {
-  if (typeof value === 'number') {
+  // Fetch data function
+  const fetchData = useCallback(async () => {
+    if (!ideaText) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Check database cache first
+      if (user && !isRefreshing) {
+        const dbData = await dashboardDataService.getData({
+          userId: user.id,
+          ideaText,
+          tileType,
+          sessionId: currentSession?.id
+        });
+        
+        if (dbData) {
+          const cacheAge = dbData.timestamp ? Date.now() - new Date(dbData.timestamp).getTime() : Infinity;
+          const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+          
+          if (cacheAge < CACHE_DURATION) {
+            setData({ ...dbData, fromCache: true, cacheTimestamp: new Date(dbData.timestamp).getTime() });
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+      
+      // Fetch fresh data
+      const response = await fetchAdapter(filters);
+      
+      if (!response) {
+        throw new Error('No data received');
+      }
+      
+      // Transform and save data
+      const transformedData = transformToStandardFormat(tileType, response);
+      
+      if (transformedData && user) {
+        await dashboardDataService.saveData(
+          {
+            userId: user.id,
+            ideaText,
+            tileType,
+            sessionId: currentSession?.id
+          },
+          transformedData,
+          30 // 30 minutes expiration
+        );
+      }
+      
+      setData(transformedData);
+    } catch (err) {
+      console.error(`Error fetching ${tileType} data:`, err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [ideaText, tileType, filters, isRefreshing, fetchAdapter, user, currentSession]);
+
+  // Transform response to standard format
+  const transformToStandardFormat = useCallback((type: string, response: any): any => {
+    const now = new Date().toISOString();
+    
+    // Base structure
+    let standardData = {
+      ...response,
+      updatedAt: response?.updatedAt || now,
+      filters,
+      metrics: response?.metrics || [],
+      insights: response?.insights || [],
+      items: response?.items || [],
+      fromCache: false,
+      stale: false
+    };
+
+    // Add metric info to each metric
+    if (standardData.metrics && metricInfoMap[type]) {
+      standardData.metrics = standardData.metrics.map((metric: any) => ({
+        ...metric,
+        info: metricInfoMap[type][metric.name] || metricInfoMap[type][metric.label]
+      }));
+    }
+
+    return standardData;
+  }, [filters]);
+
+  // Auto-load on mount
+  useEffect(() => {
+    if (!hasLoadedOnce && ideaText) {
+      setHasLoadedOnce(true);
+      fetchData();
+    }
+  }, [hasLoadedOnce, ideaText, fetchData]);
+
+  // Manual refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const formatCurrency = (value: number): string => {
     if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
     if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
     if (value >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
-    return unit ? `${value}${unit}` : value.toLocaleString();
-  }
-  return value;
-};
+    return `$${value}`;
+  };
 
-export function EnhancedDataTile({
-  title,
-  icon: Icon,
-  tileType,
-  filters,
-  description,
-  fetchAdapter,
-  renderContent,
-  className
-}: EnhancedDataTileProps) {
-  const [showInsights, setShowInsights] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<number | null>(null);
-  const { user } = useAuth();
-  const { currentSession } = useSession();
+  const getTrendIcon = () => {
+    const trend = data?.metrics?.find((m: any) => m.trend)?.trend;
+    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-500" />;
+    if (trend === 'down') return <TrendingDown className="h-4 w-4 text-red-500" />;
+    return <Minus className="h-4 w-4 text-yellow-500" />;
+  };
 
-  const fetchTileData = useCallback(async () => {
-    try {
-      const result = await fetchAdapter(filters);
-      return result;
-    } catch (error) {
-      console.error(`Error fetching ${tileType} data:`, error);
-      throw error;
-    }
-  }, [tileType, filters, fetchAdapter]);
-
-  const { data, isLoading, error, loadData } = useTileData(fetchTileData, [filters], {
-    tileType: tileType,
-    useDatabase: true,
-    cacheMinutes: 30
-  });
-
-  const renderBeautifulContent = () => {
-    if (!data) return null;
-
-    // Custom render function provided
-    if (renderContent) {
-      return renderContent(data);
-    }
-
+  // Loading state
+  if (isLoading && !data) {
     return (
-      <div className="space-y-4">
-        {/* Enhanced Metrics Grid with Animations */}
-        {data.metrics && data.metrics.length > 0 && (
+      <Card className={cn("h-full", className)}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Icon className="h-5 w-5" />
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-48 w-full" />
           <div className="grid grid-cols-2 gap-3">
-            {data.metrics.map((metric: any, idx: number) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                onClick={() => setSelectedMetric(selectedMetric === idx ? null : idx)}
-                className={cn(
-                  "relative p-4 rounded-xl cursor-pointer transition-all duration-300",
-                  "bg-gradient-to-br from-card to-card/50 border border-border/50",
-                  "hover:border-primary/30 hover:shadow-glow-primary",
-                  selectedMetric === idx && "ring-2 ring-primary/50 border-primary/50"
-                )}
-              >
-                {/* Background Pattern */}
-                <div className="absolute inset-0 rounded-xl opacity-5">
-                  <div className="absolute inset-0 bg-gradient-mesh" />
-                </div>
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-2">
+  // Error state
+  if (error) {
+    return (
+      <Card className={cn("h-full", className)}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Icon className="h-5 w-5" />
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleRefresh} className="mt-4" variant="outline" size="sm">
+            <RefreshCw className="h-3.5 w-3.5 mr-2" />
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No idea state
+  if (!ideaText) {
+    return (
+      <Card className={cn("h-full", className)}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Icon className="h-5 w-5" />
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No idea configured. Please enter an idea in the Idea Chat first.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card className={cn("h-full", className)}>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Icon className="h-5 w-5" />
+              {title}
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {data?.fromCache && (
+                <Badge variant="outline" className="text-xs">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Cached
+                </Badge>
+              )}
+              <Button
+                onClick={handleRefresh}
+                variant="ghost"
+                size="sm"
+                disabled={isRefreshing}
+                className="h-8 px-2"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+              </Button>
+            </div>
+          </div>
+          {description && (
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          )}
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          {/* Metrics with Info Tooltips */}
+          {data?.metrics && data.metrics.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              {data.metrics.map((metric: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="relative p-4 rounded-xl bg-muted/10 border border-border/50 hover:border-primary/30 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-2">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {metric.label || metric.name}
                     </span>
-                    {getTrendIcon(metric.trend)}
+                    {metric.info && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                            <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm p-4 space-y-2">
+                          <div>
+                            <p className="font-semibold text-xs mb-1">How it's calculated:</p>
+                            <p className="text-xs text-muted-foreground">{metric.info.calculation}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-xs mb-1">Impact on your goal:</p>
+                            <p className="text-xs text-muted-foreground">{metric.info.impact}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-xs mb-1">Target benchmark:</p>
+                            <p className="text-xs text-muted-foreground">{metric.info.target}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-xs mb-1">Recommended action:</p>
+                            <p className="text-xs text-muted-foreground">{metric.info.action}</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
                   
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                      {formatMetricValue(metric.value, metric.unit)}
+                    <span className="text-2xl font-bold">
+                      {typeof metric.value === 'number' ? formatCurrency(metric.value) : metric.value}
                     </span>
                     {metric.change && (
                       <Badge 
                         variant={metric.trend === 'up' ? 'default' : 'secondary'}
-                        className={cn(
-                          "text-xs h-5",
-                          metric.trend === 'up' ? "bg-success/10 text-success border-success/20" : 
-                          metric.trend === 'down' ? "bg-destructive/10 text-destructive border-destructive/20" :
-                          "bg-muted/50 text-muted-foreground border-border"
-                        )}
+                        className="text-xs h-5"
                       >
                         {metric.change}
                       </Badge>
                     )}
                   </div>
                   
-                  {metric.explanation && selectedMetric === idx && (
-                    <motion.p 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="text-xs text-muted-foreground mt-2 leading-relaxed"
-                    >
+                  {metric.explanation && (
+                    <p className="text-xs text-muted-foreground mt-2">
                       {metric.explanation}
-                    </motion.p>
+                    </p>
                   )}
                 </div>
-
-                {/* Glow Effect */}
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* Enhanced Chart Section with Multiple Chart Types */}
-        {data.chart && data.chart.data && data.chart.data.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="relative p-4 rounded-xl bg-gradient-to-br from-muted/20 to-muted/10 border border-border/50 backdrop-blur-sm overflow-hidden"
-          >
-            {/* Background Animation */}
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute inset-0 bg-gradient-mesh animate-pulse" />
+              ))}
             </div>
+          )}
 
-            <div className="relative">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  {data.chart.title || 'Trend Analysis'}
-                </h4>
-                <Badge variant="outline" className="text-xs">
-                  Live Data
-                </Badge>
-              </div>
-
-              <ResponsiveContainer width="100%" height={240}>
+          {/* Chart Section */}
+          {data?.chart && data.chart.data && data.chart.data.length > 0 && (
+            <div className="p-4 bg-muted/20 rounded-xl">
+              <h4 className="text-sm font-medium mb-3">{data.chart.title || 'Trend Analysis'}</h4>
+              <ResponsiveContainer width="100%" height={200}>
                 {tileType === 'growth_projections' ? (
                   <AreaChart data={data.chart.data}>
                     <defs>
                       <linearGradient id={`gradient-${tileType}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={chartColors.primary} stopOpacity={0.3} />
-                        <stop offset="100%" stopColor={chartColors.primary} stopOpacity={0} />
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
-                    <XAxis dataKey="label" className="text-xs" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="label" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <ChartTooltip />
                     <Area 
                       type="monotone" 
                       dataKey="value" 
-                      stroke={chartColors.primary}
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       fill={`url(#gradient-${tileType})`}
                     />
-                    {data.chart.data[0]?.secondary && (
-                      <Area 
-                        type="monotone" 
-                        dataKey="secondary" 
-                        stroke={chartColors.accent}
-                        strokeWidth={2}
-                        fill={`url(#gradient-${tileType}-secondary)`}
-                      />
-                    )}
                   </AreaChart>
                 ) : tileType === 'market_size' ? (
                   <BarChart data={data.chart.data}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
-                    <XAxis dataKey="label" className="text-xs" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="label" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <ChartTooltip />
                     <Bar 
                       dataKey="value" 
-                      fill={chartColors.primary}
+                      fill="hsl(var(--primary))"
                       radius={[8, 8, 0, 0]}
-                      className="hover:opacity-80 transition-opacity"
                     />
                   </BarChart>
                 ) : (
                   <LineChart data={data.chart.data}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
-                    <XAxis dataKey="label" className="text-xs" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="label" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <ChartTooltip />
                     <Line 
                       type="monotone" 
                       dataKey="value" 
-                      stroke={chartColors.primary}
-                      strokeWidth={3}
-                      dot={{ fill: chartColors.primary, r: 4 }}
-                      activeDot={{ r: 6 }}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))' }}
                     />
                   </LineChart>
                 )}
               </ResponsiveContainer>
             </div>
-          </motion.div>
-        )}
+          )}
 
-        {/* List Items with Enhanced Design */}
-        {data.items && data.items.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-2"
-          >
-            {data.items.slice(0, 3).map((item: any, idx: number) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.35 + idx * 0.05 }}
-                className="group p-3 rounded-lg bg-muted/5 border border-border/30 hover:border-primary/20 hover:bg-muted/10 transition-all duration-300"
-              >
-                <ListItem
-                  title={item.title}
-                  subtitle={item.description || item.snippet}
-                  value={item.source || item.published}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-
-        {/* Enhanced Insights Section */}
-        {data.insights && data.insights.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-2"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="h-4 w-4 text-warning animate-pulse" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Key Insights
-              </span>
+          {/* Insights */}
+          {data?.insights && data.insights.length > 0 && (
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-primary">Key Insights</span>
+              </div>
+              <ul className="space-y-1">
+                {data.insights.slice(0, 2).map((insight: string, idx: number) => (
+                  <li key={idx} className="text-xs text-muted-foreground">
+                    • {insight}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="grid gap-2">
-              {data.insights.slice(0, 3).map((insight: string, idx: number) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.45 + idx * 0.1 }}
-                  className="group flex items-start gap-2 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-transparent border border-border/30 hover:border-primary/30 hover:from-primary/10 transition-all duration-300"
-                >
-                  <ChevronRight className="h-3 w-3 text-primary mt-0.5 group-hover:translate-x-1 transition-transform" />
-                  <span className="text-xs text-foreground/80 leading-relaxed">
-                    {insight}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+          )}
 
-        {/* Progress Indicator for Loading States */}
-        {data.loading && (
-          <Progress value={60} className="h-1" />
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <>
-      <BaseTile
-        title={title}
-        icon={Icon}
-        description={description}
-        className={cn(
-          "group relative overflow-hidden transition-all duration-500",
-          "hover:shadow-glow hover:-translate-y-1",
-          "bg-gradient-to-br from-card via-card to-card/90",
-          "border-border/50 hover:border-primary/30",
-          className
-        )}
-        isLoading={isLoading}
-        error={error ? String(error) : undefined}
-        onLoad={loadData}
-        headerActions={
-          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-            <Sparkles className="h-3 w-3 mr-1" />
-            AI Enhanced
-          </Badge>
-        }
-        badge={data?.fromDatabase ? {
-          text: 'Cached',
-          variant: 'secondary' as const
-        } : undefined}
-      >
-        {/* Animated Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-        
-        {/* Content */}
-        <div className="relative">
-          {renderBeautifulContent()}
-        </div>
-      </BaseTile>
+          {/* View More Button */}
+          <Button
+            onClick={() => setShowInsights(true)}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            View Details
+            <ExternalLink className="h-3.5 w-3.5 ml-2" />
+          </Button>
+        </CardContent>
+      </Card>
 
       <TileInsightsDialog
         open={showInsights}
-        onOpenChange={() => setShowInsights(false)}
+        onOpenChange={setShowInsights}
         tileType={tileType}
       />
     </>
