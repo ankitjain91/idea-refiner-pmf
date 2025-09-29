@@ -274,7 +274,7 @@ function processSerperData(data: any, query: string, location?: string) {
     }],
     top_queries: relatedSearches.length > 0 
       ? relatedSearches.slice(0, 6).map((q: any) => ({
-          query: typeof q === 'string' ? q : (q.query || q.text || ''),
+          query: typeof q === 'string' ? q : (typeof q.query === 'string' ? q.query : (typeof q.text === 'string' ? q.text : '')),
           value: Math.floor(Math.random() * 80 + 20),
           type: 'rising' as const,
           change: '+' + Math.floor(Math.random() * 50 + 5) + '%'
@@ -282,7 +282,7 @@ function processSerperData(data: any, query: string, location?: string) {
       : organic.slice(0, 6)
           .map((r: any) => {
             // Extract meaningful keywords from title or use fallback
-            const title = r.title || '';
+            const title = typeof r.title === 'string' ? r.title : '';
             const cleanTitle = title.replace(/[0-9]+/g, '').trim();
             if (!cleanTitle || cleanTitle.length < 3) return null;
             

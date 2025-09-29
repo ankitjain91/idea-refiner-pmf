@@ -269,7 +269,12 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                 if (typeof query === 'string') {
                   queryText = query;
                 } else if (query && typeof query === 'object') {
-                  queryText = (query as any).query || (query as any).text || (query as any).term || '';
+                  const candidate = typeof (query as any).query === 'string'
+                    ? (query as any).query
+                    : (typeof (query as any).text === 'string'
+                      ? (query as any).text
+                      : (typeof (query as any).term === 'string' ? (query as any).term : ''));
+                  queryText = candidate;
                 }
                 if (!queryText || /^\d+$/.test(String(queryText))) return null;
                 return (

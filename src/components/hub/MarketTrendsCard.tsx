@@ -738,23 +738,28 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               </h4>
               <div className="flex flex-wrap gap-2">
                 {currentData.top_queries.slice(0, 6).map((query: any, idx: number) => {
-                  // Extract the query text properly
+                  // Extract the query text properly and ensure it's a string
                   let queryText = '';
                   if (typeof query === 'string') {
                     queryText = query;
-                  } else if (typeof query === 'object' && query !== null) {
-                    queryText = query.query || query.text || query.term || '';
+                  } else if (query && typeof query === 'object') {
+                    const candidate = typeof query.query === 'string'
+                      ? query.query
+                      : (typeof query.text === 'string'
+                        ? query.text
+                        : (typeof query.term === 'string' ? query.term : ''));
+                    queryText = candidate;
                   }
                   
                   // Skip if no valid text found or if it's just a number
-                  if (!queryText || /^\d+$/.test(queryText.toString())) {
+                  if (!queryText || /^\d+$/.test(String(queryText))) {
                     return null;
                   }
                   
                   return (
                     <Badge key={idx} variant="secondary" className="text-xs">
-                      {queryText}
-                      {typeof query === 'object' && query?.change && (
+                      {String(queryText)}
+                      {query && typeof query === 'object' && query?.change && (
                         <span className="ml-1 text-green-500">{query.change}</span>
                       )}
                     </Badge>
@@ -832,26 +837,33 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
               </h4>
               <div className="grid grid-cols-2 gap-2">
                 {currentData.top_queries.slice(0, 4).map((query: any, idx: number) => {
-                  // Extract the query text properly
+                  // Extract the query text properly and ensure it's a string
                   let queryText = '';
-                  let queryValue = 50;
+                  let queryValue: number = 50;
                   
                   if (typeof query === 'string') {
                     queryText = query;
-                  } else if (typeof query === 'object' && query !== null) {
-                    queryText = query.query || query.text || query.term || '';
-                    queryValue = query.value || query.score || 50;
+                  } else if (query && typeof query === 'object') {
+                    const candidate = typeof query.query === 'string'
+                      ? query.query
+                      : (typeof query.text === 'string'
+                        ? query.text
+                        : (typeof query.term === 'string' ? query.term : ''));
+                    queryText = candidate;
+                    const rawVal = (query as any).value ?? (query as any).score;
+                    const numVal = typeof rawVal === 'string' ? parseFloat(rawVal) : (typeof rawVal === 'number' ? rawVal : NaN);
+                    queryValue = Number.isFinite(numVal) ? Math.round(numVal) : 50;
                   }
                   
                   // Skip if no valid text found or if it's just a number
-                  if (!queryText || /^\d+$/.test(queryText.toString())) {
+                  if (!queryText || /^\d+$/.test(String(queryText))) {
                     return null;
                   }
                   
                   return (
                     <div key={idx} className="flex items-center justify-between p-2 bg-muted/10 rounded-lg">
                       <span className="text-xs font-medium truncate">
-                        {queryText}
+                        {String(queryText)}
                       </span>
                       <Badge variant="secondary" className="text-xs h-5">
                         {queryValue}%
