@@ -203,26 +203,43 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
         >
         <div className="space-y-6">
           {/* Create New Session */}
-          <div className="relative min-h-[60px]">
+          <div className="relative min-h-[60px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
             {!showCreateForm ? (
-              <div className="animate-fade-in">
+              <div 
+                className="opacity-100 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+                style={{
+                  animation: 'slideUp 0.5s cubic-bezier(0.32, 0.72, 0, 1)',
+                }}
+              >
                 <Button 
                   onClick={() => setShowCreateForm(true)}
-                  className="w-full transition-all duration-300 hover:scale-[1.02]"
+                  className="w-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                   size="lg"
                 >
-                  <Plus className="h-5 w-5 mr-2 transition-transform duration-300 group-hover:rotate-90" />
+                  <Plus className="h-5 w-5 mr-2 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]" />
                   Create New Session
                 </Button>
               </div>
             ) : (
-              <div className="animate-fade-in">
-                <Card className="transition-all duration-300 border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Create New Session</CardTitle>
+              <div 
+                className="opacity-100"
+                style={{
+                  animation: 'expandIn 0.6s cubic-bezier(0.32, 0.72, 0, 1) forwards',
+                }}
+              >
+                <Card className="transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] border-primary/20 shadow-sm hover:shadow-md">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg opacity-0" style={{ animation: 'fadeSlideIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.1s forwards' }}>
+                      Create New Session
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex gap-2 animate-scale-in" style={{ animationDelay: '50ms' }}>
+                    <div 
+                      className="flex gap-2 opacity-0" 
+                      style={{ 
+                        animation: 'fadeSlideIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.15s forwards' 
+                      }}
+                    >
                       <Input
                         placeholder="Enter session name..."
                         value={newSessionName}
@@ -235,21 +252,21 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                           }
                         }}
                         autoFocus
-                        className="transition-all duration-200 focus:scale-[1.01]"
+                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus:scale-[1.01] focus:shadow-sm"
                       />
                       <Button 
                         variant="outline"
                         size="icon"
                         onClick={() => setNewSessionName(generateFunName())}
                         title="Generate AI name"
-                        className="transition-all duration-200 hover:rotate-12"
+                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:rotate-12 active:scale-95"
                       >
                         <Sparkles className="h-4 w-4" />
                       </Button>
                       <Button 
                         onClick={handleCreateSession}
                         disabled={!newSessionName.trim() || isCreating}
-                        className="transition-all duration-200"
+                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95"
                       >
                         {isCreating ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -259,14 +276,22 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                         Create
                       </Button>
                     </div>
-                    <div className="flex items-center space-x-2 animate-scale-in" style={{ animationDelay: '100ms' }}>
+                    <div 
+                      className="flex items-center space-x-2 opacity-0" 
+                      style={{ 
+                        animation: 'fadeSlideIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.2s forwards' 
+                      }}
+                    >
                       <Checkbox 
                         id="anonymous" 
                         checked={isAnonymous}
                         onCheckedChange={(checked) => setIsAnonymous(checked === true)}
-                        className="transition-all duration-200"
+                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
                       />
-                      <label htmlFor="anonymous" className="text-sm text-muted-foreground cursor-pointer transition-colors duration-200 hover:text-foreground">
+                      <label 
+                        htmlFor="anonymous" 
+                        className="text-sm text-muted-foreground cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-foreground"
+                      >
                         Create as anonymous (won't be saved to your account)
                       </label>
                       <Info className="h-4 w-4 text-muted-foreground" />
@@ -279,7 +304,10 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                         setNewSessionName('');
                         setIsAnonymous(false);
                       }}
-                      className="w-full transition-all duration-200 hover:bg-muted/50"
+                      className="w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/50 active:scale-[0.98] opacity-0"
+                      style={{ 
+                        animation: 'fadeSlideIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.25s forwards' 
+                      }}
                     >
                       Cancel
                     </Button>
