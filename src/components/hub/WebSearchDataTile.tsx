@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Search, RefreshCw, Brain, TrendingUp, TrendingDown, 
-  Minus, DollarSign, Target, Users, Sparkles, 
-  AlertCircle, ExternalLink, ChevronRight, BarChart3
-} from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, RefreshCw, AlertCircle, Target, Users, DollarSign, Minus, Brain, Globe, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import useSWR from 'swr';
 import { DashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
 import { AITileDialog } from '@/components/dashboard/AITileDialog';
 
 interface WebSearchDataTileProps {
@@ -28,6 +27,25 @@ interface WebSearchDataTileProps {
   className?: string;
 }
 
+// Region-wise mock data for demonstration
+const REGION_DATA = {
+  'North America': { market_size: 2500, growth: 15, competition: 'high', opportunity: 75 },
+  'Europe': { market_size: 2100, growth: 12, competition: 'medium', opportunity: 65 },
+  'Asia': { market_size: 3200, growth: 25, competition: 'low', opportunity: 85 },
+  'South America': { market_size: 800, growth: 18, competition: 'low', opportunity: 70 },
+  'Africa': { market_size: 400, growth: 22, competition: 'low', opportunity: 80 },
+  'Oceania': { market_size: 600, growth: 10, competition: 'medium', opportunity: 60 }
+};
+
+const REGION_COLORS = {
+  'North America': '#3b82f6',
+  'Europe': '#10b981', 
+  'Asia': '#f59e0b',
+  'South America': '#8b5cf6',
+  'Africa': '#ef4444',
+  'Oceania': '#06b6d4'
+};
+
 export function WebSearchDataTile({ idea, industry, geography, timeWindow, className }: WebSearchDataTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -35,17 +53,22 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
   const [selectedLevel, setSelectedLevel] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [groqInsights, setGroqInsights] = useState<any>(null);
+  const [selectedRegion, setSelectedRegion] = useState<string>('North America');
+  const [viewMode, setViewMode] = useState<'metrics' | 'regions' | 'competitors'>('metrics');
   const { user } = useAuth();
   const { currentSession } = useSession();
   const { toast } = useToast();
 
-  const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
-  const cacheKey = actualIdea ? `web-search-profitability:${actualIdea}:${industry}:${geography}` : null;
+  const storedIdea = typeof window !== 'undefined' ? 
+    (localStorage.getItem('ideaText') || localStorage.getItem('userIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '';
+  
+  const actualIdea = idea || storedIdea || 'startup idea';
+  const cacheKey = `web-search:${actualIdea}:${industry}:${geography}`;
 
   const { data, error, isLoading, mutate } = useSWR(
-    hasLoadedOnce ? cacheKey : null,
-    async () => {
-      // Cache -> DB -> API loading order
+    cacheKey,
+    async (key) => {
+      // First, try to load from database if user is authenticated
       if (user?.id) {
         try {
           const dbData = await DashboardDataService.getData({
@@ -70,28 +93,27 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       if (cachedData) {
         const parsed = JSON.parse(cachedData);
         const cacheAge = Date.now() - parsed.timestamp;
-        const THIRTY_MINUTES = 30 * 60 * 1000;
+        const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
         
-        if (cacheAge < THIRTY_MINUTES) {
-          return { ...parsed.data, fromCache: true, cacheTimestamp: parsed.timestamp };
+        if (cacheAge < CACHE_DURATION) {
+          return { ...parsed.data, fromCache: true };
         }
       }
       
-      // Fetch from API with enhanced data request
+      // Fetch fresh data from edge function
       const { data, error } = await supabase.functions.invoke('web-search-profitability', {
         body: { 
           idea: actualIdea,
-          industry: industry || '',
-          geography: geography || 'global',
-          timeWindow: timeWindow || 'last_12_months',
-          detail_level: 'comprehensive' // Request more detailed data
+          industry,
+          geo: geography,
+          time_window: timeWindow
         }
       });
       
       if (error) throw error;
       
+      // Store in localStorage
       if (data) {
-        // Save to localStorage
         localStorage.setItem(cacheKeyStorage, JSON.stringify({
           data,
           timestamp: Date.now()
@@ -121,81 +143,83 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 300000,
-      shouldRetryOnError: false, // Don't retry automatically
-      errorRetryCount: 0,
-      revalidateOnMount: false
+      dedupingInterval: 300000, // 5 minutes
+      onSuccess: () => setHasLoadedOnce(true)
     }
   );
 
-  // Auto-load on mount and auto-trigger fetch
-  useEffect(() => {
-    if (!hasLoadedOnce && actualIdea) {
-      setHasLoadedOnce(true);
-      // Automatically start loading data on page load
-      setTimeout(() => {
-        if (cacheKey && mutate) {
-          mutate();
-        }
-      }, 200);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      // Clear localStorage cache
+      const cacheKeyStorage = `web-search-cache:${actualIdea}:${industry}:${geography}`;
+      localStorage.removeItem(cacheKeyStorage);
+      
+      // Clear database cache if user is authenticated
+      if (user?.id) {
+        await DashboardDataService.deleteData({
+          userId: user.id,
+          sessionId: currentSession?.id,
+          tileType: 'web_search'
+        });
+      }
+      
+      // Refetch data
+      await mutate();
+      toast({
+        title: "Success",
+        description: "Data refreshed successfully",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [hasLoadedOnce, actualIdea, cacheKey, mutate]);
+  }, [actualIdea, industry, geography, mutate, user?.id, currentSession?.id, toast]);
 
   const analyzeWithGroq = async () => {
-    if (!data || isAnalyzing) return;
+    if (!data) return;
     
     setIsAnalyzing(true);
     try {
-      const { data: response, error } = await supabase.functions.invoke('groq-synthesis', {
+      const { data: analysis, error } = await supabase.functions.invoke('groq-synthesis', {
         body: {
-          webSearchData: {
-            idea: actualIdea,
-            metrics: parseMetrics(data),
+          input: {
+            metrics: data.metrics,
             competitors: data.competitors,
-            insights: data.insights,
-            cost_estimate: data.cost_estimate,
-            top_queries: data.top_queries
-          }
+            unmet_needs: data.unmet_needs,
+            market_insights: data.market_insights
+          },
+          prompt: `Analyze this web search data and provide strategic insights for profitability. Focus on:
+          1. Market opportunity assessment
+          2. Competitive advantages  
+          3. Revenue potential
+          4. Risk factors
+          Be specific and actionable.`
         }
       });
 
-      if (error) throw error;
-      
-      setGroqInsights(response);
-      toast({
-        title: "Analysis Complete",
-        description: "AI insights have been generated successfully",
-      });
+      if (!error && analysis) {
+        setGroqInsights(analysis);
+      }
     } catch (error) {
-      console.error('Error analyzing with Groq:', error);
-      toast({
-        title: "Analysis Failed",
-        description: "Unable to generate insights at this time",
-        variant: "destructive"
-      });
+      console.error('Groq analysis error:', error);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      const cacheKeyStorage = `web-search-cache:${actualIdea}:${industry}:${geography}`;
-      localStorage.removeItem(cacheKeyStorage);
-      await mutate(undefined, { revalidate: true });
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Parse metrics into more usable format
   const parseMetrics = (data: any) => {
     if (!data) return null;
-    
-    const result: any = {
-      profitability_score: 65,
-      market_sentiment: 70,
+
+    const result = {
+      profitability_score: 0,
+      market_sentiment: 0,
       competition_level: 'Medium',
       market_size: '$10B-50B',
       unmet_needs: 0,
@@ -237,6 +261,21 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     }
     return { color: 'text-muted-foreground', icon: null };
   };
+
+  // Prepare region chart data
+  const regionChartData = Object.entries(REGION_DATA).map(([region, data]) => ({
+    region,
+    ...data,
+    fill: REGION_COLORS[region as keyof typeof REGION_COLORS]
+  }));
+
+  // Prepare radar chart data for selected region
+  const radarData = [
+    { metric: 'Market Size', value: REGION_DATA[selectedRegion as keyof typeof REGION_DATA]?.market_size / 40 || 0 },
+    { metric: 'Growth Rate', value: REGION_DATA[selectedRegion as keyof typeof REGION_DATA]?.growth * 4 || 0 },
+    { metric: 'Opportunity', value: REGION_DATA[selectedRegion as keyof typeof REGION_DATA]?.opportunity || 0 },
+    { metric: 'Competition', value: REGION_DATA[selectedRegion as keyof typeof REGION_DATA]?.competition === 'low' ? 80 : REGION_DATA[selectedRegion as keyof typeof REGION_DATA]?.competition === 'medium' ? 50 : 20 }
+  ];
 
   const prepareAIDialogData = () => {
     const metrics = parseMetrics(data);
@@ -399,160 +438,237 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                 let source = 'API';
                 let variant: 'default' | 'secondary' | 'outline' = 'default';
                 
-                if (data.fromDatabase) {
-                  source = 'DB';
-                  variant = 'default';
-                } else if (data.fromCache) {
+                if (data.fromCache) {
                   source = 'Cache';
                   variant = 'secondary';
+                } else if (data.fromDatabase) {
+                  source = 'DB';
+                  variant = 'outline';
                 }
                 
                 return (
-                  <Badge variant={variant} className="text-xs px-1.5 py-0.5 h-5">
+                  <Badge variant={variant} className="text-xs">
                     {source}
                   </Badge>
                 );
               })()}
               <Button
+                size="sm"
                 variant="ghost"
-                size="icon"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="h-7 w-7"
+                className="h-8 w-8 p-0"
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
               </Button>
               <Button
+                size="sm"
                 variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (!groqInsights) analyzeWithGroq();
-                  setShowAIDialog(true);
-                }}
-                className="h-7 w-7 hover:bg-purple-100 dark:hover:bg-purple-900/20"
-                disabled={isAnalyzing}
+                onClick={() => setShowAIDialog(true)}
+                disabled={!data}
+                className="h-8 w-8 p-0"
               >
-                <Brain className={cn("h-3.5 w-3.5 text-purple-600", isAnalyzing && "animate-pulse")} />
+                <Brain className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {data && metrics && (
-            <>
-              {/* Key Metrics Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl p-3 border border-emerald-200/50 dark:border-emerald-800/50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">Profitability</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-lg font-bold text-emerald-800 dark:text-emerald-200">
-                          {metrics.profitability_score}%
-                        </span>
+          {/* Tab Navigation */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="metrics">Metrics</TabsTrigger>
+              <TabsTrigger value="regions">Regional Analysis</TabsTrigger>
+              <TabsTrigger value="competitors">Competitors</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="metrics" className="space-y-4 mt-4">
+              {metrics && (
+                <>
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-900/10 border border-emerald-200 dark:border-emerald-800">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Profitability</span>
                         {getMetricStyle(metrics.profitability_score, 'profitability_score').icon}
                       </div>
+                      <div className={cn("text-lg font-bold", getMetricStyle(metrics.profitability_score, 'profitability_score').color)}>
+                        {metrics.profitability_score}%
+                      </div>
+                      <Progress value={metrics.profitability_score} className="h-1.5 mt-2" />
                     </div>
-                    <DollarSign className="h-5 w-5 text-emerald-600/60" />
-                  </div>
-                  <Progress value={metrics.profitability_score} className="h-1.5 mt-2" />
-                </div>
 
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/20 rounded-xl p-3 border border-blue-200/50 dark:border-blue-800/50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Market Size</p>
-                      <p className="text-lg font-bold text-blue-800 dark:text-blue-200 mt-1">
-                        {metrics.market_size}
-                      </p>
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-blue-700 dark:text-blue-400">Market Sentiment</span>
+                        {getMetricStyle(metrics.market_sentiment, 'market_sentiment').icon}
+                      </div>
+                      <div className={cn("text-lg font-bold", getMetricStyle(metrics.market_sentiment, 'market_sentiment').color)}>
+                        {metrics.market_sentiment}%
+                      </div>
+                      <Progress value={metrics.market_sentiment} className="h-1.5 mt-2" />
                     </div>
-                    <Target className="h-5 w-5 text-blue-600/60" />
                   </div>
-                </div>
-              </div>
 
-              {/* Competition & Sentiment */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-card/50 rounded-xl p-3 border">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Competition</span>
-                    <Badge 
-                      variant={metrics.competition_level === 'Low' ? 'default' : 
-                               metrics.competition_level === 'Medium' ? 'secondary' : 'destructive'}
-                      className="text-xs"
-                    >
-                      {metrics.competition_level}
-                    </Badge>
+                  {/* Competition and Market Size */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-muted/50 border">
+                      <span className="text-xs text-muted-foreground">Competition</span>
+                      <div className={cn("text-sm font-semibold mt-1", getMetricStyle(metrics.competition_level, 'competition_level').color)}>
+                        {metrics.competition_level}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 border">
+                      <span className="text-xs text-muted-foreground">Market Size</span>
+                      <div className="text-sm font-semibold mt-1">{metrics.market_size}</div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="bg-card/50 rounded-xl p-3 border">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Sentiment</span>
-                    <span className={`text-sm font-bold ${getMetricStyle(metrics.market_sentiment, 'market_sentiment').color}`}>
-                      {metrics.market_sentiment}%
-                    </span>
-                  </div>
-                  <Progress value={metrics.market_sentiment} className="h-1 mt-1" />
-                </div>
-              </div>
 
-              {/* Quick Insights */}
-              {data.unmet_needs && data.unmet_needs.length > 0 && (
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/20 rounded-xl p-3 border border-amber-200/50 dark:border-amber-800/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-amber-600" />
-                    <span className="text-xs font-medium text-amber-800 dark:text-amber-200">Market Opportunities</span>
-                  </div>
-                  <div className="space-y-1">
-                    {data.unmet_needs.slice(0, 2).map((need: string, idx: number) => (
-                      <p key={idx} className="text-xs text-amber-700 dark:text-amber-300">
-                        • {need}
-                      </p>
-                    ))}
-                  </div>
-                </div>
+                  {/* Unmet Needs */}
+                  {metrics.unmet_needs > 0 && (
+                    <Alert className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
+                      <Target className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-xs">
+                        <span className="font-semibold">{metrics.unmet_needs} unmet needs</span> identified - opportunity for differentiation
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </>
               )}
+            </TabsContent>
 
-              {/* Competitors Preview */}
-              {data.competitors && data.competitors.length > 0 && (
-                <div className="bg-card/50 rounded-xl p-3 border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium">Top Competitors</span>
-                    <Badge variant="outline" className="text-xs">
-                      {data.competitors.length} found
-                    </Badge>
+            <TabsContent value="regions" className="space-y-4 mt-4">
+              {/* Regional Market Size Bar Chart */}
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={regionChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="region" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
+                      labelStyle={{ color: 'var(--foreground)' }}
+                    />
+                    <Bar dataKey="market_size" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Region Selector */}
+              <div className="flex gap-2 flex-wrap">
+                {Object.keys(REGION_DATA).map((region) => (
+                  <Button
+                    key={region}
+                    size="sm"
+                    variant={selectedRegion === region ? "default" : "outline"}
+                    onClick={() => setSelectedRegion(region)}
+                    className="text-xs"
+                  >
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {region}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Selected Region Radar Chart */}
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData}>
+                    <PolarGrid strokeDasharray="3 3" />
+                    <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                    <Radar 
+                      name={selectedRegion} 
+                      dataKey="value" 
+                      stroke={REGION_COLORS[selectedRegion as keyof typeof REGION_COLORS]}
+                      fill={REGION_COLORS[selectedRegion as keyof typeof REGION_COLORS]}
+                      fillOpacity={0.6} 
+                    />
+                    <Tooltip />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Regional Insights */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded-lg bg-muted/50 border">
+                  <span className="text-xs text-muted-foreground">Growth Rate</span>
+                  <div className="text-sm font-semibold">
+                    {REGION_DATA[selectedRegion as keyof typeof REGION_DATA]?.growth}%
                   </div>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50 border">
+                  <span className="text-xs text-muted-foreground">Opportunity Score</span>
+                  <div className="text-sm font-semibold">
+                    {REGION_DATA[selectedRegion as keyof typeof REGION_DATA]?.opportunity}%
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="competitors" className="space-y-4 mt-4">
+              {/* Competitor List */}
+              {data?.competitors && data.competitors.length > 0 ? (
+                <ScrollArea className="h-64">
                   <div className="space-y-2">
-                    {data.competitors.slice(0, 3).map((competitor: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground truncate flex-1">
-                          {competitor.domain}
-                        </span>
-                        <span className="text-xs font-medium">
-                          {competitor.appearances} mentions
-                        </span>
+                    {data.competitors.slice(0, 10).map((comp: any, idx: number) => (
+                      <div key={idx} className="p-3 rounded-lg bg-muted/50 border hover:bg-muted/70 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{comp.domain || comp.name}</div>
+                            {comp.hasPricing && (
+                              <Badge variant="secondary" className="text-xs mt-1">
+                                <DollarSign className="h-3 w-3 mr-1" />
+                                Has Pricing
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-muted-foreground">Appearances</div>
+                            <div className="font-semibold">{comp.appearances || 1}</div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
+              ) : (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>No competitor data available</AlertDescription>
+                </Alert>
               )}
-            </>
+            </TabsContent>
+          </Tabs>
+
+          {/* Insights Section */}
+          {data?.insights && groqInsights && (
+            <div className="p-3 rounded-lg bg-gradient-to-br from-purple-50/50 to-purple-100/30 dark:from-purple-900/10 dark:to-purple-900/5 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-xs font-medium text-purple-700 dark:text-purple-400">AI Insights</span>
+              </div>
+              <p className="text-xs text-purple-700 dark:text-purple-300 line-clamp-3">
+                {groqInsights.marketGap || groqInsights.pricingStrategy || data.insights.quickWin}
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* AI Dialog */}
-      <AITileDialog
-        isOpen={showAIDialog}
-        onClose={() => setShowAIDialog(false)}
-        data={prepareAIDialogData()}
-        selectedLevel={selectedLevel}
-        onLevelChange={setSelectedLevel}
-        isAnalyzing={isAnalyzing}
-        onAnalyze={analyzeWithGroq}
-      />
+      {showAIDialog && data && (
+        <AITileDialog
+          isOpen={showAIDialog}
+          onClose={() => setShowAIDialog(false)}
+          data={prepareAIDialogData()}
+          selectedLevel={selectedLevel}
+          onLevelChange={setSelectedLevel}
+          isAnalyzing={isAnalyzing}
+          onAnalyze={analyzeWithGroq}
+        />
+      )}
     </>
   );
 }
