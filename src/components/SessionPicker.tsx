@@ -129,7 +129,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              Start Your Smoothbrain
+              Start Your Session
             </DialogTitle>
             <CardDescription>
               You need to be logged in to save your sessions, or you can use anonymous mode.
@@ -138,7 +138,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Create Anonymous Smoothbrain</CardTitle>
+                <CardTitle className="text-lg">Create Anonymous Session</CardTitle>
                 <CardDescription>
                   Start brainstorming without signing up. Your session won't be saved.
                 </CardDescription>
@@ -146,7 +146,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Enter smoothbrain name..."
+                    placeholder="Enter session name..."
                     value={newSessionName}
                     onChange={(e) => setNewSessionName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
@@ -201,21 +201,21 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              Choose Your Smoothbrain
+              Choose Your Session
             </DialogTitle>
             <DialogDescription>
-              Select an existing smoothbrain or create a new one to continue your analysis journey.
+              Select an existing session or create a new one to continue your analysis journey.
             </DialogDescription>
           </DialogHeader>        <div className="space-y-6">
           {/* Create New Session */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Create New Smoothbrain</CardTitle>
+              <CardTitle className="text-lg">Create New Session</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Enter smoothbrain name..."
+                  placeholder="Enter session name..."
                   value={newSessionName}
                   onChange={(e) => setNewSessionName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
@@ -265,7 +265,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           ) : sessions.length > 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Your Smoothbrains ({sessions.length})</CardTitle>
+                <CardTitle className="text-lg">Your Sessions ({sessions.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
