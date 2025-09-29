@@ -300,6 +300,16 @@ export default function EnterpriseHub() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={handleGlobalRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+              Refresh All
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -363,15 +373,6 @@ export default function EnterpriseHub() {
                   className="cursor-pointer hover:bg-muted"
                 >
                   Oceania
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleGlobalRefresh}
-                  disabled={isRefreshing}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  <RotateCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
-                  Refresh All Data
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
