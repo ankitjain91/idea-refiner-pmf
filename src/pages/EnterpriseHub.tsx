@@ -19,6 +19,7 @@ import { GlobalFilters } from "@/components/hub/GlobalFilters";
 import { DataTile } from "@/components/hub/DataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
+import { WebSearchCard } from "@/components/dashboard/WebSearchCard";
 
 export default function EnterpriseHub() {
   const { currentSession } = useSession();
@@ -190,9 +191,18 @@ export default function EnterpriseHub() {
         </div>
       </div>
 
-      {/* Main Grid of Data Tiles */}
+      {/* Main Grid with WebSearchCard and Data Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 auto-rows-fr gap-4">
-        {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends').map((tile) => (
+        {/* Web Search Card - 4x4 grid */}
+        <WebSearchCard 
+          idea={currentIdea}
+          industry={filters.industry}
+          geography={filters.geography}
+          timeWindow={filters.time_window}
+        />
+        
+        {/* Other Data Tiles */}
+        {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile) => (
           <div key={tile.id} className={tile.span}>
             <DataTile
               title={tile.title}
