@@ -160,72 +160,72 @@ export default function LandingPage() {
   const features = [
     {
       icon: Brain,
-      title: "AI-Powered Analysis",
-      description: "Get instant insights powered by advanced machine learning models"
+      title: "Wrinkle Generator 3000",
+      description: "Our AI adds deep grooves to your smooth cortex, making you sound smart at parties"
     },
     {
       icon: BarChart3,
-      title: "Real-time Analytics",
-      description: "Track performance metrics and market trends as they happen"
+      title: "Charts That Make Sense",
+      description: "Even your smoothest investor can understand these colorful lines going up"
     },
     {
       icon: Shield,
-      title: "Enterprise Security",
-      description: "Bank-level encryption and compliance with industry standards"
+      title: "Protects Your Ego",
+      description: "We encrypt your failed ideas so nobody will ever know about that pet rock 2.0"
     },
     {
       icon: Globe,
-      title: "Global Data Sources",
-      description: "Access comprehensive data from multiple trusted sources"
+      title: "Worldwide Wrinkle Network",
+      description: "Connect with other smooth brains globally who also thought NFT laundromats were genius"
     }
   ];
 
   const plans = [
     {
-      name: "Starter",
+      name: "Smooth Starter",
       price: "$0",
-      period: "forever",
-      description: "Perfect for exploring and testing",
+      period: "forever smooth",
+      description: "For brains with training wheels",
       features: [
-        "Up to 3 projects",
-        "Basic analytics",
-        "Community support",
-        "7-day data retention"
+        "3 wrinkle attempts per month",
+        "Basic brain massage analytics",
+        "Smooth brain support group",
+        "7-day embarrassment deletion"
       ],
-      cta: "Start Free",
+      cta: "Stay Smooth",
       variant: "outline" as const
     },
     {
-      name: "Pro",
+      name: "Wrinkle Pro",
       price: "$29",
-      period: "per month",
-      description: "For growing businesses",
+      period: "per brain fold",
+      description: "Get those gyri growing",
       features: [
-        "Unlimited projects",
-        "Advanced analytics",
-        "Priority support",
-        "90-day data retention",
-        "API access",
-        "Custom integrations"
+        "Unlimited wrinkle generation",
+        "PhD-level brain grooves",
+        "Emergency wrinkle hotline",
+        "90-day genius retention",
+        "Direct cortex API access",
+        "Custom sulcus patterns"
       ],
-      cta: "Start Trial",
+      cta: "Get Wrinkly",
       variant: "default" as const,
       popular: true
     },
     {
-      name: "Enterprise",
-      price: "Custom",
-      period: "contact sales",
-      description: "For large organizations",
+      name: "Galaxy Brain",
+      price: "Your Soul",
+      period: "plus firstborn",
+      description: "Achieve peak wrinklage",
       features: [
-        "Everything in Pro",
-        "Dedicated support",
-        "Unlimited data retention",
-        "Custom contracts",
-        "SLA guarantees",
-        "On-premise deployment"
+        "Infinite brain folds",
+        "Personal neuroscientist",
+        "Time travel to fix bad ideas",
+        "Telepathic contracts",
+        "Guaranteed VC funding",
+        "Your own TED talk"
       ],
-      cta: "Contact Sales",
+      cta: "Ascend Now",
       variant: "outline" as const
     }
   ];
@@ -265,15 +265,15 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto text-center space-y-6">
           <Badge variant="secondary" className="px-3 py-1">
             <Sparkles className="h-3 w-3 mr-1" />
-            Powered by AI
+            Zero Wrinkles Required™
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-            Validate Your Startup Ideas
-            <span className="block text-primary mt-2">With Real Market Data</span>
+            Your Brain Might Be Smooth
+            <span className="block text-primary mt-2">But Your Ideas Don't Have To Be</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Transform your startup concepts into validated business opportunities using 
-            AI-powered analysis and real-time market intelligence.
+            We add the wrinkles to your perfectly smooth brain, turning those shower thoughts 
+            into Silicon Valley gold. No PhD required, just vibes and ambition.
           </p>
           <div className="flex items-center justify-center gap-4 pt-4">
             <Button 
@@ -298,9 +298,9 @@ export default function LandingPage() {
       <section className="container mx-auto px-4 py-20 border-t border-border/50">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Everything you need to validate ideas</h2>
+            <h2 className="text-3xl font-bold mb-4">Add Some Texture to That Smooth Dome</h2>
             <p className="text-muted-foreground">
-              Professional tools trusted by entrepreneurs and enterprises
+              Tools so smart, they'll make your brain look like a topographical map
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -339,19 +339,19 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
               <div className="text-3xl font-bold text-primary">10K+</div>
-              <div className="text-sm text-muted-foreground mt-1">Active Users</div>
+              <div className="text-sm text-muted-foreground mt-1">Smooth Brains</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-primary">50K+</div>
-              <div className="text-sm text-muted-foreground mt-1">Ideas Validated</div>
+              <div className="text-sm text-muted-foreground mt-1">Wrinkles Added</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary">95%</div>
-              <div className="text-sm text-muted-foreground mt-1">Accuracy Rate</div>
+              <div className="text-3xl font-bold text-primary">0%</div>
+              <div className="text-sm text-muted-foreground mt-1">Brain Cells Required</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary">24/7</div>
-              <div className="text-sm text-muted-foreground mt-1">Support</div>
+              <div className="text-3xl font-bold text-primary">∞</div>
+              <div className="text-sm text-muted-foreground mt-1">Smoothness Level</div>
             </div>
           </div>
         </div>
@@ -361,9 +361,9 @@ export default function LandingPage() {
       <section className="container mx-auto px-4 py-20 border-t border-border/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Simple, transparent pricing</h2>
+            <h2 className="text-3xl font-bold mb-4">Pricing smoother than your cerebellum</h2>
             <p className="text-muted-foreground">
-              Choose the plan that's right for your business
+              Pick your wrinkle intensity level
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -416,9 +416,9 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 border-t border-border/50">
         <div className="max-w-3xl mx-auto text-center space-y-6">
-          <h2 className="text-3xl font-bold">Ready to validate your idea?</h2>
+          <h2 className="text-3xl font-bold">Ready to evolve that smooth brain?</h2>
             <p className="text-muted-foreground">
-              Join thousands of entrepreneurs using SmoothBrains to build successful startups
+              Join thousands of fellow smoothies who went from zero wrinkles to venture capital
             </p>
           <Button 
             size="lg" 
@@ -436,7 +436,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">© 2024 SmoothBrains. All rights reserved.</span>
+              <span className="text-sm text-muted-foreground">© 2024 SmoothBrains. No wrinkles were harmed in the making.</span>
             </div>
             <div className="flex items-center gap-6">
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
