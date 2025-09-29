@@ -11,7 +11,8 @@ serve(async (req) => {
   }
 
   try {
-    const { idea, projectTrackerConnected } = await req.json();
+    const body = await req.json();
+    const { idea, projectTrackerConnected } = body || {};
     
     console.log('[launch-timeline] Analyzing timeline for:', idea);
     
