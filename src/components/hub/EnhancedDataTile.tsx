@@ -272,7 +272,9 @@ export function EnhancedDataTile({
                 </Button>
               </AlertDescription>
             </Alert>
-          ) : !data && !hasInitialized ? (
+          ) : data ? (
+            renderContent ? renderContent(data) : getDefaultContent()
+          ) : (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground mb-2">
                 Ready to fetch real-time data
@@ -287,8 +289,6 @@ export function EnhancedDataTile({
                 Load Data
               </Button>
             </div>
-          ) : (
-            renderContent ? renderContent(data) : getDefaultContent()
           )}
 
           {/* Action buttons - reusing Market Trends pattern */}
