@@ -219,11 +219,20 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     // First, try to load from database if user is authenticated and not forcing refresh
     if (user?.id && !forceRefresh) {
       try {
-        const dbData = await DashboardDataService.getData({
+        // Try with session ID first, then without if that fails
+        let dbData = await DashboardDataService.getData({
           userId: user.id,
           sessionId: currentSession?.id,
           tileType: 'google_trends'
         });
+        
+        // If no data with session ID, try without it
+        if (!dbData && currentSession?.id) {
+          dbData = await DashboardDataService.getData({
+            userId: user.id,
+            tileType: 'google_trends'
+          });
+        }
         
         if (dbData) {
           console.log('[GoogleTrendsCard] Loaded from database:', dbData);
