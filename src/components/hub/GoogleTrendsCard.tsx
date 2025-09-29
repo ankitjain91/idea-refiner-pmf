@@ -264,24 +264,27 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
               Top Related Searches
             </h3>
             <div className="flex flex-wrap gap-2">
-              {data.top_queries.map((query, idx) => (
-                <Badge 
-                  key={idx} 
-                  variant="outline"
-                  className="py-1 px-2.5 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:border-primary/40 transition-colors text-xs"
-                >
-                  {typeof query === 'string'
-                    ? query
-                    : (typeof (query as any)?.query === 'string'
-                        ? (query as any).query
-                        : (typeof (query as any)?.value === 'number' || typeof (query as any)?.value === 'string'
-                            ? String((query as any).value)
-                            : ''))}
-                  {typeof query === 'object' && (query as any)?.change && (
-                    <span className="ml-1 text-green-500">{(query as any).change}</span>
-                  )}
-                </Badge>
-              ))}
+              {data.top_queries.map((query: any, idx: number) => {
+                let queryText = '';
+                if (typeof query === 'string') {
+                  queryText = query;
+                } else if (query && typeof query === 'object') {
+                  queryText = (query as any).query || (query as any).text || (query as any).term || '';
+                }
+                if (!queryText || /^\d+$/.test(String(queryText))) return null;
+                return (
+                  <Badge 
+                    key={idx} 
+                    variant="outline"
+                    className="py-1 px-2.5 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:border-primary/40 transition-colors text-xs"
+                  >
+                    {String(queryText)}
+                    {query && typeof query === 'object' && (query as any)?.change && (
+                      <span className="ml-1 text-green-500">{(query as any).change}</span>
+                    )}
+                  </Badge>
+                );
+              }).filter(Boolean)}
             </div>
           </div>
         )}
@@ -467,28 +470,31 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                   Top Searches in {selectedContinent}
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedData.top_queries.map((query: any, idx: number) => (
-                    <Badge 
-                      key={idx} 
-                      variant="outline"
-                      className="py-1 px-2.5 text-xs"
-                      style={{ 
-                        borderColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '40',
-                        backgroundColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '10'
-                      }}
-                    >
-                      {typeof query === 'string'
-                        ? query
-                        : (typeof query?.query === 'string'
-                            ? query.query
-                            : (typeof query?.value === 'number' || typeof query?.value === 'string'
-                                ? String(query.value)
-                                : ''))}
-                      {typeof query === 'object' && query?.change && (
-                        <span className="ml-1 text-green-500">{query.change}</span>
-                      )}
-                    </Badge>
-                  ))}
+                  {selectedData.top_queries.map((query: any, idx: number) => {
+                    let queryText = '';
+                    if (typeof query === 'string') {
+                      queryText = query;
+                    } else if (query && typeof query === 'object') {
+                      queryText = query.query || query.text || query.term || '';
+                    }
+                    if (!queryText || /^\d+$/.test(String(queryText))) return null;
+                    return (
+                      <Badge 
+                        key={idx} 
+                        variant="outline"
+                        className="py-1 px-2.5 text-xs"
+                        style={{ 
+                          borderColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '40',
+                          backgroundColor: CONTINENT_COLORS[selectedContinent as keyof typeof CONTINENT_COLORS] + '10'
+                        }}
+                      >
+                        {String(queryText)}
+                        {query && typeof query === 'object' && query?.change && (
+                          <span className="ml-1 text-green-500">{query.change}</span>
+                        )}
+                      </Badge>
+                    );
+                  }).filter(Boolean)}
                 </div>
               </div>
             )}
