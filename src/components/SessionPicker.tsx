@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Plus, User, Clock, Trash2, Edit2, Copy, Sparkles, Shuffle, Info } from 'lucide-react';
+import { Loader2, Plus, User, Clock, Trash2, Edit2, Copy, Sparkles, Shuffle, Info, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface SessionPickerProps {
@@ -37,6 +37,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
   const [editName, setEditName] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [sessionSearch, setSessionSearch] = useState('');
   
   console.log('[SessionPicker] Render - open:', open, 'user:', user?.email, 'allowClose:', allowClose);
 
@@ -338,9 +339,24 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
               <CardHeader>
                 <CardTitle className="text-lg">Choose Existing Session ({sessions.length})</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Search Input */}
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search sessions..."
+                    value={sessionSearch}
+                    onChange={(e) => setSessionSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                
                 <div className="space-y-2">
-                  {sessions.map((session) => (
+                  {sessions
+                    .filter(session => 
+                      session.name.toLowerCase().includes(sessionSearch.toLowerCase())
+                    )
+                    .map((session) => (
                     <div
                       key={session.id}
                       className="group flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
@@ -417,6 +433,15 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                     </div>
                   ))}
                 </div>
+                
+                {/* No results message */}
+                {sessions.filter(session => 
+                  session.name.toLowerCase().includes(sessionSearch.toLowerCase())
+                ).length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">
+                    No sessions found matching "{sessionSearch}"
+                  </p>
+                )}
               </CardContent>
             </Card>
           ) : (
