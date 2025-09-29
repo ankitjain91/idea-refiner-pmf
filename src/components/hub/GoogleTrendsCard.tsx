@@ -150,15 +150,15 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     }
   };
 
-  const fetchTrendsData = async (fetchContinents = false) => {
+  const fetchTrendsData = async (fetchContinents = false, forceRefresh = false) => {
     if (keywords.length === 0) return;
     
     // Use simplified keywords for better Google Trends results
     const trendsKeywords = keywords.slice(0, 1); // Use the strongest single keyword for accuracy
     console.log('[GoogleTrendsCard] Using keywords:', trendsKeywords);
     
-    // First, try to load from database if user is authenticated and not manually refreshing
-    if (user?.id && !loading) {
+    // First, try to load from database if user is authenticated and not forcing refresh
+    if (user?.id && !forceRefresh) {
       try {
         const dbData = await DashboardDataService.getData({
           userId: user.id,
@@ -182,7 +182,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     const cacheKey = `google-trends:${trendsKeywords.join(',')}:${geo}:${timeWindow}:${fetchContinents}`;
     const cachedData = localStorage.getItem(cacheKey);
     
-    if (cachedData && !loading) { // Don't use cache if already loading (manual refresh)
+    if (cachedData && !forceRefresh) { // Don't use cache if forcing refresh
       const parsed = JSON.parse(cachedData);
       const cacheAge = Date.now() - parsed.timestamp;
       const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -258,22 +258,23 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     }
   };
 
-  // Auto-load data when keywords are available
+  // Auto-load data when keywords are available - only once
   useEffect(() => {
-    if (hasLoadedOnce && keywords.length > 0) {
+    if (!hasLoadedOnce && keywords.length > 0 && !loading && !data) {
+      setHasLoadedOnce(true);
       fetchTrendsData(viewMode === 'global');
     }
-  }, [hasLoadedOnce, keywords, viewMode]);
+  }, [keywords.length, viewMode]); // Removed hasLoadedOnce and keywords from deps to prevent loops
 
   const handleViewModeChange = (mode: 'global' | 'single') => {
     console.log('[GoogleTrendsCard] Changing view mode to:', mode);
     setViewMode(mode);
-    fetchTrendsData(mode === 'global');
+    fetchTrendsData(mode === 'global', true); // Force refresh on mode change
   };
 
   const handleRefresh = () => {
     console.log('[GoogleTrendsCard] Manual refresh, viewMode:', viewMode);
-    fetchTrendsData(viewMode === 'global');
+    fetchTrendsData(viewMode === 'global', true); // Force refresh on manual trigger
   };
 
   const getTrendIcon = (direction: string) => {
