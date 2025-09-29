@@ -8,11 +8,14 @@ import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   RefreshCw, AlertCircle, Clock, Sparkles, ChevronRight,
-  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle, Database
+  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle, Database,
+  Activity, Target, Rocket, Calendar, Users, Globe2, DollarSign
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { TileInsightsDialog } from './TileInsightsDialog';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface EnhancedDataTileProps {
   title: string;
@@ -29,7 +32,7 @@ export function EnhancedDataTile({
   title, 
   icon: Icon, 
   tileType, 
-  filters,
+  filters, 
   className,
   description,
   fetchAdapter,
@@ -91,127 +94,320 @@ export function EnhancedDataTile({
     } finally {
       setLoading(false);
     }
-  }, [filters, tileType, fetchAdapter, loading]);
+  }, [tileType, filters, fetchAdapter, loading]);
 
-  const handleAnalyze = async () => {
-    if (!data || isAnalyzing) return;
-    
-    setIsAnalyzing(true);
-    try {
-      const { data: analysis, error } = await supabase.functions.invoke('groq-synthesis', {
-        body: {
-          tileType,
-          tileData: data,
-          context: {
-            idea: filters?.idea || '',
-            industry: filters?.industry || '',
-            geography: filters?.geography || ''
-          }
-        }
-      });
-
-      if (error) throw error;
-      setGroqInsights(analysis);
-      setShowInsights(true);
-    } catch (err) {
-      console.error('Analysis error:', err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-// Intentionally do not auto-fetch; wait for user to click Load Data
-
-  const renderMetric = (metric: any) => {
-    const trend = metric.trend || metric.change;
-    const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
-    const trendColor = trend > 0 ? 'text-green-500' : trend < 0 ? 'text-red-500' : 'text-muted-foreground';
-
-    return (
-      <div key={metric.name} className="space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{metric.name}</span>
-          {trend !== undefined && (
-            <TrendIcon className={cn("h-3 w-3", trendColor)} />
-          )}
-        </div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-xl font-bold">
-            {metric.value}{metric.unit || ''}
-          </span>
-          {trend !== undefined && (
-            <span className={cn("text-xs", trendColor)}>
-              {trend > 0 ? '+' : ''}{trend}%
-            </span>
-          )}
-        </div>
-        {metric.explanation && (
-          <p className="text-xs text-muted-foreground">{metric.explanation}</p>
-        )}
-      </div>
-    );
-  };
-
-  const getDefaultContent = () => {
+  const renderBeautifulContent = () => {
     if (!data) return null;
 
     return (
-      <div className="space-y-4">
-        {/* Metrics */}
-        {data.metrics && data.metrics.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            {data.metrics.slice(0, 4).map(renderMetric)}
-          </div>
-        )}
-
-        {/* Themes */}
-        {data.themes && data.themes.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Key Themes
-            </h4>
-            <div className="flex flex-wrap gap-1">
-              {data.themes.slice(0, 6).map((theme: string, idx: number) => (
-                <Badge key={idx} variant="secondary" className="text-xs">
-                  {theme}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Items */}
-        {data.items && data.items.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Recent Activity
-            </h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {data.items.slice(0, 3).map((item: any, idx: number) => (
-                <div key={idx} className="p-2 bg-muted/10 rounded-lg">
-                  <p className="text-sm font-medium line-clamp-2">{item.title}</p>
-                  {item.snippet && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {item.snippet}
-                    </p>
-                  )}
-                  {item.url && (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1"
-                    >
-                      View
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
+      <TooltipProvider>
+        <div className="space-y-4 animate-fade-in">
+          {/* Primary Metrics - Beautiful Cards */}
+          {data.metrics && data.metrics.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              {data.metrics.slice(0, 4).map((metric: any, idx: number) => (
+                <div 
+                  key={idx} 
+                  className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 p-4 hover:shadow-lg transition-all duration-300 hover:scale-105"
+                >
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full -mr-10 -mt-10" />
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {metric.name}
+                      </span>
+                      {metric.confidence && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="secondary" className="text-xs">
+                              {Math.round(metric.confidence * 100)}%
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Confidence Level</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
+                      </span>
+                      {metric.unit && (
+                        <span className="text-sm text-muted-foreground">{metric.unit}</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {/* Interactive Chart with Multiple Series */}
+          {data.series && data.series.length > 0 && (
+            <Card className="p-4 bg-gradient-to-br from-secondary/5 to-secondary/10 border-primary/10 shadow-sm">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Trend Analysis
+              </h4>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={
+                  data.series[0].labels?.map((label: string, idx: number) => ({
+                    name: label,
+                    ...data.series.reduce((acc: any, series: any) => {
+                      acc[series.name] = series.data[idx];
+                      return acc;
+                    }, {})
+                  }))
+                }>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
+                  <XAxis dataKey="name" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  {data.series.map((series: any, idx: number) => (
+                    <Line 
+                      key={series.name}
+                      type="monotone" 
+                      dataKey={series.name} 
+                      stroke={idx === 0 ? 'hsl(var(--primary))' : idx === 1 ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-3))'} 
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+          )}
+
+          {/* Market Segments - Visual Representation */}
+          {data.segments && data.segments.length > 0 && (
+            <Card className="p-4 bg-gradient-to-br from-secondary/5 to-secondary/10 border-primary/10">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                Market Segments
+              </h4>
+              <div className="grid grid-cols-3 gap-3">
+                {data.segments.map((segment: any, idx: number) => (
+                  <div 
+                    key={idx} 
+                    className="relative p-3 rounded-lg bg-gradient-to-br from-background to-secondary/20 border border-secondary/20 hover:border-primary/30 transition-all duration-300 hover:shadow-md"
+                  >
+                    <div className="text-center">
+                      <div className="text-xs font-medium text-muted-foreground uppercase mb-1">
+                        {segment.name}
+                      </div>
+                      <div className="text-2xl font-bold text-primary mb-1">
+                        {segment.share}%
+                      </div>
+                      <div className="flex items-center justify-center gap-1 text-xs text-green-600">
+                        <TrendingUp className="h-3 w-3" />
+                        <span>{segment.growth}% growth</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Growth Drivers - Visual Impact */}
+          {data.drivers && data.drivers.length > 0 && (
+            <Card className="p-4 bg-gradient-to-br from-secondary/5 to-secondary/10 border-primary/10">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Rocket className="h-4 w-4 text-primary" />
+                Growth Drivers
+              </h4>
+              <div className="space-y-3">
+                {data.drivers.map((driver: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-background rounded-lg border border-secondary/20 hover:border-primary/30 transition-all">
+                    <span className="text-sm font-medium">{driver.factor}</span>
+                    <div className="flex items-center gap-3">
+                      <Badge 
+                        variant={driver.impact === 'positive' ? 'default' : driver.impact === 'negative' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {driver.impact === 'positive' ? '↑' : driver.impact === 'negative' ? '↓' : '→'} {driver.impact}
+                      </Badge>
+                      <div className="w-20 h-2 bg-secondary rounded-full overflow-hidden">
+                        <div 
+                          className={cn(
+                            "h-full transition-all duration-500",
+                            driver.impact === 'positive' ? 'bg-green-500' :
+                            driver.impact === 'negative' ? 'bg-red-500' :
+                            'bg-gray-500'
+                          )}
+                          style={{ width: `${driver.strength * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Project Milestones - Timeline View */}
+          {data.milestones && data.milestones.length > 0 && (
+            <Card className="p-4 bg-gradient-to-br from-secondary/5 to-secondary/10 border-primary/10">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                Project Timeline
+              </h4>
+              <div className="space-y-3">
+                {data.milestones.map((milestone: any, idx: number) => (
+                  <div key={idx} className="p-3 bg-background rounded-lg border border-secondary/20 hover:border-primary/30 transition-all">
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-sm">{milestone.phase}</h5>
+                      <Badge 
+                        variant={
+                          milestone.status === 'completed' ? 'default' :
+                          milestone.status === 'in_progress' ? 'secondary' :
+                          'outline'
+                        }
+                      >
+                        {milestone.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    <Progress value={milestone.completion} className="h-2 mb-2" />
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{milestone.completion}% complete</span>
+                      {milestone.end_date && (
+                        <span>Due: {new Date(milestone.end_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Conversion Funnel - Visual Hierarchy */}
+          {data.funnel && data.funnel.length > 0 && (
+            <Card className="p-4 bg-gradient-to-br from-secondary/5 to-secondary/10 border-primary/10">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                Conversion Funnel
+              </h4>
+              <div className="space-y-2">
+                {data.funnel.map((stage: any, idx: number) => (
+                  <div key={idx} className="relative">
+                    <div 
+                      className="flex items-center justify-between p-3 rounded-lg border border-secondary/20 hover:border-primary/30 transition-all"
+                      style={{
+                        background: `linear-gradient(to right, hsl(var(--primary) / ${0.1 - idx * 0.02}) 0%, transparent ${stage.rate}%)`
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">{stage.stage}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {stage.rate}%
+                        </Badge>
+                      </div>
+                      <span className="text-lg font-bold text-primary">
+                        {stage.count.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Search Results / Items */}
+          {data.items && data.items.length > 0 && (
+            <Card className="p-4 bg-gradient-to-br from-secondary/5 to-secondary/10 border-primary/10">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Globe2 className="h-4 w-4 text-primary" />
+                Latest Insights
+              </h4>
+              <div className="space-y-2">
+                {data.items.slice(0, 3).map((item: any, idx: number) => (
+                  <div 
+                    key={idx} 
+                    className="p-3 bg-background rounded-lg border border-secondary/20 hover:border-primary/30 transition-all hover:shadow-sm"
+                  >
+                    <h5 className="font-medium text-sm mb-1 line-clamp-1">{item.title}</h5>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{item.snippet}</p>
+                    {item.source && (
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="text-xs">
+                          {item.source}
+                        </Badge>
+                        {item.published && (
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(item.published).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Empty State - Engaging Design */}
+          {data.empty_state && (
+            <Card className="p-6 bg-gradient-to-br from-secondary/5 to-secondary/10 border-dashed border-2 border-primary/20">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                  <AlertCircle className="h-6 w-6 text-primary" />
+                </div>
+                <h4 className="font-semibold mb-2">{data.empty_state.message}</h4>
+                {data.empty_state.instructions && (
+                  <p className="text-sm text-muted-foreground mb-3">{data.empty_state.instructions}</p>
+                )}
+                {data.empty_state.suggested_trackers && (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {data.empty_state.suggested_trackers.map((tracker: string) => (
+                      <Badge key={tracker} variant="secondary" className="text-xs">
+                        {tracker}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Profit Link Insights */}
+          {data.profitLink && (
+            <Card className="p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-green-700 dark:text-green-400">
+                <DollarSign className="h-4 w-4" />
+                Profit Insights
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {Object.entries(data.profitLink).slice(0, 4).map(([key, value]: [string, any]) => (
+                  <div key={key} className="flex justify-between">
+                    <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                    <span className="font-medium">
+                      {typeof value === 'number' ? value.toLocaleString() : 
+                       Array.isArray(value) ? `${value.length} items` : 
+                       value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Last Updated with Refresh */}
+          {lastRefresh && (
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>Updated {lastRefresh.toLocaleTimeString()}</span>
+            </div>
+          )}
+        </div>
+      </TooltipProvider>
     );
   };
 
@@ -248,127 +444,75 @@ export function EnhancedDataTile({
           ) : !hasInitialized ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-fade-in">
               <div className="relative">
-                <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full animate-pulse" />
-                <div className="p-6 rounded-full bg-gradient-to-br from-muted/40 to-muted/20 relative">
-                  <Database className="h-12 w-12 text-primary" />
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/30 blur-3xl animate-pulse" />
+                <Database className="h-16 w-16 text-primary relative z-10" />
               </div>
-              <div className="text-center space-y-3">
-                <p className="text-base font-semibold">No data loaded</p>
-                <p className="text-sm text-muted-foreground">Click to load {title.toLowerCase()} data</p>
-                <Button 
-                  onClick={() => fetchData()} 
-                  size="lg" 
-                  disabled={loading} 
-                  className="hover-scale bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Load Data
-                    </>
-                  )}
-                </Button>
+              <div className="text-center space-y-2">
+                <h3 className="font-semibold text-lg">Ready to Load Data</h3>
+                <p className="text-sm text-muted-foreground max-w-[250px]">
+                  Click the button below to fetch real-time data for this analysis
+                </p>
               </div>
+              <Button 
+                onClick={() => fetchData()} 
+                disabled={loading}
+                size="lg"
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                {loading ? (
+                  <>
+                    <Database className="mr-2 h-5 w-5 animate-spin" />
+                    Loading Data...
+                  </>
+                ) : (
+                  <>
+                    <Database className="mr-2 h-5 w-5" />
+                    Load Data
+                  </>
+                )}
+              </Button>
             </div>
           ) : error ? (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                {error}
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="ml-2 h-auto p-0 text-xs"
-                  onClick={() => fetchData(true)}
-                >
-                  Retry
-                </Button>
-              </AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
-          ) : data ? (
-            renderContent ? renderContent(data) : getDefaultContent()
           ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No data available</p>
-            </div>
+            <>
+              {renderContent ? renderContent(data) : renderBeautifulContent()}
+            </>
           )}
 
-          {/* Action buttons - reusing Market Trends pattern */}
+          {/* Action Buttons */}
           {data && (
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className="flex-1 relative overflow-hidden group bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 border-amber-200 dark:border-amber-800 hover:from-amber-100 hover:to-yellow-100 dark:hover:from-amber-950/30 dark:hover:to-yellow-950/30 transition-all duration-300"
+                onClick={() => setShowInsights(true)}
               >
-                {isAnalyzing ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin text-amber-600" />
-                    <span className="text-amber-700 dark:text-amber-400">Analyzing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3.5 w-3.5 mr-2 text-yellow-500 animate-pulse" />
-                    <span className="text-amber-700 dark:text-amber-400 font-medium">Analyze</span>
-                  </>
-                )}
+                <Sparkles className="mr-1 h-3 w-3" />
+                Analyze
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowInsights(true)}
-                className="flex-1"
+                onClick={() => fetchData(true)}
+                disabled={loading}
               >
-                How this works
-                <HelpCircle className="h-3.5 w-3.5 ml-2" />
+                <RefreshCw className={cn("mr-1 h-3 w-3", loading && "animate-spin")} />
+                Refresh
               </Button>
-            </div>
-          )}
-
-          {/* Last updated */}
-          {lastRefresh && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              Last updated: {lastRefresh.toLocaleTimeString()}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Insights Dialog - reusing TileInsightsDialog */}
-      <TileInsightsDialog 
-        open={showInsights && !groqInsights}
+      <TileInsightsDialog
+        open={showInsights}
         onOpenChange={setShowInsights}
         tileType={tileType}
       />
-
-      {/* Groq Analysis Sheet */}
-      {groqInsights && (
-        <Sheet open={showInsights} onOpenChange={setShowInsights}>
-          <SheetContent className="w-[600px] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle className="text-xl font-bold">AI Analysis: {title}</SheetTitle>
-              <SheetDescription>
-                Deep insights and recommendations based on real-time data
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-6 space-y-4">
-              {/* Display groq insights here */}
-              <div className="prose dark:prose-invert">
-                {JSON.stringify(groqInsights, null, 2)}
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
     </>
   );
 }
