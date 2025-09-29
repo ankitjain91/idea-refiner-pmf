@@ -3,9 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { BaseTile, useTileData } from './BaseTile';
 import { TileInsightsDialog } from './TileInsightsDialog';
 import { SmoothBrainsDialog } from './SmoothBrainsDialog';
+import { MarketSizeDialog } from './MarketSizeDialog';
+import { UserSentimentDialog } from './UserSentimentDialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Brain } from 'lucide-react';
+import { TrendingUp, TrendingDown, Brain, Globe, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,8 @@ export function QuickStatsTile({
 }: QuickStatsTileProps) {
   const [showInsights, setShowInsights] = useState(false);
   const [showSmoothBrainsDialog, setShowSmoothBrainsDialog] = useState(false);
+  const [showMarketSizeDialog, setShowMarketSizeDialog] = useState(false);
+  const [showUserSentimentDialog, setShowUserSentimentDialog] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
 
@@ -120,7 +124,10 @@ export function QuickStatsTile({
         
         return (
           <div className="space-y-3">
-            <div>
+            <div 
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setShowMarketSizeDialog(true)}
+            >
               <p className="text-2xl font-bold">{formatValue(tam)}</p>
               <p className="text-xs text-muted-foreground">Total Market</p>
             </div>
@@ -134,6 +141,15 @@ export function QuickStatsTile({
                 <p className="text-xs text-muted-foreground">SOM</p>
               </div>
             </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full h-6 text-xs"
+              onClick={() => setShowMarketSizeDialog(true)}
+            >
+              <Globe className="h-3 w-3 mr-1" />
+              View Analysis
+            </Button>
           </div>
         );
 
@@ -180,7 +196,10 @@ export function QuickStatsTile({
         
         return (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setShowUserSentimentDialog(true)}
+            >
               <div>
                 <p className={cn("text-xl font-bold", sentimentColor)}>
                   {sentiment}
@@ -214,6 +233,15 @@ export function QuickStatsTile({
                 </div>
               </div>
             )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full h-6 text-xs"
+              onClick={() => setShowUserSentimentDialog(true)}
+            >
+              <Heart className="h-3 w-3 mr-1" />
+              View Details
+            </Button>
           </div>
         );
 
@@ -284,6 +312,22 @@ export function QuickStatsTile({
         <SmoothBrainsDialog
           isOpen={showSmoothBrainsDialog}
           onClose={() => setShowSmoothBrainsDialog(false)}
+          data={data?.data || data}
+        />
+      )}
+
+      {tileType === 'market_size' && (
+        <MarketSizeDialog
+          isOpen={showMarketSizeDialog}
+          onClose={() => setShowMarketSizeDialog(false)}
+          data={data?.data || data}
+        />
+      )}
+
+      {tileType === 'sentiment' && (
+        <UserSentimentDialog
+          isOpen={showUserSentimentDialog}
+          onClose={() => setShowUserSentimentDialog(false)}
           data={data?.data || data}
         />
       )}
