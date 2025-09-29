@@ -10,9 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
-  RefreshCw, AlertCircle, ExternalLink, Clock, HelpCircle,
+  RefreshCw, AlertCircle, ExternalLink, Clock, HelpCircle, Info,
   TrendingUp, TrendingDown, Minus, CheckCircle, Newspaper,
-  Globe, Target, DollarSign, BarChart3, Activity, Sparkles
+  Globe, Target, DollarSign, BarChart3, Activity, Sparkles,
+  Brain, Zap, Database
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -554,87 +555,114 @@ export function MarketTrendsTile({
 
   return (
     <>
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base">{title}</CardTitle>
-            <div className="flex items-center gap-2">
-              {data?.updatedAt && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>{new Date(data.updatedAt).toLocaleTimeString()}</span>
-                </div>
-              )}
-            </div>
-          </div>
+      <Card className={cn(
+        "h-full transition-all duration-500 hover:shadow-xl relative overflow-hidden group",
+        className
+      )}>
+        {/* Beautiful Gradient Background */}
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-br opacity-30 transition-opacity group-hover:opacity-40",
+          tileType === 'market_size' ? "from-blue-500/20 via-cyan-500/10 to-transparent" :
+          tileType === 'growth_projections' ? "from-emerald-500/20 via-green-500/10 to-transparent" :
+          tileType === 'launch_timeline' ? "from-violet-500/20 via-purple-500/10 to-transparent" :
+          tileType === 'pmf_score' ? "from-amber-500/20 via-yellow-500/10 to-transparent" :
+          tileType === 'sentiment' ? "from-pink-500/20 via-rose-500/10 to-transparent" :
+          tileType === 'competition' || tileType === 'competitor_analysis' ? "from-red-500/20 via-orange-500/10 to-transparent" :
+          tileType === 'target_audience' ? "from-indigo-500/20 via-blue-500/10 to-transparent" :
+          tileType === 'pricing_strategy' ? "from-green-500/20 via-emerald-500/10 to-transparent" :
+          tileType === 'user_engagement' ? "from-purple-500/20 via-pink-500/10 to-transparent" :
+          tileType === 'twitter_buzz' ? "from-sky-500/20 via-blue-500/10 to-transparent" :
+          tileType === 'amazon_reviews' ? "from-orange-500/20 via-amber-500/10 to-transparent" :
+          tileType === 'youtube_analytics' ? "from-red-500/20 via-pink-500/10 to-transparent" :
+          tileType === 'news_analysis' ? "from-gray-500/20 via-slate-500/10 to-transparent" :
+          "from-primary/20 via-primary/10 to-transparent"
+        )} />
+        
+        <CardHeader className="relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle className="flex items-center gap-2">
-                <Icon className="h-5 w-5" />
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-2 rounded-lg bg-gradient-to-br",
+                tileType === 'market_size' ? "from-blue-500/20 to-cyan-500/10" :
+                tileType === 'growth_projections' ? "from-emerald-500/20 to-green-500/10" :
+                tileType === 'launch_timeline' ? "from-violet-500/20 to-purple-500/10" :
+                tileType === 'pmf_score' ? "from-amber-500/20 to-yellow-500/10" :
+                tileType === 'sentiment' ? "from-pink-500/20 to-rose-500/10" :
+                tileType === 'competition' || tileType === 'competitor_analysis' ? "from-red-500/20 to-orange-500/10" :
+                tileType === 'target_audience' ? "from-indigo-500/20 to-blue-500/10" :
+                tileType === 'pricing_strategy' ? "from-green-500/20 to-emerald-500/10" :
+                tileType === 'user_engagement' ? "from-purple-500/20 to-pink-500/10" :
+                tileType === 'twitter_buzz' ? "from-sky-500/20 to-blue-500/10" :
+                tileType === 'amazon_reviews' ? "from-orange-500/20 to-amber-500/10" :
+                tileType === 'youtube_analytics' ? "from-red-500/20 to-pink-500/10" :
+                tileType === 'news_analysis' ? "from-gray-500/20 to-slate-500/10" :
+                "from-primary/20 to-primary/10"
+              )}>
+                <Icon className="h-5 w-5 text-primary" />
+              </div>
+              <CardTitle className="text-base">
                 {title}
               </CardTitle>
-              {data && (
-                <div>
-                  {data.fromCache ? (
-                    <Badge variant="secondary" className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300">
-                      <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
-                      Cached • {(() => {
-                        if (!data.cacheTimestamp) return 'cached';
-                        const age = Date.now() - data.cacheTimestamp;
-                        const hours = Math.floor(age / (1000 * 60 * 60));
-                        const days = Math.floor(hours / 24);
-                        if (days > 0) return `${days}d ago`;
-                        if (hours > 0) return `${hours}h ago`;
-                        const minutes = Math.floor(age / (1000 * 60));
-                        return `${minutes}m ago`;
-                      })()}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
-                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
-                      Fresh data
-                    </Badge>
-                  )}
-                </div>
-              )}
             </div>
             <div className="flex items-center gap-2">
+              {/* Brain Icon for AI Insights */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setShowInsights(true)}
-                    className="h-8 w-8"
+                    className="h-8 w-8 hover:bg-primary/10 text-primary animate-pulse"
                   >
-                    <HelpCircle className="h-4 w-4" />
+                    <Brain className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
+                <TooltipContent className="max-w-xs p-3 bg-card border-border">
                   <div className="space-y-2">
-                    <p className="font-semibold">What is {title} helpful for?</p>
-                    <p className="text-sm">{description || `Analyze ${title.toLowerCase()} data for your startup idea.`}</p>
+                    <p className="font-semibold text-xs text-primary flex items-center gap-1">
+                      <Brain className="h-3 w-3" />
+                      AI-Powered Insights
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Get detailed analysis, recommendations, and actionable insights powered by AI
+                    </p>
                   </div>
                 </TooltipContent>
               </Tooltip>
+              
+              {/* Refresh Button */}
               <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={handleRefresh}
                 disabled={isLoading || isRefreshing}
-                className="h-8"
+                className="h-8 w-8 hover:bg-primary/10"
               >
-                <RefreshCw className={cn("h-4 w-4 mr-1", (isLoading || isRefreshing) && "animate-spin")} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                <RefreshCw className={cn("h-4 w-4", (isLoading || isRefreshing) && "animate-spin")} />
               </Button>
+              
+              {/* Subtle Data Source Indicator */}
               {data && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  {getTrendIcon()}
-                  {trendDirection}
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger>
+                    {data?.fromCache ? (
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                    ) : (
+                      <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      {data?.fromCache ? 'From cache' : 'Live API data'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
+          {description && (
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          )}
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -684,15 +712,44 @@ export function MarketTrendsTile({
             </ChartContainer>
           )}
 
-          {/* Key Metrics */}
+          {/* Key Metrics with Beautiful Colors and Info Tooltips */}
           {data?.metrics && data.metrics.length > 0 && (
             <div className="grid grid-cols-2 gap-3">
               {data.metrics.slice(0, 4).map((metric, idx) => (
-                <div key={idx} className="bg-muted/10 rounded-lg p-3">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {metric.name}
-                  </p>
-                  <p className="text-lg font-bold mt-1">
+                <div 
+                  key={idx} 
+                  className={cn(
+                    "rounded-lg p-3 border transition-all duration-300 hover:scale-105 hover:shadow-lg",
+                    idx === 0 ? "bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border-blue-500/20" :
+                    idx === 1 ? "bg-gradient-to-br from-emerald-500/10 to-green-500/5 border-emerald-500/20" :
+                    idx === 2 ? "bg-gradient-to-br from-violet-500/10 to-purple-500/5 border-violet-500/20" :
+                    "bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border-amber-500/20"
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {metric.name}
+                    </p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="p-1 hover:bg-white/10 rounded transition-colors">
+                          <Info className="h-3.5 w-3.5 opacity-60 hover:opacity-100" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-sm p-3 space-y-2 bg-card border-border">
+                        <p className="font-semibold text-xs text-primary">About {metric.name}:</p>
+                        <p className="text-xs text-muted-foreground">
+                          {metric.explanation || `${metric.name} analysis for your idea`}
+                        </p>
+                        {metric.confidence && (
+                          <p className="text-xs text-muted-foreground">
+                            Confidence: {(metric.confidence * 100).toFixed(0)}%
+                          </p>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-lg font-bold">
                     {metric.value}
                     {metric.unit && (
                       <span className="text-sm font-normal text-muted-foreground ml-1">
@@ -700,9 +757,6 @@ export function MarketTrendsTile({
                       </span>
                     )}
                   </p>
-                  {metric.explanation && (
-                    <p className="text-xs text-muted-foreground mt-1">{metric.explanation}</p>
-                  )}
                 </div>
               ))}
             </div>
@@ -727,17 +781,22 @@ export function MarketTrendsTile({
             </div>
           )}
 
-          {/* Key Insights */}
+          {/* Beautiful Key Insights with Emojis */}
           {data?.insights && data.insights.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Key Insights
-              </h4>
-              <div className="space-y-1">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 via-violet-500/10 to-pink-500/10 border border-primary/20">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <span className="text-sm font-semibold bg-gradient-to-r from-primary to-violet-600 bg-clip-text text-transparent">
+                  AI-Powered Insights
+                </span>
+              </div>
+              <div className="space-y-2">
                 {data.insights.slice(0, 3).map((insight, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-xs">
-                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-muted-foreground">{insight}</span>
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="text-lg">
+                      {idx === 0 ? '🚀' : idx === 1 ? '💡' : '🎯'}
+                    </span>
+                    <span className="text-xs text-foreground/80 leading-relaxed">{insight}</span>
                   </div>
                 ))}
               </div>
