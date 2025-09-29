@@ -190,19 +190,21 @@ export default function EnterpriseHub() {
         </div>
       </div>
 
-      {/* Main Grid with WebSearchCard and Data Tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-        {/* Web Search Card - 4x4 grid */}
-        <WebSearchCard 
-          idea={currentIdea}
-          industry={filters.industry}
-          geography={filters.geography}
-          timeWindow={filters.time_window}
-        />
+      {/* Main Grid with WebSearchCard and Data Tiles - Each card on its own row */}
+      <div className="space-y-4">
+        {/* Web Search Card - Full width */}
+        <div className="w-full">
+          <WebSearchCard 
+            idea={currentIdea}
+            industry={filters.industry}
+            geography={filters.geography}
+            timeWindow={filters.time_window}
+          />
+        </div>
         
-        {/* Other Data Tiles */}
+        {/* Other Data Tiles - Each on its own row */}
         {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile) => (
-          <div key={tile.id} className={tile.span}>
+          <div key={tile.id} className="w-full">
             <DataTile
               title={tile.title}
               icon={tile.icon}

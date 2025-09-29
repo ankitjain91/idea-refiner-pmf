@@ -215,7 +215,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Unloaded state
   if (!hasLoadedOnce) {
     return (
-      <Card className="col-span-4 border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300 animate-fade-in bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm">
+      <Card className="w-full border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300 animate-fade-in bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -269,7 +269,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Loading state
   if (isLoading && !data) {
     return (
-      <Card className="col-span-4 border-border/50 shadow-2xl bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm animate-fade-in">
+      <Card className="w-full border-border/50 shadow-2xl bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm animate-fade-in">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -310,7 +310,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Error state
   if (error && !data) {
     return (
-      <Card className="col-span-4 border-destructive/20 shadow-2xl bg-gradient-to-br from-destructive/5 via-card to-background animate-fade-in">
+      <Card className="w-full border-destructive/20 shadow-2xl bg-gradient-to-br from-destructive/5 via-card to-background animate-fade-in">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -350,7 +350,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   return (
     <>
       <Card 
-        className="col-span-4 border-border/30 shadow-2xl hover:shadow-3xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 animate-fade-in group backdrop-blur-sm relative overflow-hidden min-h-[400px]"
+        className="w-full border-border/30 shadow-2xl hover:shadow-3xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 animate-fade-in group backdrop-blur-sm relative overflow-hidden min-h-[400px]"
         onClick={() => setSheetOpen(true)}
       >
         {/* Animated background gradient */}
