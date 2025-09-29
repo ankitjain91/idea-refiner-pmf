@@ -842,12 +842,8 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                 </>
               ) : (
                 <>
-                  <div className="relative">
-                    <HelpCircle className="h-3.5 w-3.5 mr-2 text-amber-600 dark:text-amber-400" />
-                    <Sparkles className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 text-yellow-500 animate-pulse" />
-                  </div>
-                  <span className="text-amber-700 dark:text-amber-400 font-medium">How This Helps</span>
-                  <Sparkles className="h-3 w-3 ml-1.5 text-yellow-500 animate-pulse" />
+                  <Sparkles className="h-3.5 w-3.5 mr-2 text-yellow-500 animate-pulse" />
+                  <span className="text-amber-700 dark:text-amber-400 font-medium">Analyze</span>
                 </>
               )}
             </Button>
