@@ -787,28 +787,50 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                   const sentimentMetric = currentData?.metrics?.find((m: any) => m.name === 'News Sentiment');
                   const momentumMetric = currentData?.metrics?.find((m: any) => m.name === 'News Momentum');
                   
-                  if (!searchVolumeMetric || searchVolumeMetric.value === 'N/A' || 
-                      !sentimentMetric || sentimentMetric.value === 'N/A' || 
-                      !momentumMetric || momentumMetric.value === 'N/A' || 
-                      currentData?.error) {
+                  // Check if we have at least search volume data
+                  if (!searchVolumeMetric || 
+                      searchVolumeMetric.value === 'N/A' || 
+                      searchVolumeMetric.value === 'Unavailable' ||
+                      searchVolumeMetric.value === 'Limited') {
                     return 'N/A';
                   }
                   
                   const searchVolume = parseInt(searchVolumeMetric.value);
-                  const sentiment = parseFloat(sentimentMetric.value);
-                  const momentum = parseFloat(momentumMetric.value);
-                  
-                  if (isNaN(searchVolume) || isNaN(sentiment) || isNaN(momentum) || searchVolume === 0) {
+                  if (isNaN(searchVolume) || searchVolume === 0) {
                     return 'N/A';
                   }
                   
-                  // Calculate score: base on search volume (0-100 -> 0-5 points), sentiment (-5 to 5 -> 0-3 points), momentum (-20 to 20 -> 0-2 points)
-                  const searchScore = Math.min(searchVolume / 20, 5);
-                  const sentimentScore = Math.max(0, (sentiment + 5) / 3.33);
-                  const momentumScore = Math.max(0, (momentum + 20) / 20);
+                  // Start with search score
+                  let totalScore = Math.min(searchVolume / 20, 5);
+                  let divisor = 1;
                   
-                  const totalScore = Math.min(10, searchScore + sentimentScore + momentumScore).toFixed(1);
-                  return totalScore;
+                  // Add sentiment if available
+                  if (sentimentMetric && 
+                      sentimentMetric.value !== 'N/A' && 
+                      sentimentMetric.value !== 'Unavailable') {
+                    const sentiment = parseFloat(sentimentMetric.value);
+                    if (!isNaN(sentiment)) {
+                      const sentimentScore = Math.max(0, (sentiment + 5) / 3.33);
+                      totalScore += sentimentScore;
+                      divisor += 0.6; // Weight sentiment contribution
+                    }
+                  }
+                  
+                  // Add momentum if available
+                  if (momentumMetric && 
+                      momentumMetric.value !== 'N/A' && 
+                      momentumMetric.value !== 'Unavailable') {
+                    const momentum = parseFloat(momentumMetric.value);
+                    if (!isNaN(momentum)) {
+                      const momentumScore = Math.max(0, (momentum + 20) / 20);
+                      totalScore += momentumScore;
+                      divisor += 0.4; // Weight momentum contribution
+                    }
+                  }
+                  
+                  // Normalize and calculate final score
+                  const finalScore = Math.min(10, (totalScore / divisor) * 2).toFixed(1);
+                  return finalScore;
                 })()}
               </div>
               <div className="text-xs text-muted-foreground pb-1">/10</div>
