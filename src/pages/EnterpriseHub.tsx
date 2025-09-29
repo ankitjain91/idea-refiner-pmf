@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,13 +8,11 @@ import {
   Brain, TrendingUp, Globe2, Newspaper, MessageSquare, Youtube,
   Twitter, ShoppingBag, Users, Target, DollarSign, Rocket,
   BarChart3, AlertCircle, RefreshCw, Sparkles, Building2,
-  Calendar, Clock, Activity, ArrowUpRight, Loader2, Zap,
-  Shield, Eye, ChartBar, Layers
+  Calendar, Clock, Activity, Layers, Shield, Zap
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
-import { supabase } from "@/integrations/supabase/client";
 import { DataTile } from "@/components/hub/DataTile";
 import { EnhancedDataTile } from "@/components/hub/EnhancedDataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
@@ -39,7 +37,6 @@ export default function EnterpriseHub() {
   const { currentSession } = useSession();
   const { user } = useAuth();
   const { subscription } = useSubscription();
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [filters, setFilters] = useState({
     idea_keywords: [],
@@ -63,23 +60,20 @@ export default function EnterpriseHub() {
 
   if (!currentIdea) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
-        <Card className="max-w-md w-full p-8 shadow-xl border-primary/10">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full p-8 border-border/50">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="p-4 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full animate-pulse">
-              <Brain className="h-8 w-8 text-primary" />
+            <div className="p-3 bg-muted rounded-lg">
+              <Brain className="h-6 w-6 text-foreground" />
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              No Active Idea
-            </h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-2xl font-semibold">No Active Idea</h2>
+            <p className="text-sm text-muted-foreground">
               Start by entering your startup idea in the Idea Chat to unlock comprehensive analytics and insights.
             </p>
             <Button 
               onClick={() => window.location.href = '/ideachat'}
-              className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              className="mt-4"
             >
-              <Sparkles className="mr-2 h-4 w-4" />
               Go to Idea Chat
             </Button>
           </div>
@@ -89,10 +83,7 @@ export default function EnterpriseHub() {
   }
 
   const tiles = [
-    { id: 'marketTrends', title: 'Market Trends', icon: TrendingUp, tileType: 'market_trends', span: 'col-span-2' },
-    { id: 'googleTrends', title: 'Google Trends', icon: Activity, tileType: 'google_trends', span: 'col-span-1' },
     { id: 'newsAnalysis', title: 'News Analysis', icon: Newspaper, tileType: 'news_analysis', span: 'col-span-2' },
-    { id: 'reddit', title: 'Reddit Sentiment', icon: MessageSquare, tileType: 'reddit_sentiment', span: 'col-span-1' },
     { id: 'youtube', title: 'YouTube Analytics', icon: Youtube, tileType: 'youtube_analytics', span: 'col-span-1' },
     { id: 'twitter', title: 'Twitter/X Buzz', icon: Twitter, tileType: 'twitter_buzz', span: 'col-span-1' },
     { id: 'amazon', title: 'Amazon Reviews', icon: ShoppingBag, tileType: 'amazon_reviews', span: 'col-span-1' },
@@ -106,58 +97,40 @@ export default function EnterpriseHub() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Premium Header */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border border-primary/10">
-          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
-          <div className="relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <ChartBar className="h-6 w-6 text-primary" />
-                  </div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                    Enterprise Analytics Hub
-                  </h1>
-                </div>
-                <p className="text-muted-foreground flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  Real-time intelligence for: 
-                  <Badge variant="outline" className="ml-1 font-medium">
-                    {currentIdea}
-                  </Badge>
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge 
-                  variant="secondary" 
-                  className={cn(
-                    "px-3 py-1.5 font-medium",
-                    subscriptionTier === 'enterprise' 
-                      ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-700 dark:text-amber-400 border-amber-500/30" 
-                      : "bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-700 dark:text-blue-400 border-blue-500/30"
-                  )}
-                >
-                  {subscriptionTier === 'enterprise' ? (
-                    <>
-                      <Shield className="mr-1 h-3.5 w-3.5" />
-                      Enterprise
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="mr-1 h-3.5 w-3.5" />
-                      Pro
-                    </>
-                  )}
-                </Badge>
-              </div>
-            </div>
+        {/* Clean Header */}
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {currentIdea}
+            </p>
           </div>
+          <Badge 
+            variant="secondary" 
+            className={cn(
+              "font-normal",
+              subscriptionTier === 'enterprise' 
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" 
+                : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
+            )}
+          >
+            {subscriptionTier === 'enterprise' ? (
+              <>
+                <Shield className="mr-1 h-3 w-3" />
+                Enterprise
+              </>
+            ) : (
+              <>
+                <Zap className="mr-1 h-3 w-3" />
+                Pro
+              </>
+            )}
+          </Badge>
         </div>
 
-        {/* Key Performance Indicators - Enterprise Style */}
+        {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickStatsTile
             title="PMF Score"
@@ -189,40 +162,24 @@ export default function EnterpriseHub() {
           />
         </div>
 
-        {/* Main Analytics Tabs */}
+        {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] bg-muted/50">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Layers className="mr-2 h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="market" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Market
-            </TabsTrigger>
-            <TabsTrigger value="competitive" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Building2 className="mr-2 h-4 w-4" />
-              Competitive
-            </TabsTrigger>
-            <TabsTrigger value="audience" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Users className="mr-2 h-4 w-4" />
-              Audience
-            </TabsTrigger>
+          <TabsList className="bg-muted/30 border">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="market">Market Analysis</TabsTrigger>
+            <TabsTrigger value="competitive">Competitive Intel</TabsTrigger>
+            <TabsTrigger value="audience">Audience Insights</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6 animate-fade-in">
-            {/* Primary Market Intelligence Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
-                <MarketTrendsCard filters={filters} className="h-full shadow-lg hover:shadow-xl transition-shadow" />
+                <MarketTrendsCard filters={filters} />
               </div>
-              <div className="space-y-4">
-                <GoogleTrendsCard filters={filters} />
-              </div>
+              <GoogleTrendsCard filters={filters} />
             </div>
 
-            {/* Social & Web Intelligence */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <WebSearchDataTile 
                 idea={currentIdea}
                 industry={filters.industry}
@@ -238,14 +195,14 @@ export default function EnterpriseHub() {
             </div>
           </TabsContent>
 
-          <TabsContent value="market" className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <TabsContent value="market" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <EnhancedDataTile
                 title="Market Size Analysis"
                 icon={BarChart3}
                 tileType="market_size"
                 filters={filters}
-                description="TAM, SAM, SOM breakdown with growth projections"
+                description="TAM, SAM, SOM breakdown"
                 fetchAdapter={marketSizeAdapter}
               />
               <EnhancedDataTile
@@ -253,7 +210,7 @@ export default function EnterpriseHub() {
                 icon={Rocket}
                 tileType="growth_projections"
                 filters={filters}
-                description="5-year revenue and user growth forecasts"
+                description="5-year forecasts"
                 fetchAdapter={growthProjectionsAdapter}
               />
               <EnhancedDataTile
@@ -261,20 +218,20 @@ export default function EnterpriseHub() {
                 icon={Calendar}
                 tileType="launch_timeline"
                 filters={filters}
-                description="Strategic milestones and go-to-market plan"
+                description="Strategic milestones"
                 fetchAdapter={launchTimelineAdapter}
               />
             </div>
           </TabsContent>
 
-          <TabsContent value="competitive" className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="competitive" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <EnhancedDataTile
                 title="Competitor Analysis"
                 icon={Building2}
                 tileType="competitor_analysis"
                 filters={filters}
-                description="Comprehensive competitive landscape mapping"
+                description="Competitive landscape"
                 fetchAdapter={competitorAnalysisAdapter}
               />
               <EnhancedDataTile
@@ -282,17 +239,17 @@ export default function EnterpriseHub() {
                 icon={DollarSign}
                 tileType="pricing_strategy"
                 filters={filters}
-                description="Optimal pricing models and tiers"
+                description="Optimal pricing models"
                 fetchAdapter={pricingStrategyAdapter}
               />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <EnhancedDataTile
                 title="Twitter/X Buzz"
                 icon={Twitter}
                 tileType="twitter_buzz"
                 filters={filters}
-                description="Real-time social media sentiment"
+                description="Social media sentiment"
                 fetchAdapter={twitterBuzzAdapter}
               />
               <EnhancedDataTile
@@ -300,20 +257,20 @@ export default function EnterpriseHub() {
                 icon={ShoppingBag}
                 tileType="amazon_reviews"
                 filters={filters}
-                description="Competitor product review analysis"
+                description="Product review analysis"
                 fetchAdapter={amazonReviewsAdapter}
               />
             </div>
           </TabsContent>
 
-          <TabsContent value="audience" className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="audience" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <EnhancedDataTile
                 title="Target Audience"
                 icon={Target}
                 tileType="target_audience"
                 filters={filters}
-                description="Demographics, psychographics, and personas"
+                description="Demographics & personas"
                 fetchAdapter={targetAudienceAdapter}
               />
               <EnhancedDataTile
@@ -321,41 +278,41 @@ export default function EnterpriseHub() {
                 icon={Users}
                 tileType="user_engagement"
                 filters={filters}
-                description="Engagement metrics and retention analysis"
+                description="Engagement metrics"
                 fetchAdapter={userEngagementAdapter}
               />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <DataTile
                 title="YouTube Analytics"
                 icon={Youtube}
                 tileType="youtube_analytics"
                 filters={filters}
-                description="Video content trends and creator insights"
+                description="Video content trends"
               />
               <DataTile
                 title="News Analysis"
                 icon={Newspaper}
                 tileType="news_analysis"
                 filters={filters}
-                description="Media coverage and press sentiment"
+                description="Media coverage"
               />
             </div>
           </TabsContent>
         </Tabs>
 
-        {/* Pro/Enterprise Features Notice */}
+        {/* Pro/Enterprise Notice */}
         {subscriptionTier !== 'enterprise' && (
-          <Alert className="border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-amber-600/5 backdrop-blur">
-            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+          <Alert className="border-muted">
+            <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              Unlock unlimited data sources and advanced analytics with Enterprise.
+              Upgrade to Enterprise for unlimited data sources and advanced analytics.
               <Button 
                 variant="link" 
-                className="h-auto p-0 ml-2 text-amber-600 dark:text-amber-500 hover:text-amber-700 dark:hover:text-amber-400"
+                className="h-auto p-0 ml-2"
                 onClick={() => window.location.href = '/pricing'}
               >
-                Upgrade Now →
+                View Plans →
               </Button>
             </AlertDescription>
           </Alert>
