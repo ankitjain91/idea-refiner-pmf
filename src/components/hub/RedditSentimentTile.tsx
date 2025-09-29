@@ -162,12 +162,18 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
     }
   );
 
-  // Auto-load on mount only once
+  // Auto-load on mount and auto-trigger fetch
   useEffect(() => {
     if (!hasLoadedOnce && actualIdea) {
       setHasLoadedOnce(true);
+      // Automatically start loading data on page load
+      setTimeout(() => {
+        if (cacheKey && mutate) {
+          mutate();
+        }
+      }, 100);
     }
-  }, [hasLoadedOnce, actualIdea]);
+  }, [hasLoadedOnce, actualIdea, cacheKey, mutate]);
 
   const analyzeWithGroq = async () => {
     if (!data || isAnalyzing) return;

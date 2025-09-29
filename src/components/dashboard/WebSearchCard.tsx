@@ -15,7 +15,7 @@ import {
   ChevronRight, Sparkles, Calendar, Loader2, ShoppingBag,
   DollarSign, Target, Zap, Activity, BarChart3, Clock,
   ArrowUpRight, ArrowDownRight, Minus, HelpCircle, ShoppingCart,
-  Download, FileJson
+  Download, FileJson, Brain
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,9 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const { toast } = useToast();
 
   // Fallback to localStorage if idea is not provided
   const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
@@ -98,6 +101,46 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
       setHasLoadedOnce(true);
     }
   }, [actualIdea, hasLoadedOnce]);
+
+  // AI Analysis function
+  const analyzeWithAI = async () => {
+    if (!data || isAnalyzing) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data: response, error } = await supabase.functions.invoke('enhanced-business-analysis', {
+        body: {
+          idea: actualIdea,
+          analysisType: 'web_search_profitability',
+          data: {
+            metrics: data.metrics,
+            competitors: data.competitors,
+            insights: data.insights,
+            market_insights: data.market_insights,
+            unmet_needs: data.unmet_needs,
+            top_queries: data.top_queries
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      setAnalysisData(response);
+      toast({
+        title: "AI Analysis Complete",
+        description: "Enhanced business insights have been generated",
+      });
+    } catch (error) {
+      console.error('Error analyzing with AI:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Unable to generate AI insights at this time",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // Build cache key
   const cacheKey = hasLoadedOnce && actualIdea ? 
@@ -362,6 +405,18 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
               </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  analyzeWithAI();
+                }}
+                disabled={isAnalyzing}
+                className="h-8 w-8 hover:bg-purple-100 dark:hover:bg-purple-900/20"
+              >
+                <Brain className={cn("h-3.5 w-3.5 text-purple-600", isAnalyzing && "animate-pulse")} />
+              </Button>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
@@ -439,6 +494,21 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                 {typeof data.insights === 'object' ? 
                   (data.insights.marketGap || data.insights.insight || JSON.stringify(data.insights).slice(0, 100)) :
                   String(data.insights).slice(0, 100)}
+              </p>
+            </div>
+          )}
+
+          {/* AI Analysis Preview */}
+          {analysisData && (
+            <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="h-4 w-4 text-purple-600" />
+                <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                  AI Business Analysis
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {analysisData.summary || analysisData.insights?.[0] || "Enhanced profitability analysis with business recommendations"}
               </p>
             </div>
           )}

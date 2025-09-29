@@ -128,12 +128,18 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     }
   );
 
-  // Auto-load on mount only once
+  // Auto-load on mount and auto-trigger fetch
   useEffect(() => {
     if (!hasLoadedOnce && actualIdea) {
       setHasLoadedOnce(true);
+      // Automatically start loading data on page load
+      setTimeout(() => {
+        if (cacheKey && mutate) {
+          mutate();
+        }
+      }, 200);
     }
-  }, [hasLoadedOnce, actualIdea]);
+  }, [hasLoadedOnce, actualIdea, cacheKey, mutate]);
 
   const analyzeWithGroq = async () => {
     if (!data || isAnalyzing) return;
