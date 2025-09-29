@@ -439,11 +439,11 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* Data Source Indicator - Matches MarketTrendsTile */}
+              {/* Data Source Badge - Same as MarketTrendsCard */}
               {data && (
-                <span className="text-[11px] text-muted-foreground/60">
-                  {data?.fromCache || data?.fromDatabase ? 'Cached' : 'Live API'}
-                </span>
+                <Badge variant={data?.fromCache || data?.fromDatabase ? 'secondary' : 'outline'} className="text-xs h-5">
+                  {data?.fromCache || data?.fromDatabase ? 'Cache' : 'Live'}
+                </Badge>
               )}
               <Button
                 size="sm"

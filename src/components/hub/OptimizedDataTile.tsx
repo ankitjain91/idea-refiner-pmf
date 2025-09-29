@@ -131,28 +131,9 @@ export function OptimizedDataTile({
             <div className="flex items-center gap-2">
               {/* Subtle Data Source Indicator - Same as Overview */}
               {costInfo && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {costInfo.cacheHit ? (
-                          <>
-                            <Clock className="h-3 w-3" />
-                            <span>Cached</span>
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="h-3 w-3" />
-                            <span>Live API</span>
-                          </>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{costInfo.cacheHit ? 'From cache' : 'Live API data'}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Badge variant={costInfo.cacheHit ? 'secondary' : 'outline'} className="text-xs h-5">
+                  {costInfo.cacheHit ? 'Cache' : 'Live'}
+                </Badge>
               )}
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>

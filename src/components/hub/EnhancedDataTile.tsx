@@ -465,28 +465,9 @@ export function EnhancedDataTile({
             <div className="flex items-center gap-2">
               {/* Subtle Data Source Indicator - Same as Overview */}
               {data && (
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {data?.fromDatabase || data?.fromCache ? (
-                          <>
-                            <Clock className="h-3 w-3" />
-                            <span>Cached</span>
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="h-3 w-3" />
-                            <span>Live API</span>
-                          </>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{data?.fromDatabase || data?.fromCache ? 'From cache' : 'Live API data'}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Badge variant={data?.fromDatabase || data?.fromCache ? 'secondary' : 'outline'} className="text-xs h-5">
+                  {data?.fromDatabase || data?.fromCache ? 'Cache' : 'Live'}
+                </Badge>
               )}
               
               {/* Refresh Button */}

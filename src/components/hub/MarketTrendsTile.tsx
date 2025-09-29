@@ -92,6 +92,7 @@ interface TileData {
     published?: string;
   }>;
   fromCache?: boolean;
+  fromDatabase?: boolean;
   cacheTimestamp?: number;
   stale?: boolean;
   error?: string;
@@ -605,22 +606,11 @@ export function MarketTrendsTile({
               </CardTitle>
             </div>
             <div className="flex items-center gap-2">
-              {/* Subtle Data Source Indicator - Same as Overview */}
+              {/* Data Source Badge - Same as MarketTrendsCard */}
               {data && (
-                <Tooltip>
-                  <TooltipTrigger>
-                    {data?.fromCache ? (
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
-                    ) : (
-                      <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
-                    )}
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">
-                      {data?.fromCache ? 'From cache' : 'Live API data'}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                <Badge variant={data?.fromCache || data?.fromDatabase ? 'secondary' : 'outline'} className="text-xs h-5">
+                  {data?.fromCache || data?.fromDatabase ? 'Cache' : 'Live'}
+                </Badge>
               )}
               
               {/* Refresh Button */}
