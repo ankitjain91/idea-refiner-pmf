@@ -466,27 +466,29 @@ export function StandardizedMarketTile({
     // Build metrics array based on tile type
     const metrics = [];
     
-    // Add primary metric
-    metrics.push({
-      title: title,
-      value: getMetricValue(),
-      icon: MetricIcon,
-      color: 'primary',
-      levels: [
-        {
-          title: 'Overview',
-          content: typeof analysis === 'string' ? analysis : (analysis.summary || `Overview analysis for ${title}`)
-        },
-        {
-          title: 'Detailed Analysis',
-          content: analysis.detailed || getDetailedAnalysis()
-        },
-        {
-          title: 'Strategic Insights',
-          content: analysis.strategic || getStrategicInsights()
-        }
-      ]
-    });
+    // Add primary metric only if real data exists
+    if (analysis || data?.metrics) {
+      metrics.push({
+        title: title,
+        value: getMetricValue(),
+        icon: MetricIcon,
+        color: 'primary',
+        levels: [
+          {
+            title: 'Overview',
+            content: typeof analysis === 'string' ? analysis : (analysis.summary || 'No data available')
+          },
+          {
+            title: 'Detailed Analysis',
+            content: analysis.detailed || 'No detailed analysis available'
+          },
+          {
+            title: 'Strategic Insights',
+            content: analysis.strategic || 'No strategic insights available'
+          }
+        ]
+      });
+    }
 
     // Add additional metrics if available
     if (data?.metrics) {
@@ -503,8 +505,8 @@ export function StandardizedMarketTile({
           color: 'secondary',
           levels: [
             { title: 'Overview', content: `Current ${key}: ${value}` },
-            { title: 'Detailed', content: `Detailed analysis of ${key} metric` },
-            { title: 'Strategic', content: `Strategic implications of ${key}` }
+            { title: 'Detailed', content: 'No detailed data available' },
+            { title: 'Strategic', content: 'No strategic data available' }
           ]
         });
       });
@@ -516,12 +518,7 @@ export function StandardizedMarketTile({
       chartData: data?.chartData || [],
       barChartData: data?.barChartData || [],
       sources: data?.sources || [],
-      insights: [
-        ...(data?.insights || []),
-        `AI-powered analysis for ${currentIdea}`,
-        'Real-time market intelligence',
-        'Data-driven recommendations'
-      ]
+      insights: data?.insights || []
     };
   };
 
@@ -542,7 +539,7 @@ export function StandardizedMarketTile({
     if (analysis.opportunities && analysis.opportunities.length > 0) {
       return `Key Opportunities:\n${analysis.opportunities.map((o: string, i: number) => `${i + 1}. ${o}`).join('\n')}`;
     }
-    return `Detailed analysis shows ${title} metrics are within expected ranges for ${currentIdea}. Further investigation recommended for optimization opportunities.`;
+    return 'No detailed analysis available';
   };
 
   const getStrategicInsights = () => {
@@ -550,7 +547,7 @@ export function StandardizedMarketTile({
     if (analysis.recommendations && analysis.recommendations.length > 0) {
       return `Strategic Recommendations:\n${analysis.recommendations.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n')}`;
     }
-    return `Strategic positioning suggests focusing on differentiation and market penetration strategies for ${currentIdea}.`;
+    return 'No strategic insights available';
   };
 
   // Show loading state
