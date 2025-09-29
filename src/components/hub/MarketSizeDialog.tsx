@@ -238,6 +238,79 @@ export function MarketSizeDialog({ isOpen, onClose, data }: MarketSizeDialogProp
                       </CardContent>
                     </Card>
                   )}
+                  
+                  {/* Calculation Breakdown */}
+                  {actualData.calculationDetails && (
+                    <Card className="border-amber-500/20">
+                      <CardContent className="pt-4">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2">
+                          <Info className="h-4 w-4 text-amber-500" />
+                          How These Numbers Were Calculated
+                        </h4>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm font-medium">Data Collection Method:</p>
+                            <Badge variant="outline" className="mt-1">
+                              {actualData.calculationDetails.method === 'real-time-data' ? 'Real-Time Market Data' : 
+                               actualData.calculationDetails.method === 'data-driven' ? 'Data-Driven Analysis' :
+                               'Industry Benchmarks'}
+                            </Badge>
+                          </div>
+                          
+                          {actualData.calculationDetails.calculations?.tam && (
+                            <div className="p-3 bg-muted/50 rounded">
+                              <p className="text-sm font-medium">TAM: {formatCurrency(tam)}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {actualData.calculationDetails.calculations.tam.explanation}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {actualData.calculationDetails.calculations?.sam && (
+                            <div className="p-3 bg-muted/50 rounded">
+                              <p className="text-sm font-medium">SAM: {formatCurrency(sam)}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {actualData.calculationDetails.calculations.sam.explanation}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {actualData.calculationDetails.calculations?.som && (
+                            <div className="p-3 bg-muted/50 rounded">
+                              <p className="text-sm font-medium">SOM: {formatCurrency(som)}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {actualData.calculationDetails.calculations.som.explanation}
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Confidence Level</span>
+                            <div className="flex items-center gap-2">
+                              <Progress value={(actualData.calculationDetails.confidence || 0.5) * 100} className="w-20 h-2" />
+                              <span className="text-sm font-medium">
+                                {Math.round((actualData.calculationDetails.confidence || 0.5) * 100)}%
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {actualData.calculationDetails.dataPoints?.length > 0 && (
+                            <div>
+                              <p className="text-sm font-medium mb-2">Data Sources ({actualData.calculationDetails.dataPoints.length} found):</p>
+                              <div className="space-y-1 max-h-32 overflow-y-auto">
+                                {actualData.calculationDetails.dataPoints.slice(0, 3).map((point: any, idx: number) => (
+                                  <div key={idx} className="text-xs p-2 bg-muted/30 rounded">
+                                    <p className="font-medium">{point.source}</p>
+                                    <p className="text-muted-foreground">{point.values?.join(', ')}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="methodology" className="space-y-4 px-1">
