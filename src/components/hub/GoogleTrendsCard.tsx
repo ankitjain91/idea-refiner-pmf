@@ -73,6 +73,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'global' | 'single'>('single');
   const [selectedContinent, setSelectedContinent] = useState<string>('North America');
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [isFromCache, setIsFromCache] = useState(false);
 
@@ -158,6 +159,8 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         data: trendsData,
         timestamp: Date.now()
       }));
+      
+      setHasLoadedOnce(true);
     } catch (err: any) {
       console.error('[GoogleTrendsCard] Error:', err);
       setError(err.message || 'Failed to fetch trends data');
@@ -166,11 +169,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     }
   };
 
-  useEffect(() => {
-    if (keywords.length > 0) {
-      fetchTrendsData(viewMode === 'global');
-    }
-  }, [ideaText, geo, timeWindow]);
+  // Removed auto-load effect - require manual load
 
   const handleViewModeChange = (mode: 'global' | 'single') => {
     console.log('[GoogleTrendsCard] Changing view mode to:', mode);
@@ -634,7 +633,23 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       </CardHeader>
 
       <CardContent className="pt-4">
-        {loading && (
+        {/* Show Load Data button if not loaded yet */}
+        {!hasLoadedOnce && !loading && (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <p className="text-sm text-muted-foreground">No data loaded</p>
+            <Button 
+              onClick={() => {
+                setHasLoadedOnce(true);
+                fetchTrendsData(viewMode === 'global');
+              }} 
+              variant="default"
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              Load Data
+            </Button>
+          </div>
+        )}
+        {loading && hasLoadedOnce && (
           <div className="flex items-center justify-center py-8">
             <div className="text-center space-y-2">
               <RefreshCw className="h-6 w-6 animate-spin mx-auto text-primary" />
@@ -643,14 +658,14 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
           </div>
         )}
 
-        {error && (
+        {hasLoadedOnce && error && (
           <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-xs">{error}</AlertDescription>
           </Alert>
         )}
 
-        {!loading && !error && data && (
+        {hasLoadedOnce && !loading && !error && data && (
           <>
             {console.log('[Render] ViewMode:', viewMode, 'DataType:', data?.type)}
             {data.type === 'continental' ? renderContinentalView() : renderSingleRegionView()}

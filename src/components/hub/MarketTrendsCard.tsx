@@ -90,6 +90,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [selectedContinent, setSelectedContinent] = useState<string>('North America');
   const [groqInsights, setGroqInsights] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   
   // Get the idea from filters or fallback to the actual startup idea
   const storedIdea = typeof window !== 'undefined' ? 
@@ -122,7 +123,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const ideaText = actualIdea;
   
   // Include viewMode in cache key to refetch when switching modes
-  const cacheKey = ideaText ? `market-trends:${ideaText}:${viewMode}` : null;
+  const cacheKey = ideaText && hasLoadedOnce ? `market-trends:${ideaText}:${viewMode}` : null;
   
   const { data, error, isLoading, mutate } = useSWR<TrendsData>(
     cacheKey,
@@ -175,6 +176,12 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       revalidateOnMount: false // Don't refetch on mount if we have cached data
     }
   );
+  
+  // Initial load handler
+  const handleInitialLoad = async () => {
+    setHasLoadedOnce(true);
+    // This will trigger the SWR hook to fetch data
+  };
   
   // Manual refresh handler - bypasses cache
   const handleRefresh = async () => {
@@ -524,8 +531,19 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Show Load Data button if not loaded yet */}
+          {!hasLoadedOnce && !isLoading && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <p className="text-sm text-muted-foreground">No data loaded</p>
+              <Button onClick={handleInitialLoad} variant="default">
+                <Search className="h-4 w-4 mr-2" />
+                Load Data
+              </Button>
+            </div>
+          )}
+          
           {/* Dual-series chart */}
-          {chartData.length > 0 && (
+          {hasLoadedOnce && chartData.length > 0 && (
             <ChartContainer config={{
               searchInterest: {
                 label: "Search Interest",

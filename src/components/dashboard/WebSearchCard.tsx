@@ -19,7 +19,7 @@ interface WebSearchCardProps {
 
 export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSearchCardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const { data, loading, error, status, lastUpdated, refresh, cacheAge } = useCardData({
+  const { data, loading, error, status, lastUpdated, refresh, cacheAge, load } = useCardData({
     cardType: 'web-search',
     idea,
     industry,
@@ -53,6 +53,38 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     return `${Math.floor(seconds / 86400)}d ago`;
   };
+  
+  // Unloaded state - show Load Data button
+  if (status === 'unloaded') {
+    return (
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Search className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Web Search Analysis</CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Click to analyze search trends
+                </CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-6 space-y-3">
+            <p className="text-sm text-muted-foreground">No data loaded</p>
+            <Button onClick={() => load()} variant="default" size="sm">
+              <Search className="h-3 w-3 mr-1" />
+              Load Data
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading && !data) {
     return (
