@@ -22,7 +22,7 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { DataTile } from "@/components/hub/DataTile";
-import { EnhancedDataTile } from "@/components/hub/EnhancedDataTile";
+import { MarketTrendsTile } from "@/components/hub/MarketTrendsTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
@@ -30,17 +30,6 @@ import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
 import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
 import { cn } from "@/lib/utils";
 
-import {
-  twitterBuzzAdapter,
-  amazonReviewsAdapter,
-  competitorAnalysisAdapter,
-  targetAudienceAdapter,
-  pricingStrategyAdapter,
-  marketSizeAdapter,
-  growthProjectionsAdapter,
-  userEngagementAdapter,
-  launchTimelineAdapter
-} from "@/lib/data-adapter";
 
 import { dashboardDataService } from '@/lib/dashboard-data-service';
 
@@ -469,89 +458,89 @@ export default function EnterpriseHub() {
 
           <TabsContent value="market" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Market Size Analysis"
                 icon={BarChart3}
                 tileType="market_size"
                 filters={filters}
                 description="TAM, SAM, SOM breakdown"
-                fetchAdapter={marketSizeAdapter}
+                currentIdea={currentIdea}
               />
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Growth Projections"
                 icon={Rocket}
                 tileType="growth_projections"
                 filters={filters}
                 description="5-year forecasts"
-                fetchAdapter={growthProjectionsAdapter}
+                currentIdea={currentIdea}
               />
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Launch Timeline"
                 icon={Calendar}
                 tileType="launch_timeline"
                 filters={filters}
                 description="Strategic milestones"
-                fetchAdapter={launchTimelineAdapter}
+                currentIdea={currentIdea}
               />
             </div>
           </TabsContent>
 
           <TabsContent value="competitive" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Competitor Analysis"
                 icon={Building2}
                 tileType="competitor_analysis"
                 filters={filters}
                 description="Competitive landscape"
-                fetchAdapter={competitorAnalysisAdapter}
+                currentIdea={currentIdea}
               />
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Pricing Strategy"
                 icon={DollarSign}
                 tileType="pricing_strategy"
                 filters={filters}
                 description="Optimal pricing models"
-                fetchAdapter={pricingStrategyAdapter}
+                currentIdea={currentIdea}
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Twitter/X Buzz"
                 icon={Twitter}
                 tileType="twitter_buzz"
                 filters={filters}
                 description="Social media sentiment"
-                fetchAdapter={twitterBuzzAdapter}
+                currentIdea={currentIdea}
               />
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Amazon Reviews"
                 icon={ShoppingBag}
                 tileType="amazon_reviews"
                 filters={filters}
                 description="Product review analysis"
-                fetchAdapter={amazonReviewsAdapter}
+                currentIdea={currentIdea}
               />
             </div>
           </TabsContent>
 
           <TabsContent value="audience" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="Target Audience"
                 icon={Target}
                 tileType="target_audience"
                 filters={filters}
                 description="Demographics & personas"
-                fetchAdapter={targetAudienceAdapter}
+                currentIdea={currentIdea}
               />
-              <EnhancedDataTile
+              <MarketTrendsTile
                 title="User Engagement"
                 icon={Users}
                 tileType="user_engagement"
                 filters={filters}
                 description="Engagement metrics"
-                fetchAdapter={userEngagementAdapter}
+                currentIdea={currentIdea}
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
