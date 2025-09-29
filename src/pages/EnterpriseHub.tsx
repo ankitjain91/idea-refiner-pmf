@@ -28,7 +28,11 @@ import {
   amazonReviewsAdapter,
   competitorAnalysisAdapter,
   targetAudienceAdapter,
-  pricingStrategyAdapter
+  pricingStrategyAdapter,
+  marketSizeAdapter,
+  growthProjectionsAdapter,
+  userEngagementAdapter,
+  launchTimelineAdapter
 } from "@/lib/data-adapter";
 
 export default function EnterpriseHub() {
@@ -225,8 +229,8 @@ export default function EnterpriseHub() {
         {/* Other Data Tiles - Grid layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile, idx) => {
-            // Use EnhancedDataTile for the 5 specific tiles
-            const enhancedTiles = ['twitter', 'amazon', 'competitors', 'targetAudience', 'pricing'];
+            // Use EnhancedDataTile for the specified tiles
+            const enhancedTiles = ['twitter', 'amazon', 'competitors', 'targetAudience', 'pricing', 'marketSize', 'growth', 'engagement', 'timeline'];
             const isEnhancedTile = enhancedTiles.includes(tile.id);
             
             const getAdapter = () => {
@@ -236,6 +240,10 @@ export default function EnterpriseHub() {
                 case 'competitors': return competitorAnalysisAdapter;
                 case 'targetAudience': return targetAudienceAdapter;
                 case 'pricing': return pricingStrategyAdapter;
+                case 'marketSize': return marketSizeAdapter;
+                case 'growth': return growthProjectionsAdapter;
+                case 'engagement': return userEngagementAdapter;
+                case 'timeline': return launchTimelineAdapter;
                 default: return null;
               }
             };
