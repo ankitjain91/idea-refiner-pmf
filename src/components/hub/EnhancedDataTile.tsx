@@ -13,7 +13,7 @@ import {
   RefreshCw, AlertCircle, ExternalLink, Clock, HelpCircle, Info,
   TrendingUp, TrendingDown, Minus, CheckCircle, Newspaper,
   Globe, Target, DollarSign, BarChart3, Activity, Sparkles,
-  Zap, Brain, Rocket, Users, ArrowUpRight, ArrowDownRight
+  Zap, Brain, Rocket, Users, ArrowUpRight, ArrowDownRight, Database
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -463,39 +463,34 @@ export function EnhancedDataTile({
               {title}
             </CardTitle>
             <div className="flex items-center gap-2">
-              {/* Data Source Badge - Always visible */}
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-xs font-semibold",
-                  data?.fromDatabase ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
-                  data?.fromCache ? "border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400" :
-                  data?.fromApi ? "border-violet-500/50 bg-violet-500/10 text-violet-600 dark:text-violet-400" :
-                  "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                )}
-              >
-                {data?.fromDatabase ? (
-                  <>
-                    <Activity className="h-3 w-3 mr-1" />
-                    Database
-                  </>
-                ) : data?.fromCache ? (
-                  <>
-                    <Clock className="h-3 w-3 mr-1" />
-                    Cached
-                  </>
-                ) : data?.fromApi ? (
-                  <>
-                    <Zap className="h-3 w-3 mr-1" />
-                    Live API
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Loading
-                  </>
-                )}
-              </Badge>
+              {/* Brain Icon for Insights */}
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => setShowInsights(true)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 hover:bg-primary/10 text-primary animate-pulse"
+                    >
+                      <Brain className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs p-3 bg-card border-border">
+                    <div className="space-y-2">
+                      <p className="font-semibold text-xs text-primary flex items-center gap-1">
+                        <Brain className="h-3 w-3" />
+                        AI-Powered Insights
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Get detailed analysis, recommendations, and actionable insights powered by AI
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {/* Refresh Button */}
               <Button
                 onClick={handleRefresh}
                 variant="ghost"
@@ -505,6 +500,30 @@ export function EnhancedDataTile({
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
               </Button>
+              
+              {/* Subtle Data Source Indicator */}
+              {data && (
+                <TooltipProvider>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger>
+                      {data?.fromDatabase ? (
+                        <Database className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      ) : data?.fromCache ? (
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      ) : (
+                        <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">
+                        {data?.fromDatabase ? 'From database cache' : 
+                         data?.fromCache ? 'From local cache' : 
+                         'Live API data'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
           {description && (
@@ -607,10 +626,31 @@ export function EnhancedDataTile({
               transition={{ delay: 0.3 }}
               className="p-4 rounded-xl bg-gradient-to-br from-background/50 to-muted/20 border border-border/50"
             >
-              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                {data.chart.title || 'Trend Analysis'}
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  {data.chart.title || 'Trend Analysis'}
+                </h4>
+                <TooltipProvider>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <button className="p-1 hover:bg-white/10 rounded transition-colors">
+                        <Info className="h-3.5 w-3.5 opacity-60 hover:opacity-100" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm p-3 space-y-2 bg-card border-border">
+                      <p className="font-semibold text-xs text-primary">📊 About this chart:</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tileType === 'growth_projections' ? 
+                          'Shows projected growth over time based on market trends and competitive analysis' :
+                         tileType === 'market_size' ?
+                          'Compares TAM, SAM, and SOM to show market opportunity at different scales' :
+                          'Tracks key metrics over time to identify trends and patterns'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <ResponsiveContainer width="100%" height={200}>
                 {tileType === 'growth_projections' ? (
                   <AreaChart data={data.chart.data}>
@@ -699,17 +739,6 @@ export function EnhancedDataTile({
             </motion.div>
           )}
 
-          {/* Fixed View Details Button */}
-          <Button
-            onClick={() => setShowInsights(true)}
-            variant="outline"
-            size="sm"
-            className="w-full bg-gradient-to-r from-primary/10 to-violet-500/10 hover:from-primary/20 hover:to-violet-500/20 border-primary/20"
-          >
-            <Zap className="h-3.5 w-3.5 mr-2" />
-            View Detailed Analysis
-            <ExternalLink className="h-3.5 w-3.5 ml-2" />
-          </Button>
         </CardContent>
       </Card>
 
