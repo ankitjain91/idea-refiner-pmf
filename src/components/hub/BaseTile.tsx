@@ -7,6 +7,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { AlertCircle, Info, LucideIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 export interface BaseTileProps {
   title: string;
@@ -28,6 +31,9 @@ export interface BaseTileProps {
   emptyStateMessage?: string;
   emptyStateIcon?: LucideIcon;
   loadingRows?: number;
+  tileType?: string;
+  fetchFromApi?: () => Promise<any>;
+  useDatabase?: boolean;
 }
 
 export function BaseTile({
@@ -46,9 +52,14 @@ export function BaseTile({
   footerContent,
   emptyStateMessage = "No data available",
   emptyStateIcon: EmptyIcon,
-  loadingRows = 3
+  loadingRows = 3,
+  tileType,
+  fetchFromApi,
+  useDatabase = true
 }: BaseTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
 
   // Auto-load on mount if enabled
   useEffect(() => {
@@ -284,21 +295,60 @@ export function ListItem({
   );
 }
 
-// Export a hook for consistent tile behavior
+// Export a hook for consistent tile behavior with database support
 export function useTileData<T = any>(
   fetchFunction: () => Promise<T>,
-  dependencies: any[] = []
+  dependencies: any[] = [],
+  options?: {
+    tileType?: string;
+    useDatabase?: boolean;
+    cacheMinutes?: number;
+  }
 ) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
 
   const loadData = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     setError(null);
+    
     try {
+      // Try to load from database first if enabled
+      if (options?.useDatabase && options?.tileType && user?.id) {
+        const dbData = await DashboardDataService.getData({
+          userId: user.id,
+          sessionId: currentSession?.id,
+          tileType: options.tileType
+        });
+        
+        if (dbData) {
+          setData(dbData);
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // Fetch from API if not in database
       const result = await fetchFunction();
       setData(result);
+      
+      // Save to database if enabled
+      if (options?.useDatabase && options?.tileType && user?.id && result) {
+        await DashboardDataService.saveData(
+          {
+            userId: user.id,
+            sessionId: currentSession?.id,
+            tileType: options.tileType
+          },
+          result,
+          options.cacheMinutes || 30
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {

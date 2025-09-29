@@ -22,24 +22,9 @@ export function QuickStatsTile({
   onAnalyze
 }: QuickStatsTileProps) {
   const [showInsights, setShowInsights] = useState(false);
-  const cacheKey = `quick_stats_${tileType}_${currentIdea}`;
 
   const fetchTileData = async () => {
     if (!currentIdea) return null;
-
-    // Check cache first
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const parsedCache = JSON.parse(cached);
-        const cacheAge = Date.now() - parsedCache.timestamp;
-        if (cacheAge < 10 * 60 * 1000) { // 10 minutes
-          return parsedCache.data;
-        }
-      } catch (e) {
-        console.error('Cache parse error:', e);
-      }
-    }
 
     // Map tile types to their respective functions
     const functionMap = {
@@ -57,26 +42,14 @@ export function QuickStatsTile({
     });
 
     if (error) throw error;
-
-    // Cache the result
-    localStorage.setItem(cacheKey, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
-
-    // Store values for other tiles if needed
-    if (tileType === 'market_size' && data?.tam) {
-      localStorage.setItem('market_size_value', JSON.stringify({
-        tam: data.tam,
-        sam: data.sam,
-        som: data.som
-      }));
-    }
-
     return data;
   };
 
-  const { data, isLoading, error, loadData } = useTileData(fetchTileData, [currentIdea, tileType]);
+  const { data, isLoading, error, loadData } = useTileData(fetchTileData, [currentIdea, tileType], {
+    tileType: `quick_stats_${tileType}`,
+    useDatabase: true,
+    cacheMinutes: 30
+  });
 
   const renderTileContent = () => {
     if (!data) return null;

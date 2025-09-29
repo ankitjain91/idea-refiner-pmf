@@ -41,6 +41,8 @@ import {
   launchTimelineAdapter
 } from "@/lib/data-adapter";
 
+import { DashboardDataService } from '@/lib/dashboard-data-service';
+
 export default function EnterpriseHub() {
   const { currentSession, saveCurrentSession } = useSession();
   const { user } = useAuth();
@@ -155,10 +157,46 @@ export default function EnterpriseHub() {
     };
   }, []);
 
-  // Force refresh tiles when component mounts
+  // Force refresh tiles when component mounts - load from database first
   useEffect(() => {
+    const loadDashboardData = async () => {
+      if (user?.id && currentSession?.id) {
+        // Pre-load all dashboard data from database
+        const tileTypes = [
+          'quick_stats_pmf_score',
+          'quick_stats_market_size', 
+          'quick_stats_competition',
+          'quick_stats_sentiment',
+          'news_analysis',
+          'youtube_analytics',
+          'twitter_buzz',
+          'amazon_reviews',
+          'competitor_analysis',
+          'target_audience',
+          'pricing_strategy',
+          'market_size',
+          'growth_projections',
+          'user_engagement',
+          'launch_timeline',
+          'market_trends',
+          'google_trends',
+          'web_search',
+          'reddit_sentiment'
+        ];
+        
+        const cachedData = await DashboardDataService.getBatchData(
+          user.id,
+          currentSession.id,
+          tileTypes
+        );
+        
+        console.log('Loaded dashboard data from database:', Object.keys(cachedData).length, 'tiles');
+      }
+    };
+    
+    loadDashboardData();
     setTilesKey(prev => prev + 1);
-  }, []);
+  }, [user?.id, currentSession?.id]);
 
   // Handle continent change
   const handleContinentChange = (continent: string) => {
@@ -180,10 +218,15 @@ export default function EnterpriseHub() {
   };
 
   // Global refresh function
-  const handleGlobalRefresh = () => {
+  const handleGlobalRefresh = async () => {
     setIsRefreshing(true);
     
-    // Clear all cached data
+    // Clear database cache first
+    if (user?.id) {
+      await DashboardDataService.clearAllData(user.id, currentSession?.id);
+    }
+    
+    // Clear all cached data from localStorage
     const allKeys = Object.keys(localStorage);
     allKeys.forEach(key => {
       if (key.includes('tile_cache_') || 

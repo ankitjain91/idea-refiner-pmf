@@ -133,6 +133,50 @@ export type Database = {
           },
         ]
       }
+      dashboard_data: {
+        Row: {
+          created_at: string
+          data: Json
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          session_id: string | null
+          tile_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          tile_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          tile_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_data_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "brainstorming_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idea_analyses: {
         Row: {
           benchmarks: Json | null
@@ -612,6 +656,10 @@ export type Database = {
       check_email_exists: {
         Args: { email_to_check: string }
         Returns: boolean
+      }
+      cleanup_expired_dashboard_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       get_openai_total_spend: {
         Args: { _user_id?: string }
