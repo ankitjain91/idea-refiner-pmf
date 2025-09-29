@@ -9,11 +9,20 @@ interface MarketingChartsProps {
 }
 
 export const MarketingCharts: React.FC<MarketingChartsProps> = ({ trends }) => {
-  const roiData = Object.entries(trends.roiByChannel).map(([channel, roi]) => ({
+  // Add null checks and data validation
+  if (!trends) {
+    return <div className="text-center text-muted-foreground py-8">Loading marketing data...</div>;
+  }
+
+  const roiData = trends.roiByChannel ? Object.entries(trends.roiByChannel).map(([channel, roi]) => ({
     channel: channel.toUpperCase(),
-    roi,
+    roi: typeof roi === 'number' ? roi : 0,
     fill: roi > 5 ? '#10b981' : roi > 3 ? '#f59e0b' : '#ef4444'
-  }));
+  })) : [];
+
+  const cacVsLtvData = Array.isArray(trends.cacVsLtv) ? trends.cacVsLtv : [];
+  const leadVelocityData = Array.isArray(trends.leadVelocity) ? trends.leadVelocity : [];
+  const funnelTopData = Array.isArray(trends.funnelTop) ? trends.funnelTop : [];
 
   const funnelColors = ['#8b5cf6', '#6366f1', '#3b82f6', '#10b981'];
 
@@ -86,7 +95,7 @@ export const MarketingCharts: React.FC<MarketingChartsProps> = ({ trends }) => {
             />
             <Scatter 
               name="Channels" 
-              data={trends.cacVsLtv} 
+              data={cacVsLtvData} 
               fill="#8b5cf6"
             />
           </ScatterChart>
@@ -97,7 +106,7 @@ export const MarketingCharts: React.FC<MarketingChartsProps> = ({ trends }) => {
       <Card className="glass-card border-white/5 p-6">
         <h3 className="text-sm font-semibold text-white mb-4">Lead Velocity (7-day)</h3>
         <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={trends.leadVelocity}>
+          <LineChart data={leadVelocityData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis 
               dataKey="date" 
@@ -142,11 +151,11 @@ export const MarketingCharts: React.FC<MarketingChartsProps> = ({ trends }) => {
             />
             <Funnel
               dataKey="value"
-              data={trends.funnelTop}
+              data={funnelTopData}
               isAnimationActive
             >
               <LabelList position="center" fill="#fff" fontSize={12} />
-              {trends.funnelTop.map((entry, index) => (
+              {funnelTopData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={funnelColors[index]} />
               ))}
             </Funnel>
