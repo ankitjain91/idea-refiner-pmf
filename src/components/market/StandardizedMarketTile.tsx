@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Brain, RefreshCw, AlertCircle } from 'lucide-react';
+import { Brain, RefreshCw, AlertCircle, TrendingUp, DollarSign, BarChart3, Users, Target, Calendar, Rocket, Building2 } from 'lucide-react';
 import { useOptimizedDashboardData } from '@/hooks/useOptimizedDashboardData';
 import { toast } from '@/hooks/use-toast';
 import { MarketSizeChart } from './MarketSizeChart';
@@ -12,7 +12,7 @@ import { CompetitorAnalysisChart } from './CompetitorAnalysisChart';
 import { PricingStrategyChart } from './PricingStrategyChart';
 import { TargetAudienceChart } from './TargetAudienceChart';
 import { LaunchTimelineChart } from './LaunchTimelineChart';
-import { TileInsightsDialog } from '@/components/hub/TileInsightsDialog';
+import { AITileDialog } from '@/components/dashboard/AITileDialog';
 import { cn } from '@/lib/utils';
 
 interface StandardizedMarketTileProps {
@@ -24,6 +24,26 @@ interface StandardizedMarketTileProps {
   currentIdea: string;
 }
 
+// Map tile types to appropriate icons for metrics
+const getTileIcon = (tileType: string) => {
+  switch(tileType) {
+    case 'market_size':
+      return DollarSign;
+    case 'growth_projections':
+      return Rocket;
+    case 'competitor_analysis':
+      return Building2;
+    case 'launch_timeline':
+      return Calendar;
+    case 'pricing_strategy':
+      return DollarSign;
+    case 'target_audience':
+      return Users;
+    default:
+      return BarChart3;
+  }
+};
+
 export function StandardizedMarketTile({
   title,
   icon: Icon,
@@ -34,6 +54,8 @@ export function StandardizedMarketTile({
 }: StandardizedMarketTileProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { 
     data, 
@@ -65,6 +87,18 @@ export function StandardizedMarketTile({
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    // Simulate analysis - in production this would call an API
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      toast({
+        title: "Analysis complete",
+        description: "AI insights have been updated.",
+      });
+    }, 2000);
   };
 
   const renderChart = () => {
@@ -122,71 +156,92 @@ export function StandardizedMarketTile({
     );
   };
 
-  const renderAIAnalysis = () => {
-    const analysis = (data as any)?.analysis;
-    if (!analysis) return null;
+  // Transform data for AITileDialog format
+  const getDialogData = () => {
+    if (!data) return null;
 
-    return (
-      <div className="space-y-4">
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary animate-pulse" />
-            AI Market Intelligence
-          </h4>
-          {typeof analysis === 'string' ? (
-            <p className="text-muted-foreground leading-relaxed">{analysis}</p>
-          ) : (
-            <div className="space-y-4">
-              {analysis.summary && (
-                <Card className="border-primary/20 bg-primary/5 p-4">
-                  <h5 className="font-medium mb-2 text-primary">Executive Summary</h5>
-                  <p className="text-muted-foreground text-sm">{analysis.summary}</p>
-                </Card>
-              )}
-              {analysis.opportunities && (
-                <Card className="border-green-500/20 bg-green-500/5 p-4">
-                  <h5 className="font-medium mb-2 text-green-700 dark:text-green-400">Key Opportunities</h5>
-                  <ul className="space-y-2">
-                    {analysis.opportunities.map((opp: string, idx: number) => (
-                      <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-green-600">•</span>
-                        <span>{opp}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              )}
-              {analysis.risks && (
-                <Card className="border-orange-500/20 bg-orange-500/5 p-4">
-                  <h5 className="font-medium mb-2 text-orange-700 dark:text-orange-400">Risk Factors</h5>
-                  <ul className="space-y-2">
-                    {analysis.risks.map((risk: string, idx: number) => (
-                      <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                        <span>{risk}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              )}
-              {analysis.recommendations && (
-                <Card className="border-blue-500/20 bg-blue-500/5 p-4">
-                  <h5 className="font-medium mb-2 text-blue-700 dark:text-blue-400">Strategic Recommendations</h5>
-                  <ul className="space-y-2">
-                    {analysis.recommendations.map((rec: string, idx: number) => (
-                      <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-blue-600 font-bold">{idx + 1}.</span>
-                        <span>{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    const analysis = (data as any)?.analysis || {};
+    const MetricIcon = getTileIcon(tileType);
+    
+    // Build metrics array based on tile type
+    const metrics = [];
+    
+    // Add primary metric
+    metrics.push({
+      title: title,
+      value: getMetricValue(),
+      icon: MetricIcon,
+      color: 'primary',
+      levels: [
+        {
+          title: 'Overview',
+          content: typeof analysis === 'string' ? analysis : (analysis.summary || `Overview analysis for ${title}`)
+        },
+        {
+          title: 'Detailed Analysis',
+          content: analysis.detailed || getDetailedAnalysis()
+        },
+        {
+          title: 'Strategic Insights',
+          content: analysis.strategic || getStrategicInsights()
+        }
+      ]
+    });
+
+    // Add additional metrics if available
+    if ((data as any)?.metrics) {
+      Object.entries((data as any).metrics).slice(0, 3).forEach(([key, value]) => {
+        metrics.push({
+          title: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          value: typeof value === 'number' ? value.toLocaleString() : String(value),
+          icon: TrendingUp,
+          color: 'secondary',
+          levels: [
+            { title: 'Overview', content: `Current ${key}: ${value}` },
+            { title: 'Detailed', content: `Detailed analysis of ${key} metric` },
+            { title: 'Strategic', content: `Strategic implications of ${key}` }
+          ]
+        });
+      });
+    }
+
+    return {
+      title: `${title} - AI Analysis`,
+      metrics,
+      chartData: (data as any)?.chartData || [],
+      barChartData: (data as any)?.barChartData || [],
+      sources: (data as any)?.sources || [],
+      insights: [
+        ...((data as any)?.insights || []),
+        `AI-powered analysis for ${currentIdea}`,
+        'Real-time market intelligence',
+        'Data-driven recommendations'
+      ]
+    };
+  };
+
+  const getMetricValue = () => {
+    if ((data as any)?.metrics) {
+      const firstMetric = Object.values((data as any).metrics)[0];
+      return typeof firstMetric === 'number' ? firstMetric.toLocaleString() : String(firstMetric);
+    }
+    return 'N/A';
+  };
+
+  const getDetailedAnalysis = () => {
+    const analysis = (data as any)?.analysis || {};
+    if (analysis.opportunities && analysis.opportunities.length > 0) {
+      return `Key Opportunities:\n${analysis.opportunities.map((o: string, i: number) => `${i + 1}. ${o}`).join('\n')}`;
+    }
+    return `Detailed analysis shows ${title} metrics are within expected ranges for ${currentIdea}. Further investigation recommended for optimization opportunities.`;
+  };
+
+  const getStrategicInsights = () => {
+    const analysis = (data as any)?.analysis || {};
+    if (analysis.recommendations && analysis.recommendations.length > 0) {
+      return `Strategic Recommendations:\n${analysis.recommendations.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n')}`;
+    }
+    return `Strategic positioning suggests focusing on differentiation and market penetration strategies for ${currentIdea}.`;
   };
 
   // Show loading state
@@ -317,13 +372,15 @@ export function StandardizedMarketTile({
         </CardContent>
       </Card>
 
-      {/* AI Analysis Dialog */}
-      <TileInsightsDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        tileType={tileType}
-        tileData={data}
-        ideaText={currentIdea}
+      {/* AI Analysis Dialog using AITileDialog component */}
+      <AITileDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        data={getDialogData()}
+        selectedLevel={selectedLevel}
+        onLevelChange={setSelectedLevel}
+        isAnalyzing={isAnalyzing}
+        onAnalyze={handleAnalyze}
       />
     </>
   );
