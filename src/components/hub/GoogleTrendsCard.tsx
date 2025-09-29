@@ -75,7 +75,8 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<string>('');
-  const [analysisLevel, setAnalysisLevel] = useState<'overview' | 'detailed' | 'strategic'>('overview');
+  const [analysisLevel, setAnalysisLevel] = useState<number>(0); // 0=overview, 1=detailed, 2=strategic
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
 
@@ -133,7 +134,13 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         ]
       })) || [],
       chartData: chartData,
-      sources: [],
+      sources: [
+        {
+          label: "Google Trends API",
+          url: "https://trends.google.com",
+          description: "Real-time search trend data from Google"
+        }
+      ],
       insights: []
     };
   };
@@ -688,14 +695,16 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       {/* AI Dialog */}
       {showAIDialog && data && (
         <AITileDialog
-          open={showAIDialog}
-          onOpenChange={setShowAIDialog}
+          isOpen={showAIDialog}
+          onClose={() => setShowAIDialog(false)}
           data={getAIDialogData()}
           selectedLevel={analysisLevel}
-          onLevelChange={setAnalysisLevel}
-          onAnalyze={(metric, level) => {
-            setSelectedMetric(metric);
-            setAnalysisLevel(level);
+          onLevelChange={(level: number) => setAnalysisLevel(level)}
+          isAnalyzing={isAnalyzing}
+          onAnalyze={() => {
+            setIsAnalyzing(true);
+            // Simulate analysis
+            setTimeout(() => setIsAnalyzing(false), 2000);
           }}
         />
       )}

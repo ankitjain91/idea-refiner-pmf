@@ -87,7 +87,8 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<string>('');
-  const [analysisLevel, setAnalysisLevel] = useState<'overview' | 'detailed' | 'strategic'>('overview');
+  const [analysisLevel, setAnalysisLevel] = useState<number>(0); // 0=overview, 1=detailed, 2=strategic
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
   
@@ -332,9 +333,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       })) || [],
       chartData: chartData,
       sources: data.citations?.map((citation: any) => ({
-        title: citation.label,
-        url: citation.url,
-        published: citation.published
+        label: citation.label || "Market Data Source",
+        url: citation.url || "#",
+        description: citation.published ? `Published: ${citation.published}` : "External market data"
       })) || [],
       insights: data.insights || []
     };
@@ -596,14 +597,16 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       {/* AI Dialog */}
       {showAIDialog && data && (
         <AITileDialog
-          open={showAIDialog}
-          onOpenChange={setShowAIDialog}
+          isOpen={showAIDialog}
+          onClose={() => setShowAIDialog(false)}
           data={getAIDialogData()}
           selectedLevel={analysisLevel}
-          onLevelChange={setAnalysisLevel}
-          onAnalyze={(metric, level) => {
-            setSelectedMetric(metric);
-            setAnalysisLevel(level);
+          onLevelChange={(level: number) => setAnalysisLevel(level)}
+          isAnalyzing={isAnalyzing}
+          onAnalyze={() => {
+            setIsAnalyzing(true);
+            // Simulate analysis
+            setTimeout(() => setIsAnalyzing(false), 2000);
           }}
         />
       )}
