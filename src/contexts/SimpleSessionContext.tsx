@@ -12,14 +12,48 @@ interface SessionData {
   lastActivity: string;
   // Dashboard specific data
   dashboardData?: {
+    // Core dashboard metrics
     marketSize?: string;
     competition?: string;
     sentiment?: string;
     smoothBrainsScore?: number;
-    tileCaches?: Record<string, any>;
-    lastRefreshTimes?: Record<string, string>;
     currentTab?: string;
     analysisResults?: any;
+    
+    // All tile data caches - complete API responses
+    tileCaches?: Record<string, any>;
+    lastRefreshTimes?: Record<string, string>;
+    
+    // Specific dashboard components data
+    marketTrendsData?: any;
+    googleTrendsData?: any;
+    executionInsightsData?: any;
+    redditSentimentData?: any;
+    competitorAnalysisData?: any;
+    targetAudienceData?: any;
+    pricingStrategyData?: any;
+    growthProjectionsData?: any;
+    userEngagementData?: any;
+    launchTimelineData?: any;
+    financialAnalysisData?: any;
+    newsAnalysisData?: any;
+    socialSentimentData?: any;
+    
+    // Web search results
+    webSearchResults?: Record<string, any>;
+    
+    // Chart data
+    chartData?: Record<string, any>;
+    growthChartData?: any;
+    competitorChartData?: any;
+    marketingChannelsData?: any;
+    
+    // Filter and UI states
+    filters?: any;
+    expandedCards?: string[];
+    selectedMetrics?: string[];
+    viewMode?: string;
+    dateRange?: { start: string; end: string };
   };
 }
 
@@ -104,16 +138,50 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Get wrinkle points if available
       const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
       
-      // Collect dashboard data
+      // Collect ALL dashboard data
       const dashboardData: any = {
+        // Core metrics
         marketSize: localStorage.getItem('market_size_value'),
         competition: localStorage.getItem('competition_value'),
         sentiment: localStorage.getItem('sentiment_value'),
         smoothBrainsScore: parseInt(localStorage.getItem('smoothBrainsScore') || '0'),
         currentTab: localStorage.getItem('currentTab'),
         analysisResults: JSON.parse(localStorage.getItem('analysisResults') || '{}'),
+        
+        // All tile caches and refresh times
         tileCaches: {},
-        lastRefreshTimes: {}
+        lastRefreshTimes: {},
+        
+        // Specific component data
+        marketTrendsData: JSON.parse(localStorage.getItem('marketTrendsData') || '{}'),
+        googleTrendsData: JSON.parse(localStorage.getItem('googleTrendsData') || '{}'),
+        executionInsightsData: JSON.parse(localStorage.getItem('executionInsightsData') || '{}'),
+        redditSentimentData: JSON.parse(localStorage.getItem('redditSentimentData') || '{}'),
+        competitorAnalysisData: JSON.parse(localStorage.getItem('competitorAnalysisData') || '{}'),
+        targetAudienceData: JSON.parse(localStorage.getItem('targetAudienceData') || '{}'),
+        pricingStrategyData: JSON.parse(localStorage.getItem('pricingStrategyData') || '{}'),
+        growthProjectionsData: JSON.parse(localStorage.getItem('growthProjectionsData') || '{}'),
+        userEngagementData: JSON.parse(localStorage.getItem('userEngagementData') || '{}'),
+        launchTimelineData: JSON.parse(localStorage.getItem('launchTimelineData') || '{}'),
+        financialAnalysisData: JSON.parse(localStorage.getItem('financialAnalysisData') || '{}'),
+        newsAnalysisData: JSON.parse(localStorage.getItem('newsAnalysisData') || '{}'),
+        socialSentimentData: JSON.parse(localStorage.getItem('socialSentimentData') || '{}'),
+        
+        // Web search results
+        webSearchResults: JSON.parse(localStorage.getItem('webSearchResults') || '{}'),
+        
+        // Chart data
+        chartData: JSON.parse(localStorage.getItem('chartData') || '{}'),
+        growthChartData: JSON.parse(localStorage.getItem('growthChartData') || '{}'),
+        competitorChartData: JSON.parse(localStorage.getItem('competitorChartData') || '{}'),
+        marketingChannelsData: JSON.parse(localStorage.getItem('marketingChannelsData') || '{}'),
+        
+        // Filter and UI states
+        filters: JSON.parse(localStorage.getItem('dashboardFilters') || '{}'),
+        expandedCards: JSON.parse(localStorage.getItem('expandedCards') || '[]'),
+        selectedMetrics: JSON.parse(localStorage.getItem('selectedMetrics') || '[]'),
+        viewMode: localStorage.getItem('viewMode'),
+        dateRange: JSON.parse(localStorage.getItem('dateRange') || '{}')
       };
       
       // Collect all tile caches and refresh times
@@ -455,13 +523,44 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (session.data.dashboardData) {
         const { dashboardData } = session.data;
         
-        // Restore dashboard values
+        // Restore core dashboard values
         if (dashboardData.marketSize) localStorage.setItem('market_size_value', dashboardData.marketSize);
         if (dashboardData.competition) localStorage.setItem('competition_value', dashboardData.competition);
         if (dashboardData.sentiment) localStorage.setItem('sentiment_value', dashboardData.sentiment);
         if (dashboardData.smoothBrainsScore) localStorage.setItem('smoothBrainsScore', String(dashboardData.smoothBrainsScore));
         if (dashboardData.currentTab) localStorage.setItem('currentTab', dashboardData.currentTab);
         if (dashboardData.analysisResults) localStorage.setItem('analysisResults', JSON.stringify(dashboardData.analysisResults));
+        
+        // Restore specific component data
+        if (dashboardData.marketTrendsData) localStorage.setItem('marketTrendsData', JSON.stringify(dashboardData.marketTrendsData));
+        if (dashboardData.googleTrendsData) localStorage.setItem('googleTrendsData', JSON.stringify(dashboardData.googleTrendsData));
+        if (dashboardData.executionInsightsData) localStorage.setItem('executionInsightsData', JSON.stringify(dashboardData.executionInsightsData));
+        if (dashboardData.redditSentimentData) localStorage.setItem('redditSentimentData', JSON.stringify(dashboardData.redditSentimentData));
+        if (dashboardData.competitorAnalysisData) localStorage.setItem('competitorAnalysisData', JSON.stringify(dashboardData.competitorAnalysisData));
+        if (dashboardData.targetAudienceData) localStorage.setItem('targetAudienceData', JSON.stringify(dashboardData.targetAudienceData));
+        if (dashboardData.pricingStrategyData) localStorage.setItem('pricingStrategyData', JSON.stringify(dashboardData.pricingStrategyData));
+        if (dashboardData.growthProjectionsData) localStorage.setItem('growthProjectionsData', JSON.stringify(dashboardData.growthProjectionsData));
+        if (dashboardData.userEngagementData) localStorage.setItem('userEngagementData', JSON.stringify(dashboardData.userEngagementData));
+        if (dashboardData.launchTimelineData) localStorage.setItem('launchTimelineData', JSON.stringify(dashboardData.launchTimelineData));
+        if (dashboardData.financialAnalysisData) localStorage.setItem('financialAnalysisData', JSON.stringify(dashboardData.financialAnalysisData));
+        if (dashboardData.newsAnalysisData) localStorage.setItem('newsAnalysisData', JSON.stringify(dashboardData.newsAnalysisData));
+        if (dashboardData.socialSentimentData) localStorage.setItem('socialSentimentData', JSON.stringify(dashboardData.socialSentimentData));
+        
+        // Restore web search results
+        if (dashboardData.webSearchResults) localStorage.setItem('webSearchResults', JSON.stringify(dashboardData.webSearchResults));
+        
+        // Restore chart data
+        if (dashboardData.chartData) localStorage.setItem('chartData', JSON.stringify(dashboardData.chartData));
+        if (dashboardData.growthChartData) localStorage.setItem('growthChartData', JSON.stringify(dashboardData.growthChartData));
+        if (dashboardData.competitorChartData) localStorage.setItem('competitorChartData', JSON.stringify(dashboardData.competitorChartData));
+        if (dashboardData.marketingChannelsData) localStorage.setItem('marketingChannelsData', JSON.stringify(dashboardData.marketingChannelsData));
+        
+        // Restore filter and UI states
+        if (dashboardData.filters) localStorage.setItem('dashboardFilters', JSON.stringify(dashboardData.filters));
+        if (dashboardData.expandedCards) localStorage.setItem('expandedCards', JSON.stringify(dashboardData.expandedCards));
+        if (dashboardData.selectedMetrics) localStorage.setItem('selectedMetrics', JSON.stringify(dashboardData.selectedMetrics));
+        if (dashboardData.viewMode) localStorage.setItem('viewMode', dashboardData.viewMode);
+        if (dashboardData.dateRange) localStorage.setItem('dateRange', JSON.stringify(dashboardData.dateRange));
         
         // Restore tile caches
         if (dashboardData.tileCaches) {

@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import useSWR from 'swr';
 import { TileInsightsDialog } from './TileInsightsDialog';
+import { useDashboardPersistence } from '@/hooks/useDashboardPersistence';
 
 interface MarketTrendsCardProps {
   filters: {
@@ -92,6 +93,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   
+  // Use persistence hook
+  const { persistComponentData } = useDashboardPersistence();
+  
   // Get the idea from filters or fallback to the actual startup idea
   const storedIdea = typeof window !== 'undefined' ? 
     (localStorage.getItem('ideaText') || localStorage.getItem('userIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '';
@@ -162,6 +166,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           data,
           timestamp: Date.now()
         }));
+        
+        // Persist to session
+        persistComponentData('marketTrends', data);
       }
       
       return data;
