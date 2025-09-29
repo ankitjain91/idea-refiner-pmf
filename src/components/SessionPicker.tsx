@@ -216,7 +216,6 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                   className="w-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                   size="lg"
                 >
-                  <Plus className="h-5 w-5 mr-2 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]" />
                   Create New Session
                 </Button>
               </div>
