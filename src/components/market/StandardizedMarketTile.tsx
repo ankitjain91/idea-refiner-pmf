@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Brain, RefreshCw, AlertCircle, TrendingUp, DollarSign, BarChart3, Users, Target, Calendar, Rocket, Building2 } from 'lucide-react';
-import { useOptimizedDashboardData } from '@/hooks/useOptimizedDashboardData';
-import { toast } from '@/hooks/use-toast';
 import { MarketSizeChart } from './MarketSizeChart';
 import { GrowthProjectionChart } from './GrowthProjectionChart';
 import { CompetitorAnalysisChart } from './CompetitorAnalysisChart';
@@ -14,6 +12,10 @@ import { TargetAudienceChart } from './TargetAudienceChart';
 import { LaunchTimelineChart } from './LaunchTimelineChart';
 import { AITileDialog } from '@/components/dashboard/AITileDialog';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useTileData } from '@/components/hub/BaseTile';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 interface StandardizedMarketTileProps {
   title: string;
@@ -56,23 +58,50 @@ export function StandardizedMarketTile({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { user } = useAuth();
+  const { currentSession } = useSession();
 
-  // Extract keywords from the idea for the filters
-  const ideaKeywords = currentIdea ? currentIdea.split(' ').filter(word => word.length > 3).slice(0, 5) : [];
-  
-  const enhancedFilters = {
-    ...filters,
-    idea: currentIdea,
-    idea_keywords: ideaKeywords
+  // Map tile types to their respective edge functions
+  const functionMap: Record<string, string> = {
+    'market_size': 'market-size',
+    'growth_projections': 'growth-projections',
+    'competitor_analysis': 'competitor-analysis',
+    'launch_timeline': 'launch-timeline',
+    'pricing_strategy': 'pricing-strategy',
+    'target_audience': 'target-audience',
+    'twitter_buzz': 'twitter-search',
+    'amazon_reviews': 'amazon-public',
+    'youtube_analytics': 'youtube-search',
+    'news_analysis': 'news-analysis',
+    'user_engagement': 'user-engagement'
   };
-  
-  const { 
-    data, 
-    loading, 
-    error,
-    refresh,
-    getTileData
-  } = useOptimizedDashboardData(enhancedFilters);
+
+  const fetchTileData = async () => {
+    if (!currentIdea) return null;
+
+    const functionName = functionMap[tileType];
+    if (!functionName) {
+      console.warn(`No edge function mapped for tile type: ${tileType}`);
+      return null;
+    }
+
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: { idea: currentIdea }
+    });
+
+    if (error) throw error;
+    return data;
+  };
+
+  const { data, isLoading: loading, error, loadData: refresh } = useTileData(
+    fetchTileData, 
+    [currentIdea, tileType], 
+    {
+      tileType,
+      useDatabase: true,
+      cacheMinutes: 30
+    }
+  );
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
@@ -80,16 +109,6 @@ export function StandardizedMarketTile({
     setIsRefreshing(true);
     try {
       await refresh();
-      toast({
-        title: "Data refreshed",
-        description: `${title} has been updated with the latest information.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Refresh failed",
-        description: "Unable to refresh data. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsRefreshing(false);
     }
@@ -100,65 +119,57 @@ export function StandardizedMarketTile({
     // Simulate analysis - in production this would call an API
     setTimeout(() => {
       setIsAnalyzing(false);
-      toast({
-        title: "Analysis complete",
-        description: "AI insights have been updated.",
-      });
     }, 2000);
   };
 
   const renderChart = () => {
-    // Get tile-specific data
-    const tileData = getTileData ? getTileData(tileType) : data;
-    
     switch (tileType) {
       case 'market_size':
-        return <MarketSizeChart data={tileData} />;
+        return <MarketSizeChart data={data} />;
       case 'growth_projections':
-        return <GrowthProjectionChart data={tileData} />;
+        return <GrowthProjectionChart data={data} />;
       case 'competitor_analysis':
-        return <CompetitorAnalysisChart data={tileData} />;
+        return <CompetitorAnalysisChart data={data} />;
       case 'launch_timeline':
-        return <LaunchTimelineChart data={tileData} />;
+        return <LaunchTimelineChart data={data} />;
       case 'pricing_strategy':
-        return <PricingStrategyChart data={tileData} />;
+        return <PricingStrategyChart data={data} />;
       case 'target_audience':
-        return <TargetAudienceChart data={tileData} />;
+        return <TargetAudienceChart data={data} />;
       default:
         // For other tile types, render basic data display
-        return renderBasicContent(tileData);
+        return renderBasicContent();
     }
   };
 
-  const renderBasicContent = (tileData?: any) => {
-    const dataToUse = tileData || data;
-    if (!dataToUse) return null;
+  const renderBasicContent = () => {
+    if (!data) return null;
     
     // Generic content rendering for tiles without specific charts
     return (
       <div className="space-y-4">
-        {dataToUse?.analysis && (
+        {data?.analysis && (
           <Alert className="border-primary/20 bg-primary/5">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {typeof dataToUse.analysis === 'string' 
-                ? dataToUse.analysis 
-                : dataToUse.analysis.summary || 'Analysis available'}
+              {typeof data.analysis === 'string' 
+                ? data.analysis 
+                : data.analysis.summary || 'Analysis available'}
             </AlertDescription>
           </Alert>
         )}
         
-        {dataToUse?.metrics && (
+        {data?.metrics && (
           <div className="grid grid-cols-2 gap-3">
-            {(Array.isArray(dataToUse.metrics) ? dataToUse.metrics : Object.entries(dataToUse.metrics))
+            {(Array.isArray(data.metrics) ? data.metrics : Object.entries(data.metrics))
               .slice(0, 4).map((item: any, idx: number) => {
-                const isArray = Array.isArray(dataToUse.metrics);
+                const isArray = Array.isArray(data.metrics);
                 const key = isArray ? item.name : item[0];
                 const value = isArray ? item.value : item[1];
                 return (
                   <div key={idx} className="bg-muted/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground capitalize">
-                      {key.replace(/_/g, ' ')}
+                      {key?.replace(/_/g, ' ')}
                     </p>
                     <p className="text-lg font-semibold mt-1">
                       {typeof value === 'number' ? value.toLocaleString() : String(value)}
@@ -177,7 +188,7 @@ export function StandardizedMarketTile({
   const getDialogData = () => {
     if (!data) return null;
 
-    const analysis = (data as any)?.analysis || {};
+    const analysis = data?.analysis || {};
     const MetricIcon = getTileIcon(tileType);
     
     // Build metrics array based on tile type
@@ -206,10 +217,15 @@ export function StandardizedMarketTile({
     });
 
     // Add additional metrics if available
-    if ((data as any)?.metrics) {
-      Object.entries((data as any).metrics).slice(0, 3).forEach(([key, value]) => {
+    if (data?.metrics) {
+      const metricsArray = Array.isArray(data.metrics) ? data.metrics : Object.entries(data.metrics);
+      metricsArray.slice(0, 3).forEach((item: any) => {
+        const isArray = Array.isArray(data.metrics);
+        const key = isArray ? item.name : item[0];
+        const value = isArray ? item.value : item[1];
+        
         metrics.push({
-          title: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          title: key?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
           value: typeof value === 'number' ? value.toLocaleString() : String(value),
           icon: TrendingUp,
           color: 'secondary',
@@ -225,11 +241,11 @@ export function StandardizedMarketTile({
     return {
       title: `${title} - AI Analysis`,
       metrics,
-      chartData: (data as any)?.chartData || [],
-      barChartData: (data as any)?.barChartData || [],
-      sources: (data as any)?.sources || [],
+      chartData: data?.chartData || [],
+      barChartData: data?.barChartData || [],
+      sources: data?.sources || [],
       insights: [
-        ...((data as any)?.insights || []),
+        ...(data?.insights || []),
         `AI-powered analysis for ${currentIdea}`,
         'Real-time market intelligence',
         'Data-driven recommendations'
@@ -238,15 +254,19 @@ export function StandardizedMarketTile({
   };
 
   const getMetricValue = () => {
-    if ((data as any)?.metrics) {
-      const firstMetric = Object.values((data as any).metrics)[0];
-      return typeof firstMetric === 'number' ? firstMetric.toLocaleString() : String(firstMetric);
+    if (data?.metrics) {
+      if (Array.isArray(data.metrics) && data.metrics.length > 0) {
+        return data.metrics[0].value?.toLocaleString() || 'N/A';
+      } else if (typeof data.metrics === 'object') {
+        const firstValue = Object.values(data.metrics)[0];
+        return typeof firstValue === 'number' ? firstValue.toLocaleString() : String(firstValue);
+      }
     }
     return 'N/A';
   };
 
   const getDetailedAnalysis = () => {
-    const analysis = (data as any)?.analysis || {};
+    const analysis = data?.analysis || {};
     if (analysis.opportunities && analysis.opportunities.length > 0) {
       return `Key Opportunities:\n${analysis.opportunities.map((o: string, i: number) => `${i + 1}. ${o}`).join('\n')}`;
     }
@@ -254,7 +274,7 @@ export function StandardizedMarketTile({
   };
 
   const getStrategicInsights = () => {
-    const analysis = (data as any)?.analysis || {};
+    const analysis = data?.analysis || {};
     if (analysis.recommendations && analysis.recommendations.length > 0) {
       return `Strategic Recommendations:\n${analysis.recommendations.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n')}`;
     }
@@ -343,10 +363,10 @@ export function StandardizedMarketTile({
                 let source = 'API';
                 let variant: 'default' | 'secondary' | 'outline' = 'default';
                 
-                if ((data as any).fromDatabase) {
+                if (data.fromDatabase) {
                   source = 'DB';
                   variant = 'default';
-                } else if ((data as any).fromCache || (data as any).cacheHit) {
+                } else if (data.fromCache || data.cacheHit) {
                   source = 'Cache';
                   variant = 'secondary';
                 }
