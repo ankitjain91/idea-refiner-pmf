@@ -114,15 +114,6 @@ export default function LandingPage() {
 
       if (isSignUp) {
         authSchema.parse({ email, password, confirmPassword });
-        
-        if (normalizedEmail !== 'er.ankitjain91@gmail.com') {
-          toast({
-            title: "Access Restricted",
-            description: "Signups are currently limited to invited users only.",
-            variant: "destructive",
-          });
-          return;
-        }
 
         const { error } = await supabase.auth.signUp({
           email: normalizedEmail,
