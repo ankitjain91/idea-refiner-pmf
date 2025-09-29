@@ -284,7 +284,7 @@ export function QuickStatsTile({
         <SmoothBrainsDialog
           isOpen={showSmoothBrainsDialog}
           onClose={() => setShowSmoothBrainsDialog(false)}
-          data={data}
+          data={data?.data || data}
         />
       )}
     </>

@@ -20,9 +20,12 @@ interface SmoothBrainsDialogProps {
 export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialogProps) {
   if (!data) return null;
 
-  const score = data.score || 0;
-  const tier = data.tier || 'Unknown';
-  const tierColor = data.tierColor || 'gray';
+  // Handle both wrapped and unwrapped data formats
+  const actualData = data.data || data;
+  
+  const score = actualData.score || 0;
+  const tier = actualData.tier || 'Unknown';
+  const tierColor = actualData.tierColor || 'gray';
   
   const getTierColorClass = (color: string) => {
     switch(color) {
@@ -83,9 +86,9 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                 >
                   {tier}
                 </Badge>
-                {data.comparison && (
+                {actualData.comparison && (
                   <p className="text-sm text-muted-foreground">
-                    Comparable to: <span className="font-medium">{data.comparison}</span>
+                    Comparable to: <span className="font-medium">{actualData.comparison}</span>
                   </p>
                 )}
               </div>
@@ -103,10 +106,10 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
             <ScrollArea className="h-[400px] mt-4">
               <TabsContent value="overview" className="space-y-4 px-1">
                 {/* Analysis Summary */}
-                {data.analysis && (
+                {actualData.analysis && (
                   <div className="space-y-4">
                     {/* Verdict */}
-                    {data.analysis.verdict && (
+                    {actualData.analysis.verdict && (
                       <Card>
                         <CardContent className="pt-4">
                           <h4 className="font-semibold mb-2 flex items-center gap-2">
@@ -114,26 +117,26 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                             Expert Verdict
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            {data.analysis.verdict}
+                            {actualData.analysis.verdict}
                           </p>
                         </CardContent>
                       </Card>
                     )}
 
                     {/* Success Probability */}
-                    {data.analysis.successProbability && (
+                    {actualData.analysis.successProbability && (
                       <Card>
                         <CardContent className="pt-4">
                           <h4 className="font-semibold mb-2">Success Probability</h4>
                           <p className="text-2xl font-bold text-primary">
-                            {data.analysis.successProbability}
+                            {actualData.analysis.successProbability}
                           </p>
                         </CardContent>
                       </Card>
                     )}
 
                     {/* Strengths */}
-                    {data.analysis.strengths && data.analysis.strengths.length > 0 && (
+                    {actualData.analysis.strengths && actualData.analysis.strengths.length > 0 && (
                       <Card className="border-green-500/20">
                         <CardContent className="pt-4">
                           <h4 className="font-semibold mb-3 flex items-center gap-2 text-green-600">
@@ -141,7 +144,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                             Key Strengths
                           </h4>
                           <ul className="space-y-2">
-                            {data.analysis.strengths.map((strength: string, idx: number) => (
+                            {actualData.analysis.strengths.map((strength: string, idx: number) => (
                               <li key={idx} className="flex items-start gap-2">
                                 <span className="text-green-500 mt-0.5">•</span>
                                 <span className="text-sm">{strength}</span>
@@ -153,7 +156,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                     )}
 
                     {/* Weaknesses */}
-                    {data.analysis.weaknesses && data.analysis.weaknesses.length > 0 && (
+                    {actualData.analysis.weaknesses && actualData.analysis.weaknesses.length > 0 && (
                       <Card className="border-orange-500/20">
                         <CardContent className="pt-4">
                           <h4 className="font-semibold mb-3 flex items-center gap-2 text-orange-600">
@@ -161,7 +164,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                             Critical Weaknesses
                           </h4>
                           <ul className="space-y-2">
-                            {data.analysis.weaknesses.map((weakness: string, idx: number) => (
+                            {actualData.analysis.weaknesses.map((weakness: string, idx: number) => (
                               <li key={idx} className="flex items-start gap-2">
                                 <span className="text-orange-500 mt-0.5">•</span>
                                 <span className="text-sm">{weakness}</span>
@@ -173,7 +176,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                     )}
 
                     {/* Killer Risks */}
-                    {data.analysis.killerRisks && data.analysis.killerRisks.length > 0 && (
+                    {actualData.analysis.killerRisks && actualData.analysis.killerRisks.length > 0 && (
                       <Card className="border-red-500/20">
                         <CardContent className="pt-4">
                           <h4 className="font-semibold mb-3 flex items-center gap-2 text-red-600">
@@ -181,7 +184,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                             Company-Killing Risks
                           </h4>
                           <ul className="space-y-2">
-                            {data.analysis.killerRisks.map((risk: string, idx: number) => (
+                            {actualData.analysis.killerRisks.map((risk: string, idx: number) => (
                               <li key={idx} className="flex items-start gap-2">
                                 <span className="text-red-500 mt-0.5">⚠</span>
                                 <span className="text-sm font-medium">{risk}</span>
@@ -196,22 +199,22 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
               </TabsContent>
 
               <TabsContent value="formula" className="space-y-4 px-1">
-                {data.formula && (
+                {actualData.formula && (
                   <div className="space-y-4">
                     <Card>
                       <CardContent className="pt-4">
                         <h4 className="font-semibold mb-3">Mathematical Formula</h4>
                         <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm">
-                          {data.formula.description}
+                          {actualData.formula.description}
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-4">
                           <div>
                             <p className="text-xs text-muted-foreground">Components Evaluated</p>
-                            <p className="text-2xl font-bold">{data.formula.components}</p>
+                            <p className="text-2xl font-bold">{actualData.formula.components}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Difficulty Exponent</p>
-                            <p className="text-2xl font-bold">{data.formula.difficultyExponent}</p>
+                            <p className="text-2xl font-bold">{actualData.formula.difficultyExponent}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -221,7 +224,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                       <CardContent className="pt-4">
                         <h4 className="font-semibold mb-3">Scoring Philosophy</h4>
                         <p className="text-sm text-muted-foreground">
-                          {data.formula.explanation}
+                          {actualData.formula.explanation}
                         </p>
                       </CardContent>
                     </Card>
@@ -230,7 +233,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                       <CardContent className="pt-4">
                         <h4 className="font-semibold mb-3">Methodology</h4>
                         <p className="text-sm text-muted-foreground">
-                          {data.metadata?.methodology || 'VC-grade evaluation with exponential difficulty scaling'}
+                          {actualData.metadata?.methodology || 'VC-grade evaluation with exponential difficulty scaling'}
                         </p>
                       </CardContent>
                     </Card>
@@ -239,9 +242,9 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
               </TabsContent>
 
               <TabsContent value="breakdown" className="space-y-4 px-1">
-                {data.scoreBreakdown && (
+                {actualData.scoreBreakdown && (
                   <div className="space-y-3">
-                    {Object.entries(data.scoreBreakdown).map(([key, value]: [string, any]) => {
+                    {Object.entries(actualData.scoreBreakdown).map(([key, value]: [string, any]) => {
                       const Icon = getCategoryIcon(key);
                       const percentage = value.adjusted || 0;
                       
@@ -280,7 +283,7 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
                   </div>
                 )}
                 
-                {!data.scoreBreakdown && (
+                {!actualData.scoreBreakdown && (
                   <Card>
                     <CardContent className="pt-4 text-center">
                       <p className="text-sm text-muted-foreground">
@@ -292,9 +295,9 @@ export function SmoothBrainsDialog({ isOpen, onClose, data }: SmoothBrainsDialog
               </TabsContent>
 
               <TabsContent value="benchmarks" className="space-y-4 px-1">
-                {data.benchmarks && (
+                {actualData.benchmarks && (
                   <div className="space-y-3">
-                    {Object.entries(data.benchmarks).map(([scoreThreshold, description]) => {
+                    {Object.entries(actualData.benchmarks).map(([scoreThreshold, description]) => {
                       const threshold = parseInt(scoreThreshold);
                       const isCurrentRange = score >= threshold && score < threshold + 10;
                       
