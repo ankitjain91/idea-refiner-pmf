@@ -625,20 +625,14 @@ export function MarketTrendsTile({
               </Button>
               
               {/* Brain Icon for AI Insights - Purple and Square like Overview */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    onClick={() => setShowInsights(true)}
-                    className="h-8 w-8 flex items-center justify-center rounded-md bg-violet-500/10 hover:bg-violet-500/20 cursor-pointer transition-colors"
-                  >
-                    <Brain className="h-4 w-4 text-violet-500" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="font-semibold">AI Insights</p>
-                  <p className="text-xs">Deep dive into {title.toLowerCase()}</p>
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowInsights(true)}
+                className="h-8 w-8 p-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 hover:border-violet-500/40 transition-all duration-200"
+              >
+                <Brain className="h-4 w-4 text-violet-600" />
+              </Button>
             </div>
           </div>
           {description && (
