@@ -73,6 +73,8 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'global' | 'single'>('single');
   const [selectedContinent, setSelectedContinent] = useState<string>('North America');
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   // Get the idea from filters or fallback to localStorage
   const ideaKeywords = filters.idea_keywords || [];
@@ -104,6 +106,24 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     const trendsKeywords = keywords.slice(0, 1); // Use the strongest single keyword for accuracy
     console.log('[GoogleTrendsCard] Using keywords:', trendsKeywords);
     
+    // Check cache first
+    const cacheKey = `google-trends:${trendsKeywords.join(',')}:${geo}:${timeWindow}:${fetchContinents}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    
+    if (cachedData && !loading) { // Don't use cache if already loading (manual refresh)
+      const parsed = JSON.parse(cachedData);
+      const cacheAge = Date.now() - parsed.timestamp;
+      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+      
+      // Return cached data if less than 7 days old
+      if (cacheAge < SEVEN_DAYS) {
+        setData(parsed.data);
+        setLastFetched(new Date(parsed.timestamp));
+        setIsFromCache(true);
+        return;
+      }
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -130,6 +150,14 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       });
       
       setData(trendsData);
+      setLastFetched(new Date());
+      setIsFromCache(false);
+      
+      // Cache the data
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: trendsData,
+        timestamp: Date.now()
+      }));
     } catch (err: any) {
       console.error('[GoogleTrendsCard] Error:', err);
       setError(err.message || 'Failed to fetch trends data');
@@ -550,7 +578,38 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             <div className="p-2 bg-primary/10 rounded-lg">
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
-            <CardTitle className="text-base font-bold">Google Trends Analysis</CardTitle>
+            <div>
+              <CardTitle className="text-base font-bold">Google Trends Analysis</CardTitle>
+              {lastFetched && (
+                <div className="mt-1">
+                  {isFromCache ? (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
+                      Cached • {(() => {
+                        const age = Date.now() - lastFetched.getTime();
+                        const hours = Math.floor(age / (1000 * 60 * 60));
+                        const days = Math.floor(hours / 24);
+                        if (days > 0) return `${days}d ago`;
+                        if (hours > 0) return `${hours}h ago`;
+                        const minutes = Math.floor(age / (1000 * 60));
+                        return `${minutes}m ago`;
+                      })()}
+                    </Badge>
+                  ) : (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
+                      Fresh data
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-2">

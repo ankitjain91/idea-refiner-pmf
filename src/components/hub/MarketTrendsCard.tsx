@@ -68,6 +68,7 @@ interface TrendsData {
   warnings?: string[];
   continentData?: Record<string, any>;
   fromCache?: boolean;
+  cacheTimestamp?: number;
   stale?: boolean;
 }
 
@@ -135,11 +136,11 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       if (cachedData) {
         const parsed = JSON.parse(cachedData);
         const cacheAge = Date.now() - parsed.timestamp;
-        const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
         
-        // Return cached data if less than 24 hours old
-        if (cacheAge < ONE_DAY) {
-          return { ...parsed.data, fromCache: true };
+        // Return cached data if less than 7 days old
+        if (cacheAge < SEVEN_DAYS) {
+          return { ...parsed.data, fromCache: true, cacheTimestamp: parsed.timestamp };
         }
       }
       
@@ -454,18 +455,35 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                       }
                     </TooltipContent>
                   </Tooltip>
-                  {data.fromCache && (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Badge variant="outline" className="h-5">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Cached
+                  {data && (
+                    <div>
+                      {data.fromCache ? (
+                        <Badge 
+                          variant="secondary" 
+                          className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
+                        >
+                          <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
+                          Cached • {(() => {
+                            if (!data.cacheTimestamp) return 'cached';
+                            const age = Date.now() - data.cacheTimestamp;
+                            const hours = Math.floor(age / (1000 * 60 * 60));
+                            const days = Math.floor(hours / 24);
+                            if (days > 0) return `${days}d ago`;
+                            if (hours > 0) return `${hours}h ago`;
+                            const minutes = Math.floor(age / (1000 * 60));
+                            return `${minutes}m ago`;
+                          })()}
                         </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Data cached locally for 24 hours to reduce API calls
-                      </TooltipContent>
-                    </Tooltip>
+                      ) : (
+                        <Badge 
+                          variant="secondary" 
+                          className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                        >
+                          <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
+                          Fresh data
+                        </Badge>
+                      )}
+                    </div>
                   )}
                 </>
               )}
