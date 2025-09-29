@@ -33,8 +33,28 @@ serve(async (req) => {
       );
     }
 
-    // Build news search query
-    const searchQuery = [idea, industry, geo].filter(Boolean).join(' ');
+    // Build news search query - simplify if too specific
+    let searchQuery = idea || '';
+    
+    // If the idea is very long and specific, extract key terms for broader search
+    if (searchQuery.split(' ').length > 8) {
+      // Extract key concepts for broader search
+      const keyTerms = searchQuery
+        .toLowerCase()
+        .match(/\b(ai|virtual|book|club|reading|platform|app|technology|software|online|digital|social|startup|business)\b/gi);
+      
+      if (keyTerms && keyTerms.length > 0) {
+        searchQuery = [...new Set(keyTerms)].slice(0, 4).join(' ') + ' news startup';
+        console.log('[news-analysis] Simplified long query to:', searchQuery);
+      }
+    } else if (searchQuery) {
+      // Add context for better news results
+      searchQuery = searchQuery + ' technology startup news';
+    }
+    
+    // Add industry and geo if available
+    if (industry) searchQuery = industry + ' ' + searchQuery;
+    if (geo && geo !== 'global') searchQuery = searchQuery + ' ' + geo;
     
     // Determine time range for search
     const timeRangeMap: Record<string, string> = {
