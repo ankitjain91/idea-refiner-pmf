@@ -39,20 +39,31 @@ export function QuickStatsTile({
   const fetchData = async (forceRefresh = false) => {
     if (!currentIdea) return;
     
-    // Check cache first (1 hour = 3600000ms)
     const cacheKey = `tile_cache_${tileType}_${currentIdea}`;
-    const cached = localStorage.getItem(cacheKey);
+    const lastRefreshKey = `tile_last_refresh_${tileType}_${currentIdea}`;
     
+    // Check if we're within the 10-minute rate limit
+    if (forceRefresh) {
+      const lastRefreshTime = localStorage.getItem(lastRefreshKey);
+      if (lastRefreshTime) {
+        const timeSinceRefresh = Date.now() - parseInt(lastRefreshTime);
+        const TEN_MINUTES = 600000; // 10 minutes in milliseconds
+        
+        if (timeSinceRefresh < TEN_MINUTES) {
+          const remainingMinutes = Math.ceil((TEN_MINUTES - timeSinceRefresh) / 60000);
+          alert(`Please wait ${remainingMinutes} more minute${remainingMinutes > 1 ? 's' : ''} before refreshing again.`);
+          return;
+        }
+      }
+    }
+    
+    // Always check cache first
+    const cached = localStorage.getItem(cacheKey);
     if (!forceRefresh && cached) {
       const parsedCache = JSON.parse(cached);
-      const cacheAge = Date.now() - parsedCache.timestamp;
-      const ONE_HOUR = 3600000;
-      
-      if (cacheAge < ONE_HOUR) {
-        setData(parsedCache.data);
-        setLastRefresh(new Date(parsedCache.timestamp));
-        return;
-      }
+      setData(parsedCache.data);
+      setLastRefresh(new Date(parsedCache.timestamp));
+      return;
     }
     
     setLoading(true);
@@ -111,6 +122,9 @@ export function QuickStatsTile({
           data: response.data,
           timestamp: Date.now()
         }));
+        
+        // Update last refresh time for rate limiting
+        localStorage.setItem(lastRefreshKey, Date.now().toString());
       }
     } catch (error) {
       console.error(`Error fetching ${tileType} data:`, error);
@@ -119,25 +133,19 @@ export function QuickStatsTile({
     }
   };
 
-  // Don't auto-load - user must click Load Data button
+  // Load cached data on mount if available
   useEffect(() => {
-    // Check cache only when idea changes
     if (currentIdea && !hasCheckedCache) {
       setHasCheckedCache(true);
       
-      // Check cache first
+      // Always load from cache if available
       const cacheKey = `tile_cache_${tileType}_${currentIdea}`;
       const cached = localStorage.getItem(cacheKey);
       
       if (cached) {
         const parsedCache = JSON.parse(cached);
-        const cacheAge = Date.now() - parsedCache.timestamp;
-        const ONE_HOUR = 3600000;
-        
-        if (cacheAge < ONE_HOUR) {
-          setData(parsedCache.data);
-          setLastRefresh(new Date(parsedCache.timestamp));
-        }
+        setData(parsedCache.data);
+        setLastRefresh(new Date(parsedCache.timestamp));
       }
     }
   }, [currentIdea, hasCheckedCache]);
@@ -282,9 +290,13 @@ export function QuickStatsTile({
                 <p className="text-sm font-medium">{title}</p>
                 {lastRefresh && (
                   <p className="text-xs text-muted-foreground">
-                    {new Date().getTime() - lastRefresh.getTime() < 60000 
-                      ? 'Just now'
-                      : `${Math.floor((new Date().getTime() - lastRefresh.getTime()) / 60000)}m ago`}
+                    {(() => {
+                      const age = new Date().getTime() - lastRefresh.getTime();
+                      if (age < 60000) return 'Just now';
+                      if (age < 3600000) return `${Math.floor(age / 60000)}m ago`;
+                      if (age < 86400000) return `${Math.floor(age / 3600000)}h ago`;
+                      return `${Math.floor(age / 86400000)}d ago`;
+                    })()}
                   </p>
                 )}
               </div>
@@ -295,6 +307,7 @@ export function QuickStatsTile({
               className="h-7 w-7"
               onClick={() => fetchData(true)}
               disabled={loading}
+              title="Refresh (limited to once per 10 minutes)"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
             </Button>
