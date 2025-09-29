@@ -415,38 +415,44 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Metrics Cards - Beautiful grid */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className={`p-4 rounded-xl ${getIntensityColor(competitionIntensity)} backdrop-blur-sm border border-border/30 animate-scale-in shadow-lg hover:shadow-xl transition-all`} style={{animationDelay: '100ms'}}>
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-5 w-5" />
-                <span className="text-sm font-semibold">Competition</span>
+        <CardContent className="space-y-6 p-8">
+          {/* Metrics Cards - Elegant responsive grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`p-6 rounded-2xl ${getIntensityColor(competitionIntensity)} backdrop-blur-sm border border-border/30 animate-scale-in shadow-lg hover:shadow-xl transition-all group`} style={{animationDelay: '100ms'}}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-background/50">
+                  <TrendingUp className="h-6 w-6" />
+                </div>
+                <span className="text-base font-semibold">Competition Intensity</span>
               </div>
-              <div className="text-2xl font-bold capitalize">{competitionIntensity}</div>
+              <div className="text-3xl font-bold capitalize mb-2">{competitionIntensity}</div>
               {data?.metrics?.[0]?.explanation && (
-                <p className="text-xs mt-2 opacity-80">{data.metrics[0].explanation.substring(0, 60)}...</p>
+                <p className="text-sm opacity-80 line-clamp-2">{data.metrics[0].explanation}</p>
               )}
             </div>
-            <div className={`p-4 rounded-xl ${getPotentialColor(monetizationPotential)} backdrop-blur-sm border border-border/30 animate-scale-in shadow-lg hover:shadow-xl transition-all`} style={{animationDelay: '200ms'}}>
-              <div className="flex items-center gap-2 mb-2">
-                <ShoppingCart className="h-5 w-5" />
-                <span className="text-sm font-semibold">Monetization</span>
+            <div className={`p-6 rounded-2xl ${getPotentialColor(monetizationPotential)} backdrop-blur-sm border border-border/30 animate-scale-in shadow-lg hover:shadow-xl transition-all group`} style={{animationDelay: '200ms'}}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-background/50">
+                  <ShoppingCart className="h-6 w-6" />
+                </div>
+                <span className="text-base font-semibold">Monetization Potential</span>
               </div>
-              <div className="text-2xl font-bold capitalize">{monetizationPotential}</div>
+              <div className="text-3xl font-bold capitalize mb-2">{monetizationPotential}</div>
               {data?.metrics?.[1]?.explanation && (
-                <p className="text-xs mt-2 opacity-80">{data.metrics[1].explanation.substring(0, 60)}...</p>
+                <p className="text-sm opacity-80 line-clamp-2">{data.metrics[1].explanation}</p>
               )}
             </div>
             {marketMaturity !== 'unknown' && (
-              <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 backdrop-blur-sm border border-indigo-200/30 dark:border-indigo-800/30 animate-scale-in shadow-lg hover:shadow-xl transition-all" style={{animationDelay: '300ms'}}>
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                  <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Market</span>
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 backdrop-blur-sm border border-indigo-200/30 dark:border-indigo-800/30 animate-scale-in shadow-lg hover:shadow-xl transition-all group" style={{animationDelay: '300ms'}}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-background/50">
+                    <BarChart3 className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <span className="text-base font-semibold text-indigo-700 dark:text-indigo-300">Market Maturity</span>
                 </div>
-                <div className="text-2xl font-bold capitalize text-indigo-700 dark:text-indigo-300">{marketMaturity}</div>
+                <div className="text-3xl font-bold capitalize text-indigo-700 dark:text-indigo-300 mb-2">{marketMaturity}</div>
                 {data?.metrics?.[2]?.explanation && (
-                  <p className="text-xs mt-2 text-indigo-600/80 dark:text-indigo-400/80">{data.metrics[2].explanation.substring(0, 60)}...</p>
+                  <p className="text-sm text-indigo-600/80 dark:text-indigo-400/80 line-clamp-2">{data.metrics[2].explanation}</p>
                 )}
               </div>
             )}

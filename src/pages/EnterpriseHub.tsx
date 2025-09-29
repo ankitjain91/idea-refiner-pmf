@@ -20,6 +20,7 @@ import { DataTile } from "@/components/hub/DataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchCard } from "@/components/dashboard/WebSearchCard";
+import { cn } from "@/lib/utils";
 
 export default function EnterpriseHub() {
   const { currentSession } = useSession();
@@ -190,10 +191,10 @@ export default function EnterpriseHub() {
         </div>
       </div>
 
-      {/* Main Grid with WebSearchCard and Data Tiles - Each card on its own row */}
-      <div className="space-y-4">
-        {/* Web Search Card - Full width */}
-        <div className="w-full">
+      {/* Main Grid with WebSearchCard and Data Tiles - Elegant stacked layout */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Web Search Card - Full width with elegant styling */}
+        <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
           <WebSearchCard 
             idea={currentIdea}
             industry={filters.industry}
@@ -202,18 +203,24 @@ export default function EnterpriseHub() {
           />
         </div>
         
-        {/* Other Data Tiles - Each on its own row */}
-        {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile) => (
-          <div key={tile.id} className="w-full">
-            <DataTile
-              title={tile.title}
-              icon={tile.icon}
-              tileType={tile.tileType}
-              filters={filters}
-              description={`Real-time ${tile.title.toLowerCase()} analysis`}
-            />
-          </div>
-        ))}
+        {/* Other Data Tiles - Grid layout within each row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile, idx) => (
+            <div 
+              key={tile.id} 
+              className={cn(tile.span, "animate-fade-in")}
+              style={{ animationDelay: `${200 + idx * 50}ms` }}
+            >
+              <DataTile
+                title={tile.title}
+                icon={tile.icon}
+                tileType={tile.tileType}
+                filters={filters}
+                description={`Real-time ${tile.title.toLowerCase()} analysis`}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Pro/Enterprise Features Notice */}
