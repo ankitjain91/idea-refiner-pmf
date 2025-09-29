@@ -163,7 +163,7 @@ export function IdeaAnalysisDashboard() {
   const { toast } = useToast();
   
   const [filters, setFilters] = useState({
-    idea_keywords: currentIdea || '',
+    idea_keywords: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
     industry: 'general',
     geography: 'global',
     time_window: 'last_90_days',
@@ -172,6 +172,16 @@ export function IdeaAnalysisDashboard() {
   const [activeCategory, setActiveCategory] = useState<'all' | 'research' | 'social' | 'market' | 'strategy'>('all');
   const [compareMode, setCompareMode] = useState(false);
   const [compareIdeas, setCompareIdeas] = useState<string[]>([]);
+
+  // Update filters when currentIdea changes
+  useEffect(() => {
+    if (currentIdea && currentIdea !== filters.idea_keywords) {
+      setFilters(prev => ({
+        ...prev,
+        idea_keywords: currentIdea
+      }));
+    }
+  }, [currentIdea]);
 
   // Filter cards by category
   const visibleCards = activeCategory === 'all' 

@@ -70,9 +70,12 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState<'off' | '15m'>('off');
 
+  // Fallback to localStorage if idea is not provided
+  const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
+
   // Build cache key
-  const cacheKey = hasLoadedOnce && idea ? 
-    `websearch:${idea}|${industry || ''}|${geography || ''}|${timeWindow || ''}` : null;
+  const cacheKey = hasLoadedOnce && actualIdea ? 
+    `websearch:${actualIdea}|${industry || ''}|${geography || ''}|${timeWindow || ''}` : null;
 
   const { data, error, isLoading, mutate } = useSWR<ProfitabilityData>(
     cacheKey,
@@ -222,16 +225,25 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 space-y-3">
-            <Target className="h-12 w-12 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Discover monetization opportunities
-            </p>
-            <Button onClick={handleInitialLoad} variant="default" size="sm">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Load Data
-            </Button>
-          </div>
+          {!actualIdea ? (
+            <div className="text-center py-4">
+              <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No idea configured. Please enter an idea first.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-6 space-y-3">
+              <Target className="h-12 w-12 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Discover monetization opportunities
+              </p>
+              <Button onClick={handleInitialLoad} variant="default" size="sm">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Load Data
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
