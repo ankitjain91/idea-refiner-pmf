@@ -201,10 +201,10 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              Choose Your Session
+              Create New or Choose Existing Session
             </DialogTitle>
             <DialogDescription>
-              Select an existing session or create a new one to continue your analysis journey.
+              Start a new session or continue with an existing one.
             </DialogDescription>
           </DialogHeader>        <div className="space-y-6">
           {/* Create New Session */}
@@ -265,7 +265,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           ) : sessions.length > 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Your Sessions ({sessions.length})</CardTitle>
+                <CardTitle className="text-lg">Choose Existing Session ({sessions.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
