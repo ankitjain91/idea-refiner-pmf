@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   ExternalLink, Info, AlertCircle, Clock, Download, 
-  ChevronRight, RefreshCw, Database, DollarSign
+  ChevronRight, RefreshCw, Database, DollarSign, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -129,29 +129,21 @@ export function OptimizedDataTile({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {costInfo?.cacheHit && (
+              {/* Subtle Data Source Indicator - Same as Overview */}
+              {costInfo && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <Database className="h-4 w-4 text-muted-foreground" />
+                      {costInfo.cacheHit ? (
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      ) : (
+                        <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      )}
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>From cache • Cost optimized</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {costInfo && !costInfo.cacheHit && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Badge variant="outline" className="text-xs">
-                        <DollarSign className="h-3 w-3 mr-1" />
-                        {costInfo.costEstimate}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{costInfo.totalSearches} grouped searches</p>
+                      <p className="text-xs">
+                        {costInfo.cacheHit ? 'From cache' : 'Live API data'}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

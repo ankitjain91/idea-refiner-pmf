@@ -468,9 +468,7 @@ export function EnhancedDataTile({
                 <TooltipProvider>
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger>
-                      {data?.fromDatabase ? (
-                        <Database className="h-3.5 w-3.5 text-muted-foreground/40" />
-                      ) : data?.fromCache ? (
+                      {data?.fromDatabase || data?.fromCache ? (
                         <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
                       ) : (
                         <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
@@ -478,9 +476,7 @@ export function EnhancedDataTile({
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="text-xs">
-                        {data?.fromDatabase ? 'From database cache' : 
-                         data?.fromCache ? 'From local cache' : 
-                         'Live API data'}
+                        {data?.fromDatabase || data?.fromCache ? 'From cache' : 'Live API data'}
                       </p>
                     </TooltipContent>
                   </Tooltip>

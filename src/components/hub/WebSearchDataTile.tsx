@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, TrendingUp, TrendingDown, RefreshCw, AlertCircle, Target, Users, DollarSign, Minus, Brain, Globe, MapPin } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, RefreshCw, AlertCircle, Target, Users, DollarSign, Minus, Brain, Globe, MapPin, Clock, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -439,24 +439,23 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {data && (() => {
-                let source = 'API';
-                let variant: 'default' | 'secondary' | 'outline' = 'default';
-                
-                if (data.fromCache) {
-                  source = 'Cache';
-                  variant = 'secondary';
-                } else if (data.fromDatabase) {
-                  source = 'DB';
-                  variant = 'outline';
-                }
-                
-                return (
-                  <Badge variant={variant} className="text-xs">
-                    {source}
-                  </Badge>
-                );
-              })()}
+              {/* Subtle Data Source Indicator - Same as Overview */}
+              {data && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    {data?.fromCache || data?.fromDatabase ? (
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                    ) : (
+                      <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      {data?.fromCache || data?.fromDatabase ? 'From cache' : 'Live API data'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
