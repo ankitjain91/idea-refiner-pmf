@@ -17,11 +17,19 @@ import { useSession } from "@/contexts/SimpleSessionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalFilters } from "@/components/hub/GlobalFilters";
 import { DataTile } from "@/components/hub/DataTile";
+import { EnhancedDataTile } from "@/components/hub/EnhancedDataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
 import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
 import { cn } from "@/lib/utils";
+import {
+  twitterBuzzAdapter,
+  amazonReviewsAdapter,
+  competitorAnalysisAdapter,
+  targetAudienceAdapter,
+  pricingStrategyAdapter
+} from "@/lib/data-adapter";
 
 export default function EnterpriseHub() {
   const { currentSession } = useSession();
@@ -216,21 +224,49 @@ export default function EnterpriseHub() {
         
         {/* Other Data Tiles - Grid layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile, idx) => (
-            <div 
-              key={tile.id} 
-              className={cn(tile.span, "animate-fade-in")}
-              style={{ animationDelay: `${150 + idx * 50}ms` }}
-            >
-              <DataTile
-                title={tile.title}
-                icon={tile.icon}
-                tileType={tile.tileType}
-                filters={filters}
-                description={`Real-time ${tile.title.toLowerCase()} analysis`}
-              />
-            </div>
-          ))}
+          {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile, idx) => {
+            // Use EnhancedDataTile for the 5 specific tiles
+            const enhancedTiles = ['twitter', 'amazon', 'competitors', 'targetAudience', 'pricing'];
+            const isEnhancedTile = enhancedTiles.includes(tile.id);
+            
+            const getAdapter = () => {
+              switch(tile.id) {
+                case 'twitter': return twitterBuzzAdapter;
+                case 'amazon': return amazonReviewsAdapter;
+                case 'competitors': return competitorAnalysisAdapter;
+                case 'targetAudience': return targetAudienceAdapter;
+                case 'pricing': return pricingStrategyAdapter;
+                default: return null;
+              }
+            };
+            
+            return (
+              <div 
+                key={tile.id} 
+                className={cn(tile.span, "animate-fade-in")}
+                style={{ animationDelay: `${150 + idx * 50}ms` }}
+              >
+                {isEnhancedTile && getAdapter() ? (
+                  <EnhancedDataTile
+                    title={tile.title}
+                    icon={tile.icon}
+                    tileType={tile.tileType}
+                    filters={filters}
+                    description={`Real-time ${tile.title.toLowerCase()} analysis`}
+                    fetchAdapter={getAdapter()}
+                  />
+                ) : (
+                  <DataTile
+                    title={tile.title}
+                    icon={tile.icon}
+                    tileType={tile.tileType}
+                    filters={filters}
+                    description={`Real-time ${tile.title.toLowerCase()} analysis`}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
