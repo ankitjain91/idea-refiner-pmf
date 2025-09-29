@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, User, Clock, Trash2, Edit2, Copy, Sparkles, Shuffle, Info } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -198,15 +199,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           onPointerDownOutside={allowClose ? undefined : (e) => e.preventDefault()} 
           onEscapeKeyDown={allowClose ? undefined : (e) => e.preventDefault()}
         >
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Create New or Choose Existing Session
-            </DialogTitle>
-            <DialogDescription>
-              Start a new session or continue with an existing one.
-            </DialogDescription>
-          </DialogHeader>        <div className="space-y-6">
+        <div className="space-y-6">
           {/* Create New Session */}
           <Card>
             <CardHeader>
@@ -255,6 +248,18 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
 
             </CardContent>
           </Card>
+
+          {/* Divider with OR */}
+          {sessions.length > 0 && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background px-4 text-sm text-muted-foreground">OR</span>
+              </div>
+            </div>
+          )}
 
           {/* Existing Sessions */}
           {loading ? (
