@@ -16,7 +16,8 @@ import useSWR from 'swr';
 import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AITileDialog } from '@/components/dashboard/AITileDialog';
 
 interface WebSearchDataTileProps {
@@ -465,15 +466,20 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowAIDialog(true)}
-                disabled={!data}
-                className="h-8 w-8 p-0"
-              >
-                <Brain className="h-3.5 w-3.5" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={() => setShowAIDialog(true)}
+                    className="h-8 w-8 flex items-center justify-center rounded-md bg-violet-500/10 hover:bg-violet-500/20 cursor-pointer transition-colors"
+                  >
+                    <Brain className="h-4 w-4 text-violet-500" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-semibold">AI Insights</p>
+                  <p className="text-xs">Deep dive into web search analysis</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -550,7 +556,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="region" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
                     <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip 
+                    <RechartsTooltip 
                       contentStyle={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
                       labelStyle={{ color: 'var(--foreground)' }}
                     />

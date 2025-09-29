@@ -499,15 +499,22 @@ export function EnhancedDataTile({
               </Button>
               
               {/* Brain Icon for AI Insights - Purple and Square like Overview */}
-              <Button
-                onClick={() => setShowInsights(true)}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                disabled={!data}
-              >
-                <Brain className="h-3.5 w-3.5 text-violet-500" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <div
+                      onClick={() => setShowInsights(true)}
+                      className="h-8 w-8 flex items-center justify-center rounded-md bg-violet-500/10 hover:bg-violet-500/20 cursor-pointer transition-colors"
+                    >
+                      <Brain className="h-4 w-4 text-violet-500" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">AI Insights</p>
+                    <p className="text-xs">Deep dive into {title.toLowerCase()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
           {description && (
