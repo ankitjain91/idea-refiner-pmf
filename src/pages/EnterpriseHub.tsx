@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
-import { DataTile } from "@/components/hub/DataTile";
+
 import { MarketTrendsTile } from "@/components/hub/MarketTrendsTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
@@ -544,19 +544,21 @@ export default function EnterpriseHub() {
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <DataTile
+              <MarketTrendsTile
                 title="YouTube Analytics"
                 icon={Youtube}
                 tileType="youtube_analytics"
                 filters={filters}
                 description="Video content trends"
+                currentIdea={currentIdea}
               />
-              <DataTile
+              <MarketTrendsTile
                 title="News Analysis"
                 icon={Newspaper}
                 tileType="news_analysis"
                 filters={filters}
                 description="Media coverage"
+                currentIdea={currentIdea}
               />
             </div>
           </TabsContent>
