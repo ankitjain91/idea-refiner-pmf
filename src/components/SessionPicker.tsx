@@ -214,10 +214,14 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
               >
                 <Button 
                   onClick={() => setShowCreateForm(true)}
-                  className="w-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                  className="w-full h-20 border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                  variant="outline"
                   size="lg"
                 >
-                  <Plus className="h-5 w-5" />
+                  <div className="flex flex-col items-center gap-2">
+                    <Plus className="h-8 w-8 text-primary/60" />
+                    <span className="text-sm font-medium text-muted-foreground">Create New Session</span>
+                  </div>
                 </Button>
               </div>
             ) : (

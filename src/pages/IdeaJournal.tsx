@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { 
   Loader2, 
@@ -153,201 +154,227 @@ const IdeaJournal = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8 max-w-6xl">
-        {/* Create New Session */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Create New Session
-            </CardTitle>
-            <CardDescription>
-              Start a new brainstorming session for your idea
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 max-w-md">
-              <Input
-                placeholder="Enter session name..."
-                value={newSessionName}
-                onChange={(e) => setNewSessionName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setNewSessionName(generateFunName())}
-                title="Generate a fun name"
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
+      <div className="container mx-auto px-6 py-8 max-w-4xl">
+        {/* Create New Session or Show Sessions */}
+        <div className="space-y-6">
+          {/* Create New Session Button/Form */}
+          <div className="relative min-h-[100px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            {!isCreating ? (
               <Button 
-                onClick={handleCreateSession}
-                disabled={!newSessionName.trim() || isCreating}
+                onClick={() => setIsCreating(true)}
+                className="w-full h-24 border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                variant="outline"
+                size="lg"
               >
-                {isCreating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                Create
+                <div className="flex flex-col items-center gap-2">
+                  <Plus className="h-10 w-10 text-primary/60" />
+                  <span className="text-base font-medium text-muted-foreground">Create New Session</span>
+                </div>
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search sessions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </div>
-
-        {/* Sessions Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading sessions...</span>
-          </div>
-        ) : filteredSessions.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSessions.map((session) => (
-              <Card key={session.id} className="group hover:shadow-lg transition-shadow cursor-pointer">
+            ) : (
+              <Card className="transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] border-primary/20 shadow-sm hover:shadow-md">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      {editingSession === session.id ? (
-                        <div className="space-y-2">
-                          <Input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleRenameSession(session.id);
-                              if (e.key === 'Escape') setEditingSession(null);
-                            }}
-                            className="text-lg font-semibold"
-                            autoFocus
-                          />
-                          <div className="flex gap-1">
-                            <Button size="sm" onClick={() => handleRenameSession(session.id)}>
-                              Save
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingSession(null)}>
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <CardTitle className="text-lg truncate group-hover:text-primary transition-colors">
-                            {session.name}
-                          </CardTitle>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="text-xs">
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              {session.data.chatHistory?.length || 0} messages
-                            </Badge>
-                            {session.data.analysisCompleted && (
-                              <Badge variant="default" className="text-xs">
-                                <BarChart3 className="h-3 w-3 mr-1" />
-                                Analyzed
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEditing(session.id, session.name);
-                        }}
-                        title="Rename session"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDuplicateSession(session.id);
-                        }}
-                        title="Duplicate session"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSession(session.id);
-                        }}
-                        title="Delete session"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    Create New Session
+                  </CardTitle>
+                  <CardDescription>
+                    Start a new brainstorming session for your idea
+                  </CardDescription>
                 </CardHeader>
-                
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    {session.data.currentIdea && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current Idea:</p>
-                        <p className="text-sm line-clamp-2">{session.data.currentIdea}</p>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true })}
-                      </div>
-                      <div>
-                        {format(new Date(session.created_at), 'MMM d, yyyy')}
-                      </div>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter session name..."
+                        value={newSessionName}
+                        onChange={(e) => setNewSessionName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleCreateSession();
+                          if (e.key === 'Escape') {
+                            setIsCreating(false);
+                            setNewSessionName('');
+                          }
+                        }}
+                        autoFocus
+                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus:scale-[1.01] focus:shadow-sm"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setNewSessionName(generateFunName())}
+                        title="Generate a fun name"
+                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:rotate-12 active:scale-95"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        onClick={handleCreateSession}
+                        disabled={!newSessionName.trim()}
+                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95"
+                      >
+                        Create
+                      </Button>
                     </div>
-                    
-                    <Button 
-                      className="w-full mt-3" 
-                      onClick={() => handleLoadSession(session.id)}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsCreating(false);
+                        setNewSessionName('');
+                      }}
+                      className="w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/50 active:scale-[0.98]"
                     >
-                      Open Session
+                      Cancel
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )}
           </div>
-        ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No sessions found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchQuery ? 'No sessions match your search.' : 'Create your first brainstorming session to get started!'}
-              </p>
-              {searchQuery && (
-                <Button variant="outline" onClick={() => setSearchQuery('')}>
-                  Clear Search
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
+
+          {/* Divider with OR */}
+          {sessions.length > 0 && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background px-4 text-sm text-muted-foreground">OR</span>
+              </div>
+            </div>
+          )}
+
+          {/* Sessions List */}
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Loading sessions...</span>
+            </div>
+          ) : sessions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Your Sessions ({filteredSessions.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search sessions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                
+                {/* Sessions List */}
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {filteredSessions.length > 0 ? (
+                    filteredSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="group flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => handleLoadSession(session.id)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          {editingSession === session.id ? (
+                            <div className="flex gap-2">
+                              <Input
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRenameSession(session.id);
+                                  if (e.key === 'Escape') setEditingSession(null);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-8"
+                                autoFocus
+                              />
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRenameSession(session.id);
+                                }}
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <h3 className="font-medium truncate">{session.name}</h3>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true })}
+                                </span>
+                                {session.data.chatHistory && session.data.chatHistory.length > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <MessageSquare className="h-3 w-3" />
+                                    {session.data.chatHistory.length}
+                                  </span>
+                                )}
+                                {session.data.analysisCompleted && (
+                                  <span className="text-green-600 text-xs">
+                                    ✓ Analyzed
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditing(session.id, session.name);
+                            }}
+                            title="Rename session"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicateSession(session.id);
+                            }}
+                            title="Duplicate session"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSession(session.id);
+                            }}
+                            title="Delete session"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-8 text-center">
+                      <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {searchQuery ? 'No sessions match your search.' : 'No sessions yet.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
