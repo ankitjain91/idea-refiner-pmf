@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SERPAPI_KEY = Deno.env.get('SERPAPI_KEY');
+const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
 const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -66,44 +66,13 @@ serve(async (req) => {
     
     const timeRange = timeRangeMap[time_window || 'last_90_days'] || 'qdr:m3';
     
-    // Step 1: Fetch news from Google News via SerpApi
+    // Step 1: Fetch news using Serper API
     let newsResults: any[] = [];
     let newsError: string | null = null;
     
-    if (SERPAPI_KEY) {
+    if (SERPER_API_KEY) {
       try {
-        console.log('[news-analysis] Fetching from Google News via SerpApi');
-        const serpUrl = new URL('https://serpapi.com/search');
-        serpUrl.searchParams.append('engine', 'google_news');
-        serpUrl.searchParams.append('q', searchQuery);
-        serpUrl.searchParams.append('num', '50');
-        serpUrl.searchParams.append('api_key', SERPAPI_KEY);
-        
-        const serpResponse = await fetch(serpUrl.toString());
-        const serpData = await serpResponse.json();
-        
-        if (serpData.news_results) {
-          newsResults = serpData.news_results.map((item: any) => ({
-            title: item.title,
-            snippet: item.snippet || item.description,
-            url: item.link,
-            source: item.source?.name || item.source,
-            published: item.date || item.published,
-            thumbnail: item.thumbnail
-          }));
-          console.log(`[news-analysis] SerpApi returned ${newsResults.length} results`);
-        }
-      } catch (error) {
-        console.error('[news-analysis] SerpApi error:', error);
-        newsError = error instanceof Error ? error.message : String(error);
-      }
-    }
-    
-    // Step 2: Fallback to Serper if needed
-    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
-    if (newsResults.length < 10 && SERPER_API_KEY) {
-      try {
-        console.log('[news-analysis] Falling back to Serper for more results');
+        console.log('[news-analysis] Fetching news from Serper API');
         const serperResponse = await fetch('https://google.serper.dev/news', {
           method: 'POST',
           headers: {
@@ -112,25 +81,25 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             q: searchQuery,
-            num: 30,
+            num: 50,
             tbs: timeRange,
           }),
         });
         
         const serperData = await serperResponse.json();
         if (serperData.news) {
-          const serperResults = serperData.news.map((item: any) => ({
+          newsResults = serperData.news.map((item: any) => ({
             title: item.title,
             snippet: item.snippet,
             url: item.link,
             source: item.source,
             published: item.date,
           }));
-          newsResults = [...newsResults, ...serperResults];
-          console.log(`[news-analysis] Added ${serperResults.length} results from Serper`);
+          console.log(`[news-analysis] Serper returned ${newsResults.length} results`);
         }
       } catch (error) {
         console.error('[news-analysis] Serper error:', error);
+        newsError = error instanceof Error ? error.message : String(error);
       }
     }
     
@@ -336,7 +305,7 @@ serve(async (req) => {
       })),
       citations: [
         {
-          label: 'Google News (via SerpApi)',
+          label: 'Google News (via Serper)',
           url: `https://news.google.com/search?q=${encodeURIComponent(searchQuery)}`,
           published: 'real-time',
         },
@@ -348,9 +317,9 @@ serve(async (req) => {
       ],
       warnings: newsError ? [newsError] : [],
       cost_estimate: {
-        serp_calls: 1,
+        serper_calls: 1,
         firecrawl_urls: cleanedArticles.length,
-        total_api_cost: `$${(0.01 + cleanedArticles.length * 0.002).toFixed(3)}`,
+        total_api_cost: `$${(0.002 + cleanedArticles.length * 0.002).toFixed(3)}`,
       },
     };
     

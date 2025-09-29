@@ -15,18 +15,28 @@ serve(async (req) => {
     
     console.log('[competition] Analyzing competition for:', idea);
     
-    // Search for competitors
-    const serpApiKey = Deno.env.get('SERPAPI_KEY');
+    // Search for competitors using Serper API
+    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
     const competitors: Array<{name: string, type: string}> = [];
     let competitionLevel = 'Medium';
     
-    if (serpApiKey) {
+    if (SERPER_API_KEY) {
       try {
         // Search for competitors
         const query = `${idea} alternatives competitors pricing`;
-        const serpUrl = `https://serpapi.com/search.json?api_key=${serpApiKey}&q=${encodeURIComponent(query)}&num=10`;
         
-        const response = await fetch(serpUrl);
+        const response = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': SERPER_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: query,
+            num: 10,
+          }),
+        });
+        
         const data = await response.json();
         
         if (data.organic_results) {

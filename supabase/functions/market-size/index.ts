@@ -15,17 +15,27 @@ serve(async (req) => {
     
     console.log('[market-size] Analyzing market size for:', idea);
     
-    // Use free search to estimate market size
-    const serpApiKey = Deno.env.get('SERPAPI_KEY');
+    // Use Serper API to estimate market size
+    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
     const searchResults = [];
     
-    if (serpApiKey) {
+    if (SERPER_API_KEY) {
       try {
         // Search for market size reports
         const marketQuery = `${idea} market size TAM SAM SOM billion million revenue`;
-        const serpUrl = `https://serpapi.com/search.json?api_key=${serpApiKey}&q=${encodeURIComponent(marketQuery)}&num=10`;
         
-        const response = await fetch(serpUrl);
+        const response = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': SERPER_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: marketQuery,
+            num: 10,
+          }),
+        });
+        
         const data = await response.json();
         
         if (data.organic_results) {

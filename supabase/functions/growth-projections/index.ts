@@ -41,17 +41,27 @@ serve(async (req) => {
       growthData.aggressive.push(Math.round(aggressiveGrowth));
     }
     
-    // Try to get trend data from Reddit/Twitter mentions
+    // Try to get trend data using Serper API
     let mentionGrowth = 15; // Default 15% growth
-    const serpApiKey = Deno.env.get('SERPAPI_KEY');
+    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
     
-    if (serpApiKey) {
+    if (SERPER_API_KEY) {
       try {
         // Search for growth indicators
         const query = `${idea} growth rate market trends forecast`;
-        const serpUrl = `https://serpapi.com/search.json?api_key=${serpApiKey}&q=${encodeURIComponent(query)}&num=5`;
         
-        const response = await fetch(serpUrl);
+        const response = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': SERPER_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: query,
+            num: 5,
+          }),
+        });
+        
         const data = await response.json();
         
         if (data.organic_results) {
