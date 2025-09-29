@@ -244,144 +244,30 @@ export function StandardizedMarketTile({
     return `Strategic positioning suggests focusing on differentiation and market penetration strategies for ${currentIdea}.`;
   };
 
-  // Show loading state
-  if (loading && !data) {
-    return (
-      <Card className="h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
-                <Icon className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                {description && <p className="text-xs text-muted-foreground">{description}</p>}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="h-48 bg-muted animate-pulse rounded" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="h-20 bg-muted animate-pulse rounded" />
-            <div className="h-20 bg-muted animate-pulse rounded" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <Card className="h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
-                <Icon className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                {description && <p className="text-xs text-muted-foreground">{description}</p>}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {typeof error === 'string' ? error : 'Failed to load data'}
-            </AlertDescription>
-          </Alert>
-          <Button onClick={handleRefresh} className="mt-4" variant="outline" size="sm">
-            <RefreshCw className="h-3.5 w-3.5 mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // Always show error state for all tiles
   return (
-    <>
-      <Card className={cn("h-full group relative")}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
-                <Icon className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                {description && <p className="text-xs text-muted-foreground">{description}</p>}
-              </div>
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-destructive/20 to-destructive/10 border border-destructive/30">
+              <Icon className="h-4 w-4 text-destructive" />
             </div>
-            
-            <div className="flex items-center gap-2">
-              {/* Data source indicator */}
-              {data && (() => {
-                let source = 'API';
-                let variant: 'default' | 'secondary' | 'outline' = 'default';
-                
-                if ((data as any).fromDatabase) {
-                  source = 'DB';
-                  variant = 'default';
-                } else if ((data as any).fromCache) {
-                  source = 'Cache';
-                  variant = 'secondary';
-                }
-                
-                return (
-                  <Badge variant={variant} className="text-xs h-5">
-                    {source}
-                  </Badge>
-                );
-              })()}
-              
-              {/* Refresh button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="h-8 w-8 p-0"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
-              </Button>
-              
-              {/* Brain AI button */}
-              {data && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsDialogOpen(true)}
-                  className="h-8 w-8 p-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 hover:border-violet-500/40 transition-all duration-200"
-                >
-                  <Brain className="h-4 w-4 text-violet-600" />
-                </Button>
-              )}
+            <div>
+              <CardTitle className="text-sm font-medium">{title}</CardTitle>
+              {description && <p className="text-xs text-muted-foreground">{description}</p>}
             </div>
           </div>
-        </CardHeader>
-
-        <CardContent>
-          {renderChart()}
-        </CardContent>
-      </Card>
-
-      {/* AI Analysis Dialog using AITileDialog component */}
-      <AITileDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        data={getDialogData()}
-        selectedLevel={selectedLevel}
-        onLevelChange={setSelectedLevel}
-        isAnalyzing={isAnalyzing}
-        onAnalyze={handleAnalyze}
-      />
-    </>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error: Cannot fetch data
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
   );
 }
