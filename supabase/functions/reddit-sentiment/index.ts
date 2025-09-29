@@ -201,9 +201,6 @@ serve(async (req) => {
       console.warn('[reddit-sentiment] OAuth failed, falling back to public API:', authError);
       usePublic = true;
     }
-      console.warn('[reddit-sentiment] OAuth failed, falling back to public API:', authError);
-      usePublic = true;
-    }
 
     const tParam = mapTimeWindow(timeWindow);
     const redditUrl = usePublic
@@ -213,7 +210,7 @@ serve(async (req) => {
     console.log('[reddit-sentiment] Fetching from Reddit:', redditUrl);
 
     const headers: Record<string, string> = {
-      'User-Agent': 'web:pmfithub:v1.0 (by u/pmfithub_app)',
+      'User-Agent': 'web:pmfithub:v1.0 (by u/meltdown91)',
       'Accept': 'application/json'
     };
     if (!usePublic && accessToken) {
