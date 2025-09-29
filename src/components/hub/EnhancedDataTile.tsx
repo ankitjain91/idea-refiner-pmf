@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   RefreshCw, AlertCircle, Clock, Sparkles, ChevronRight,
-  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle
+  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle, Database
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -69,12 +69,14 @@ export function EnhancedDataTile({
         category: filters?.category
       };
 
+      console.log(`[${tileType}] Fetching data with context:`, ctx);
       const result = await fetchAdapter(ctx);
       
       if (result?.error) {
         throw new Error(result.error);
       }
 
+      console.log(`[${tileType}] Data fetched successfully:`, result);
       setData(result);
       setLastRefresh(new Date());
       setRetryCount(0);
@@ -94,6 +96,9 @@ export function EnhancedDataTile({
       setLoading(false);
     }
   }, [filters, tileType, fetchAdapter, loading, retryCount]);
+
+  // Don't auto-fetch on mount - let user trigger it
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const handleAnalyze = async () => {
     if (!data || isAnalyzing) return;
@@ -246,7 +251,7 @@ export function EnhancedDataTile({
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {loading && !data ? (
+          {loading ? (
             <div className="space-y-3">
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
@@ -268,13 +273,19 @@ export function EnhancedDataTile({
             </Alert>
           ) : !data ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No data yet</p>
+              <p className="text-sm text-muted-foreground">
+                {!hasInitialized ? 'Click to load real-time data' : 'No data available'}
+              </p>
               <Button
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                onClick={() => fetchData()}
+                onClick={() => {
+                  setHasInitialized(true);
+                  fetchData();
+                }}
               >
+                <Database className="h-4 w-4 mr-2" />
                 Load Data
               </Button>
             </div>
