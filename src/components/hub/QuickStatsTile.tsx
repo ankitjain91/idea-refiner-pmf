@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BaseTile, useTileData } from './BaseTile';
 import { TileInsightsDialog } from './TileInsightsDialog';
+import { SmoothBrainsDialog } from './SmoothBrainsDialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Brain } from 'lucide-react';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { Button } from '@/components/ui/button';
 
 interface QuickStatsTileProps {
   title: string;
@@ -24,6 +26,7 @@ export function QuickStatsTile({
   onAnalyze
 }: QuickStatsTileProps) {
   const [showInsights, setShowInsights] = useState(false);
+  const [showSmoothBrainsDialog, setShowSmoothBrainsDialog] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
 
@@ -42,7 +45,7 @@ export function QuickStatsTile({
     if (!functionName) throw new Error(`Unknown tile type: ${tileType}`);
 
     const { data, error } = await supabase.functions.invoke(functionName, {
-      body: { idea: currentIdea }
+      body: { idea: currentIdea, detailed: tileType === 'pmf_score' }
     });
 
     if (error) throw error;
@@ -64,18 +67,27 @@ export function QuickStatsTile({
         const scoreColor = score >= 70 ? 'text-green-600' : score >= 40 ? 'text-yellow-600' : 'text-red-600';
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setShowSmoothBrainsDialog(true)}
+            >
               <div>
                 <p className={cn("text-3xl font-bold", scoreColor)}>
                   {score}%
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {score >= 70 ? 'Strong PMF' : score >= 40 ? 'Moderate PMF' : 'Needs Work'}
+                  {data.tier || (score >= 70 ? 'Strong PMF' : score >= 40 ? 'Moderate PMF' : 'Needs Work')}
                 </p>
               </div>
-              <Badge variant={score >= 70 ? 'default' : score >= 40 ? 'secondary' : 'destructive'}>
-                {score >= 70 ? 'High' : score >= 40 ? 'Medium' : 'Low'}
-              </Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant={score >= 70 ? 'default' : score >= 40 ? 'secondary' : 'destructive'}>
+                  {score >= 70 ? 'High' : score >= 40 ? 'Medium' : 'Low'}
+                </Badge>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                  <Brain className="h-3 w-3 mr-1" />
+                  Details
+                </Button>
+              </div>
             </div>
             {data.factors && (
               <div className="space-y-2">
@@ -88,6 +100,11 @@ export function QuickStatsTile({
                   </div>
                 ))}
               </div>
+            )}
+            {data.metadata?.methodology && (
+              <p className="text-[10px] text-muted-foreground text-center border-t pt-2">
+                VC-grade evaluation
+              </p>
             )}
           </div>
         );
@@ -262,6 +279,14 @@ export function QuickStatsTile({
         tileData={data}
         ideaText={currentIdea}
       />
+
+      {tileType === 'pmf_score' && (
+        <SmoothBrainsDialog
+          isOpen={showSmoothBrainsDialog}
+          onClose={() => setShowSmoothBrainsDialog(false)}
+          data={data}
+        />
+      )}
     </>
   );
 }
