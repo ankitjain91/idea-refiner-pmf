@@ -25,7 +25,7 @@ serve(async (req) => {
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
     // Build commercial-intent query
-    const commercialTerms = '(buy OR price OR pricing OR best OR "near me" OR discount OR deal OR coupon OR trial OR quote)';
+    const commercialTerms = '(buy OR price OR pricing OR best OR "near me" OR discount OR deal OR coupon OR trial OR quote OR review OR compare)';
     const query = `${idea} ${industry || ''} ${geo || ''} ${commercialTerms}`.trim();
     
     // ============================
@@ -35,23 +35,60 @@ serve(async (req) => {
     let organicResults: any[] = [];
     let adsCount = 0;
     let relatedQueries: string[] = [];
+    let allCompetitors: Map<string, number> = new Map();
 
     if (!serpApiKey) {
       console.log('[web-search-profitability] No SerpApi key - using mock data');
-      // Provide mock data for development
+      // Enhanced mock data for development
       searchResults = {
         organic_results: [
-          { title: 'Example Pricing Page', link: 'https://example.com/pricing', snippet: 'Starting at $19/mo' },
-          { title: 'Competitor Features', link: 'https://competitor.com', snippet: 'Best solution for businesses' }
+          { 
+            title: 'Best P2P Lending Platforms 2024', 
+            link: 'https://example.com/best-p2p-lending', 
+            snippet: 'Compare top peer-to-peer lending platforms. Rates from 5.99% APR. Fund local businesses with community voting features.'
+          },
+          { 
+            title: 'LendingClub Business Loans', 
+            link: 'https://lendingclub.com/business', 
+            snippet: 'Get business loans from $5,000 to $500,000. Community-backed funding with transparent terms.'
+          },
+          { 
+            title: 'Funding Circle - Small Business Loans', 
+            link: 'https://fundingcircle.com', 
+            snippet: 'Peer-to-peer lending for small businesses. Over $10 billion funded. Competitive rates starting at 4.99%.'
+          },
+          { 
+            title: 'Kiva - Crowdfunded Microloans', 
+            link: 'https://kiva.org', 
+            snippet: '0% interest loans for entrepreneurs. Community voting on loan applications. 96% repayment rate.'
+          },
+          { 
+            title: 'P2P Lending Market Analysis 2024', 
+            link: 'https://marketresearch.com/p2p-lending', 
+            snippet: 'Market size $150B by 2024. Growth rate 28% CAGR. Key players and emerging trends.'
+          }
         ],
-        ads: [],
-        related_searches: []
+        ads: [
+          { title: 'Quick Business Loans', description: 'Get funded in 24 hours' },
+          { title: 'P2P Investment Platform', description: 'Earn 8-12% returns' }
+        ],
+        related_searches: [
+          { query: 'peer to peer lending rates' },
+          { query: 'best p2p lending platforms for investors' },
+          { query: 'small business crowdfunding platforms' },
+          { query: 'community lending platforms' }
+        ],
+        related_questions: [
+          { question: 'How much can I borrow from P2P lending?' },
+          { question: 'What are the risks of peer-to-peer lending?' },
+          { question: 'Which P2P platform has the best rates?' }
+        ]
       };
     } else {
       const params = new URLSearchParams({
         engine: 'google',
         q: query,
-        num: '20',
+        num: '30', // Increased from 20 to get more results
         api_key: serpApiKey,
         gl: geo === 'United States' ? 'us' : (geo?.toLowerCase().substring(0, 2) || 'us'),
         hl: 'en'
@@ -67,116 +104,183 @@ serve(async (req) => {
       searchResults = await serpResponse.json();
     }
 
-    // Extract data from SerpApi results
+    // Extract comprehensive data from SerpApi results
     organicResults = searchResults.organic_results || [];
     adsCount = (searchResults.ads || []).length + 
                 (searchResults.shopping_results || []).length +
                 (searchResults.inline_shopping || []).length;
     
-    // Extract related commercial queries
+    // Extract ALL related queries for better insights
     const relatedSearches = searchResults.related_searches || [];
     const peopleAlsoAsk = searchResults.related_questions || [];
     
-    relatedQueries = [
+    // Get commercial queries
+    const commercialQueries = [
       ...relatedSearches.map((r: any) => r.query),
       ...peopleAlsoAsk.map((q: any) => q.question)
-    ].filter((q: string) => /buy|price|pricing|best|cost|cheap|discount|deal/i.test(q))
-     .slice(0, 6);
+    ].filter((q: string) => /buy|price|pricing|best|cost|cheap|discount|deal|review|compare/i.test(q));
+    
+    // Also get informational queries for unmet needs
+    const informationalQueries = [
+      ...relatedSearches.map((r: any) => r.query),
+      ...peopleAlsoAsk.map((q: any) => q.question)
+    ].filter((q: string) => /how|what|why|when|where|can|does|is/i.test(q));
+    
+    relatedQueries = commercialQueries.slice(0, 10); // Increased from 6
+
+    // Extract ALL competitors from organic results
+    organicResults.forEach((result: any) => {
+      if (result.link) {
+        try {
+          const domain = new URL(result.link).hostname.replace('www.', '');
+          allCompetitors.set(domain, (allCompetitors.get(domain) || 0) + 1);
+        } catch {}
+      }
+    });
 
     // ============================
-    // 2. Evidence Phase (ONE Firecrawl batch, max 3 URLs)
+    // 2. Evidence Phase (Firecrawl for top URLs)
     // ============================
     let competitorEvidence: any[] = [];
     
-    // Select top 3 monetizable URLs (prioritize pricing/landing pages)
-    const monetizableUrls = organicResults
-      .filter((r: any) => r.link && /pricing|price|plans|buy|shop|store/i.test(r.link + r.title))
+    // Get top 5 diverse URLs (mix of pricing and informational)
+    const pricingUrls = organicResults
+      .filter((r: any) => r.link && /pricing|price|plans|cost|rates/i.test(r.link + r.title))
       .slice(0, 3)
-      .map((r: any) => r.link);
+      .map((r: any) => ({ url: r.link, title: r.title, snippet: r.snippet }));
+    
+    const reviewUrls = organicResults
+      .filter((r: any) => r.link && /review|compare|best|top/i.test(r.link + r.title))
+      .slice(0, 2)
+      .map((r: any) => ({ url: r.link, title: r.title, snippet: r.snippet }));
+    
+    const urlsToScrape = [...pricingUrls, ...reviewUrls].slice(0, 5);
 
-    if (firecrawlApiKey && monetizableUrls.length >= 2) {
-      console.log('[web-search-profitability] Scraping', monetizableUrls.length, 'URLs with Firecrawl');
+    if (firecrawlApiKey && urlsToScrape.length > 0) {
+      console.log('[web-search-profitability] Scraping', urlsToScrape.length, 'URLs with Firecrawl');
       
-      try {
-        const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/batch/scrape', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${firecrawlApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            urls: monetizableUrls,
-            formats: ['markdown'],
-            onlyMainContent: true,
-            maxTimeout: 10000
-          })
-        });
+      // Use individual scrape requests instead of batch (more reliable)
+      for (const item of urlsToScrape) {
+        try {
+          const scrapeResponse = await fetch('https://api.firecrawl.dev/v0/scrape', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${firecrawlApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              url: item.url,
+              pageOptions: {
+                onlyMainContent: true
+              }
+            })
+          });
 
-        if (scrapeResponse.ok) {
-          const batchData = await scrapeResponse.json();
-          
-          // Process each scraped page
-          for (let i = 0; i < batchData.data?.length && i < monetizableUrls.length; i++) {
-            const pageData = batchData.data[i];
-            const url = monetizableUrls[i];
+          if (scrapeResponse.ok) {
+            const pageData = await scrapeResponse.json();
             
-            if (pageData?.markdown) {
-              // Extract pricing info
-              const priceMatches = pageData.markdown.match(/\$\d+(?:\.\d{2})?(?:\/mo|\/month|\/yr|\/year)?/gi) || [];
-              const hasFreeTier = /free|trial|demo/i.test(pageData.markdown);
+            if (pageData?.data?.markdown) {
+              // Extract pricing info and key features
+              const content = pageData.data.markdown;
+              const priceMatches = content.match(/\$[\d,]+(?:\.\d{2})?(?:\/mo|\/month|\/yr|\/year|%|\s?APR)?/gi) || [];
+              const percentMatches = content.match(/\d+(?:\.\d+)?%(?:\s?APR|\s?interest|\s?return)?/gi) || [];
+              const hasFreeTier = /free|trial|demo|no cost|0%/i.test(content);
+              
+              // Extract key features
+              const features = content.match(/✓[^✓\n]+|•[^•\n]+|★[^★\n]+/g) || [];
               
               competitorEvidence.push({
-                url,
-                domain: new URL(url).hostname.replace('www.', ''),
-                title: organicResults.find((r: any) => r.link === url)?.title || 'Competitor Page',
-                snippet: pageData.markdown.substring(0, 300),
-                prices: priceMatches.slice(0, 3),
-                hasPricing: priceMatches.length > 0,
+                url: item.url,
+                domain: new URL(item.url).hostname.replace('www.', ''),
+                title: item.title,
+                snippet: content.substring(0, 500),
+                prices: [...priceMatches, ...percentMatches].slice(0, 5),
+                hasPricing: priceMatches.length > 0 || percentMatches.length > 0,
                 hasFreeTier,
-                evidence: ['pricing page', 'competitor analysis']
+                features: features.slice(0, 3).map((f: string) => f.substring(0, 100)),
+                evidence: ['scraped content', 'competitor analysis']
               });
             }
           }
+        } catch (error) {
+          console.error('[web-search-profitability] Firecrawl error for', item.url, error);
         }
-      } catch (error) {
-        console.error('[web-search-profitability] Firecrawl batch error:', error);
       }
     }
 
+    // Add non-scraped results as well for completeness
+    const scrapedUrls = new Set(competitorEvidence.map(e => e.url));
+    const additionalResults = organicResults
+      .filter((r: any) => r.link && !scrapedUrls.has(r.link))
+      .slice(0, 10)
+      .map((r: any) => ({
+        url: r.link,
+        domain: (() => {
+          try {
+            return new URL(r.link).hostname.replace('www.', '');
+          } catch {
+            return 'unknown';
+          }
+        })(),
+        title: r.title,
+        snippet: r.snippet,
+        evidence: ['search result'],
+        hasPricing: /price|pricing|cost|fee|rate/i.test(r.title + r.snippet)
+      }));
+
     // ============================
-    // 3. Derived Signals (rule-based, no AI)
+    // 3. Derived Signals (enhanced analysis)
     // ============================
     const totalResults = organicResults.length;
     const competitionRatio = totalResults > 0 ? adsCount / (adsCount + totalResults) : 0;
     
     // Competition intensity classification
     let competitionIntensity = 'low';
-    if (competitionRatio >= 0.40) competitionIntensity = 'high';
-    else if (competitionRatio >= 0.15) competitionIntensity = 'medium';
+    if (competitionRatio >= 0.40 || adsCount >= 5) competitionIntensity = 'high';
+    else if (competitionRatio >= 0.15 || adsCount >= 2) competitionIntensity = 'medium';
     
     // Monetization potential classification
-    const transactionalQueryCount = relatedQueries.filter(q => 
-      /buy|price|pricing|best|near me|discount|deal|coupon|trial|quote/i.test(q)
-    ).length;
+    const transactionalQueryCount = commercialQueries.length;
     const pricingPagesFound = competitorEvidence.filter(e => e.hasPricing).length;
+    const hasEstablishedPlayers = Array.from(allCompetitors.values()).some(count => count >= 3);
     
     let monetizationPotential = 'low';
-    if (transactionalQueryCount >= 3 || pricingPagesFound >= 2) monetizationPotential = 'high';
-    else if (transactionalQueryCount >= 1 || pricingPagesFound >= 1) monetizationPotential = 'medium';
+    if (transactionalQueryCount >= 5 || pricingPagesFound >= 3 || hasEstablishedPlayers) {
+      monetizationPotential = 'high';
+    } else if (transactionalQueryCount >= 2 || pricingPagesFound >= 1) {
+      monetizationPotential = 'medium';
+    }
 
-    // Identify unmet needs
-    const unmetNeeds = relatedQueries.filter(q => {
-      const hasAnswer = organicResults.some((r: any) => 
-        r.snippet?.toLowerCase().includes(q.toLowerCase().replace(/[?]/g, ''))
-      );
-      return !hasAnswer;
-    }).slice(0, 3);
+    // Identify unmet needs from informational queries
+    const unmetNeeds = informationalQueries
+      .filter(q => {
+        const hasAnswer = organicResults.some((r: any) => 
+          r.snippet?.toLowerCase().includes(q.toLowerCase().replace(/[?]/g, ''))
+        );
+        return !hasAnswer;
+      })
+      .slice(0, 5);
+
+    // Market insights
+    const marketInsights = {
+      averagePricing: competitorEvidence
+        .flatMap(e => e.prices || [])
+        .filter(p => p.includes('$'))
+        .slice(0, 5),
+      commonFeatures: competitorEvidence
+        .flatMap(e => e.features || [])
+        .slice(0, 5),
+      topCompetitors: Array.from(allCompetitors.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([domain, count]) => ({ domain, appearances: count }))
+    };
 
     // ============================
-    // 4. Optional AI Synthesis (only if requested)
+    // 4. Optional AI Synthesis (enhanced)
     // ============================
     let aiInsights = null;
-    if (groqApiKey && competitorEvidence.length > 0) {
+    if (groqApiKey && (competitorEvidence.length > 0 || organicResults.length > 5)) {
       try {
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -189,20 +293,29 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are the profitability synthesizer. Analyze commercial intent and competition. Return JSON only.'
+                content: 'You are a profitability analyst. Analyze market signals and competition. Be specific and actionable. Return JSON only.'
               },
               {
                 role: 'user',
-                content: `Analyze profitability signals for: ${idea}
-                Competition ratio: ${competitionRatio}
-                Pricing pages found: ${pricingPagesFound}
-                Evidence: ${JSON.stringify(competitorEvidence.slice(0, 3))}
+                content: `Analyze profitability for: ${idea}
+                Market signals:
+                - ${adsCount} ads found (${competitionIntensity} competition)
+                - ${transactionalQueryCount} commercial queries
+                - ${pricingPagesFound} competitors with pricing
+                - Top competitors: ${marketInsights.topCompetitors.slice(0, 3).map(c => c.domain).join(', ')}
+                - Price ranges: ${marketInsights.averagePricing.join(', ')}
                 
-                Return JSON: { insight: string (max 100 chars), opportunity: string (max 100 chars) }`
+                Return JSON with these exact fields:
+                {
+                  "marketGap": "specific opportunity (max 150 chars)",
+                  "pricingStrategy": "recommended approach (max 150 chars)",
+                  "differentiator": "key differentiator needed (max 150 chars)",
+                  "quickWin": "immediate action to take (max 150 chars)"
+                }`
               }
             ],
             temperature: 0.3,
-            max_tokens: 200
+            max_tokens: 400
           })
         });
 
@@ -211,8 +324,12 @@ serve(async (req) => {
           try {
             aiInsights = JSON.parse(groqData.choices[0].message.content);
           } catch {
-            // If JSON parsing fails, use the raw content
-            aiInsights = { insight: groqData.choices[0].message.content.substring(0, 100) };
+            // Parse structured response even if not valid JSON
+            const content = groqData.choices[0].message.content;
+            aiInsights = {
+              marketGap: 'Analysis available - check competitors',
+              insight: content.substring(0, 200)
+            };
           }
         }
       } catch (error) {
@@ -221,7 +338,7 @@ serve(async (req) => {
     }
 
     // ============================
-    // 5. Build Unified Response
+    // 5. Build Comprehensive Response
     // ============================
     const response = {
       updatedAt: new Date().toISOString(),
@@ -230,39 +347,36 @@ serve(async (req) => {
         {
           name: 'Competition Intensity',
           value: competitionIntensity,
-          explanation: `${adsCount} ads vs ${totalResults} organic results (${(competitionRatio * 100).toFixed(0)}%)`,
+          explanation: `${adsCount} ads, ${totalResults} organic results, ${allCompetitors.size} unique competitors`,
           confidence: 0.85
         },
         {
           name: 'Monetization Potential',
           value: monetizationPotential,
-          explanation: `${transactionalQueryCount} commercial queries, ${pricingPagesFound} pricing pages`,
+          explanation: `${transactionalQueryCount} buyer queries, ${pricingPagesFound} have pricing, ${hasEstablishedPlayers ? 'established market' : 'emerging market'}`,
           confidence: 0.75
+        },
+        {
+          name: 'Market Maturity',
+          value: hasEstablishedPlayers ? 'established' : 'emerging',
+          explanation: `${allCompetitors.size} competitors found, top player appears ${Math.max(...Array.from(allCompetitors.values()))} times`,
+          confidence: 0.70
         }
       ],
       top_queries: relatedQueries,
-      items: competitorEvidence.map(e => ({
-        title: e.title,
-        snippet: e.snippet,
-        url: e.url,
-        published: 'unknown',
-        source: e.domain,
-        evidence: e.evidence,
-        prices: e.prices,
-        hasPricing: e.hasPricing
-      })),
-      competitors: competitorEvidence.map(e => ({
-        domain: e.domain,
-        hasPricing: e.hasPricing,
-        hasFreeTier: e.hasFreeTier,
-        prices: e.prices
-      })),
+      items: [...competitorEvidence, ...additionalResults].slice(0, 15), // Show up to 15 results
+      competitors: marketInsights.topCompetitors,
+      market_insights: {
+        pricing_ranges: marketInsights.averagePricing,
+        common_features: marketInsights.commonFeatures,
+        market_size_indicators: organicResults.filter(r => /market size|billion|million|users|customers/i.test(r.snippet)).slice(0, 3)
+      },
       citations: [
-        { label: 'Google SERP (via SerpApi)', url: `https://www.google.com/search?q=${encodeURIComponent(query)}`, published: 'unknown' },
-        ...competitorEvidence.slice(0, 3).map(e => ({
+        { label: 'Google SERP (via SerpApi)', url: `https://www.google.com/search?q=${encodeURIComponent(query)}`, published: 'real-time' },
+        ...competitorEvidence.slice(0, 5).map(e => ({
           label: e.domain,
           url: e.url,
-          published: 'unknown'
+          published: 'recent'
         }))
       ],
       insights: aiInsights,
@@ -271,7 +385,8 @@ serve(async (req) => {
       cost_estimate: {
         serp_calls: 1,
         firecrawl_urls: competitorEvidence.length,
-        total_api_cost: `$${(0.01 + (competitorEvidence.length * 0.001)).toFixed(3)}`
+        total_api_cost: `$${(0.01 + (competitorEvidence.length * 0.001)).toFixed(3)}`,
+        data_points: organicResults.length + competitorEvidence.length + relatedQueries.length
       }
     };
 

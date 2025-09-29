@@ -316,8 +316,11 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
 
   const competitionIntensity = data?.metrics?.[0]?.value || 'unknown';
   const monetizationPotential = data?.metrics?.[1]?.value || 'unknown';
+  const marketMaturity = data?.metrics?.[2]?.value || 'unknown';
   const topQueries = data?.top_queries || [];
   const competitors = data?.competitors || [];
+  const marketInsights = (data as any)?.market_insights || {};
+  const totalDataPoints = (data as any)?.cost_estimate?.data_points || 0;
 
   return (
     <>
@@ -334,7 +337,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
               <div className="flex flex-col">
                 <CardTitle className="text-lg">Web Search (Profitability)</CardTitle>
                 <CardDescription className="text-xs mt-1">
-                  Commercial intent analysis
+                  {totalDataPoints > 0 ? `${totalDataPoints} data points analyzed` : 'Commercial intent analysis'}
                 </CardDescription>
                 {/* Cache/Fresh indicator */}
                 <div className="mt-1">
@@ -383,7 +386,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Metrics Badges */}
+          {/* Metrics Badges - Show all 3 metrics */}
           <div className="flex flex-wrap gap-2">
             <Badge 
               variant="secondary" 
@@ -399,65 +402,85 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
               <ShoppingCart className="h-3 w-3 mr-1" />
               Monetization: {monetizationPotential}
             </Badge>
+            {marketMaturity !== 'unknown' && (
+              <Badge 
+                variant="secondary"
+                className="font-medium text-muted-foreground"
+              >
+                Market: {marketMaturity}
+              </Badge>
+            )}
           </div>
 
-          {/* Top Commercial Queries Chips */}
+          {/* Top Commercial Queries Chips - Show more */}
           {topQueries.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Top Money Keywords:</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Top {topQueries.length} Money Keywords:
+              </p>
               <div className="flex flex-wrap gap-1">
-                {topQueries.slice(0, 6).map((query: string, idx: number) => (
+                {topQueries.slice(0, 8).map((query: string, idx: number) => (
                   <Badge key={idx} variant="outline" className="text-xs py-0.5">
-                    {query}
+                    {query.length > 30 ? query.substring(0, 30) + '...' : query}
+                  </Badge>
+                ))}
+                {topQueries.length > 8 && (
+                  <Badge variant="outline" className="text-xs py-0.5">
+                    +{topQueries.length - 8} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Price Ranges if available */}
+          {marketInsights.pricing_ranges && marketInsights.pricing_ranges.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Market Pricing:</p>
+              <div className="flex flex-wrap gap-1">
+                {marketInsights.pricing_ranges.slice(0, 4).map((price: string, idx: number) => (
+                  <Badge key={idx} variant="secondary" className="text-xs">
+                    {price}
                   </Badge>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Mini Competitor Table */}
+          {/* Enhanced Competitor Table */}
           {competitors.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Competitor Pricing:</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Top {competitors.length} Competitors:
+              </p>
               <div className="space-y-1 text-xs">
-                {competitors.slice(0, 3).map((comp: any, idx: number) => (
+                {competitors.slice(0, 5).map((comp: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between">
                     <span className="truncate flex-1">{comp.domain}</span>
-                    <div className="flex gap-1">
-                      {comp.hasPricing && (
-                        <Badge variant="secondary" className="text-xs">
-                          ${comp.prices?.[0] || 'Pricing'}
-                        </Badge>
-                      )}
-                      {comp.hasFreeTier && (
-                        <Badge variant="outline" className="text-xs">
-                          Free tier
-                        </Badge>
-                      )}
-                    </div>
+                    <Badge variant="outline" className="text-xs ml-2">
+                      {comp.appearances} mentions
+                    </Badge>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Cost estimate */}
-          {data?.cost_estimate && (
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>API cost: {data.cost_estimate.total_api_cost}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAutoRefresh(autoRefresh === 'off' ? '15m' : 'off');
-                }}
-              >
-                Auto-refresh: {autoRefresh === 'off' ? '🔁 Off' : '🔁 15m'}
-              </Button>
-            </div>
-          )}
+          {/* Results count and cost */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
+            <span>{data?.items?.length || 0} results analyzed</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                setAutoRefresh(autoRefresh === 'off' ? '15m' : 'off');
+              }}
+            >
+              Auto: {autoRefresh === 'off' ? '🔁 Off' : '🔁 15m'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
