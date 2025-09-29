@@ -506,6 +506,38 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Data source indicator */}
+              {data && (() => {
+                let source = 'API';
+                let variant: 'default' | 'secondary' | 'outline' = 'default';
+                
+                if (data.fromDatabase) {
+                  source = 'DB';
+                  variant = 'default';
+                } else if (data.fromCache) {
+                  source = 'Cache';
+                  variant = 'secondary';
+                }
+                
+                return (
+                  <Badge variant={variant} className="text-xs h-5">
+                    {source}
+                  </Badge>
+                );
+              })()}
+              
+              {/* Refresh button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+              </Button>
+              
+              {/* Brain AI button */}
               {data && (
                 <Button
                   variant="ghost"
@@ -516,15 +548,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                   <Brain className="h-4 w-4 text-violet-600" />
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="h-8 w-8 p-0"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
-              </Button>
             </div>
           </div>
           
@@ -551,26 +574,6 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
                   </SelectContent>
                 </Select>
               )}
-              
-              {/* Data source indicator */}
-              {(() => {
-                let source = 'API';
-                let variant: 'default' | 'secondary' | 'outline' = 'default';
-                
-                if (data.fromDatabase) {
-                  source = 'DB';
-                  variant = 'default';
-                } else if (data.fromCache) {
-                  source = 'Cache';
-                  variant = 'secondary';
-                }
-                
-                return (
-                  <Badge variant={variant} className="text-xs h-5">
-                    {source}
-                  </Badge>
-                );
-              })()}
             </div>
           )}
         </CardHeader>

@@ -693,6 +693,28 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Data source indicator */}
+              {data && (
+                <Badge 
+                  variant={data.fromDatabase ? 'default' : data.fromCache ? 'secondary' : 'outline'} 
+                  className="text-xs h-5"
+                >
+                  {data.fromDatabase ? 'DB' : data.fromCache ? 'Cache' : 'API'}
+                </Badge>
+              )}
+              
+              {/* Refresh button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              </Button>
+              
+              {/* Brain AI button */}
               {data && (
                 <Button
                   variant="ghost"
@@ -703,15 +725,6 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                   <Brain className="h-4 w-4 text-violet-600" />
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={loading}
-                className="h-8 w-8 p-0"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-              </Button>
             </div>
           </div>
           
@@ -738,14 +751,6 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
                   </SelectContent>
                 </Select>
               )}
-              
-              {/* Data source indicator */}
-              <Badge 
-                variant={data.fromDatabase ? 'default' : data.fromCache ? 'secondary' : 'outline'} 
-                className="text-xs h-5"
-              >
-                {data.fromDatabase ? 'DB' : data.fromCache ? 'Cache' : 'API'}
-              </Badge>
             </div>
           )}
         </CardHeader>
