@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   RefreshCw, AlertCircle, Clock, Sparkles, ChevronRight,
-  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle
+  TrendingUp, TrendingDown, Minus, ExternalLink, HelpCircle, Database
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -246,16 +246,35 @@ export function EnhancedDataTile({
               <Skeleton className="h-20 w-full" />
             </div>
           ) : !hasInitialized ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No data yet</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchData()}
-                className="mt-2"
-              >
-                Load Data
-              </Button>
+            <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-fade-in">
+              <div className="relative">
+                <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full animate-pulse" />
+                <div className="p-6 rounded-full bg-gradient-to-br from-muted/40 to-muted/20 relative">
+                  <Database className="h-12 w-12 text-primary" />
+                </div>
+              </div>
+              <div className="text-center space-y-3">
+                <p className="text-base font-semibold">No data loaded</p>
+                <p className="text-sm text-muted-foreground">Click to load {title.toLowerCase()} data</p>
+                <Button 
+                  onClick={() => fetchData()} 
+                  size="lg" 
+                  disabled={loading} 
+                  className="hover-scale bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Load Data
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           ) : error ? (
             <Alert variant="destructive">
