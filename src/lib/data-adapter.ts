@@ -82,6 +82,25 @@ export const marketSizeAdapter = async (ctx: any) => {
   });
   
   if (error) throw error;
+  
+  // Transform the metrics to ensure proper formatting
+  if (data?.metrics) {
+    data.metrics = data.metrics.map((metric: any) => ({
+      ...metric,
+      value: metric.unit === 'M' || metric.unit === 'B' 
+        ? `$${metric.value}${metric.unit}` 
+        : metric.unit === '%'
+        ? `${metric.value}%`
+        : metric.value,
+      explanation: metric.explanation || 
+        (metric.name === 'TAM' ? 'Total Addressable Market - The total revenue opportunity available' :
+         metric.name === 'SAM' ? 'Serviceable Addressable Market - The segment of TAM you can realistically target' :
+         metric.name === 'SOM' ? 'Serviceable Obtainable Market - The portion of SAM you can realistically capture' :
+         metric.name === 'CAGR' ? 'Compound Annual Growth Rate - Expected market growth percentage' :
+         'Market metric')
+    }));
+  }
+  
   return data;
 };
 
