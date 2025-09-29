@@ -44,6 +44,7 @@ export default function EnterpriseHub() {
     geography: 'global',
     time_window: 'last_12_months'
   });
+  const [tilesKey, setTilesKey] = useState(0);
   
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('currentIdea') || '';
   const subscriptionTier = subscription.tier;
@@ -57,6 +58,11 @@ export default function EnterpriseHub() {
       setFilters(prev => ({ ...prev, idea_keywords: keywords }));
     }
   }, [currentIdea]);
+
+  // Force refresh tiles when component mounts
+  useEffect(() => {
+    setTilesKey(prev => prev + 1);
+  }, []);
 
   if (!currentIdea) {
     return (
@@ -131,7 +137,7 @@ export default function EnterpriseHub() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" key={tilesKey}>
           <QuickStatsTile
             title="PMF Score"
             icon={Activity}

@@ -34,6 +34,7 @@ export function QuickStatsTile({
   const [showInsights, setShowInsights] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [hasCheckedCache, setHasCheckedCache] = useState(false);
 
   const fetchData = async (forceRefresh = false) => {
     if (!currentIdea) return;
@@ -60,7 +61,8 @@ export function QuickStatsTile({
       
       switch (tileType) {
         case 'pmf_score':
-          // PMF Score needs data from other tiles
+          // PMF Score needs data from other tiles - delay slightly to let them load first
+          await new Promise(resolve => setTimeout(resolve, 500));
           const marketSize = localStorage.getItem('market_size_value') || '$5B';
           const competition = localStorage.getItem('competition_value') || 'Medium';
           const sentiment = localStorage.getItem('sentiment_value') || '50%';
@@ -118,11 +120,34 @@ export function QuickStatsTile({
   };
 
   useEffect(() => {
-    // Auto-fetch on mount if idea exists
-    if (currentIdea) {
-      fetchData();
+    // Auto-fetch on mount if idea exists and not already loaded
+    if (currentIdea && !hasCheckedCache) {
+      setHasCheckedCache(true);
+      
+      // Check cache first
+      const cacheKey = `tile_cache_${tileType}_${currentIdea}`;
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        const cacheAge = Date.now() - parsedCache.timestamp;
+        const ONE_HOUR = 3600000;
+        
+        if (cacheAge < ONE_HOUR) {
+          setData(parsedCache.data);
+          setLastRefresh(new Date(parsedCache.timestamp));
+          return;
+        }
+      }
+      
+      // If no valid cache, fetch fresh data
+      // Stagger the requests slightly to avoid overwhelming the API
+      const delay = tileType === 'pmf_score' ? 1000 : Math.random() * 500;
+      setTimeout(() => {
+        fetchData();
+      }, delay);
     }
-  }, [currentIdea]);
+  }, [currentIdea, hasCheckedCache]);
 
   const renderContent = () => {
     if (loading) {
