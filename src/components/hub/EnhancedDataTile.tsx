@@ -56,149 +56,154 @@ export function EnhancedDataTile({
 
   // Process data for the expandable tile
   const processDataForExpandable = () => {
-    if (!data) return {};
+    if (!data) return { metrics: {}, chartData: [], sources: [], insights: [] };
 
     const metrics: Record<string, any> = {};
     const chartData: any[] = [];
     const sources: any[] = [];
     const insights: string[] = [];
 
-    // Extract metrics based on tile type
-    switch (tileType) {
-      case 'market_size':
-        if (data.metrics) {
-          data.metrics.forEach((m: any) => {
-            metrics[m.name.toLowerCase()] = m.value;
-          });
-        }
-        if (data.segments) {
-          chartData.push(...data.segments.map((s: any) => ({
-            name: s.name,
-            value: s.share,
-            growth: s.growth
-          })));
-        }
-        if (data.sources) {
-          sources.push(...data.sources.map((s: any) => ({
-            name: s.title || 'Market Research',
-            description: s.snippet || 'Market size data source',
-            url: s.link,
-            reliability: 'medium' as const
-          })));
-        }
-        insights.push(
-          `TAM of $${metrics.tam || 0}M represents a significant opportunity`,
-          `Focus on capturing ${metrics.som || 0}M in the next 3 years`,
-          `Market growing at ${metrics.cagr || 15}% annually`
-        );
-        break;
-
-      case 'competition':
-        metrics.competition_level = data.level;
-        metrics.total_competitors = data.metrics?.total || 0;
-        metrics.direct_competitors = data.metrics?.direct || 0;
-        
-        if (data.competitors) {
-          chartData.push(...data.competitors.map((c: any, i: number) => ({
-            name: c.name,
-            value: 100 - (i * 15), // Mock market share
-            type: c.type
-          })));
-        }
-        
-        insights.push(...(data.insights || []));
-        break;
-
-      case 'growth_projections':
-        if (data.metrics) {
-          data.metrics.forEach((m: any) => {
-            const key = m.name.toLowerCase().replace(/ /g, '_');
-            metrics[key] = m.value;
-          });
-        }
-        
-        if (data.series) {
-          const series = data.series.find((s: any) => s.name === 'Base Case');
-          if (series) {
-            series.data.forEach((value: number, index: number) => {
-              chartData.push({
-                name: series.labels?.[index] || `Month ${index + 1}`,
-                value,
-                conservative: data.series.find((s: any) => s.name === 'Conservative')?.data[index],
-                aggressive: data.series.find((s: any) => s.name === 'Aggressive')?.data[index]
-              });
+    try {
+      // Extract metrics based on tile type
+      switch (tileType) {
+        case 'market_size':
+          if (data.metrics) {
+            data.metrics.forEach((m: any) => {
+              metrics[m.name.toLowerCase()] = m.value;
             });
           }
-        }
-        
-        insights.push(
-          'Growth trajectory shows strong momentum',
-          'Multiple expansion scenarios indicate scalability',
-          'Market conditions favor rapid growth'
-        );
-        break;
+          if (data.segments) {
+            chartData.push(...data.segments.map((s: any) => ({
+              name: s.name,
+              value: s.share,
+              growth: s.growth
+            })));
+          }
+          if (data.sources) {
+            sources.push(...data.sources.map((s: any) => ({
+              name: s.title || 'Market Research',
+              description: s.snippet || 'Market size data source',
+              url: s.link,
+              reliability: 'medium' as const
+            })));
+          }
+          insights.push(
+            `TAM of $${metrics.tam || 0}M represents a significant opportunity`,
+            `Focus on capturing ${metrics.som || 0}M in the next 3 years`,
+            `Market growing at ${metrics.cagr || 15}% annually`
+          );
+          break;
 
-      case 'reddit_sentiment':
-        metrics.sentiment_score = data.sentiment?.score || 0;
-        metrics.total_mentions = data.mentions || 0;
-        metrics.trending_score = data.trending || 0;
-        
-        if (data.posts) {
-          chartData.push(...data.posts.slice(0, 10).map((post: any) => ({
-            name: post.subreddit || 'reddit',
-            value: post.score || 0
-          })));
-        }
-        
-        insights.push(
-          `Community sentiment is ${data.sentiment?.label || 'neutral'}`,
-          `${data.mentions || 0} recent discussions found`,
-          'Reddit can be an early indicator of market interest'
-        );
-        
-        sources.push({
-          name: 'Reddit API',
-          description: 'Real-time community discussions and sentiment',
-          url: 'https://reddit.com',
-          reliability: 'medium' as const
-        });
-        break;
+        case 'competition':
+          metrics.competition_level = data.level;
+          metrics.total_competitors = data.metrics?.total || 0;
+          metrics.direct_competitors = data.metrics?.direct || 0;
+          
+          if (data.competitors) {
+            chartData.push(...data.competitors.map((c: any, i: number) => ({
+              name: c.name,
+              value: 100 - (i * 15), // Mock market share
+              type: c.type
+            })));
+          }
+          
+          insights.push(...(data.insights || []));
+          break;
 
-      case 'google_trends':
-        metrics.search_interest = data.interest_over_time?.average || 0;
-        metrics.trend_direction = data.trend?.direction || 'stable';
-        
-        if (data.interest_over_time?.data) {
-          chartData.push(...data.interest_over_time.data.map((point: any) => ({
-            name: point.date,
-            value: point.value
-          })));
-        }
-        
-        insights.push(
-          `Search interest is ${data.trend?.direction || 'stable'}`,
-          'Google Trends shows market awareness levels',
-          'Higher search volume indicates growing demand'
-        );
-        
-        sources.push({
-          name: 'Google Trends',
-          description: 'Search interest and related queries',
-          url: 'https://trends.google.com',
-          reliability: 'high' as const
-        });
-        break;
+        case 'growth_projections':
+          if (data.metrics) {
+            data.metrics.forEach((m: any) => {
+              const key = m.name.toLowerCase().replace(/ /g, '_');
+              metrics[key] = m.value;
+            });
+          }
+          
+          if (data.series) {
+            const series = data.series.find((s: any) => s.name === 'Base Case');
+            if (series) {
+              series.data.forEach((value: number, index: number) => {
+                chartData.push({
+                  name: series.labels?.[index] || `Month ${index + 1}`,
+                  value,
+                  conservative: data.series.find((s: any) => s.name === 'Conservative')?.data[index],
+                  aggressive: data.series.find((s: any) => s.name === 'Aggressive')?.data[index]
+                });
+              });
+            }
+          }
+          
+          insights.push(
+            'Growth trajectory shows strong momentum',
+            'Multiple expansion scenarios indicate scalability',
+            'Market conditions favor rapid growth'
+          );
+          break;
 
-      default:
-        // Generic data processing
-        if (data.value) metrics.value = data.value;
-        if (data.trend) metrics.trend = data.trend;
-        if (data.items) {
-          chartData.push(...data.items.slice(0, 10).map((item: any) => ({
-            name: item.title || item.name,
-            value: item.value || Math.random() * 100
-          })));
-        }
+        case 'reddit_sentiment':
+          metrics.sentiment_score = data.sentiment?.score || 0;
+          metrics.total_mentions = data.mentions || 0;
+          metrics.trending_score = data.trending || 0;
+          
+          if (data.posts) {
+            chartData.push(...data.posts.slice(0, 10).map((post: any) => ({
+              name: post.subreddit || 'reddit',
+              value: post.score || 0
+            })));
+          }
+          
+          insights.push(
+            `Community sentiment is ${data.sentiment?.label || 'neutral'}`,
+            `${data.mentions || 0} recent discussions found`,
+            'Reddit can be an early indicator of market interest'
+          );
+          
+          sources.push({
+            name: 'Reddit API',
+            description: 'Real-time community discussions and sentiment',
+            url: 'https://reddit.com',
+            reliability: 'medium' as const
+          });
+          break;
+
+        case 'google_trends':
+          metrics.search_interest = data.interest_over_time?.average || 0;
+          metrics.trend_direction = data.trend?.direction || 'stable';
+          
+          if (data.interest_over_time?.data) {
+            chartData.push(...data.interest_over_time.data.map((point: any) => ({
+              name: point.date,
+              value: point.value
+            })));
+          }
+          
+          insights.push(
+            `Search interest is ${data.trend?.direction || 'stable'}`,
+            'Google Trends shows market awareness levels',
+            'Higher search volume indicates growing demand'
+          );
+          
+          sources.push({
+            name: 'Google Trends',
+            description: 'Search interest and related queries',
+            url: 'https://trends.google.com',
+            reliability: 'high' as const
+          });
+          break;
+
+        default:
+          // Generic data processing
+          if (data.value) metrics.value = data.value;
+          if (data.trend) metrics.trend = data.trend;
+          if (data.items) {
+            chartData.push(...data.items.slice(0, 10).map((item: any) => ({
+              name: item.title || item.name,
+              value: item.value || Math.random() * 100
+            })));
+          }
+      }
+    } catch (error) {
+      console.error('Error processing data for expandable tile:', error);
+      insights.push('Data processing encountered an issue. Please try refreshing.');
     }
 
     return { metrics, chartData, sources, insights };
@@ -208,11 +213,13 @@ export function EnhancedDataTile({
 
   // Determine explanations based on available metrics
   const availableExplanations: Record<string, any> = {};
-  Object.keys(metrics).forEach(key => {
-    if (metricExplanations[key]) {
-      availableExplanations[key] = metricExplanations[key];
-    }
-  });
+  if (metrics && typeof metrics === 'object') {
+    Object.keys(metrics).forEach(key => {
+      if (metricExplanations[key]) {
+        availableExplanations[key] = metricExplanations[key];
+      }
+    });
+  }
 
   // Default content rendering
   const defaultRenderContent = () => {
