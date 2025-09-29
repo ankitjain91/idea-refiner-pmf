@@ -442,17 +442,23 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
               {/* Subtle Data Source Indicator - Same as Overview */}
               {data && (
                 <Tooltip>
-                  <TooltipTrigger>
-                    {data?.fromCache || data?.fromDatabase ? (
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
-                    ) : (
-                      <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
-                    )}
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {data?.fromCache || data?.fromDatabase ? (
+                        <>
+                          <Clock className="h-3 w-3" />
+                          <span>Cached</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-3 w-3" />
+                          <span>Live API</span>
+                        </>
+                      )}
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs">
-                      {data?.fromCache || data?.fromDatabase ? 'From cache' : 'Live API data'}
-                    </p>
+                    <p>{data?.fromCache || data?.fromDatabase ? 'From cache' : 'Live API data'}</p>
                   </TooltipContent>
                 </Tooltip>
               )}

@@ -467,17 +467,23 @@ export function EnhancedDataTile({
               {data && (
                 <TooltipProvider>
                   <Tooltip delayDuration={0}>
-                    <TooltipTrigger>
-                      {data?.fromDatabase || data?.fromCache ? (
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
-                      ) : (
-                        <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
-                      )}
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {data?.fromDatabase || data?.fromCache ? (
+                          <>
+                            <Clock className="h-3 w-3" />
+                            <span>Cached</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-3 w-3" />
+                            <span>Live API</span>
+                          </>
+                        )}
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">
-                        {data?.fromDatabase || data?.fromCache ? 'From cache' : 'Live API data'}
-                      </p>
+                      <p>{data?.fromDatabase || data?.fromCache ? 'From cache' : 'Live API data'}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

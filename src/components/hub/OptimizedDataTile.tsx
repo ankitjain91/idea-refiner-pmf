@@ -133,17 +133,23 @@ export function OptimizedDataTile({
               {costInfo && (
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger>
-                      {costInfo.cacheHit ? (
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
-                      ) : (
-                        <Zap className="h-3.5 w-3.5 text-muted-foreground/40" />
-                      )}
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {costInfo.cacheHit ? (
+                          <>
+                            <Clock className="h-3 w-3" />
+                            <span>Cached</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-3 w-3" />
+                            <span>Live API</span>
+                          </>
+                        )}
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">
-                        {costInfo.cacheHit ? 'From cache' : 'Live API data'}
-                      </p>
+                      <p>{costInfo.cacheHit ? 'From cache' : 'Live API data'}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
