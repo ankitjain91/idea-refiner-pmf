@@ -16,7 +16,7 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
   useEffect(() => {
     // Check token validity on mount and route changes
     const checkToken = async () => {
-      if (!initialized) {
+      if (!initialized || loading) {
         setIsValidating(true);
         return;
       }
@@ -42,7 +42,7 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
   }, [session, loading, refreshSession, location.pathname, initialized]);
 
   // Show loading only on initial load, not on every route change
-  if (!initialized || (isValidating && !session)) {
+  if (!initialized || loading || isValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

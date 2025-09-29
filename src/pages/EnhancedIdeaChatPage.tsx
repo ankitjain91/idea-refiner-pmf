@@ -16,17 +16,17 @@ import { Label } from '@/components/ui/label';
 import EnhancedIdeaChat from '@/components/EnhancedIdeaChat';
 
 const EnhancedIdeaChatPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, initialized } = useAuth();
   const { currentSession, saving, setAutoSaveEnabled, autoSaveEnabled } = useSession();
   const [showSessionPicker, setShowSessionPicker] = useState(false);
   const navigate = useNavigate();
 
   // Always redirect to login modal if not logged in - no anonymous sessions allowed
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (initialized && !authLoading && !user) {
       navigate('/', { state: { from: { pathname: '/ideachat' }, openAuthModal: true } });
     }
-  }, [authLoading, user, navigate]);
+  }, [initialized, authLoading, user, navigate]);
 
   // Show session picker when user is logged in but has no current session
   useEffect(() => {
