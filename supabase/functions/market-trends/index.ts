@@ -520,28 +520,25 @@ async function fetchGDELTNewsWithLocation(query: string, location: string) {
 }
 
 function generateMockContinentData(query: string, continent: string, countries: string[]) {
-  // Use continent name to generate consistent but different values
-  const continentHash = continent.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const baseValue = 30 + (continentHash % 40); // 30-70 base value, different per continent
-  const sentimentBase = (continentHash % 7) - 3; // -3 to +3 sentiment variation
-  
+  // Return error state instead of mock data
   return {
+    error: true,
     updatedAt: new Date().toISOString(),
     region: continent,
     countries_analyzed: countries,
     filters: { idea: query, region: continent },
     metrics: [
-      { name: 'Search Volume', value: baseValue + Math.floor((continentHash % 20)), unit: 'index', confidence: 0.5 },
-      { name: 'News Volume', value: 10 + (continentHash % 15), unit: 'articles', confidence: 0.5 },
-      { name: 'News Sentiment', value: sentimentBase.toFixed(1), unit: 'tone', confidence: 0.5 },
-      { name: 'Trend Direction', value: sentimentBase > 1 ? 'up' : sentimentBase < -1 ? 'down' : 'flat', unit: '', confidence: 0.5 }
+      { name: 'Search Volume', value: 'Unavailable', unit: '', confidence: 0 },
+      { name: 'News Volume', value: 'N/A', unit: '', confidence: 0 },
+      { name: 'News Sentiment', value: 'N/A', unit: '', confidence: 0 },
+      { name: 'Trend Direction', value: 'unknown', unit: '', confidence: 0 }
     ],
     series: [],
-    top_queries: [`${query} ${continent}`, `best ${query}`, `${query} trends`],
+    top_queries: [],
     items: [],
     citations: [],
-    insights: [`Mock data for ${continent}`],
-    warnings: ['Using mock data - API keys required for real data']
+    insights: [`Unable to fetch live data for ${continent}`],
+    warnings: ['Live data unavailable - API connection failed']
   };
 }
 
@@ -603,38 +600,24 @@ function generateMockTrendsData(query: string) {
 }
 
 function generateMockNewsData(query: string, location?: string) {
-  // Generate location-specific mock news data as fallback
-  const locationHash = (location || query).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const sentiment = ((locationHash % 14) - 7) / 2; // -3.5 to +3.5 sentiment
-  const mockSeries = [];
-  const mockLabels = [];
-  const now = new Date();
-  
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - (i * 7));
-    mockLabels.push(date.toISOString());
-    mockSeries.push(Math.floor(Math.random() * 20 + 5));
-  }
-  
-  const momentum = (locationHash % 40) - 20;
-  
+  // Return error state instead of mock data
   return {
+    error: true,
     metrics: [
-      { name: 'News Volume', value: 10 + (locationHash % 25), unit: 'articles', explanation: 'Using estimated data', confidence: 0.4 },
-      { name: 'News Sentiment', value: sentiment.toFixed(1), unit: 'tone', explanation: location ? `${location} regional sentiment` : 'Estimated sentiment', confidence: 0.3 },
-      { name: 'News Momentum', value: momentum.toFixed(1), unit: '%', explanation: 'Estimated trend', confidence: 0.3 }
+      { name: 'News Volume', value: 'Unavailable', unit: '', explanation: 'Unable to fetch data', confidence: 0 },
+      { name: 'News Sentiment', value: 'N/A', unit: '', explanation: 'Data not available', confidence: 0 },
+      { name: 'News Momentum', value: 'N/A', unit: '', explanation: 'Data not available', confidence: 0 }
     ],
     series: [{
       name: 'news_volume',
-      data: mockSeries,
-      labels: mockLabels  
+      data: [],
+      labels: []  
     }],
     items: [],
     citations: [],
     insights: [
-      location ? `Estimated news data for ${location}` : `News data temporarily unavailable for "${query}"`,
-      `Sentiment: ${sentiment > 1 ? 'Positive' : sentiment < -1 ? 'Negative' : 'Neutral'}`
+      'Unable to fetch live news data',
+      'GDELT API is temporarily unavailable'
     ]
   };
 }

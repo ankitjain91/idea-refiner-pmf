@@ -599,35 +599,56 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           )}
 
           {/* Market Sentiment Indicator */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-green-500/10 rounded-lg p-2 border border-green-500/20">
-              <div className="flex items-center gap-1 mb-1">
-                <TrendingUp className="h-3 w-3 text-green-500" />
-                <span className="text-xs font-medium">Positive</span>
+          {currentData?.error ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Unable to fetch live data. Please check your API connections.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-green-500/10 rounded-lg p-2 border border-green-500/20">
+                <div className="flex items-center gap-1 mb-1">
+                  <TrendingUp className="h-3 w-3 text-green-500" />
+                  <span className="text-xs font-medium">Positive</span>
+                </div>
+                <div className="text-lg font-bold text-green-600">
+                  {(() => {
+                    const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
+                    if (currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value === 'N/A') return 'N/A';
+                    return sentiment > 0 ? `${Math.min(Math.round(sentiment * 20 + 50), 100)}%` : '0%';
+                  })()}
+                </div>
               </div>
-              <div className="text-lg font-bold text-green-600">
-                {currentData?.metrics?.find((m: any) => m.name === 'Positive Sentiment')?.value || '65%'}
+              <div className="bg-yellow-500/10 rounded-lg p-2 border border-yellow-500/20">
+                <div className="flex items-center gap-1 mb-1">
+                  <Minus className="h-3 w-3 text-yellow-500" />
+                  <span className="text-xs font-medium">Neutral</span>
+                </div>
+                <div className="text-lg font-bold text-yellow-600">
+                  {(() => {
+                    const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
+                    if (currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value === 'N/A') return 'N/A';
+                    return `${Math.max(50 - Math.abs(sentiment * 10), 0)}%`;
+                  })()}
+                </div>
+              </div>
+              <div className="bg-red-500/10 rounded-lg p-2 border border-red-500/20">
+                <div className="flex items-center gap-1 mb-1">
+                  <TrendingDown className="h-3 w-3 text-red-500" />
+                  <span className="text-xs font-medium">Negative</span>
+                </div>
+                <div className="text-lg font-bold text-red-600">
+                  {(() => {
+                    const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
+                    if (currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value === 'N/A') return 'N/A';
+                    return sentiment < 0 ? `${Math.min(Math.abs(sentiment * 20), 100)}%` : '0%';
+                  })()}
+                </div>
               </div>
             </div>
-            <div className="bg-yellow-500/10 rounded-lg p-2 border border-yellow-500/20">
-              <div className="flex items-center gap-1 mb-1">
-                <Minus className="h-3 w-3 text-yellow-500" />
-                <span className="text-xs font-medium">Neutral</span>
-              </div>
-              <div className="text-lg font-bold text-yellow-600">
-                {currentData?.metrics?.find((m: any) => m.name === 'Neutral Sentiment')?.value || '25%'}
-              </div>
-            </div>
-            <div className="bg-red-500/10 rounded-lg p-2 border border-red-500/20">
-              <div className="flex items-center gap-1 mb-1">
-                <TrendingDown className="h-3 w-3 text-red-500" />
-                <span className="text-xs font-medium">Negative</span>
-              </div>
-              <div className="text-lg font-bold text-red-600">
-                {currentData?.metrics?.find((m: any) => m.name === 'Negative Sentiment')?.value || '10%'}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* API Status Alert for debugging */}
           {data?.insights && data.insights.some(i => i.includes('API key required')) && (
@@ -678,7 +699,22 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             </div>
             <div className="flex items-end gap-3">
               <div className="text-3xl font-bold text-primary">
-                {currentData?.metrics?.find((m: any) => m.name === 'Opportunity Score')?.value || '8.5'}
+                {(() => {
+                  // Calculate opportunity score based on available metrics
+                  const searchVolume = parseInt(currentData?.metrics?.find((m: any) => m.name === 'Search Volume')?.value || '0');
+                  const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
+                  const momentum = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Momentum')?.value || '0');
+                  
+                  if (currentData?.error || searchVolume === 0) return 'N/A';
+                  
+                  // Calculate score: base on search volume (0-100 -> 0-5 points), sentiment (-5 to 5 -> 0-3 points), momentum (-20 to 20 -> 0-2 points)
+                  const searchScore = Math.min(searchVolume / 20, 5);
+                  const sentimentScore = Math.max(0, (sentiment + 5) / 3.33);
+                  const momentumScore = Math.max(0, (momentum + 20) / 20);
+                  
+                  const totalScore = Math.min(10, searchScore + sentimentScore + momentumScore).toFixed(1);
+                  return totalScore;
+                })()}
               </div>
               <div className="text-xs text-muted-foreground pb-1">/10</div>
               <div className="flex-1 flex items-center justify-end gap-1 pb-1">
