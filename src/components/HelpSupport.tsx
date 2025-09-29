@@ -22,6 +22,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -195,7 +196,39 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
                         : "bg-muted border border-primary/10"
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    {message.role === 'assistant' ? (
+                      <ReactMarkdown 
+                        className="prose prose-sm dark:prose-invert max-w-none"
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>,
+                          ul: ({ children }) => <ul className="mb-2 ml-4 list-disc space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-1">{children}</ol>,
+                          li: ({ children }) => <li className="text-sm">{children}</li>,
+                          strong: ({ children }) => <strong className="font-semibold text-primary">{children}</strong>,
+                          em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+                          code: ({ children, ...props }) => {
+                            const isInline = !('inline' in props) || props.inline !== false;
+                            return isInline ? (
+                              <code className="px-1 py-0.5 rounded bg-primary/10 text-xs font-mono">{children}</code>
+                            ) : (
+                              <code className="block p-2 my-2 rounded bg-background border text-xs font-mono overflow-x-auto">{children}</code>
+                            );
+                          },
+                          h3: ({ children }) => <h3 className="font-semibold text-sm mt-3 mb-1">{children}</h3>,
+                          h4: ({ children }) => <h4 className="font-medium text-sm mt-2 mb-1">{children}</h4>,
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-2 border-primary/50 pl-3 my-2 italic text-muted-foreground">
+                              {children}
+                            </blockquote>
+                          ),
+                          hr: () => <hr className="my-3 border-border/50" />,
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    )}
                     <span className="text-xs opacity-70 mt-1 block">
                       {message.timestamp.toLocaleTimeString([], { 
                         hour: '2-digit', 
