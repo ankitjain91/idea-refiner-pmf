@@ -17,8 +17,96 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
-    const { searchResults, pageContent, tileType, filters } = await req.json();
+    const { searchResults, pageContent, tileType, filters, marketTrendsData } = await req.json();
     
+    // Handle market trends analysis request
+    if (marketTrendsData) {
+      console.log('Analyzing market trends for profit opportunities');
+      
+      const systemPrompt = `You are a strategic business advisor specializing in market analysis and profit maximization. Analyze market data to identify the most profitable actions.`;
+      
+      const userPrompt = `
+Analyze this comprehensive market data for "${marketTrendsData.idea || 'the business idea'}" and provide ACTIONABLE PROFIT-FOCUSED RECOMMENDATIONS.
+
+Market Data:
+- Search Trends: ${JSON.stringify(marketTrendsData.metrics || [])}
+- Regional Data: ${JSON.stringify(marketTrendsData.continentData || {})}
+- Top Queries: ${JSON.stringify(marketTrendsData.top_queries || [])}
+- News Sentiment: ${JSON.stringify(marketTrendsData.sentiment || {})}
+- Market Insights: ${JSON.stringify(marketTrendsData.insights || [])}
+
+Based on this data, provide a concise action plan focusing on:
+1. **Highest Profit Opportunities**: Where is demand strongest with least competition?
+2. **Geographic Strategy**: Which regions show best profit potential?
+3. **Timing**: When to launch for maximum impact?
+4. **Product Positioning**: How to position for premium pricing?
+5. **Quick Wins**: Immediate actions that can generate revenue
+
+Return a JSON object with this structure:
+{
+  "profitActions": [
+    {
+      "action": "specific actionable step",
+      "profitPotential": "high|medium|low",
+      "timeframe": "immediate|short-term|medium-term",
+      "estimatedROI": "percentage or multiplier",
+      "reasoning": "data-driven justification"
+    }
+  ],
+  "bestMarkets": [
+    {
+      "region": "region name",
+      "opportunity": "specific opportunity",
+      "entryStrategy": "how to enter this market"
+    }
+  ],
+  "competitiveAdvantage": "key differentiator based on data",
+  "pricingStrategy": "recommended pricing approach",
+  "riskMitigation": "main risk and how to avoid it",
+  "executionPriority": ["step 1", "step 2", "step 3"]
+}`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.4,
+          max_tokens: 2000,
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Groq API error:', error);
+        throw new Error(`Groq API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const analysis = JSON.parse(data.choices[0].message.content);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          analysis,
+          usage: {
+            model: 'llama-3.3-70b-versatile',
+            tokens: data.usage?.total_tokens || 0
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Original search results synthesis logic
     if (!searchResults && !pageContent) {
       throw new Error('Either searchResults or pageContent is required');
     }

@@ -87,6 +87,8 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'global' | 'single'>('single');
   const [selectedContinent, setSelectedContinent] = useState<string>('North America');
+  const [groqInsights, setGroqInsights] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // Get the idea from filters or fallback to localStorage
   const ideaText = filters.idea_keywords?.join(' ') || 
@@ -243,6 +245,50 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
 
   const handleRetry = () => {
     mutate();
+  };
+
+  // Analyze market trends with Groq for profit insights
+  const analyzeWithGroq = async () => {
+    if (!data || isAnalyzing) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data: response, error } = await supabase.functions.invoke('groq-synthesis', {
+        body: {
+          marketTrendsData: {
+            idea: ideaText,
+            metrics: data.metrics,
+            continentData: data.continentData,
+            top_queries: currentData?.top_queries,
+            sentiment: {
+              positive: (() => {
+                const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
+                return sentiment > 0 ? Math.min(Math.round(sentiment * 20 + 50), 100) : 0;
+              })(),
+              neutral: (() => {
+                const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
+                return Math.max(50 - Math.abs(sentiment * 10), 0);
+              })(),
+              negative: (() => {
+                const sentiment = parseFloat(currentData?.metrics?.find((m: any) => m.name === 'News Sentiment')?.value || '0');
+                return sentiment < 0 ? Math.min(Math.abs(sentiment * 20), 100) : 0;
+              })()
+            },
+            insights: data.insights,
+            series: data.series
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      setGroqInsights(response.analysis);
+      setShowInsights(true);
+    } catch (error) {
+      console.error('Error analyzing with Groq:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   if (isLoading && !data) {
@@ -776,11 +822,21 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowInsights(true)}
+              onClick={analyzeWithGroq}
+              disabled={isAnalyzing || !data}
               className="flex-1"
             >
-              <HelpCircle className="h-3.5 w-3.5 mr-2" />
-              How This Helps
+              {isAnalyzing ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <HelpCircle className="h-3.5 w-3.5 mr-2" />
+                  How This Helps
+                </>
+              )}
             </Button>
             <Button
               variant="outline"
@@ -866,12 +922,129 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
         </SheetContent>
       </Sheet>
       
-      {/* Insights Dialog */}
-      <TileInsightsDialog 
-        open={showInsights}
-        onOpenChange={setShowInsights}
-        tileType="market_trends"
-      />
+      {/* Insights Dialog - Show Groq Analysis */}
+      {groqInsights ? (
+        <Sheet open={showInsights} onOpenChange={setShowInsights}>
+          <SheetContent className="w-[600px] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="text-xl font-bold">Profit Maximization Strategy</SheetTitle>
+              <SheetDescription>
+                AI-powered analysis of market trends to identify highest profit opportunities
+              </SheetDescription>
+            </SheetHeader>
+            
+            <div className="mt-6 space-y-6">
+              {/* Profit Actions */}
+              {groqInsights.profitActions && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    High-Profit Actions
+                  </h3>
+                  {groqInsights.profitActions.map((action: any, idx: number) => (
+                    <div key={idx} className="border rounded-lg p-4 space-y-2 bg-gradient-to-r from-green-500/5 to-emerald-500/5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium">{action.action}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{action.reasoning}</p>
+                        </div>
+                        <Badge 
+                          variant={action.profitPotential === 'high' ? 'default' : 'secondary'}
+                          className={action.profitPotential === 'high' ? 'bg-green-500' : ''}
+                        >
+                          {action.profitPotential}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2 text-xs">
+                        <Badge variant="outline">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {action.timeframe}
+                        </Badge>
+                        {action.estimatedROI && (
+                          <Badge variant="outline" className="text-green-600">
+                            ROI: {action.estimatedROI}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Best Markets */}
+              {groqInsights.bestMarkets && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-blue-500" />
+                    Best Markets to Target
+                  </h3>
+                  {groqInsights.bestMarkets.map((market: any, idx: number) => (
+                    <div key={idx} className="border rounded-lg p-3 bg-gradient-to-r from-blue-500/5 to-cyan-500/5">
+                      <div className="font-medium flex items-center gap-2">
+                        <Map className="h-4 w-4" />
+                        {market.region}
+                      </div>
+                      <p className="text-sm mt-1">{market.opportunity}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        <strong>Entry Strategy:</strong> {market.entryStrategy}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Competitive Advantage */}
+              {groqInsights.competitiveAdvantage && (
+                <div className="border rounded-lg p-4 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+                  <h3 className="font-semibold mb-2">Your Competitive Edge</h3>
+                  <p className="text-sm">{groqInsights.competitiveAdvantage}</p>
+                </div>
+              )}
+              
+              {/* Pricing Strategy */}
+              {groqInsights.pricingStrategy && (
+                <div className="border rounded-lg p-4 bg-gradient-to-r from-yellow-500/5 to-orange-500/5">
+                  <h3 className="font-semibold mb-2">Pricing Strategy</h3>
+                  <p className="text-sm">{groqInsights.pricingStrategy}</p>
+                </div>
+              )}
+              
+              {/* Execution Priority */}
+              {groqInsights.executionPriority && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Execution Roadmap</h3>
+                  <div className="space-y-2">
+                    {groqInsights.executionPriority.map((step: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold">
+                          {idx + 1}
+                        </div>
+                        <p className="text-sm flex-1">{step}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Risk Mitigation */}
+              {groqInsights.riskMitigation && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Risk to Watch:</strong> {groqInsights.riskMitigation}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <TileInsightsDialog 
+          open={showInsights}
+          onOpenChange={setShowInsights}
+          tileType="market_trends"
+        />
+      )}
     </>
   );
 }
