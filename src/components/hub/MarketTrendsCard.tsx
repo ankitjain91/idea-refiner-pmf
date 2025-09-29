@@ -318,6 +318,20 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const getAIDialogData = () => {
     if (!data) return null;
     
+    // Convert chart data to pie chart format for AI dialog
+    const validChartData = Array.isArray(chartData) && chartData.length > 0 ? [
+      {
+        name: "Search Interest",
+        value: chartData.reduce((sum, item) => sum + (item.searchInterest || 0), 0) / chartData.length,
+        color: "#10b981"
+      },
+      {
+        name: "News Volume", 
+        value: chartData.reduce((sum, item) => sum + (item.newsVolume || 0), 0) / chartData.length,
+        color: "#3b82f6"
+      }
+    ].filter(item => item.value > 0) : undefined;
+    
     return {
       title: "Market Trends Analysis",
       metrics: data.metrics?.map((metric: any) => ({
@@ -331,7 +345,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
           { title: "Strategy", content: "Strategic recommendations based on this metric" }
         ]
       })) || [],
-      chartData: chartData,
+      chartData: validChartData,
       sources: data.citations?.map((citation: any) => ({
         label: citation.label || "Market Data Source",
         url: citation.url || "#",

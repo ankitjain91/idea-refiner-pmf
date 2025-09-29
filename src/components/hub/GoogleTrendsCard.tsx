@@ -120,6 +120,15 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       value
     })) || [];
     
+    // Convert chart data to pie chart format for AI dialog
+    const validChartData = Array.isArray(chartData) && chartData.length > 0 ? [
+      {
+        name: "Search Trend",
+        value: chartData.reduce((sum, item) => sum + (item.value || 0), 0) / chartData.length,
+        color: "#3b82f6"
+      }
+    ].filter(item => item.value > 0) : undefined;
+
     return {
       title: "Google Trends Analysis",
       metrics: data.metrics?.map((metric: any) => ({
@@ -133,7 +142,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
           { title: "Strategy", content: "Strategic insights based on search trends" }
         ]
       })) || [],
-      chartData: chartData,
+      chartData: validChartData,
       sources: [
         {
           label: "Google Trends API",

@@ -131,31 +131,38 @@ export function AITileDialog({
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={150}>
-                    {data.chartData && data.chartData.some(d => d.value !== undefined) ? (
+                    {data.chartData && Array.isArray(data.chartData) && data.chartData.length > 0 && 
+                     data.chartData.some(d => d && typeof d === 'object' && d.value !== undefined && d.value !== null) ? (
                       <PieChart>
                         <Pie
-                          data={data.chartData}
+                          data={data.chartData.filter(d => d && typeof d === 'object' && d.value !== undefined && d.value !== null)}
                           cx="50%"
                           cy="50%"
                           innerRadius={25}
                           outerRadius={55}
                           dataKey="value"
                         >
-                          {data.chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color || `hsl(${index * 45}, 70%, 60%)`} />
-                          ))}
+                          {data.chartData
+                            .filter(d => d && typeof d === 'object' && d.value !== undefined && d.value !== null)
+                            .map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color || `hsl(${index * 45}, 70%, 60%)`} />
+                            ))}
                         </Pie>
                         <Tooltip />
                       </PieChart>
-                    ) : data.barChartData ? (
-                      <BarChart data={data.barChartData}>
+                    ) : data.barChartData && Array.isArray(data.barChartData) && data.barChartData.length > 0 ? (
+                      <BarChart data={data.barChartData.filter(d => d && typeof d === 'object')}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" fontSize={10} />
                         <YAxis fontSize={10} />
                         <Tooltip />
                         <Bar dataKey="mentions" fill="hsl(var(--primary))" />
                       </BarChart>
-                    ) : null}
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+                        No chart data available
+                      </div>
+                    )}
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
