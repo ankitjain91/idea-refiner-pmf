@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import useSWR from 'swr';
-import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
@@ -57,6 +57,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
   const [viewMode, setViewMode] = useState<'metrics' | 'regions' | 'competitors'>('metrics');
   const { user } = useAuth();
   const { currentSession } = useSession();
+  const currentIdea = localStorage.getItem('pmfCurrentIdea') || '';
   const { toast } = useToast();
 
   const storedIdea = typeof window !== 'undefined' ? 
@@ -71,10 +72,11 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       // First, try to load from database if user is authenticated
       if (user?.id) {
         try {
-          const dbData = await DashboardDataService.getData({
+          const dbData = await dashboardDataService.getData({
             userId: user.id,
-            sessionId: currentSession?.id,
-            tileType: 'web_search'
+            ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+            tileType: 'web_search',
+            sessionId: currentSession?.id
           });
           
           if (dbData) {
@@ -122,11 +124,12 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
         // Save to database if user is authenticated
         if (user?.id) {
           try {
-            await DashboardDataService.saveData(
+            await dashboardDataService.saveData(
               {
                 userId: user.id,
-                sessionId: currentSession?.id,
-                tileType: 'web_search'
+                ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+                tileType: 'web_search',
+                sessionId: currentSession?.id
               },
               data,
               30 // 30 minutes cache
@@ -157,10 +160,11 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       
       // Clear database cache if user is authenticated
       if (user?.id) {
-        await DashboardDataService.deleteData({
+        await dashboardDataService.deleteData({
           userId: user.id,
-          sessionId: currentSession?.id,
-          tileType: 'web_search'
+          ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+          tileType: 'web_search',
+          sessionId: currentSession?.id
         });
       }
       

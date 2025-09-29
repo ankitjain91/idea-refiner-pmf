@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { AlertCircle, Info, LucideIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 
@@ -320,10 +320,11 @@ export function useTileData<T = any>(
     try {
       // Try to load from database first if enabled
       if (options?.useDatabase && options?.tileType && user?.id) {
-        const dbData = await DashboardDataService.getData({
+        const dbData = await dashboardDataService.getData({
           userId: user.id,
-          sessionId: currentSession?.id,
-          tileType: options.tileType
+          ideaText: localStorage.getItem('pmfCurrentIdea') || '',
+          tileType: options.tileType,
+          sessionId: currentSession?.id
         });
         
         if (dbData) {
@@ -348,11 +349,12 @@ export function useTileData<T = any>(
       
       // Save to database if enabled
       if (options?.useDatabase && options?.tileType && user?.id && result) {
-        await DashboardDataService.saveData(
+        await dashboardDataService.saveData(
           {
             userId: user.id,
-            sessionId: currentSession?.id,
-            tileType: options.tileType
+            ideaText: localStorage.getItem('pmfCurrentIdea') || '',
+            tileType: options.tileType,
+            sessionId: currentSession?.id
           },
           result,
           options.cacheMinutes || 30

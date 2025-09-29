@@ -42,7 +42,7 @@ import {
   launchTimelineAdapter
 } from "@/lib/data-adapter";
 
-import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { dashboardDataService } from '@/lib/dashboard-data-service';
 
 export default function EnterpriseHub() {
   const { currentSession, saveCurrentSession } = useSession();
@@ -185,9 +185,10 @@ export default function EnterpriseHub() {
           'reddit_sentiment'
         ];
         
-        const cachedData = await DashboardDataService.getBatchData(
+        const ideaText = localStorage.getItem('pmfCurrentIdea') || '';
+        const cachedData = await dashboardDataService.getBatchData(
           user.id,
-          currentSession.id,
+          ideaText,
           tileTypes
         );
         
@@ -224,7 +225,8 @@ export default function EnterpriseHub() {
     
     // Clear database cache first
     if (user?.id) {
-      await DashboardDataService.clearAllData(user.id, currentSession?.id);
+      const ideaText = localStorage.getItem('pmfCurrentIdea') || '';
+      await dashboardDataService.clearAllData(user.id, ideaText, currentSession?.id);
     }
     
     // Clear all cached data from localStorage

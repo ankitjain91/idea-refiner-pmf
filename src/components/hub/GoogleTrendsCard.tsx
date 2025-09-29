@@ -18,7 +18,7 @@ import {
   Brain
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import {
@@ -79,6 +79,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
+  const currentIdea = localStorage.getItem('pmfCurrentIdea') || '';
 
   // Get the idea from filters or fallback to localStorage
   const ideaKeywords = filters.idea_keywords || [];
@@ -220,16 +221,18 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     if (user?.id && !forceRefresh) {
       try {
         // Try with session ID first, then without if that fails
-        let dbData = await DashboardDataService.getData({
+        let dbData = await dashboardDataService.getData({
           userId: user.id,
-          sessionId: currentSession?.id,
-          tileType: 'google_trends'
+          ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+          tileType: 'google_trends',
+          sessionId: currentSession?.id
         });
         
         // If no data with session ID, try without it
         if (!dbData && currentSession?.id) {
-          dbData = await DashboardDataService.getData({
+          dbData = await dashboardDataService.getData({
             userId: user.id,
+            ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
             tileType: 'google_trends'
           });
         }
@@ -296,11 +299,12 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       // Save to database if user is authenticated
       if (user?.id && trendsData) {
         try {
-          await DashboardDataService.saveData(
+          await dashboardDataService.saveData(
             {
               userId: user.id,
-              sessionId: currentSession?.id,
-              tileType: 'google_trends'
+              ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+              tileType: 'google_trends',
+              sessionId: currentSession?.id
             },
             trendsData,
             10080 // 7 days in minutes (7 * 24 * 60)

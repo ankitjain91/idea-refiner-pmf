@@ -13,7 +13,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import useSWR from 'swr';
-import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { AITileDialog } from '../dashboard/AITileDialog';
@@ -91,6 +91,7 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
+  const currentIdea = localStorage.getItem('pmfCurrentIdea') || '';
   
   // Get the idea from filters or fallback to the actual startup idea
   const storedIdea = typeof window !== 'undefined' ? 
@@ -133,10 +134,11 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       // First, try to load from database if user is authenticated
       if (user?.id) {
         try {
-          const dbData = await DashboardDataService.getData({
+          const dbData = await dashboardDataService.getData({
             userId: user.id,
-            sessionId: currentSession?.id,
-            tileType: 'market_trends'
+            ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+            tileType: 'market_trends',
+            sessionId: currentSession?.id
           });
           
           if (dbData) {
@@ -184,11 +186,12 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
         // Save to database if user is authenticated
         if (user?.id) {
           try {
-            await DashboardDataService.saveData(
+            await dashboardDataService.saveData(
               {
                 userId: user.id,
-                sessionId: currentSession?.id,
-                tileType: 'market_trends'
+                ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+                tileType: 'market_trends',
+                sessionId: currentSession?.id
               },
               data,
               10080 // 7 days in minutes (7 * 24 * 60)

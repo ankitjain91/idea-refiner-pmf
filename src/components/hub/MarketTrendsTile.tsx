@@ -128,7 +128,30 @@ export function MarketTrendsTile({
     setError(null);
     
     try {
-      // Check localStorage for cached data first
+      // First, check database for cached data using idea as key
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user && !isRefreshing) {
+        const { dashboardDataService } = await import('@/lib/dashboard-data-service');
+        const dbData = await dashboardDataService.getData({
+          userId: userData.user.id,
+          ideaText,
+          tileType,
+          sessionId: localStorage.getItem('currentSessionId') || undefined
+        });
+        
+        if (dbData) {
+          const cacheAge = dbData.timestamp ? Date.now() - new Date(dbData.timestamp).getTime() : Infinity;
+          const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+          
+          if (cacheAge < CACHE_DURATION) {
+            setData({ ...dbData, fromCache: true, cacheTimestamp: new Date(dbData.timestamp).getTime() });
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+      
+      // Fallback to localStorage cache
       const cacheKeyStorage = `${tileType}-cache:${ideaText}`;
       const cachedData = localStorage.getItem(cacheKeyStorage);
       
@@ -222,8 +245,25 @@ export function MarketTrendsTile({
       // Transform response to standard format
       const standardizedData = transformToStandardFormat(tileType, response);
       
-      // Store in localStorage with timestamp
+      // Store in both database and localStorage
       if (standardizedData) {
+        // Store in database with idea as key
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const { dashboardDataService } = await import('@/lib/dashboard-data-service');
+          await dashboardDataService.saveData(
+            {
+              userId: userData.user.id,
+              ideaText,
+              tileType,
+              sessionId: localStorage.getItem('currentSessionId') || undefined
+            },
+            standardizedData,
+            30 // 30 minutes expiration
+          );
+        }
+        
+        // Also store in localStorage for offline access
         localStorage.setItem(cacheKeyStorage, JSON.stringify({
           data: standardizedData,
           timestamp: Date.now()
@@ -256,6 +296,11 @@ export function MarketTrendsTile({
       stale: false
     };
 
+    // Preserve type property if it exists (for regional data)
+    if (response?.type) {
+      standardData.type = response.type;
+    }
+
     // Type-specific transformations
     switch (type) {
       case 'pmf_score':
@@ -274,6 +319,21 @@ export function MarketTrendsTile({
           neutral: score >= 70 ? 10 : score >= 40 ? 30 : 40,
           negative: score >= 70 ? 5 : score >= 40 ? 10 : 30
         };
+        break;
+        
+      case 'market_trends':
+        // Handle regional data for market trends
+        if (response?.type === 'continental') {
+          standardData.type = 'continental';
+          standardData.series = response.series || [];
+          standardData.metrics = response.metrics || [];
+          standardData.insights = response.insights || [];
+        } else {
+          // Standard market trends format
+          standardData.metrics = response?.metrics || [];
+          standardData.series = response?.series || [];
+          standardData.chart = response?.chart || null;
+        }
         break;
         
       case 'market_size':

@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import useSWR from 'swr';
-import { DashboardDataService } from '@/lib/dashboard-data-service';
+import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -62,6 +62,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
   const [groqInsights, setGroqInsights] = useState<any>(null);
   const { user } = useAuth();
   const { currentSession } = useSession();
+  const currentIdea = localStorage.getItem('pmfCurrentIdea') || '';
   const { toast } = useToast();
 
   const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
@@ -73,10 +74,11 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
       // Cache -> DB -> API loading order
       if (user?.id) {
         try {
-          const dbData = await DashboardDataService.getData({
+          const dbData = await dashboardDataService.getData({
             userId: user.id,
-            sessionId: currentSession?.id,
-            tileType: 'reddit_sentiment'
+            ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+            tileType: 'reddit_sentiment',
+            sessionId: currentSession?.id
           });
           
           if (dbData) {
@@ -132,11 +134,12 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
         // Save to database if user is authenticated
         if (user?.id) {
           try {
-            await DashboardDataService.saveData(
+            await dashboardDataService.saveData(
               {
                 userId: user.id,
-                sessionId: currentSession?.id,
-                tileType: 'reddit_sentiment'
+                ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+                tileType: 'reddit_sentiment',
+                sessionId: currentSession?.id
               },
               enrichedData,
               15 // 15 minutes cache
