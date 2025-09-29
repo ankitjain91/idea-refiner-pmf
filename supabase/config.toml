@@ -325,6 +325,15 @@ verify_jwt = false
 [functions.launch-timeline]
 verify_jwt = false
 
+[functions.pmf-score]
+verify_jwt = false
+
+[functions.competition]
+verify_jwt = false
+
+[functions.sentiment]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

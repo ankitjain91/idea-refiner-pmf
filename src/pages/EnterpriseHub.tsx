@@ -22,6 +22,7 @@ import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
 import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
+import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
 import { cn } from "@/lib/utils";
 import {
   twitterBuzzAdapter,
@@ -146,52 +147,36 @@ export default function EnterpriseHub() {
         />
       </Card>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - Updated with real-time data */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">PMF Score</p>
-                <p className="text-2xl font-bold">72%</p>
-              </div>
-              <ArrowUpRight className="h-5 w-5 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Market Size</p>
-                <p className="text-2xl font-bold">$4.2B</p>
-              </div>
-              <TrendingUp className="h-5 w-5 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Competition</p>
-                <p className="text-2xl font-bold">Medium</p>
-              </div>
-              <Building2 className="h-5 w-5 text-amber-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Sentiment</p>
-                <p className="text-2xl font-bold">85%</p>
-              </div>
-              <Sparkles className="h-5 w-5 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
+        <QuickStatsTile
+          title="PMF Score"
+          icon={Activity}
+          tileType="pmf_score"
+          currentIdea={currentIdea}
+          onAnalyze={() => console.log('Analyze PMF Score')}
+        />
+        <QuickStatsTile
+          title="Market Size"
+          icon={TrendingUp}
+          tileType="market_size"
+          currentIdea={currentIdea}
+          onAnalyze={() => console.log('Analyze Market Size')}
+        />
+        <QuickStatsTile
+          title="Competition"
+          icon={Building2}
+          tileType="competition"
+          currentIdea={currentIdea}
+          onAnalyze={() => console.log('Analyze Competition')}
+        />
+        <QuickStatsTile
+          title="Sentiment"
+          icon={Sparkles}
+          tileType="sentiment"
+          currentIdea={currentIdea}
+          onAnalyze={() => console.log('Analyze Sentiment')}
+        />
       </div>
 
       {/* Market Trends Card - Featured */}
