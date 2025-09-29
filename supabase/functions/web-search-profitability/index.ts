@@ -24,9 +24,10 @@ serve(async (req) => {
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
-    // Build commercial-intent query
-    const commercialTerms = '(buy OR price OR pricing OR best OR "near me" OR discount OR deal OR coupon OR trial OR quote OR review OR compare)';
-    const query = `${idea} ${industry || ''} ${geo || ''} ${commercialTerms}`.trim();
+    // Build commercial-intent query - Serper doesn't support complex boolean queries
+    // Add simple commercial keywords without boolean operators
+    const commercialKeywords = 'pricing reviews comparison best';
+    const query = `${idea} ${industry || ''} ${geo || ''} ${commercialKeywords}`.trim();
     
     // ============================
     // 1. Discovery Phase (Serper API)
