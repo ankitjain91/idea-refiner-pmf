@@ -78,8 +78,8 @@ export default function EnterpriseHub() {
   const tiles = [
     { id: 'marketTrends', title: 'Market Trends', icon: TrendingUp, tileType: 'market_trends', span: 'col-span-2' },
     { id: 'googleTrends', title: 'Google Trends', icon: Activity, tileType: 'google_trends', span: 'col-span-1' },
-    { id: 'webSearch', title: 'Web Search', icon: Globe2, tileType: 'web_search', span: 'col-span-1' },
-    { id: 'newsAnalysis', title: 'News Analysis', icon: Newspaper, tileType: 'news_analysis', span: 'col-span-2' },
+    { id: 'webSearch', title: 'Web Search', icon: Globe2, tileType: 'web_search', span: 'col-span-4 row-span-4' },
+    { id: 'newsAnalysis', title: 'News Analysis', icon: Newspaper, tileType: 'news_analysis', span: 'col-span-4 row-span-4' },
     { id: 'reddit', title: 'Reddit Sentiment', icon: MessageSquare, tileType: 'reddit_sentiment', span: 'col-span-1' },
     { id: 'youtube', title: 'YouTube Analytics', icon: Youtube, tileType: 'youtube_analytics', span: 'col-span-1' },
     { id: 'twitter', title: 'Twitter/X Buzz', icon: Twitter, tileType: 'twitter_buzz', span: 'col-span-1' },
@@ -191,7 +191,7 @@ export default function EnterpriseHub() {
       </div>
 
       {/* Main Grid of Data Tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 auto-rows-fr gap-4">
         {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends').map((tile) => (
           <div key={tile.id} className={tile.span}>
             <DataTile
