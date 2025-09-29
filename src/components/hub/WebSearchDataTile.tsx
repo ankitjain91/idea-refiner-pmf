@@ -9,12 +9,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   TrendingUp, Search, Users, Target, DollarSign, AlertCircle, 
   Brain, TrendingDown, Minus, Clock, CheckCircle, Lightbulb,
-  RefreshCw, Sparkles, ChevronDown, ChevronUp
+  RefreshCw, Sparkles, ChevronDown, ChevronUp, HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import useSWR from 'swr';
+import { TileInsightsDialog } from './TileInsightsDialog';
 
 interface WebSearchDataTileProps {
   idea: string;
@@ -29,6 +30,8 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('overview');
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showInsights, setShowInsights] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
   const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
@@ -82,6 +85,44 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
 
   const handleInitialLoad = async () => {
     setHasLoadedOnce(true);
+  };
+
+  const analyzeWithGroq = async () => {
+    if (!data || isAnalyzing) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data: response, error } = await supabase.functions.invoke('groq-synthesis', {
+        body: {
+          webSearchData: {
+            idea: actualIdea,
+            metrics: parseMetrics(data),
+            competitors: data.competitors,
+            insights: data.insights,
+            cost_estimate: data.cost_estimate,
+            top_queries: data.top_queries
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: "Analysis Complete",
+        description: "AI insights have been generated successfully",
+      });
+      
+      setShowInsights(true);
+    } catch (error) {
+      console.error('Error analyzing with Groq:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Unable to generate insights at this time",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -468,9 +509,43 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
                 </Tabs>
               </div>
             )}
+            
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={analyzeWithGroq}
+                disabled={isAnalyzing}
+                className="flex-1 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white"
+              >
+                {isAnalyzing ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                Analyze
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowInsights(true)}
+                className="flex-1"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                How this works
+              </Button>
+            </div>
           </>
         )}
       </CardContent>
+      
+      {/* Insights Dialog */}
+      <TileInsightsDialog
+        open={showInsights}
+        onOpenChange={setShowInsights}
+        tileType="web_search"
+      />
     </Card>
   );
 }
