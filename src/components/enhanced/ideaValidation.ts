@@ -11,8 +11,9 @@ export interface ValidationResult {
 export async function validateFirstIdea(messageText: string, wrinklePoints: number, hasValidIdea: boolean): Promise<ValidationResult> {
   if (hasValidIdea) return { valid: true };
   
-  // Very lenient heuristic - accept if it mentions any problem-solving concept
-  const heuristicLooksLikeIdea = messageText.length > 15 && (
+  // VERY lenient heuristic - accept almost anything that looks like an attempt
+  const looksLikeIdea = messageText.length > 10 && (
+    // Business/startup related
     messageText.toLowerCase().includes('connect') ||
     messageText.toLowerCase().includes('platform') ||
     messageText.toLowerCase().includes('app') ||
@@ -30,65 +31,110 @@ export async function validateFirstIdea(messageText: string, wrinklePoints: numb
     messageText.toLowerCase().includes('track') ||
     messageText.toLowerCase().includes('find') ||
     messageText.toLowerCase().includes('match') ||
-    messageText.toLowerCase().includes('marketplace')
+    messageText.toLowerCase().includes('marketplace') ||
+    messageText.toLowerCase().includes('sell') ||
+    messageText.toLowerCase().includes('buy') ||
+    messageText.toLowerCase().includes('share') ||
+    messageText.toLowerCase().includes('system') ||
+    messageText.toLowerCase().includes('software') ||
+    messageText.toLowerCase().includes('website') ||
+    messageText.toLowerCase().includes('online') ||
+    messageText.toLowerCase().includes('digital') ||
+    messageText.toLowerCase().includes('product') ||
+    messageText.toLowerCase().includes('service') ||
+    messageText.toLowerCase().includes('customer') ||
+    messageText.toLowerCase().includes('user') ||
+    messageText.toLowerCase().includes('people') ||
+    messageText.toLowerCase().includes('company') ||
+    messageText.toLowerCase().includes('social') ||
+    messageText.toLowerCase().includes('network') ||
+    // Any "for" statement suggesting a solution
+    messageText.toLowerCase().includes(' for ') ||
+    // Contains any action verb that could imply building something
+    messageText.toLowerCase().match(/\b(make|design|develop|launch|start|open|run|operate|offer|provide)\b/)
   );
   
-  const validationPrompt = `You are an EXTREMELY LENIENT startup idea validator. Accept ANY attempt at describing a business idea, no matter how vague. Only reject if it's clearly just a greeting, random text, or explicit joke. If there's ANY mention of solving a problem, connecting people, building something, or providing value, mark it VALID. Respond ONLY with JSON: {"valid": true|false, "reason": "brief reason"}. User submission: """${messageText}"""`;
+  // Check for obvious non-ideas (greetings, gibberish, etc)
+  const isObviouslyNotAnIdea = 
+    messageText.length < 8 ||
+    messageText.toLowerCase().match(/^(hi+|hello+|hey+|yo+|sup+|test+|testing+|asdf+|qwerty+|lol+|haha+|hehe+|ok+|yes+|no+|maybe+|idk+|bruh+|dude+|what+|why+|how+|when+|where+|\\?+|\\!+|\\.\\.+)$/i) ||
+    messageText.toLowerCase().match(/^(what'?s? up|how are you|good morning|good evening|good night|bye+|goodbye|see ya|later)$/i) ||
+    // Just emojis or punctuation
+    messageText.match(/^[\s\p{Emoji}\p{P}]+$/u);
+  
+  // Be SUPER lenient - accept if it looks like any attempt at an idea
+  if (looksLikeIdea || (messageText.length > 20 && !isObviouslyNotAnIdea)) {
+    return { valid: true, preview: createIdeaPreview(messageText) };
+  }
+  
+  // Only validate with AI if it doesn't pass our lenient checks
+  const validationPrompt = `You are an EXTREMELY LENIENT startup idea validator. Accept ANY attempt at describing a business idea, product, or service. Only reject if it's CLEARLY just a greeting, random text, gibberish, or completely unrelated to any business concept. If there's ANY possibility it could be interpreted as a business idea, mark it VALID. Respond ONLY with JSON: {"valid": true|false}. User submission: """${messageText}"""`;
+  
   try {
-    const { data, error } = await supabase.functions.invoke('idea-chat', { body: { message: validationPrompt, conversationHistory: [] }});
+    const { data, error } = await supabase.functions.invoke('idea-chat', { 
+      body: { 
+        message: validationPrompt, 
+        conversationHistory: [] 
+      }
+    });
+    
     if (error) throw error;
+    
     let parsed: any = {};
     try {
       const jsonMatch = data?.response?.match(/\{[\s\S]*\}/);
       if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
     } catch {}
-    // Be EXTREMELY lenient - accept if either check passes OR if it's long enough and seems intentional
-    const isValid = parsed.valid === true || heuristicLooksLikeIdea || (messageText.length > 30 && !messageText.toLowerCase().match(/^(hi|hello|hey|test|testing|lol|haha)/));
-    if (!isValid) {
-      const funnyLines = [
-        'That was a vibe, not a startup. Need: WHO + painful workflow + wedge.',
-        'Cortical folds will not wrinkle for fluff. Specify the user and the manual grind.',
-        'Like ordering "food" at a restaurant. Give me the dish, spice level, plating angle.',
-        'Motivational poster energy. Narrow the wedge.'
-      ];
-      const randomFunny = funnyLines[Math.floor(Math.random()*funnyLines.length)];
-      const improvementHints = Array.isArray(parsed.improvementHints) && parsed.improvementHints.length > 0 ? parsed.improvementHints : [
-        'My target users are [role/segment] who face [specific pain]',
-        'They currently solve this by [manual workaround]',
-        'My starting feature will be [ultra-narrow capability]',
-        'This is the right time because [unique insight/timing]'
-      ];
-      const gateMessage: Message = {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: `🧪 Idea Validation: NOT APPROVED\n\n${randomFunny}\n\nReason: ${parsed.reason || 'Missing concrete target, problem, or wedge.'}\n\nAnswer one of these to refine:\n- ${improvementHints.join('\n- ')}`,
-        timestamp: new Date(),
-        suggestions: improvementHints.map(h => h.startsWith('My') || h.startsWith('I') || h.startsWith('They') || h.startsWith('This') ? h : `I'll answer: ${h}`),
-        pointsEarned: -0.5,
-        pointsExplanation: 'No wrinkles granted until a real idea forms.'
-      };
-      return { valid: false, gateMessage };
-    }
-    return { valid: true, preview: createIdeaPreview(messageText) };
-  } catch {
-    // If validation fails, be lenient and accept anything that looks like an idea attempt
-    if (messageText.length > 20) {
+    
+    // If AI says valid OR it's reasonably long, accept it
+    if (parsed.valid === true || messageText.length > 25) {
       return { valid: true, preview: createIdeaPreview(messageText) };
     }
-    const gateMessage: Message = {
-      id: Date.now().toString(),
-      type: 'bot',
-      content: '🧪 Idea Validation Glitch: Provide WHO + painful moment + narrow wedge feature.',
-      timestamp: new Date(),
-      suggestions: [
-        'My target users are [role/segment] facing [specific recurring pain]',
-        'They currently use [hack/spreadsheet/manual process] to solve this',
-        "I'll start with [ultra-specific capability] as my wedge",
-        'My unique insight is [data/behavior/timing advantage]'
-      ],
-      pointsEarned: -0.25,
-      pointsExplanation: 'Need clearer idea before wrinkling.'
-    };
-    return { valid: false, gateMessage };
+  } catch {
+    // If validation fails and it's reasonably long, just accept it
+    if (messageText.length > 15 && !isObviouslyNotAnIdea) {
+      return { valid: true, preview: createIdeaPreview(messageText) };
+    }
   }
+  
+  // Only reject if we're really sure it's not an idea - provide funny responses
+  const funnyResponses = [
+    "🤔 That's like walking into Shark Tank and saying 'I have feelings.' Give me something I can invest brain cells in!",
+    "🧠 My smooth brain just got smoother. Feed me an actual business idea before I become a marble!",
+    "😅 That's not an idea, that's what my brain sounds like before coffee. What problem are you solving?",
+    "🎪 Welcome to the circus! But I need to know what act you're performing. What's your startup idea?",
+    "🍔 You just ordered 'food' at a restaurant. I need specifics - what's cooking in that brain of yours?",
+    "🎯 You missed the dartboard entirely! Throw me an actual idea - who needs what solution?",
+    "🦄 That's about as real as a unicorn's LinkedIn profile. What's your actual business concept?",
+    "🏗️ That's like showing up to a construction site with interpretive dance. Blueprint please - what are we building?",
+    "🎰 You're pulling the slot machine without putting coins in! Insert idea to continue...",
+    "🚀 Houston, we have a problem - no idea detected! What's your mission to Mars?",
+    "🧪 Error 404: Business idea not found. Try again with actual neurons firing!",
+    "🎮 You pressed random buttons on the controller. What game are we actually playing here?",
+    "🍕 You just asked for 'stuff on bread.' I need toppings! What's your business recipe?",
+    "🏃 You're running but forgot to put on shoes. What's the actual race you're entering?",
+    "🎨 That's finger painting without paint. Show me your masterpiece idea!"
+  ];
+  
+  const randomFunny = funnyResponses[Math.floor(Math.random() * funnyResponses.length)];
+  
+  const suggestions = [
+    "An app that helps [specific people] do [specific thing]",
+    "A platform connecting [group A] with [group B]",
+    "Software that automates [tedious task] for [target users]",
+    "A marketplace for [specific product/service]",
+    "A tool that solves [specific problem] for [specific industry]"
+  ];
+  
+  const gateMessage: Message = {
+    id: Date.now().toString(),
+    type: 'bot',
+    content: randomFunny + "\n\n💡 **Pro tip:** I'm super chill - just mention ANY business idea, product, or service. Even 'Uber for dogs' works!",
+    timestamp: new Date(),
+    suggestions: suggestions,
+    pointsEarned: 0,
+    pointsExplanation: 'No brain wrinkles yet - need an actual idea first!'
+  };
+  
+  return { valid: false, gateMessage };
 }
