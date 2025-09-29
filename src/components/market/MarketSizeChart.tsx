@@ -39,9 +39,9 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Market Size Overview */}
-      <Card className="border-border/50">
+      <Card className="border-border/50 hover:shadow-lg transition-all duration-300 animate-scale-in">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -101,10 +101,10 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
 
       {/* Customer Segments */}
       {segmentData.length > 0 && (
-        <Card className="border-border/50">
+        <Card className="border-border/50 hover:shadow-lg transition-all duration-300 animate-scale-in" style={{ animationDelay: '100ms' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
+              <Users className="h-5 w-5 text-primary animate-pulse" />
               Customer Segments Analysis
             </CardTitle>
           </CardHeader>
@@ -125,10 +125,10 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
       )}
 
       {/* Competitive Landscape */}
-      <Card className="border-border/50">
+      <Card className="border-border/50 hover:shadow-lg transition-all duration-300 animate-scale-in" style={{ animationDelay: '200ms' }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
+            <Target className="h-5 w-5 text-primary animate-pulse" />
             Competitive Landscape Analysis
           </CardTitle>
         </CardHeader>
@@ -148,16 +148,16 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
       </Card>
 
       {/* Key Insights */}
-      <Card className="border-border/50 bg-muted/30">
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-muted/30 hover:shadow-lg transition-all duration-300 animate-scale-in" style={{ animationDelay: '300ms' }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
+            <TrendingUp className="h-5 w-5 text-primary animate-pulse" />
             AI-Powered Market Insights
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 p-3 rounded-lg bg-background/50 hover:bg-background/70 transition-colors">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Geographic Opportunity</span>
@@ -166,7 +166,7 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
                 Primary markets in {data.assumptions?.target_market || 'North America and Europe'} with expansion potential in emerging markets.
               </p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 p-3 rounded-lg bg-background/50 hover:bg-background/70 transition-colors">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Revenue Potential</span>

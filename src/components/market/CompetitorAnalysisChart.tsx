@@ -64,9 +64,9 @@ export function CompetitorAnalysisChart({ data }: CompetitorAnalysisChartProps) 
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Competitive Positioning */}
-      <Card className="border-border/50">
+      <Card className="border-border/50 hover:shadow-lg transition-all duration-300 animate-scale-in">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
