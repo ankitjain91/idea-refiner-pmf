@@ -254,6 +254,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Restore user immediately if snapshot is still valid
         if (snapshot?.user && snapshot?.expiresAt && Date.now() < snapshot.expiresAt) {
           setUser(snapshot.user);
+          // Mark as initialized even with cached data
+          setInitialized(true);
         }
         if (snapshot?.role) {
           setUserProfile({
@@ -275,7 +277,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (initialSession) {
           setSession(initialSession);
           setUser(initialSession.user);
+          
+          // Schedule token refresh in background
           scheduleTokenRefresh(initialSession);
+          
+          // Validate token in background without blocking
+          const expiresAt = initialSession.expires_at;
+          if (expiresAt) {
+            const now = Math.floor(Date.now() / 1000);
+            const expiryTime = typeof expiresAt === 'string' ? parseInt(expiresAt) : expiresAt;
+            
+            // If token is expired or expiring very soon (within 30 seconds), refresh in background
+            if (now >= expiryTime || now >= (expiryTime - 30)) {
+              // Don't await - let it happen in background
+              refreshSession();
+            }
+          }
           
           // Fetch profile
           const profile = await fetchUserProfile(initialSession.user.id);
