@@ -23,6 +23,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 
 import { MarketTrendsTile } from "@/components/hub/MarketTrendsTile";
+import { EnhancedMarketTrendsTile } from "@/components/market/EnhancedMarketTrendsTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
@@ -458,7 +459,7 @@ export default function EnterpriseHub() {
 
           <TabsContent value="market" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <MarketTrendsTile
+              <EnhancedMarketTrendsTile
                 title="Market Size Analysis"
                 icon={BarChart3}
                 tileType="market_size"
@@ -466,7 +467,7 @@ export default function EnterpriseHub() {
                 description="TAM, SAM, SOM breakdown"
                 currentIdea={currentIdea}
               />
-              <MarketTrendsTile
+              <EnhancedMarketTrendsTile
                 title="Growth Projections"
                 icon={Rocket}
                 tileType="growth_projections"
@@ -474,7 +475,7 @@ export default function EnterpriseHub() {
                 description="5-year forecasts"
                 currentIdea={currentIdea}
               />
-              <MarketTrendsTile
+              <EnhancedMarketTrendsTile
                 title="Launch Timeline"
                 icon={Calendar}
                 tileType="launch_timeline"

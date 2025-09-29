@@ -174,11 +174,6 @@ export function EnhancedMarketTrendsTile({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {isFromCache && (
-                <Badge variant="outline" className="text-xs bg-muted">
-                  Cached
-                </Badge>
-              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -254,12 +249,11 @@ export function EnhancedMarketTrendsTile({
 
               <TabsContent value="insights" className="mt-4">
                 <TileInsightsDialog
-                  isOpen={false}
+                  open={false}
                   onOpenChange={() => {}}
                   tileType={tileType}
                   tileData={data}
-                  idea={currentIdea}
-                  renderContent={true}
+                  ideaText={currentIdea}
                 />
               </TabsContent>
 
@@ -272,11 +266,11 @@ export function EnhancedMarketTrendsTile({
       </Card>
 
       <TileInsightsDialog
-        isOpen={isDialogOpen}
+        open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         tileType={tileType}
         tileData={data}
-        idea={currentIdea}
+        ideaText={currentIdea}
       />
     </>
   );
