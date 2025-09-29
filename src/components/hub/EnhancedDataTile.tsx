@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
   RefreshCw, AlertCircle, ExternalLink, Clock, HelpCircle, Info,
   TrendingUp, TrendingDown, Minus, CheckCircle, Newspaper,
-  Globe, Target, DollarSign, BarChart3, Activity, Sparkles
+  Globe, Target, DollarSign, BarChart3, Activity, Sparkles,
+  Zap, Brain, Rocket, Users, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ import { TileInsightsDialog } from './TileInsightsDialog';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { dashboardDataService } from '@/lib/dashboard-data-service';
+import { motion } from 'framer-motion';
 
 interface EnhancedDataTileProps {
   title: string;
@@ -38,6 +40,34 @@ interface MetricInfo {
   target: string;
   action: string;
 }
+
+const CHART_COLORS = [
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#8b5cf6', // violet
+  '#ef4444', // red
+  '#06b6d4', // cyan
+  '#ec4899', // pink
+  '#14b8a6', // teal
+];
+
+const GRADIENT_THEMES = {
+  market_size: 'from-blue-500/20 via-cyan-500/10 to-transparent',
+  growth_projections: 'from-emerald-500/20 via-green-500/10 to-transparent',
+  launch_timeline: 'from-violet-500/20 via-purple-500/10 to-transparent',
+  pmf_score: 'from-amber-500/20 via-yellow-500/10 to-transparent',
+  sentiment: 'from-pink-500/20 via-rose-500/10 to-transparent',
+  competition: 'from-red-500/20 via-orange-500/10 to-transparent',
+  default: 'from-primary/20 via-primary/10 to-transparent'
+};
+
+const METRIC_COLORS = {
+  high: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  medium: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+  low: 'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20',
+  neutral: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20'
+};
 
 const metricInfoMap: Record<string, Record<string, MetricInfo>> = {
   market_size: {
@@ -58,6 +88,12 @@ const metricInfoMap: Record<string, Record<string, MetricInfo>> = {
       impact: "Achievable revenue in next 3-5 years with current resources",
       target: "SOM > $10M validates initial market viability",
       action: "Set revenue targets based on SOM and work backwards to customer acquisition"
+    },
+    'Market Maturity': {
+      calculation: "Based on adoption curve position and competitor density",
+      impact: "Determines strategy: education vs competition vs disruption",
+      target: "Early/Growth stage markets offer best entry opportunities",
+      action: "Early stage = educate market; Mature = differentiate or disrupt"
     }
   },
   growth_projections: {
@@ -67,11 +103,25 @@ const metricInfoMap: Record<string, Record<string, MetricInfo>> = {
       target: ">20% YoY suggests high growth market",
       action: "High growth = aggressive expansion; Low growth = focus on differentiation"
     },
-    'Market Maturity': {
-      calculation: "Based on adoption curve position and competitor density",
-      impact: "Determines strategy: education vs competition vs disruption",
-      target: "Early/Growth stage markets offer best entry opportunities",
-      action: "Early stage = educate market; Mature = differentiate or disrupt"
+    'Revenue Projection': {
+      calculation: "Based on market growth rate × target market share × pricing model",
+      impact: "Sets realistic revenue expectations for investors and planning",
+      target: "10x growth potential within 5 years for VC-scale opportunity",
+      action: "Use projections to determine funding needs and milestone planning"
+    }
+  },
+  launch_timeline: {
+    'MVP Timeline': {
+      calculation: "Based on feature complexity × team size × technical debt",
+      impact: "Determines time to market and competitive advantage window",
+      target: "MVP in <6 months for fast market validation",
+      action: "Prioritize core features that solve the main pain point"
+    },
+    'Market Entry': {
+      calculation: "MVP time + beta testing + initial marketing setup",
+      impact: "When you can start generating revenue and market feedback",
+      target: "Market entry within 9 months to maintain momentum",
+      action: "Plan backwards from launch date to set development milestones"
     }
   },
   pmf_score: {
@@ -89,7 +139,27 @@ const metricInfoMap: Record<string, Record<string, MetricInfo>> = {
       target: ">60% positive sentiment shows market need",
       action: "Use negative feedback to improve product; positive to guide messaging"
     }
+  },
+  competition: {
+    'Competition Level': {
+      calculation: "Number of competitors × Market share concentration × Feature overlap",
+      impact: "Determines differentiation needs and market entry difficulty",
+      target: "Medium competition with clear gaps is ideal for entry",
+      action: "High competition: Find underserved niche; Low: Validate market exists"
+    }
   }
+};
+
+const getMetricColor = (value: any, type: string) => {
+  if (typeof value === 'number') {
+    if (type === 'pmf_score' || type === 'sentiment') {
+      return value >= 70 ? METRIC_COLORS.high : value >= 40 ? METRIC_COLORS.medium : METRIC_COLORS.low;
+    }
+    if (type === 'growth_projections') {
+      return value >= 20 ? METRIC_COLORS.high : value >= 10 ? METRIC_COLORS.medium : METRIC_COLORS.low;
+    }
+  }
+  return METRIC_COLORS.neutral;
 };
 
 export function EnhancedDataTile({ 
@@ -105,12 +175,14 @@ export function EnhancedDataTile({
   const [data, setData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSources, setShowSources] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [hoveredMetric, setHoveredMetric] = useState<number | null>(null);
   const { user } = useAuth();
   const { currentSession } = useSession();
+  
+  const gradientTheme = GRADIENT_THEMES[tileType as keyof typeof GRADIENT_THEMES] || GRADIENT_THEMES.default;
   
   // Get the current idea
   const ideaText = currentIdea || 
@@ -230,17 +302,17 @@ export function EnhancedDataTile({
     return `$${value}`;
   };
 
-  const getTrendIcon = () => {
-    const trend = data?.metrics?.find((m: any) => m.trend)?.trend;
-    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-500" />;
-    if (trend === 'down') return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-yellow-500" />;
+  const getTrendIcon = (trend?: string) => {
+    if (trend === 'up') return <ArrowUpRight className="h-4 w-4 text-emerald-500" />;
+    if (trend === 'down') return <ArrowDownRight className="h-4 w-4 text-red-500" />;
+    return <Minus className="h-4 w-4 text-amber-500" />;
   };
 
   // Loading state
   if (isLoading && !data) {
     return (
-      <Card className={cn("h-full", className)}>
+      <Card className={cn("h-full relative overflow-hidden", className)}>
+        <div className={cn("absolute inset-0 bg-gradient-to-br", gradientTheme, "opacity-50")} />
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5" />
@@ -261,7 +333,8 @@ export function EnhancedDataTile({
   // Error state
   if (error) {
     return (
-      <Card className={cn("h-full", className)}>
+      <Card className={cn("h-full relative overflow-hidden", className)}>
+        <div className={cn("absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent")} />
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5" />
@@ -287,7 +360,8 @@ export function EnhancedDataTile({
   // No idea state
   if (!ideaText) {
     return (
-      <Card className={cn("h-full", className)}>
+      <Card className={cn("h-full relative overflow-hidden", className)}>
+        <div className={cn("absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent")} />
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5" />
@@ -295,9 +369,9 @@ export function EnhancedDataTile({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
+          <Alert className="border-amber-500/20 bg-amber-500/5">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-600 dark:text-amber-400">
               No idea configured. Please enter an idea in the Idea Chat first.
             </AlertDescription>
           </Alert>
@@ -308,16 +382,31 @@ export function EnhancedDataTile({
 
   return (
     <>
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
+      <Card className={cn("h-full relative overflow-hidden group transition-all duration-500 hover:shadow-xl", className)}>
+        {/* Animated Gradient Background */}
+        <motion.div 
+          className={cn("absolute inset-0 bg-gradient-to-br", gradientTheme)}
+          animate={{
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <CardHeader className="relative">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Icon className="h-5 w-5" />
+              <div className={cn("p-2 rounded-lg bg-gradient-to-br", gradientTheme)}>
+                <Icon className="h-5 w-5" />
+              </div>
               {title}
             </CardTitle>
             <div className="flex items-center gap-2">
               {data?.fromCache && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs border-primary/20 bg-primary/5">
                   <Clock className="h-3 w-3 mr-1" />
                   Cached
                 </Badge>
@@ -327,7 +416,7 @@ export function EnhancedDataTile({
                 variant="ghost"
                 size="sm"
                 disabled={isRefreshing}
-                className="h-8 px-2"
+                className="h-8 px-2 hover:bg-primary/10"
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
               </Button>
@@ -338,163 +427,215 @@ export function EnhancedDataTile({
           )}
         </CardHeader>
         
-        <CardContent className="space-y-4">
-          {/* Metrics with Info Tooltips */}
+        <CardContent className="space-y-4 relative">
+          {/* Metrics with Beautiful Colors and Info Tooltips */}
           {data?.metrics && data.metrics.length > 0 && (
             <div className="grid grid-cols-2 gap-3">
               {data.metrics.map((metric: any, idx: number) => (
-                <div
+                <motion.div
                   key={idx}
-                  className="relative p-4 rounded-xl bg-muted/10 border border-border/50 hover:border-primary/30 transition-all"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  onMouseEnter={() => setHoveredMetric(idx)}
+                  onMouseLeave={() => setHoveredMetric(null)}
+                  className={cn(
+                    "relative p-4 rounded-xl border transition-all duration-300 cursor-pointer",
+                    getMetricColor(metric.value, tileType),
+                    hoveredMetric === idx && "shadow-lg ring-2 ring-primary/20"
+                  )}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <span className="text-xs font-medium uppercase tracking-wider opacity-80">
                       {metric.label || metric.name}
                     </span>
                     {metric.info && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
-                            <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-sm p-4 space-y-2">
-                          <div>
-                            <p className="font-semibold text-xs mb-1">How it's calculated:</p>
-                            <p className="text-xs text-muted-foreground">{metric.info.calculation}</p>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-xs mb-1">Impact on your goal:</p>
-                            <p className="text-xs text-muted-foreground">{metric.info.impact}</p>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-xs mb-1">Target benchmark:</p>
-                            <p className="text-xs text-muted-foreground">{metric.info.target}</p>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-xs mb-1">Recommended action:</p>
-                            <p className="text-xs text-muted-foreground">{metric.info.action}</p>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
+                      <TooltipProvider>
+                        <Tooltip delayDuration={0}>
+                          <TooltipTrigger asChild>
+                            <button className="p-1 hover:bg-white/10 rounded transition-colors">
+                              <Info className="h-3.5 w-3.5 opacity-60 hover:opacity-100" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm p-4 space-y-3 bg-card border-border">
+                            <div>
+                              <p className="font-semibold text-xs mb-1 text-primary">📊 How it's calculated:</p>
+                              <p className="text-xs text-muted-foreground">{metric.info.calculation}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-xs mb-1 text-amber-600 dark:text-amber-400">🎯 Impact on your goal:</p>
+                              <p className="text-xs text-muted-foreground">{metric.info.impact}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-xs mb-1 text-emerald-600 dark:text-emerald-400">✅ Target benchmark:</p>
+                              <p className="text-xs text-muted-foreground">{metric.info.target}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-xs mb-1 text-blue-600 dark:text-blue-400">💡 Recommended action:</p>
+                              <p className="text-xs text-muted-foreground">{metric.info.action}</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </div>
                   
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold">
                       {typeof metric.value === 'number' ? formatCurrency(metric.value) : metric.value}
                     </span>
-                    {metric.change && (
+                    {metric.trend && getTrendIcon(metric.trend)}
+                  </div>
+                  
+                  {metric.change && (
+                    <div className="mt-2">
                       <Badge 
-                        variant={metric.trend === 'up' ? 'default' : 'secondary'}
-                        className="text-xs h-5"
+                        variant="outline"
+                        className={cn(
+                          "text-xs",
+                          metric.trend === 'up' ? "border-emerald-500/50 text-emerald-600" : 
+                          metric.trend === 'down' ? "border-red-500/50 text-red-600" :
+                          "border-amber-500/50 text-amber-600"
+                        )}
                       >
                         {metric.change}
                       </Badge>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   
                   {metric.explanation && (
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs opacity-70 mt-2 line-clamp-2">
                       {metric.explanation}
                     </p>
                   )}
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
 
-          {/* Chart Section */}
+          {/* Colorful Chart Section */}
           {data?.chart && data.chart.data && data.chart.data.length > 0 && (
-            <div className="p-4 bg-muted/20 rounded-xl">
-              <h4 className="text-sm font-medium mb-3">{data.chart.title || 'Trend Analysis'}</h4>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="p-4 rounded-xl bg-gradient-to-br from-background/50 to-muted/20 border border-border/50"
+            >
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                {data.chart.title || 'Trend Analysis'}
+              </h4>
               <ResponsiveContainer width="100%" height={200}>
                 {tileType === 'growth_projections' ? (
                   <AreaChart data={data.chart.data}>
                     <defs>
                       <linearGradient id={`gradient-${tileType}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
                     <XAxis dataKey="label" className="text-xs" />
                     <YAxis className="text-xs" />
                     <ChartTooltip />
                     <Area 
                       type="monotone" 
                       dataKey="value" 
-                      stroke="hsl(var(--primary))"
+                      stroke="#10b981"
                       strokeWidth={2}
                       fill={`url(#gradient-${tileType})`}
                     />
                   </AreaChart>
                 ) : tileType === 'market_size' ? (
                   <BarChart data={data.chart.data}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
                     <XAxis dataKey="label" className="text-xs" />
                     <YAxis className="text-xs" />
                     <ChartTooltip />
-                    <Bar 
-                      dataKey="value" 
-                      fill="hsl(var(--primary))"
-                      radius={[8, 8, 0, 0]}
-                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                      {data.chart.data.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 ) : (
                   <LineChart data={data.chart.data}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
                     <XAxis dataKey="label" className="text-xs" />
                     <YAxis className="text-xs" />
                     <ChartTooltip />
                     <Line 
                       type="monotone" 
                       dataKey="value" 
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))' }}
+                      stroke="#8b5cf6"
+                      strokeWidth={3}
+                      dot={{ fill: '#8b5cf6', r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
                   </LineChart>
                 )}
               </ResponsiveContainer>
-            </div>
+            </motion.div>
           )}
 
-          {/* Insights */}
+          {/* Colorful Insights */}
           {data?.insights && data.insights.length > 0 && (
-            <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-primary">Key Insights</span>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="p-4 rounded-xl bg-gradient-to-r from-primary/10 via-violet-500/10 to-pink-500/10 border border-primary/20"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <span className="text-sm font-semibold bg-gradient-to-r from-primary to-violet-600 bg-clip-text text-transparent">
+                  Key Insights
+                </span>
               </div>
-              <ul className="space-y-1">
-                {data.insights.slice(0, 2).map((insight: string, idx: number) => (
-                  <li key={idx} className="text-xs text-muted-foreground">
-                    • {insight}
-                  </li>
+              <div className="space-y-2">
+                {data.insights.slice(0, 3).map((insight: string, idx: number) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + idx * 0.1 }}
+                    className="flex items-start gap-2"
+                  >
+                    <span className="text-lg">
+                      {idx === 0 ? '🚀' : idx === 1 ? '💡' : '🎯'}
+                    </span>
+                    <p className="text-xs text-foreground/80 leading-relaxed">
+                      {insight}
+                    </p>
+                  </motion.div>
                 ))}
-              </ul>
-            </div>
+              </div>
+            </motion.div>
           )}
 
-          {/* View More Button */}
+          {/* Fixed View Details Button */}
           <Button
             onClick={() => setShowInsights(true)}
             variant="outline"
             size="sm"
-            className="w-full"
+            className="w-full bg-gradient-to-r from-primary/10 to-violet-500/10 hover:from-primary/20 hover:to-violet-500/20 border-primary/20"
           >
-            View Details
+            <Zap className="h-3.5 w-3.5 mr-2" />
+            View Detailed Analysis
             <ExternalLink className="h-3.5 w-3.5 ml-2" />
           </Button>
         </CardContent>
       </Card>
 
-      <TileInsightsDialog
-        open={showInsights}
-        onOpenChange={setShowInsights}
-        tileType={tileType}
-      />
+      {/* Fixed Dialog */}
+      {showInsights && (
+        <TileInsightsDialog
+          open={showInsights}
+          onOpenChange={(open) => setShowInsights(open)}
+          tileType={tileType}
+        />
+      )}
     </>
   );
 }
