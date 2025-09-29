@@ -80,7 +80,7 @@ export function ExpandableTile({
           expandable && 'cursor-pointer hover:scale-[1.02]',
           className
         )}
-        onClick={expandable && !loading && !error ? handleExpand : undefined}
+        onClick={expandable && !loading ? handleExpand : undefined}
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -119,7 +119,7 @@ export function ExpandableTile({
                   {badge.label}
                 </Badge>
               )}
-              {expandable && !loading && !error && (
+              {expandable && !loading && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -173,7 +173,7 @@ export function ExpandableTile({
               
               {children}
               
-              {expandable && !loading && !error && (
+              {expandable && !loading && (
                 <div className="flex items-center justify-end mt-4">
                   <Button
                     variant="ghost"
