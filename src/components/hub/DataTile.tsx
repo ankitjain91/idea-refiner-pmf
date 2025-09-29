@@ -121,7 +121,10 @@ export function DataTile({
   const fetchFunction = async (): Promise<TileData> => {
     return fetchTileData(tileType, filters);
   };
-
+  // Get current idea for AI insights
+  const ideaText = filters?.idea_keywords?.join(' ') || 
+    (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
+  
   // Use database-first loading with useTileData hook
   const { data, isLoading: loading, error, loadData } = useTileData(fetchFunction, [tileType, filters], {
     tileType: `data_tile_${tileType}`,
@@ -851,6 +854,8 @@ export function DataTile({
         open={showInsights}
         onOpenChange={setShowInsights}
         tileType={tileType}
+        tileData={data}
+        ideaText={ideaText}
       />
     </>
   );

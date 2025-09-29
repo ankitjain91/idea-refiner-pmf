@@ -716,6 +716,8 @@ export function EnhancedDataTile({
           open={showInsights}
           onOpenChange={(open) => setShowInsights(open)}
           tileType={tileType}
+          tileData={data}
+          ideaText={ideaText}
         />
       )}
     </>

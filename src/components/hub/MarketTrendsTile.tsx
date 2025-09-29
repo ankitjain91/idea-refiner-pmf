@@ -957,6 +957,8 @@ export function MarketTrendsTile({
         open={showInsights}
         onOpenChange={setShowInsights}
         tileType={tileType}
+        tileData={data}
+        ideaText={ideaText}
       />
     </>
   );

@@ -259,6 +259,8 @@ export function QuickStatsTile({
         open={showInsights}
         onOpenChange={setShowInsights}
         tileType={tileType}
+        tileData={data}
+        ideaText={currentIdea}
       />
     </>
   );

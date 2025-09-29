@@ -191,12 +191,93 @@ interface TileInsightsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tileType: string;
+  tileData?: any; // Actual data from the tile
+  ideaText?: string; // The idea being analyzed
 }
 
-export function TileInsightsDialog({ open, onOpenChange, tileType }: TileInsightsDialogProps) {
+export function TileInsightsDialog({ open, onOpenChange, tileType, tileData, ideaText }: TileInsightsDialogProps) {
   const insight = tileInsights[tileType] || tileInsights.market_trends;
   const Icon = insight.icon;
 
+  // Generate specific insights based on actual data
+  const getSpecificInsights = () => {
+    const insights = [];
+    
+    if (tileData) {
+      // Add data-specific insights based on tile type
+      switch (tileType) {
+        case 'market_trends':
+          if (tileData.metrics) {
+            const trend = tileData.metrics.find((m: any) => m.name?.toLowerCase().includes('trend'));
+            if (trend) {
+              insights.push(`Current trend: ${trend.value} - ${trend.explanation || ''}`);
+            }
+          }
+          if (tileData.series?.length > 0) {
+            insights.push(`Tracking ${tileData.series[0].data?.length || 0} weeks of data`);
+          }
+          break;
+          
+        case 'reddit_sentiment':
+          if (tileData.sentiment) {
+            const positivePercentage = tileData.sentiment.positive || 0;
+            insights.push(`Community sentiment is ${positivePercentage}% positive`);
+            if (positivePercentage > 70) {
+              insights.push("Strong positive reception - excellent validation signal");
+            } else if (positivePercentage < 30) {
+              insights.push("Low sentiment - consider addressing community concerns");
+            }
+          }
+          break;
+          
+        case 'web_search':
+          if (tileData.profitability) {
+            insights.push(`Profitability score: ${tileData.profitability}%`);
+            if (tileData.profitability > 70) {
+              insights.push("High profit potential identified");
+            }
+          }
+          if (tileData.competitors?.length > 0) {
+            insights.push(`${tileData.competitors.length} competitors analyzed`);
+          }
+          break;
+          
+        case 'pmf_score':
+          if (tileData.score) {
+            insights.push(`PMF Score: ${tileData.score}%`);
+            if (tileData.score >= 70) {
+              insights.push("Strong product-market fit indicators");
+            } else if (tileData.score < 40) {
+              insights.push("Consider refining your value proposition");
+            }
+          }
+          break;
+          
+        case 'market_size':
+          if (tileData.metrics) {
+            const tam = tileData.metrics.find((m: any) => m.name === 'TAM');
+            if (tam) {
+              insights.push(`Total market opportunity: ${tam.value}`);
+            }
+          }
+          break;
+      }
+      
+      // Add insights from the data itself
+      if (tileData.insights?.length > 0) {
+        insights.push(...tileData.insights.slice(0, 2));
+      }
+    }
+    
+    // Add idea-specific context
+    if (ideaText) {
+      insights.push(`Analysis for: "${ideaText.slice(0, 50)}..."`);
+    }
+    
+    return insights.length > 0 ? insights : null;
+  };
+
+  const specificInsights = getSpecificInsights();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -213,6 +294,24 @@ export function TileInsightsDialog({ open, onOpenChange, tileType }: TileInsight
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
+          {/* Data-Specific Insights */}
+          {specificInsights && (
+            <Card className="p-4 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="h-5 w-5 text-violet-600" />
+                <h3 className="font-semibold text-violet-900 dark:text-violet-100">Your Data Insights</h3>
+                <Badge variant="secondary" className="ml-auto">Real-time</Badge>
+              </div>
+              <ul className="space-y-2">
+                {specificInsights.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm font-medium">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           {/* Why It Matters */}
           <Card className="p-4 border-primary/20">
             <div className="flex items-center gap-2 mb-3">
