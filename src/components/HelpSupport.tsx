@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { 
   Dialog,
@@ -41,19 +40,32 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
     {
       id: 'welcome',
       role: 'assistant',
-      content: "🎉 YO SMOOTHBRAIN! Welcome to the chat zone! I'm your slightly-unhinged Site Guru.\n\n💡 I know EVERYTHING about this brain-wrinkle-inducing startup advisor tool:\n• How to maximize your brain wrinkles 🧠\n• Secret tricks for better SmoothBrains scores 📈\n• Why our brain animation is HYPNOTIC ✨\n• The deep lore of SmoothBrains© philosophy\n\nAsk me anything or just vibe! What's on your mind?",
+      content: "Welcome to Help & Support! I'm here to assist you with any questions about the platform.\n\n💡 I can help you with:\n• Understanding how to use features\n• Best practices for startup evaluation\n• Technical questions and issues\n• Account and subscription inquiries\n\nWhat can I help you with today?",
       timestamp: new Date()
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([
-    "Why is the brain so wrinkly?",
-    "What's the deal with brain points?",
-    "Tell me a startup joke!",
-    "How do I become legendary?"
+    "How does the scoring work?",
+    "What are brain points?",
+    "How do I save my progress?",
+    "What features are included?"
   ]);
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async (messageText: string = input) => {
     if (!messageText.trim()) return;
@@ -95,21 +107,19 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
 
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Generate fun suggested questions
-      const funSuggestions = [
-        "What's your favorite brain fact?",
-        "How do I get LEGENDARY status?",
-        "Tell me about the secret features!",
-        "Why SmoothBrains?",
-        "What's the highest SmoothBrains score possible?",
-        "Can you roast my startup idea?",
-        "What's the brain animation's secret?",
-        "How many wrinkles do YOU have?"
-      ];
-      
-      // Randomly pick 4 suggestions
-      const shuffled = funSuggestions.sort(() => 0.5 - Math.random());
-      setSuggestedQuestions(shuffled.slice(0, 4));
+      // Update suggestions if available from response
+      if (data.suggestions && Array.isArray(data.suggestions)) {
+        setSuggestedQuestions(data.suggestions.slice(0, 4));
+      } else {
+        // Generate helpful suggestions
+        const helpfulSuggestions = [
+          "How can I improve my score?",
+          "What features are available?",
+          "How do I save my progress?",
+          "Explain the scoring system"
+        ];
+        setSuggestedQuestions(helpfulSuggestions);
+      }
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -147,20 +157,22 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] h-[600px] flex flex-col p-0">
-        <DialogHeader className="p-4 pb-2 border-b">
+      <DialogContent className="sm:max-w-[500px] h-[80vh] max-h-[650px] flex flex-col p-0">
+        <DialogHeader className="p-4 pb-3 border-b flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary animate-pulse" />
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-bold">
-              Site Guru Chat Zone 
+            <Brain className="w-5 h-5 text-primary" />
+            <span className="font-semibold">
+              Help & Support
             </span>
-            <Sparkles className="w-4 h-4 text-yellow-500 animate-spin" />
           </DialogTitle>
         </DialogHeader>
         
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
+          <div 
+            ref={scrollAreaRef}
+            className="flex-1 overflow-y-auto p-4 scroll-smooth"
+          >
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -171,7 +183,7 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
                   )}
                 >
                   {message.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0 animate-pulse">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0">
                       <Brain className="w-4 h-4 text-primary" />
                     </div>
                   )}
@@ -207,29 +219,26 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin text-primary" />
                       <span className="text-xs text-muted-foreground animate-pulse">
-                        Consulting the wisdom wrinkles...
+                        Processing your request...
                       </span>
                     </div>
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
-          </ScrollArea>
+          </div>
 
-          {/* Suggested Questions */}
+          {/* Suggested Questions - Simplified and More Compact */}
           {suggestedQuestions.length > 0 && !isLoading && (
-            <div className="px-4 pb-2 border-t pt-2">
-              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-                <Rocket className="w-3 h-3" />
-                Quick questions:
-              </p>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="px-4 py-2 border-t flex-shrink-0 max-h-24 overflow-y-auto">
+              <div className="flex gap-2 flex-wrap">
                 {suggestedQuestions.map((question, idx) => (
                   <Button
                     key={idx}
                     size="sm"
                     variant="outline"
-                    className="text-xs text-left justify-start h-auto py-2 px-3 whitespace-normal hover:bg-primary/5 hover:border-primary/30 transition-all"
+                    className="text-xs h-7 px-2 hover:bg-primary/5 hover:border-primary/30 transition-all"
                     onClick={() => sendMessage(question)}
                     disabled={isLoading}
                   >
@@ -241,13 +250,13 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
           )}
 
           {/* Input */}
-          <div className="p-4 border-t">
+          <div className="p-3 border-t flex-shrink-0">
             <div className="flex gap-2">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything about the site... or life! 🧠"
+                placeholder="Type your question here..."
                 disabled={isLoading}
                 className="flex-1"
               />
@@ -255,7 +264,6 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
                 onClick={() => sendMessage()}
                 disabled={isLoading || !input.trim()}
                 size="icon"
-                className="bg-gradient-to-br from-primary to-accent hover:opacity-90 transition-all"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -264,10 +272,6 @@ export default function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
                 )}
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 text-center flex items-center justify-center gap-1">
-              <Heart className="w-3 h-3 text-red-500" />
-              Powered by wrinkly wisdom
-            </p>
           </div>
         </div>
       </DialogContent>
