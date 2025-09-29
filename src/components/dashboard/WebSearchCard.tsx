@@ -215,7 +215,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Unloaded state
   if (!hasLoadedOnce) {
     return (
-      <Card className="col-span-2 row-span-2 border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in bg-gradient-to-br from-card to-background">
+      <Card className="col-span-4 row-span-4 border-border/50 shadow-2xl hover:shadow-3xl transition-all duration-300 animate-fade-in bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -269,7 +269,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Loading state
   if (isLoading && !data) {
     return (
-      <Card className="col-span-2 row-span-2 border-border/50 shadow-lg bg-gradient-to-br from-card to-background animate-fade-in">
+      <Card className="col-span-4 row-span-4 border-border/50 shadow-2xl bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm animate-fade-in">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -310,7 +310,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   // Error state
   if (error && !data) {
     return (
-      <Card className="col-span-2 row-span-2 border-destructive/20 shadow-lg bg-gradient-to-br from-destructive/5 to-background animate-fade-in">
+      <Card className="col-span-4 row-span-4 border-destructive/20 shadow-2xl bg-gradient-to-br from-destructive/5 via-card to-background animate-fade-in">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -350,20 +350,23 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
   return (
     <>
       <Card 
-        className="col-span-2 row-span-2 border-border/30 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-card via-card to-background/50 animate-fade-in group"
+        className="col-span-4 row-span-4 border-border/30 shadow-2xl hover:shadow-3xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 animate-fade-in group backdrop-blur-sm relative overflow-hidden"
         onClick={() => setSheetOpen(true)}
       >
+        {/* Animated background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-50 animate-pulse" />
+        <div className="relative z-10">
         <CardHeader className="pb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 animate-scale-in group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
-                <DollarSign className="h-8 w-8 text-primary" />
+                <DollarSign className="h-10 w-10 text-primary" />
               </div>
               <div className="flex flex-col space-y-1">
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                   Web Search (Profitability)
                 </CardTitle>
-                <CardDescription className="text-sm">
+                <CardDescription className="text-base">
                   {totalDataPoints > 0 ? `${totalDataPoints} data points analyzed` : 'Commercial intent & competition analysis'}
                 </CardDescription>
                 {/* Cache/Fresh indicator */}
@@ -414,28 +417,37 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Metrics Cards - Beautiful grid */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className={`p-3 rounded-xl ${getIntensityColor(competitionIntensity)} backdrop-blur-sm border border-border/30 animate-scale-in`} style={{animationDelay: '100ms'}}>
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="h-4 w-4" />
-                <span className="text-xs font-semibold">Competition</span>
+          <div className="grid grid-cols-3 gap-4">
+            <div className={`p-4 rounded-xl ${getIntensityColor(competitionIntensity)} backdrop-blur-sm border border-border/30 animate-scale-in shadow-lg hover:shadow-xl transition-all`} style={{animationDelay: '100ms'}}>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-5 w-5" />
+                <span className="text-sm font-semibold">Competition</span>
               </div>
-              <div className="text-lg font-bold capitalize">{competitionIntensity}</div>
+              <div className="text-2xl font-bold capitalize">{competitionIntensity}</div>
+              {data?.metrics?.[0]?.explanation && (
+                <p className="text-xs mt-2 opacity-80">{data.metrics[0].explanation.substring(0, 60)}...</p>
+              )}
             </div>
-            <div className={`p-3 rounded-xl ${getPotentialColor(monetizationPotential)} backdrop-blur-sm border border-border/30 animate-scale-in`} style={{animationDelay: '200ms'}}>
-              <div className="flex items-center gap-2 mb-1">
-                <ShoppingCart className="h-4 w-4" />
-                <span className="text-xs font-semibold">Monetization</span>
+            <div className={`p-4 rounded-xl ${getPotentialColor(monetizationPotential)} backdrop-blur-sm border border-border/30 animate-scale-in shadow-lg hover:shadow-xl transition-all`} style={{animationDelay: '200ms'}}>
+              <div className="flex items-center gap-2 mb-2">
+                <ShoppingCart className="h-5 w-5" />
+                <span className="text-sm font-semibold">Monetization</span>
               </div>
-              <div className="text-lg font-bold capitalize">{monetizationPotential}</div>
+              <div className="text-2xl font-bold capitalize">{monetizationPotential}</div>
+              {data?.metrics?.[1]?.explanation && (
+                <p className="text-xs mt-2 opacity-80">{data.metrics[1].explanation.substring(0, 60)}...</p>
+              )}
             </div>
             {marketMaturity !== 'unknown' && (
-              <div className="p-3 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/30 animate-scale-in" style={{animationDelay: '300ms'}}>
-                <div className="flex items-center gap-2 mb-1">
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground">Market</span>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 backdrop-blur-sm border border-indigo-200/30 dark:border-indigo-800/30 animate-scale-in shadow-lg hover:shadow-xl transition-all" style={{animationDelay: '300ms'}}>
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Market</span>
                 </div>
-                <div className="text-lg font-bold capitalize text-muted-foreground">{marketMaturity}</div>
+                <div className="text-2xl font-bold capitalize text-indigo-700 dark:text-indigo-300">{marketMaturity}</div>
+                {data?.metrics?.[2]?.explanation && (
+                  <p className="text-xs mt-2 text-indigo-600/80 dark:text-indigo-400/80">{data.metrics[2].explanation.substring(0, 60)}...</p>
+                )}
               </div>
             )}
           </div>
@@ -450,19 +462,19 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {topQueries.slice(0, 8).map((query: string, idx: number) => (
+                {topQueries.slice(0, 12).map((query: string, idx: number) => (
                   <Badge 
                     key={idx} 
                     variant="outline" 
-                    className="py-1 px-3 hover-scale cursor-pointer hover:bg-primary/10 transition-all"
+                    className="py-1.5 px-3 hover-scale cursor-pointer bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 hover:from-orange-100 hover:to-amber-100 dark:hover:from-orange-900/40 dark:hover:to-amber-900/40 transition-all border-orange-200/50 dark:border-orange-800/50 text-orange-700 dark:text-orange-300"
                     style={{animationDelay: `${500 + idx * 50}ms`}}
                   >
-                    {query.length > 30 ? query.substring(0, 30) + '...' : query}
+                    {query}
                   </Badge>
                 ))}
-                {topQueries.length > 8 && (
-                  <Badge variant="secondary" className="py-1 px-3">
-                    +{topQueries.length - 8} more
+                {topQueries.length > 12 && (
+                  <Badge variant="secondary" className="py-1.5 px-3 bg-orange-100 dark:bg-orange-900/50">
+                    +{topQueries.length - 12} more
                   </Badge>
                 )}
               </div>
@@ -498,18 +510,50 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
                   Top {competitors.length} Competitors
                 </p>
               </div>
-              <div className="space-y-2">
-                {competitors.slice(0, 5).map((comp: any, idx: number) => (
+              <div className="grid grid-cols-2 gap-2">
+                {competitors.slice(0, 6).map((comp: any, idx: number) => (
                   <div 
                     key={idx} 
-                    className="flex items-center justify-between p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/40 dark:hover:to-indigo-900/40 transition-all border border-blue-200/30 dark:border-blue-800/30"
                   >
-                    <span className="font-medium text-sm truncate flex-1">{comp.domain}</span>
-                    <Badge variant="secondary" className="ml-2">
-                      {comp.appearances} {comp.appearances === 1 ? 'mention' : 'mentions'}
+                    <span className="font-medium text-sm">{comp.domain}</span>
+                    <Badge variant="secondary" className="ml-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                      {comp.appearances}x
                     </Badge>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Market Insights Summary */}
+          {data?.insights && (
+            <div className="space-y-3 animate-fade-in" style={{animationDelay: '800ms'}}>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <p className="text-sm font-semibold">AI Market Insights</p>
+              </div>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200/30 dark:border-purple-800/30">
+                <div className="space-y-3">
+                  {data.insights.market_gap && (
+                    <div>
+                      <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1">Market Gap</p>
+                      <p className="text-sm text-purple-900 dark:text-purple-100">{data.insights.market_gap}</p>
+                    </div>
+                  )}
+                  {data.insights.pricing_strategy && (
+                    <div>
+                      <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1">Pricing Strategy</p>
+                      <p className="text-sm text-purple-900 dark:text-purple-100">{data.insights.pricing_strategy}</p>
+                    </div>
+                  )}
+                  {data.insights.competitive_advantage && (
+                    <div>
+                      <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1">Competitive Edge</p>
+                      <p className="text-sm text-purple-900 dark:text-purple-100">{data.insights.competitive_advantage}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -549,6 +593,7 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
             </Button>
           </div>
         </CardContent>
+        </div>
       </Card>
 
       {/* Detailed View Sheet */}
