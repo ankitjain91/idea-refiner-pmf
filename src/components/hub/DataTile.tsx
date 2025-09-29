@@ -350,28 +350,28 @@ export function DataTile({
   return (
     <>
       <Card 
-        className={cn("col-span-2 row-span-2 h-full flex flex-col hover:shadow-2xl transition-all duration-300 border-border/30 shadow-lg bg-gradient-to-br from-card via-card to-background/50 animate-fade-in group", className)}
+        className={cn("h-full flex flex-col hover:shadow-2xl transition-all duration-300 border-border/30 shadow-lg bg-gradient-to-br from-card via-card to-background/50 animate-fade-in group", className)}
       >
-        <CardHeader className="pb-6 px-6 pt-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-4 bg-gradient-to-br from-primary/25 to-primary/10 rounded-2xl animate-scale-in group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
-                <Icon className="h-6 w-6 text-primary" />
+        <CardHeader className="pb-4 px-5 pt-5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="p-3 bg-gradient-to-br from-primary/25 to-primary/10 rounded-xl animate-scale-in group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300 flex-shrink-0">
+                <Icon className="h-5 w-5 text-primary" />
               </div>
-              <div className="space-y-1">
-                <CardTitle className="text-xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">{title}</CardTitle>
+              <div className="space-y-0.5 min-w-0">
+                <CardTitle className="text-lg font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent truncate">{title}</CardTitle>
                 {description && (
-                  <p className="text-sm text-muted-foreground">{description}</p>
+                  <p className="text-xs text-muted-foreground truncate">{description}</p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {lastRefresh && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded-lg">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline font-medium">{lastRefresh.toLocaleTimeString()}</span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">
+                      <Clock className="h-3 w-3" />
+                      <span className="hidden lg:inline">{lastRefresh.toLocaleTimeString()}</span>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -380,70 +380,70 @@ export function DataTile({
                 </Tooltip>
               )}
               {hasLoadedOnce && (
-                <>
+                <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowInsights(true);
                         }}
-                        className="h-8 w-8 hover-scale"
+                        className="h-7 w-7 hover-scale"
                       >
-                        <HelpCircle className="h-4 w-4" />
+                        <HelpCircle className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>How this helps your journey</TooltipContent>
+                    <TooltipContent>How this helps</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           fetchData();
                         }}
                         disabled={loading}
-                        className="h-8 w-8 hover-scale"
+                        className="h-7 w-7 hover-scale"
                       >
-                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Refresh data</TooltipContent>
+                    <TooltipContent>Refresh</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowDetails(true);
                         }}
-                        className="h-8 w-8 hover-scale"
+                        className="h-7 w-7 hover-scale"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>View details</TooltipContent>
+                    <TooltipContent>Details</TooltipContent>
                   </Tooltip>
-                </>
+                </div>
               )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       setExpanded(!expanded);
                     }}
-                    className="h-8 w-8 hover-scale"
+                    className="h-7 w-7 hover-scale"
                   >
-                    {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{expanded ? 'Collapse' : 'Expand'}</TooltipContent>
@@ -452,7 +452,7 @@ export function DataTile({
           </div>
         </CardHeader>
         
-        <CardContent className="flex-1 px-6 pb-6 pt-0">
+        <CardContent className="flex-1 px-5 pb-5 pt-0 overflow-hidden">
           {!hasLoadedOnce && !loading ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-6 animate-fade-in">
               <div className="relative">
