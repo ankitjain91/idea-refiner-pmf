@@ -43,6 +43,7 @@ export function EnhancedDataTile({
   const [groqInsights, setGroqInsights] = useState<any>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const maxRetries = 2;
 
   const fetchData = useCallback(async (forceRefresh = false) => {
@@ -50,6 +51,7 @@ export function EnhancedDataTile({
     
     setLoading(true);
     setError(null);
+    setHasInitialized(true);
 
     try {
       // Get current idea
@@ -80,26 +82,16 @@ export function EnhancedDataTile({
       setData(result);
       setLastRefresh(new Date());
       setRetryCount(0);
-      setHasInitialized(true);
     } catch (err) {
       console.error(`[${tileType}] Fetch error:`, err);
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
       
-      // Exponential backoff retry
-      if (retryCount < maxRetries) {
-        const delay = Math.pow(2, retryCount) * 1000;
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          fetchData();
-        }, delay);
-      }
+      // Don't auto-retry - let user decide
+      setRetryCount(0);
     } finally {
       setLoading(false);
     }
-  }, [filters, tileType, fetchAdapter, loading, retryCount]);
-
-  // State to track if user has initiated data loading
-  const [hasInitialized, setHasInitialized] = useState(false);
+  }, [filters, tileType, fetchAdapter, loading]);
 
   const handleAnalyze = async () => {
     if (!data || isAnalyzing) return;
@@ -257,6 +249,21 @@ export function EnhancedDataTile({
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
             </div>
+          ) : !hasInitialized ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground mb-2">
+                Ready to fetch real-time data
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchData()}
+                className="gap-2"
+              >
+                <Database className="h-4 w-4" />
+                Load Data
+              </Button>
+            </div>
           ) : error ? (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -276,18 +283,7 @@ export function EnhancedDataTile({
             renderContent ? renderContent(data) : getDefaultContent()
           ) : (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-2">
-                Ready to fetch real-time data
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchData()}
-                className="gap-2"
-              >
-                <Database className="h-4 w-4" />
-                Load Data
-              </Button>
+              <p className="text-sm text-muted-foreground">No data available</p>
             </div>
           )}
 
