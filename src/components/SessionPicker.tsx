@@ -216,7 +216,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                   className="w-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                   size="lg"
                 >
-                  Create New Session
+                  <Plus className="h-5 w-5" />
                 </Button>
               </div>
             ) : (
@@ -270,9 +270,8 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
                         {isCreating ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Plus className="h-4 w-4" />
+                          'Create'
                         )}
-                        Create
                       </Button>
                     </div>
                     <div 
