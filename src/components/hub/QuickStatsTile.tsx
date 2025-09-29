@@ -1,314 +1,253 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  ArrowUpRight, ArrowDownRight, TrendingUp, Building2, Sparkles,
-  RefreshCw, HelpCircle, Activity, AlertCircle, ChevronRight,
-  Zap, Info, BarChart2, PieChart
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { BaseTile, useTileData } from './BaseTile';
 import { TileInsightsDialog } from './TileInsightsDialog';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface QuickStatsTileProps {
   title: string;
-  icon: React.ElementType;
+  icon: any;
   tileType: 'pmf_score' | 'market_size' | 'competition' | 'sentiment';
   currentIdea: string;
   onAnalyze?: () => void;
 }
 
-export function QuickStatsTile({ 
-  title, 
-  icon: Icon, 
-  tileType, 
+export function QuickStatsTile({
+  title,
+  icon,
+  tileType,
   currentIdea,
   onAnalyze
 }: QuickStatsTileProps) {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [hasCheckedCache, setHasCheckedCache] = useState(false);
+  const cacheKey = `quick_stats_${tileType}_${currentIdea}`;
 
-  const fetchData = async (forceRefresh = false) => {
-    if (!currentIdea) return;
-    
-    const cacheKey = `tile_cache_${tileType}_${currentIdea}`;
-    const lastRefreshKey = `tile_last_refresh_${tileType}_${currentIdea}`;
-    
-    // Check if we're within the 10-minute rate limit
-    if (forceRefresh) {
-      const lastRefreshTime = localStorage.getItem(lastRefreshKey);
-      if (lastRefreshTime) {
-        const timeSinceRefresh = Date.now() - parseInt(lastRefreshTime);
-        const TEN_MINUTES = 600000; // 10 minutes in milliseconds
-        
-        if (timeSinceRefresh < TEN_MINUTES) {
-          const remainingMinutes = Math.ceil((TEN_MINUTES - timeSinceRefresh) / 60000);
-          alert(`Please wait ${remainingMinutes} more minute${remainingMinutes > 1 ? 's' : ''} before refreshing again.`);
-          return;
-        }
-      }
-    }
-    
-    // Always check cache first
+  const fetchTileData = async () => {
+    if (!currentIdea) return null;
+
+    // Check cache first
     const cached = localStorage.getItem(cacheKey);
-    if (!forceRefresh && cached) {
-      const parsedCache = JSON.parse(cached);
-      setData(parsedCache.data);
-      setLastRefresh(new Date(parsedCache.timestamp));
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      let response;
-      
-      switch (tileType) {
-        case 'pmf_score':
-          // PMF Score needs data from other tiles - delay slightly to let them load first
-          await new Promise(resolve => setTimeout(resolve, 500));
-          const marketSize = localStorage.getItem('market_size_value') || '$5B';
-          const competition = localStorage.getItem('competition_value') || 'Medium';
-          const sentiment = localStorage.getItem('sentiment_value') || '50%';
-          
-          response = await supabase.functions.invoke('pmf-score', {
-            body: { idea: currentIdea, marketSize, competition, sentiment }
-          });
-          break;
-          
-        case 'market_size':
-          response = await supabase.functions.invoke('market-size', {
-            body: { idea: currentIdea, industry: '', geography: 'global' }
-          });
-          if (response.data) {
-            // Store for PMF calculation
-            const value = `$${response.data.metrics?.[0]?.value || 5}${response.data.metrics?.[0]?.unit || 'B'}`;
-            localStorage.setItem('market_size_value', value);
-          }
-          break;
-          
-        case 'competition':
-          response = await supabase.functions.invoke('competition', {
-            body: { idea: currentIdea, industry: '' }
-          });
-          if (response.data) {
-            localStorage.setItem('competition_value', response.data.level);
-          }
-          break;
-          
-        case 'sentiment':
-          response = await supabase.functions.invoke('sentiment', {
-            body: { idea: currentIdea }
-          });
-          if (response.data) {
-            localStorage.setItem('sentiment_value', `${response.data.sentiment}%`);
-          }
-          break;
+    if (cached) {
+      try {
+        const parsedCache = JSON.parse(cached);
+        const cacheAge = Date.now() - parsedCache.timestamp;
+        if (cacheAge < 10 * 60 * 1000) { // 10 minutes
+          return parsedCache.data;
+        }
+      } catch (e) {
+        console.error('Cache parse error:', e);
       }
-      
-      if (response?.data) {
-        setData(response.data);
-        setLastRefresh(new Date());
-        
-        // Cache the data
-        localStorage.setItem(cacheKey, JSON.stringify({
-          data: response.data,
-          timestamp: Date.now()
-        }));
-        
-        // Update last refresh time for rate limiting
-        localStorage.setItem(lastRefreshKey, Date.now().toString());
-      }
-    } catch (error) {
-      console.error(`Error fetching ${tileType} data:`, error);
-    } finally {
-      setLoading(false);
     }
+
+    // Map tile types to their respective functions
+    const functionMap = {
+      'pmf_score': 'smoothbrains-score',
+      'market_size': 'market-size',
+      'competition': 'competition',
+      'sentiment': 'sentiment'
+    };
+
+    const functionName = functionMap[tileType];
+    if (!functionName) throw new Error(`Unknown tile type: ${tileType}`);
+
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: { idea: currentIdea }
+    });
+
+    if (error) throw error;
+
+    // Cache the result
+    localStorage.setItem(cacheKey, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+
+    // Store values for other tiles if needed
+    if (tileType === 'market_size' && data?.tam) {
+      localStorage.setItem('market_size_value', JSON.stringify({
+        tam: data.tam,
+        sam: data.sam,
+        som: data.som
+      }));
+    }
+
+    return data;
   };
 
-  // Load cached data on mount if available
-  useEffect(() => {
-    if (currentIdea && !hasCheckedCache) {
-      setHasCheckedCache(true);
-      
-      // Always load from cache if available
-      const cacheKey = `tile_cache_${tileType}_${currentIdea}`;
-      const cached = localStorage.getItem(cacheKey);
-      
-      if (cached) {
-        const parsedCache = JSON.parse(cached);
-        setData(parsedCache.data);
-        setLastRefresh(new Date(parsedCache.timestamp));
-      }
-    }
-  }, [currentIdea, hasCheckedCache]);
+  const { data, isLoading, error, loadData } = useTileData(fetchTileData, [currentIdea, tileType]);
 
-  // Auto-load data on mount if not already loaded
-  useEffect(() => {
-    if (!data && !loading && currentIdea) {
-      fetchData();
-    }
-  }, [data, loading, currentIdea]);
+  const renderTileContent = () => {
+    if (!data) return null;
 
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-24" />
-          <Skeleton className="h-3 w-32" />
-        </div>
-      );
-    }
-    
-    if (!data) {
-      return (
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-24" />
-          <Skeleton className="h-3 w-32" />
-        </div>
-      );
-    }
-    
     switch (tileType) {
       case 'pmf_score':
+        const score = data.score || 0;
+        const scoreColor = score >= 70 ? 'text-green-600' : score >= 40 ? 'text-yellow-600' : 'text-red-600';
         return (
-          <div className="space-y-2">
-            <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-semibold">
-                {data.score}%
-              </p>
-              {data.trend && (
-                data.trend === 'positive' ? 
-                  <ArrowUpRight className="h-4 w-4 text-emerald-500" /> :
-                data.trend === 'negative' ?
-                  <ArrowDownRight className="h-4 w-4 text-red-500" /> :
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">{data.rationale}</p>
-          </div>
-        );
-        
-      case 'market_size':
-        const tam = data.metrics?.find((m: any) => m.name === 'TAM');
-        return (
-          <div className="space-y-2">
-            <p className="text-2xl font-semibold">
-              ${tam?.value || 0}{tam?.unit || 'M'}
-            </p>
-            <div className="flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {data.metrics?.find((m: any) => m.name === 'CAGR')?.value || 15}% CAGR
-              </span>
-            </div>
-          </div>
-        );
-        
-      case 'competition':
-        return (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge 
-                variant="secondary"
-                className={cn(
-                  "font-medium",
-                  data.level === 'Low' && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-                  data.level === 'Medium' && "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-                  data.level === 'High' && "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20"
-                )}
-              >
-                {data.level}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn("text-3xl font-bold", scoreColor)}>
+                  {score}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {score >= 70 ? 'Strong PMF' : score >= 40 ? 'Moderate PMF' : 'Needs Work'}
+                </p>
+              </div>
+              <Badge variant={score >= 70 ? 'default' : score >= 40 ? 'secondary' : 'destructive'}>
+                {score >= 70 ? 'High' : score >= 40 ? 'Medium' : 'Low'}
               </Badge>
             </div>
-            {data.competitors && data.competitors.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {data.competitors.slice(0, 3).map((c: any) => c.name).join(', ')}
-              </p>
+            {data.factors && (
+              <div className="space-y-2">
+                {Object.entries(data.factors).slice(0, 3).map(([key, value]: [string, any]) => (
+                  <div key={key} className="flex justify-between text-xs">
+                    <span className="text-muted-foreground capitalize">
+                      {key.replace(/_/g, ' ')}
+                    </span>
+                    <span className="font-medium">{value.score || value}%</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         );
+
+      case 'market_size':
+        const tam = data.tam || data.market_size?.tam || 0;
+        const sam = data.sam || data.market_size?.sam || 0;
+        const formatValue = (val: number) => {
+          if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
+          if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+          return `$${(val / 1e3).toFixed(0)}K`;
+        };
         
-      case 'sentiment':
         return (
-          <div className="space-y-2">
-            <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-semibold">
-                {data.sentiment}%
-              </p>
-              <Badge 
-                variant="secondary" 
-                className={cn(
-                  "text-xs font-normal",
-                  data.sentiment > 70 && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-                  data.sentiment > 40 && data.sentiment <= 70 && "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-                  data.sentiment <= 40 && "bg-red-500/10 text-red-700 dark:text-red-400"
-                )}
-              >
-                {data.sentiment > 70 ? 'Positive' : 
-                 data.sentiment > 40 ? 'Mixed' : 
-                 'Negative'}
-              </Badge>
+          <div className="space-y-3">
+            <div>
+              <p className="text-2xl font-bold">{formatValue(tam)}</p>
+              <p className="text-xs text-muted-foreground">Total Market</p>
             </div>
-            <div className="flex gap-1 h-2">
-              <div 
-                className="bg-emerald-500/20 rounded-l" 
-                style={{ width: `${data.distribution?.positive || 0}%` }}
-              >
-                <div className="h-full bg-emerald-500 rounded-l" style={{ width: '100%' }} />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 bg-muted/30 rounded">
+                <p className="text-sm font-semibold">{formatValue(sam)}</p>
+                <p className="text-xs text-muted-foreground">SAM</p>
               </div>
-              <div 
-                className="bg-yellow-500/20" 
-                style={{ width: `${data.distribution?.neutral || 0}%` }}
-              >
-                <div className="h-full bg-yellow-500" style={{ width: '100%' }} />
-              </div>
-              <div 
-                className="bg-red-500/20 rounded-r" 
-                style={{ width: `${data.distribution?.negative || 0}%` }}
-              >
-                <div className="h-full bg-red-500 rounded-r" style={{ width: '100%' }} />
+              <div className="p-2 bg-muted/30 rounded">
+                <p className="text-sm font-semibold">{formatValue(sam * 0.1)}</p>
+                <p className="text-xs text-muted-foreground">SOM</p>
               </div>
             </div>
           </div>
         );
+
+      case 'competition':
+        const level = data.competition_level || data.level || 'Unknown';
+        const competitorCount = data.competitors?.length || data.main_competitors?.length || 0;
+        const levelColor = level === 'Low' ? 'text-green-600' : level === 'Medium' ? 'text-yellow-600' : 'text-red-600';
+        
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn("text-xl font-bold", levelColor)}>
+                  {level}
+                </p>
+                <p className="text-xs text-muted-foreground">Competition Level</p>
+              </div>
+              <Badge variant={level === 'Low' ? 'default' : level === 'Medium' ? 'secondary' : 'destructive'}>
+                {competitorCount} Competitors
+              </Badge>
+            </div>
+            {data.competitors && data.competitors.length > 0 && (
+              <div className="space-y-1">
+                {data.competitors.slice(0, 3).map((comp: any, idx: number) => (
+                  <div key={idx} className="text-xs flex justify-between">
+                    <span className="text-muted-foreground truncate">{comp.name || comp}</span>
+                    {comp.strength && (
+                      <Badge variant="outline" className="text-xs ml-2">
+                        {comp.strength}
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      case 'sentiment':
+        const sentiment = data.overall_sentiment || data.sentiment || 'Neutral';
+        const positive = data.positive_percentage || data.positive || 0;
+        const sentimentColor = sentiment === 'Positive' ? 'text-green-600' : 
+                              sentiment === 'Negative' ? 'text-red-600' : 'text-yellow-600';
+        
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn("text-xl font-bold", sentimentColor)}>
+                  {sentiment}
+                </p>
+                <p className="text-xs text-muted-foreground">Overall Sentiment</p>
+              </div>
+              <Badge variant={sentiment === 'Positive' ? 'default' : 
+                            sentiment === 'Negative' ? 'destructive' : 'secondary'}>
+                {positive}% Positive
+              </Badge>
+            </div>
+            {data.sentiment_breakdown && (
+              <div className="flex gap-2">
+                <div className="flex-1 text-center p-2 bg-green-500/10 rounded">
+                  <p className="text-xs font-semibold text-green-600">
+                    {data.sentiment_breakdown.positive || 0}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Positive</p>
+                </div>
+                <div className="flex-1 text-center p-2 bg-yellow-500/10 rounded">
+                  <p className="text-xs font-semibold text-yellow-600">
+                    {data.sentiment_breakdown.neutral || 0}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Neutral</p>
+                </div>
+                <div className="flex-1 text-center p-2 bg-red-500/10 rounded">
+                  <p className="text-xs font-semibold text-red-600">
+                    {data.sentiment_breakdown.negative || 0}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Negative</p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
   return (
     <>
-      <Card className="relative overflow-hidden border-border/50 hover:border-border transition-colors">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Icon className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{title}</p>
-                {lastRefresh && (
-                  <p className="text-xs text-muted-foreground">
-                    {(() => {
-                      const age = new Date().getTime() - lastRefresh.getTime();
-                      if (age < 60000) return 'Just now';
-                      if (age < 3600000) return `${Math.floor(age / 60000)}m ago`;
-                      if (age < 86400000) return `${Math.floor(age / 3600000)}h ago`;
-                      return `${Math.floor(age / 86400000)}d ago`;
-                    })()}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {renderContent()}
-        </CardContent>
-      </Card>
+      <BaseTile
+        title={title}
+        icon={icon}
+        isLoading={isLoading}
+        error={error}
+        data={data}
+        onLoad={loadData}
+        autoLoad={true}
+        className="h-full"
+      >
+        {renderTileContent()}
+      </BaseTile>
+
+      <TileInsightsDialog
+        open={showInsights}
+        onOpenChange={setShowInsights}
+        tileType={tileType}
+      />
     </>
   );
 }
