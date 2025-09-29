@@ -4,6 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fix scrolling issues */
+html {
+  overflow-x: hidden;
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#root {
+  min-height: 100vh;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
