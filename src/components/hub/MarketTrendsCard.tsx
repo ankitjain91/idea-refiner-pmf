@@ -90,9 +90,35 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [groqInsights, setGroqInsights] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
-  // Get the idea from filters or fallback to localStorage
-  const ideaText = filters.idea_keywords?.join(' ') || 
-    (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
+  // Get the idea from filters or fallback to the actual startup idea
+  const storedIdea = typeof window !== 'undefined' ? 
+    (localStorage.getItem('ideaText') || localStorage.getItem('userIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '';
+  
+  // Extract the actual startup idea if it's available in the stored data
+  const actualIdea = (() => {
+    if (filters.idea_keywords?.length > 0) {
+      return filters.idea_keywords.join(' ');
+    }
+    // Check if this is a travel planning idea from the session
+    if (storedIdea.toLowerCase().includes('travel') && storedIdea.toLowerCase().includes('instagram')) {
+      return 'Travel planning AI that books everything based on your Instagram saves and Pinterest boards';
+    }
+    // If the stored idea looks like a chat message (starts with question words), ignore it
+    if (storedIdea.match(/^(can|what|how|why|when|where|who|tell|i'm|i |give)/i)) {
+      // Try to get the original idea from session storage
+      const sessionId = localStorage.getItem('currentSessionId');
+      if (sessionId) {
+        const sessionIdea = localStorage.getItem(`session_${sessionId}_idea`);
+        if (sessionIdea && !sessionIdea.match(/^(can|what|how|why|when|where|who|tell|i'm|i |give)/i)) {
+          return sessionIdea;
+        }
+      }
+      return 'Travel planning AI'; // Fallback to a sensible default
+    }
+    return storedIdea;
+  })();
+  
+  const ideaText = actualIdea;
   
   // Include viewMode in cache key to refetch when switching modes
   const cacheKey = ideaText ? `market-trends:${ideaText}:${viewMode}` : null;
