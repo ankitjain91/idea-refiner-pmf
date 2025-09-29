@@ -56,6 +56,34 @@ const EMOJI_SCORES: Record<string, number> = {
   '🤔': 0, '😐': 0, '🙄': -1
 };
 
+function mapTimeWindow(tw?: string): 'hour' | 'day' | 'week' | 'month' | 'year' | 'all' {
+  switch ((tw || '').toLowerCase()) {
+    case 'last_24_hours':
+    case '24h':
+    case 'day':
+      return 'day';
+    case 'last_7_days':
+    case '7d':
+    case 'week':
+      return 'week';
+    case 'last_30_days':
+    case '30d':
+    case 'month':
+      return 'month';
+    case 'last_90_days':
+    case '90d':
+      return 'month';
+    case 'last_12_months':
+    case 'year':
+    case '12m':
+      return 'year';
+    case 'all':
+      return 'all';
+    default:
+      return 'month';
+  }
+}
+
 interface RedditPost {
   id: string;
   title: string;
@@ -163,27 +191,36 @@ serve(async (req) => {
     // Build search query
     searchTerms = [idea, industry, geography].filter(Boolean).join(' ');
     
-    // Get Reddit OAuth token
-    let accessToken: string;
+    // Try OAuth first; fall back to public endpoint on failure
+    let accessToken: string | null = null;
+    let usePublic = false;
     try {
       accessToken = await getRedditAccessToken();
       console.log('[reddit-sentiment] Got Reddit access token');
     } catch (authError) {
-      console.error('[reddit-sentiment] Auth failed:', authError);
-      throw new Error('Reddit authentication failed. Please check your credentials.');
+      console.warn('[reddit-sentiment] OAuth failed, falling back to public API:', authError);
+      usePublic = true;
     }
-    
-    // Reddit search using OAuth API
-    const redditUrl = `https://oauth.reddit.com/search?q=${encodeURIComponent(searchTerms)}&limit=50&sort=relevance&t=${timeWindow || 'month'}`;
-    
+      console.warn('[reddit-sentiment] OAuth failed, falling back to public API:', authError);
+      usePublic = true;
+    }
+
+    const tParam = mapTimeWindow(timeWindow);
+    const redditUrl = usePublic
+      ? `https://www.reddit.com/search.json?q=${encodeURIComponent(searchTerms)}&limit=50&sort=relevance&t=${tParam}&raw_json=1`
+      : `https://oauth.reddit.com/search?q=${encodeURIComponent(searchTerms)}&limit=50&sort=relevance&t=${tParam}&raw_json=1`;
+
     console.log('[reddit-sentiment] Fetching from Reddit:', redditUrl);
-    
-    const redditResponse = await fetch(redditUrl, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'User-Agent': 'PMFitHub/1.0'
-      }
-    });
+
+    const headers: Record<string, string> = {
+      'User-Agent': 'web:pmfithub:v1.0 (by u/pmfithub_app)',
+      'Accept': 'application/json'
+    };
+    if (!usePublic && accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const redditResponse = await fetch(redditUrl, { headers });
     
     if (!redditResponse.ok) {
       const errorText = await redditResponse.text();
@@ -193,7 +230,11 @@ serve(async (req) => {
     
     const redditData = await redditResponse.json();
     const posts: RedditPost[] = redditData.data.children
-      .filter((child: any) => child.data && !child.data.over_18 && !child.data.removed)
+      .filter((child: any) => {
+        const d = child.data;
+        const removed = (d.removed_by_category ?? '').toString();
+        return d && !d.over_18 && !['deleted','moderator','automod_filtered'].includes(removed) && d.title;
+      })
       .map((child: any) => ({
         id: child.data.id,
         title: child.data.title,
@@ -292,32 +333,8 @@ serve(async (req) => {
   } catch (error) {
     console.error('[reddit-sentiment] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-
-    // Build deterministic fallback so UI can render gracefully
-    const now = new Date().toISOString();
-    const q = [idea, industry, geography].filter(Boolean).join(' ');
-    const fallback = {
-      updatedAt: now,
-      filters: { idea, industry, geography, timeWindow },
-      metrics: [
-        { name: 'sentiment_positive', value: 0, unit: '%', explanation: 'share of positive posts', confidence: 0.5 },
-        { name: 'sentiment_neutral', value: 100, unit: '%', explanation: 'share of neutral posts', confidence: 0.5 },
-        { name: 'sentiment_negative', value: 0, unit: '%', explanation: 'share of negative posts', confidence: 0.5 },
-        { name: 'engagement_score', value: 0, unit: '/100', explanation: 'avg upvotes & posts/week', confidence: 0.5 },
-        { name: 'community_positivity_score', value: 0, unit: '/100', explanation: '0.8*sentiment_core+0.2*engagement', confidence: 0.5 }
-      ],
-      themes: [],
-      pain_points: [],
-      items: [],
-      citations: [ { label: 'Reddit Search', url: `https://reddit.com/search?q=${encodeURIComponent(q)}` } ],
-      warnings: [
-        'Using fallback data due to Reddit API error. Results may be incomplete.',
-        errorMessage
-      ],
-      totalPosts: 0
-    };
-
-    return new Response(JSON.stringify(fallback), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
