@@ -19,6 +19,7 @@ import { GlobalFilters } from "@/components/hub/GlobalFilters";
 import { DataTile } from "@/components/hub/DataTile";
 import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
+import { WebSearchCard } from "@/components/dashboard/WebSearchCard";
 import { cn } from "@/lib/utils";
 
 export default function EnterpriseHub() {
@@ -190,35 +191,36 @@ export default function EnterpriseHub() {
         </div>
       </div>
 
-      {/* Main Grid with Data Tiles - Consistent layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {/* Web Search as DataTile */}
-        <div className="col-span-1 animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <DataTile
-            title="Web Search (Profitability)"
-            icon={Globe2}
-            tileType="web_search"
-            filters={filters}
-            description="Market profitability & competition analysis"
+      {/* Main Grid with WebSearchCard and Data Tiles */}
+      <div className="space-y-6">
+        {/* Web Search Card - Larger size */}
+        <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <WebSearchCard 
+            idea={currentIdea}
+            industry={filters.industry}
+            geography={filters.geography}
+            timeWindow={filters.time_window}
           />
         </div>
         
-        {/* Other Data Tiles */}
-        {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile, idx) => (
-          <div 
-            key={tile.id} 
-            className={cn(tile.span, "animate-fade-in")}
-            style={{ animationDelay: `${150 + idx * 50}ms` }}
-          >
-            <DataTile
-              title={tile.title}
-              icon={tile.icon}
-              tileType={tile.tileType}
-              filters={filters}
-              description={`Real-time ${tile.title.toLowerCase()} analysis`}
-            />
-          </div>
-        ))}
+        {/* Other Data Tiles - Grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {tiles.filter(t => t.id !== 'marketTrends' && t.id !== 'googleTrends' && t.id !== 'webSearch').map((tile, idx) => (
+            <div 
+              key={tile.id} 
+              className={cn(tile.span, "animate-fade-in")}
+              style={{ animationDelay: `${150 + idx * 50}ms` }}
+            >
+              <DataTile
+                title={tile.title}
+                icon={tile.icon}
+                tileType={tile.tileType}
+                filters={filters}
+                description={`Real-time ${tile.title.toLowerCase()} analysis`}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Pro/Enterprise Features Notice */}
