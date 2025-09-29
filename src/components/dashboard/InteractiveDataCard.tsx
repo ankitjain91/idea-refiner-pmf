@@ -255,15 +255,33 @@ export function InteractiveDataCard({
               </TooltipProvider>
             </CardTitle>
             {lastUpdated && (
-              <CardDescription className="text-xs">
-                <Clock className="inline h-3 w-3 mr-1" />
-                Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
-                {cacheAge > 0 && (
-                  <span className="ml-2 text-muted-foreground">
-                    (Cache: {formatCacheAge(cacheAge)})
-                  </span>
+              <div className="space-y-1">
+                <CardDescription className="text-xs">
+                  <Clock className="inline h-3 w-3 mr-1" />
+                  Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+                </CardDescription>
+                {cacheAge !== undefined && (
+                  <div className="flex items-center gap-1">
+                    {cacheAge === 0 ? (
+                      <Badge 
+                        variant="secondary" 
+                        className="text-xs py-0 px-1.5 h-5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
+                        Fresh data
+                      </Badge>
+                    ) : (
+                      <Badge 
+                        variant="secondary" 
+                        className="text-xs py-0 px-1.5 h-5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
+                        Cached • {formatCacheAge(cacheAge)} old
+                      </Badge>
+                    )}
+                  </div>
                 )}
-              </CardDescription>
+              </div>
             )}
           </div>
           

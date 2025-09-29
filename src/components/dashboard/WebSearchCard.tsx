@@ -129,13 +129,34 @@ export function WebSearchCard({ idea, industry, geography, timeWindow }: WebSear
               <div className="p-2 rounded-lg bg-primary/10">
                 <Search className="h-4 w-4 text-primary" />
               </div>
-              <div>
+              <div className="flex flex-col">
                 <CardTitle className="text-lg">Web Search Analysis</CardTitle>
                 <CardDescription className="text-xs mt-1">
                   {lastUpdated && (
                     <>Updated {formatCacheAge(cacheAge || 0)}</>
                   )}
                 </CardDescription>
+                {cacheAge !== undefined && (
+                  <div className="mt-1">
+                    {cacheAge < 60 ? (
+                      <Badge 
+                        variant="secondary" 
+                        className="text-xs py-0 px-1.5 h-5 w-fit bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1" />
+                        Fresh data
+                      </Badge>
+                    ) : (
+                      <Badge 
+                        variant="secondary" 
+                        className="text-xs py-0 px-1.5 h-5 w-fit bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-1 animate-pulse" />
+                        Cached • {formatCacheAge(cacheAge)}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1">
