@@ -12,8 +12,6 @@ import { CompetitorAnalysisChart } from './CompetitorAnalysisChart';
 import { PricingStrategyChart } from './PricingStrategyChart';
 import { TargetAudienceChart } from './TargetAudienceChart';
 import { LaunchTimelineChart } from './LaunchTimelineChart';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { TileInsightsDialog } from '@/components/hub/TileInsightsDialog';
 import { cn } from '@/lib/utils';
 
@@ -320,40 +318,13 @@ export function StandardizedMarketTile({
       </Card>
 
       {/* AI Analysis Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] p-0 overflow-hidden">
-          <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-primary/20 animate-pulse">
-                <Brain className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-semibold">
-                  AI Analysis: {title}
-                </DialogTitle>
-                <DialogDescription className="text-sm mt-1">
-                  Comprehensive insights and recommendations for {currentIdea}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-          
-          <ScrollArea className="h-[calc(85vh-80px)] px-6 py-4">
-            {renderAIAnalysis()}
-            
-            {/* Include TileInsightsDialog content */}
-            <div className="mt-6">
-              <TileInsightsDialog
-                open={false}
-                onOpenChange={() => {}}
-                tileType={tileType}
-                tileData={data}
-                ideaText={currentIdea}
-              />
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      <TileInsightsDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        tileType={tileType}
+        tileData={data}
+        ideaText={currentIdea}
+      />
     </>
   );
 }
