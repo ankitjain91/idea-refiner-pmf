@@ -80,6 +80,7 @@ export function EnhancedDataTile({
       setData(result);
       setLastRefresh(new Date());
       setRetryCount(0);
+      setHasInitialized(true);
     } catch (err) {
       console.error(`[${tileType}] Fetch error:`, err);
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -97,7 +98,7 @@ export function EnhancedDataTile({
     }
   }, [filters, tileType, fetchAdapter, loading, retryCount]);
 
-  // Don't auto-fetch on mount - let user trigger it
+  // State to track if user has initiated data loading
   const [hasInitialized, setHasInitialized] = useState(false);
 
   const handleAnalyze = async () => {
@@ -271,21 +272,18 @@ export function EnhancedDataTile({
                 </Button>
               </AlertDescription>
             </Alert>
-          ) : !data ? (
+          ) : !data && !hasInitialized ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">
-                {!hasInitialized ? 'Click to load real-time data' : 'No data available'}
+              <p className="text-sm text-muted-foreground mb-2">
+                Ready to fetch real-time data
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-2"
-                onClick={() => {
-                  setHasInitialized(true);
-                  fetchData();
-                }}
+                onClick={() => fetchData()}
+                className="gap-2"
               >
-                <Database className="h-4 w-4 mr-2" />
+                <Database className="h-4 w-4" />
                 Load Data
               </Button>
             </div>
