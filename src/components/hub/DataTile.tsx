@@ -11,7 +11,9 @@ import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   RefreshCw, ChevronDown, ChevronUp, AlertCircle, Clock, 
-  ExternalLink, Download, Database, Loader2, HelpCircle
+  ExternalLink, Download, Database, Loader2, HelpCircle,
+  TrendingUp, TrendingDown, Minus, Calendar, Newspaper,
+  BarChart3, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -32,10 +34,14 @@ interface TileData {
   metrics: Array<{
     name: string;
     value: number | string;
-    unit: string;
+    unit?: string;
     explanation?: string;
     method?: string;
     confidence?: number;
+  }>;
+  series?: Array<{
+    name: string;
+    points: Array<[string, number]>;
   }>;
   items?: Array<{
     title: string;
@@ -43,6 +49,7 @@ interface TileData {
     url?: string;
     source?: string;
     published?: string;
+    evidence?: string[];
   }>;
   competitors?: Array<{
     name: string;
@@ -62,6 +69,18 @@ interface TileData {
     label: string;
     published?: string;
   }>;
+  top_outlets?: string[];
+  themes?: string[];
+  cleanedArticles?: Array<{
+    url: string;
+    title: string;
+    summary: string;
+  }>;
+  cost_estimate?: {
+    serp_calls: number;
+    firecrawl_urls: number;
+    total_api_cost: string;
+  };
   fromCache?: boolean;
   stale?: boolean;
 }
@@ -86,6 +105,10 @@ export function DataTile({
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use 15 minute interval for news analysis, 30 seconds for others
+  const refreshInterval = tileType === 'news_analysis' ? 15 * 60 : 30;
+  const refreshIntervalMs = refreshInterval * 1000;
 
   const fetchTileData = async (tileType: string, filters: any): Promise<TileData> => {
     try {
@@ -138,6 +161,22 @@ export function DataTile({
       const fallbackFunction = fallbackFunctions[tileType] || 'dashboard-insights';
       
       try {
+        // Special handling for news-analysis edge function
+        if (tileType === 'news_analysis') {
+          const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('news-analysis', {
+            body: { 
+              idea: filters?.idea_keywords?.join(' ') || (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '') || 'startup',
+              industry: filters?.industry,
+              geo: filters?.geography || 'global',
+              time_window: filters?.time_window || 'last_90_days'
+            }
+          });
+          
+          if (fallbackError) throw fallbackError;
+          return fallbackData as TileData;
+        }
+        
+        // Default handling for other tile types
         const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke(fallbackFunction, {
           body: { 
             query: filters?.idea_keywords?.join(' ') || 'startup', 
@@ -204,7 +243,7 @@ export function DataTile({
       setData(tileData);
       setLastRefresh(new Date());
       setHasLoadedOnce(true);
-      setRefreshCountdown(30);
+      setRefreshCountdown(refreshInterval);
     } catch (err) {
       console.error(`Error fetching data for ${tileType}:`, err);
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -221,7 +260,7 @@ export function DataTile({
         setRefreshCountdown(prev => {
           if (prev <= 1) {
             fetchData();
-            return 30;
+            return refreshInterval;
           }
           return prev - 1;
         });
@@ -230,7 +269,7 @@ export function DataTile({
       // Set up actual refresh interval
       intervalRef.current = setInterval(() => {
         fetchData();
-      }, 30000);
+      }, refreshIntervalMs);
 
       return () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -240,9 +279,9 @@ export function DataTile({
       // Clear intervals when auto-refresh is disabled
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
-      setRefreshCountdown(30);
+      setRefreshCountdown(refreshInterval);
     }
-  }, [autoRefresh, fetchData, hasLoadedOnce]);
+  }, [autoRefresh, fetchData, hasLoadedOnce, refreshInterval, refreshIntervalMs]);
 
   const renderMetrics = () => {
     if (!data?.metrics || data.metrics.length === 0) return null;
@@ -290,9 +329,20 @@ export function DataTile({
                   {item.snippet && (
                     <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{item.snippet}</p>
                   )}
-                  {item.source && (
-                    <p className="text-xs text-muted-foreground/70 mt-2 font-medium">Source: {item.source}</p>
-                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    {item.source && (
+                      <p className="text-xs text-muted-foreground/70 font-medium">Source: {item.source}</p>
+                    )}
+                    {item.published && tileType === 'news_analysis' && (
+                      <>
+                        <span className="text-xs text-muted-foreground/50">•</span>
+                        <div className="flex items-center gap-0.5 text-xs text-muted-foreground/70">
+                          <Calendar className="h-3 w-3" />
+                          <span>{new Date(item.published).toLocaleDateString()}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
                 {item.url && (
                   <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary flex-shrink-0 mt-1" />
@@ -323,10 +373,134 @@ export function DataTile({
     );
   };
 
+  // Helper function to get direction icon and style
+  const getDirectionStyle = (value: string) => {
+    switch (value) {
+      case 'up':
+        return { icon: TrendingUp, color: 'text-green-500', bg: 'bg-green-500/10' };
+      case 'down':
+        return { icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-500/10' };
+      default:
+        return { icon: Minus, color: 'text-amber-500', bg: 'bg-amber-500/10' };
+    }
+  };
+
+  // Helper function to get momentum level
+  const getMomentumLevel = (zScore: number): { label: string; color: string; bg: string } => {
+    if (zScore >= 1.0) return { label: 'High', color: 'text-green-500', bg: 'bg-green-500/10' };
+    if (zScore >= 0.5) return { label: 'Medium', color: 'text-amber-500', bg: 'bg-amber-500/10' };
+    return { label: 'Low', color: 'text-blue-500', bg: 'bg-blue-500/10' };
+  };
+
+  // Render news-specific badges
+  const renderNewsBadges = () => {
+    if (tileType !== 'news_analysis' || !data?.metrics) return null;
+    
+    const momentumMetric = data.metrics.find(m => m.name === 'momentum_z');
+    const directionMetric = data.metrics.find(m => m.name === 'direction');
+    const sentimentMetric = data.metrics.find(m => m.name === 'sentiment_pos');
+    
+    if (!momentumMetric && !directionMetric && !sentimentMetric) return null;
+    
+    return (
+      <div className="flex gap-1.5 flex-wrap mb-3">
+        {directionMetric && (() => {
+          const style = getDirectionStyle(String(directionMetric.value));
+          return (
+            <Badge className={cn("gap-0.5 text-xs", style.bg, style.color)} variant="secondary">
+              <style.icon className="h-3 w-3" />
+              {String(directionMetric.value).toUpperCase()}
+            </Badge>
+          );
+        })()}
+        {momentumMetric && (() => {
+          const momentum = getMomentumLevel(Number(momentumMetric.value));
+          return (
+            <Badge className={cn("text-xs", momentum.bg, momentum.color)} variant="secondary">
+              Momentum: {momentum.label}
+            </Badge>
+          );
+        })()}
+        {sentimentMetric && (
+          <Badge variant="outline" className="text-xs">
+            {Number(sentimentMetric.value).toFixed(0)}% Positive
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
+  // Render themes for news analysis
+  const renderThemes = () => {
+    if (tileType !== 'news_analysis' || !data?.themes || data.themes.length === 0) return null;
+    
+    return (
+      <div className="space-y-1.5 mb-3">
+        <p className="text-xs font-medium text-muted-foreground">Key Themes</p>
+        <div className="flex flex-wrap gap-1">
+          {data.themes.slice(0, expanded ? undefined : 4).map((theme, idx) => (
+            <Badge key={idx} variant="secondary" className="text-xs">
+              {theme}
+            </Badge>
+          ))}
+          {!expanded && data.themes.length > 4 && (
+            <Badge variant="outline" className="text-xs">
+              +{data.themes.length - 4} more
+            </Badge>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render top outlets for news analysis
+  const renderTopOutlets = () => {
+    if (tileType !== 'news_analysis' || !data?.top_outlets || data.top_outlets.length === 0) return null;
+    
+    return (
+      <div className="p-2 bg-muted/30 rounded-lg mb-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium">Top Sources</span>
+          <div className="flex -space-x-1.5">
+            {data.top_outlets.slice(0, 3).map((outlet, idx) => (
+              <div 
+                key={idx}
+                className="h-6 w-6 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center"
+                title={outlet}
+              >
+                <span className="text-[10px] font-semibold">
+                  {outlet.slice(0, 2).toUpperCase()}
+                </span>
+              </div>
+            ))}
+            {data.top_outlets.length > 3 && (
+              <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                <span className="text-[10px]">+{data.top_outlets.length - 3}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderTileContent = () => {
     const content = [];
     
-    if (data?.metrics && data.metrics.length > 0) {
+    // News-specific badges at the top
+    if (tileType === 'news_analysis') {
+      const badges = renderNewsBadges();
+      if (badges) content.push(<div key="news-badges">{badges}</div>);
+      
+      const themes = renderThemes();
+      if (themes) content.push(<div key="themes">{themes}</div>);
+      
+      const outlets = renderTopOutlets();
+      if (outlets) content.push(<div key="outlets">{outlets}</div>);
+    }
+    
+    // Regular metrics for non-news tiles
+    if (tileType !== 'news_analysis' && data?.metrics && data.metrics.length > 0) {
       content.push(<div key="metrics">{renderMetrics()}</div>);
     }
     
@@ -506,7 +680,7 @@ export function DataTile({
                 <div className="pt-4 mt-4 border-t border-border/50 space-y-3">
                   <div className="flex items-center justify-between p-3 bg-muted/10 rounded-lg">
                     <Label htmlFor={`auto-refresh-${tileType}`} className="text-sm font-medium cursor-pointer">
-                      Auto-refresh every 30s
+                      Auto-refresh every {tileType === 'news_analysis' ? '15m' : '30s'}
                     </Label>
                     <Switch
                       id={`auto-refresh-${tileType}`}
@@ -517,8 +691,12 @@ export function DataTile({
                   {autoRefresh && (
                     <div className="px-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Next refresh in {refreshCountdown}s</span>
-                        <Progress value={(30 - refreshCountdown) * 3.33} className="w-24 h-1.5" />
+                        <span className="text-xs text-muted-foreground">
+                          Next refresh in {tileType === 'news_analysis' 
+                            ? `${Math.floor(refreshCountdown / 60)}m ${refreshCountdown % 60}s` 
+                            : `${refreshCountdown}s`}
+                        </span>
+                        <Progress value={(refreshInterval - refreshCountdown) * (100 / refreshInterval)} className="w-24 h-1.5" />
                       </div>
                     </div>
                   )}
