@@ -334,6 +334,9 @@ verify_jwt = false
 [functions.sentiment]
 verify_jwt = false
 
+[functions.hub-batch-data]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

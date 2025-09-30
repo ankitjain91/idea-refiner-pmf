@@ -32,14 +32,17 @@ import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
 import { DashboardInitializer } from "@/components/dashboard/DashboardInitializer";
 import { cn } from "@/lib/utils";
 
-
 import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { createConversationSummary } from '@/utils/conversationUtils';
+import { useBatchedDashboardData } from '@/hooks/useBatchedDashboardData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function EnterpriseHub() {
   const { currentSession, saveCurrentSession } = useSession();
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [filters, setFilters] = useState({
     idea_keywords: [],
@@ -249,47 +252,31 @@ export default function EnterpriseHub() {
     };
   }, []);
 
-  // Force refresh tiles when component mounts - load from database first
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      if (user?.id && currentSession?.id) {
-        // Pre-load all dashboard data from database
-        const tileTypes = [
-          'quick_stats_pmf_score',
-          'quick_stats_market_size', 
-          'quick_stats_competition',
-          'quick_stats_sentiment',
-          'news_analysis',
-          'youtube_analytics',
-          'twitter_buzz',
-          'amazon_reviews',
-          'competitor_analysis',
-          'target_audience',
-          'pricing_strategy',
-          'market_size',
-          'growth_projections',
-          'user_engagement',
-          'launch_timeline',
-          'market_trends',
-          'google_trends',
-          'web_search',
-          'reddit_sentiment'
-        ];
-        
-        const ideaText = localStorage.getItem('pmfCurrentIdea') || '';
-        const cachedData = await dashboardDataService.getBatchData(
-          user.id,
-          ideaText,
-          tileTypes
-        );
-        
-        console.log('Loaded dashboard data from database:', Object.keys(cachedData).length, 'tiles');
-      }
-    };
-    
-    loadDashboardData();
-    setTilesKey(prev => prev + 1);
-  }, [user?.id, currentSession?.id]);
+  // Define all tile types we want to fetch
+  const allTileTypes = [
+    'quick_stats_pmf_score',
+    'quick_stats_market_size', 
+    'quick_stats_competition',
+    'quick_stats_sentiment',
+    'market_trends',
+    'google_trends',
+    'web_search',
+    'reddit_sentiment',
+    'competitor_analysis',
+    'target_audience',
+    'pricing_strategy',
+    'market_size',
+    'growth_projections',
+    'user_engagement',
+    'launch_timeline'
+  ];
+
+  // Use the batched data fetching hook
+  const { 
+    data: batchedData, 
+    loading: batchLoading, 
+    refresh: refreshBatchedData 
+  } = useBatchedDashboardData(currentIdea, currentIdea ? allTileTypes : []);
 
   // Handle continent change
   const handleContinentChange = (continent: string) => {
@@ -306,41 +293,86 @@ export default function EnterpriseHub() {
       }
     });
     
+    // Store the selected continent
+    localStorage.setItem('selectedContinent', continent);
+    
     // Force refresh tiles
     setTilesKey(prev => prev + 1);
   };
 
-  // Global refresh function
+  // Global refresh function - clear ALL data and fetch fresh
   const handleGlobalRefresh = async () => {
     setIsRefreshing(true);
     
-    // Clear database cache first
-    if (user?.id) {
-      const ideaText = localStorage.getItem('pmfCurrentIdea') || '';
-      await dashboardDataService.clearAllData(user.id, ideaText, currentSession?.id);
-    }
-    
-    // Clear all cached data from localStorage
-    const allKeys = Object.keys(localStorage);
-    allKeys.forEach(key => {
-      if (key.includes('tile_cache_') || 
-          key.includes('tile_last_refresh_') ||
-          key.includes('trends_cache_') ||
-          key.includes('market_data_') ||
-          key.includes('reddit_sentiment_') ||
-          key.includes('web_search_') ||
-          key.includes('quick_stats_')) {
-        localStorage.removeItem(key);
+    try {
+      // 1. Clear ALL database cache
+      if (user?.id && currentIdea) {
+        console.log('Clearing all database cache...');
+        
+        // Delete all dashboard data for this user and idea using match
+        const { error: deleteError } = await supabase
+          .from('dashboard_data')
+          .delete()
+          .match({
+            user_id: user.id,
+            idea_text: currentIdea
+          });
+        
+        if (deleteError) {
+          console.error('Error clearing database cache:', deleteError);
+        }
+        
+        // Also clear using the service
+        await dashboardDataService.clearAllData(user.id, currentIdea, currentSession?.id);
       }
-    });
-    
-    // Force refresh all tiles by changing key
-    setTilesKey(prev => prev + 1);
-    
-    // Reset refreshing state after a delay
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 2000);
+      
+      // 2. Clear ALL localStorage cache
+      console.log('Clearing all localStorage cache...');
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.includes('tile_cache_') || 
+            key.includes('tile_last_refresh_') ||
+            key.includes('trends_cache_') ||
+            key.includes('market_data_') ||
+            key.includes('reddit_sentiment_') ||
+            key.includes('web_search_') ||
+            key.includes('quick_stats_') ||
+            key.includes('dashboard_') ||
+            key.includes('smoothBrainsScore') ||
+            key.includes('pmfScore') ||
+            key.includes('competition_value') ||
+            key.includes('sentiment_value') ||
+            key.includes('market_size_value')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // 3. Force refresh all tiles using the batched API
+      console.log('Fetching fresh data from APIs...');
+      await refreshBatchedData();
+      
+      // 4. Force component re-render
+      setTilesKey(prev => prev + 1);
+      
+      toast({
+        title: "Data refreshed",
+        description: "All dashboard data has been refreshed from the latest sources",
+        duration: 3000
+      });
+    } catch (error) {
+      console.error('Error during global refresh:', error);
+      toast({
+        title: "Refresh error",
+        description: "Some data couldn't be refreshed. Please try again.",
+        variant: "destructive",
+        duration: 4000
+      });
+    } finally {
+      // Reset refreshing state after a delay
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1500);
+    }
   };
 
   if (!currentIdea) {
