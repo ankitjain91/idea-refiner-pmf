@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 
 
 import { dashboardDataService } from '@/lib/dashboard-data-service';
+import { createConversationSummary } from '@/utils/conversationUtils';
 
 export default function EnterpriseHub() {
   const { currentSession, saveCurrentSession } = useSession();
@@ -51,9 +52,32 @@ export default function EnterpriseHub() {
   const [selectedContinent, setSelectedContinent] = useState('global');
   const [showFullIdea, setShowFullIdea] = useState(false);
   
-  // Get current idea from session or localStorage - prioritize full conversation context
-  const dashboardIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
-  const currentIdea = dashboardIdea || currentSession?.data?.currentIdea || '';
+  // Regenerate idea summary from conversation history if available
+  const [currentIdea, setCurrentIdea] = useState('');
+  
+  useEffect(() => {
+    // Try to get conversation history and regenerate summary
+    const conversationHistory = localStorage.getItem('dashboardConversationHistory');
+    if (conversationHistory) {
+      try {
+        const messages = JSON.parse(conversationHistory);
+        const rawIdea = localStorage.getItem('currentIdea') || '';
+        const freshSummary = createConversationSummary(messages, rawIdea);
+        setCurrentIdea(freshSummary);
+        // Update localStorage with fresh summary
+        localStorage.setItem('dashboardIdea', freshSummary);
+      } catch (err) {
+        console.error('Failed to parse conversation history:', err);
+        // Fallback to stored idea
+        const fallbackIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
+        setCurrentIdea(fallbackIdea || currentSession?.data?.currentIdea || '');
+      }
+    } else {
+      // No conversation history, use stored idea
+      const storedIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
+      setCurrentIdea(storedIdea || currentSession?.data?.currentIdea || '');
+    }
+  }, [currentSession]);
   const subscriptionTier = subscription.tier;
   
   // Load dashboard data from session on mount
