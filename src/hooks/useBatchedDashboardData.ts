@@ -12,10 +12,11 @@ interface BatchedDataResponse {
   };
 }
 
-// Cache for preventing duplicate requests
+// Global cache for preventing duplicate requests across component instances
 const requestCache = new Map<string, Promise<any>>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const lastFetchTime = new Map<string, number>();
+const activeRequests = new Map<string, boolean>(); // Track active requests globally
 
 export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
   const [data, setData] = useState<BatchedDataResponse>({});
@@ -26,6 +27,7 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
   const { toast } = useToast();
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasInitializedRef = useRef(false);
+  const lastIdeaRef = useRef<string>('');
 
   const getCacheKey = useCallback(() => {
     if (!idea || !user?.id) return null;
@@ -36,11 +38,17 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     const cacheKey = getCacheKey();
     if (!cacheKey || tileTypes.length === 0) return;
 
+    // Check if there's already an active request for this exact cache key
+    if (activeRequests.get(cacheKey) && !forceRefresh) {
+      console.log('⚠️ Request already active for this data, skipping duplicate call');
+      return;
+    }
+
     // Check if we recently fetched this data (within 5 minutes)
     if (!forceRefresh) {
       const lastFetch = lastFetchTime.get(cacheKey);
       if (lastFetch && Date.now() - lastFetch < CACHE_DURATION) {
-        console.log('Skipping fetch - data recently fetched');
+        console.log('✅ Using cached data - fetched', Math.round((Date.now() - lastFetch) / 1000), 'seconds ago');
         
         // Try to load from localStorage
         const cachedResponse: BatchedDataResponse = {};
@@ -75,7 +83,7 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
 
     // Check if there's already a request in flight for this exact data
     if (!forceRefresh && requestCache.has(cacheKey)) {
-      console.log('Request already in flight, waiting for existing request');
+      console.log('♻️ Request already in flight, reusing existing promise');
       try {
         const existingRequest = await requestCache.get(cacheKey);
         if (existingRequest?.success && existingRequest?.data) {
@@ -88,6 +96,8 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
       }
     }
 
+    // Mark request as active
+    activeRequests.set(cacheKey, true);
     setLoading(true);
     setError(null);
 
@@ -100,8 +110,10 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     // Create the request promise
     const requestPromise = (async () => {
       try {
-        console.log(`🚀 Making SINGLE batched API call for ${tileTypes.length} tiles`);
-        console.log(`📊 Tiles requested:`, tileTypes);
+        const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log(`🚀 [${requestId}] Making SINGLE batched API call for ${tileTypes.length} tiles`);
+        console.log(`📊 [${requestId}] Tiles requested:`, tileTypes);
+        console.log(`🔑 [${requestId}] Cache key:`, cacheKey);
         
         const { data: response, error: fetchError } = await supabase.functions.invoke('hub-batch-data', {
           body: {
@@ -133,6 +145,9 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
           
           // Clear the request cache after success
           requestCache.delete(cacheKey);
+          activeRequests.delete(cacheKey); // Clear active flag
+          
+          console.log(`✅ [${requestId}] Batch fetch complete - ${response.fetchedCount} tiles loaded`);
           
           return response;
         }
@@ -141,6 +156,7 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
       } catch (err) {
         // Clear the request cache on error
         requestCache.delete(cacheKey);
+        activeRequests.delete(cacheKey); // Clear active flag
         throw err;
       }
     })();
@@ -190,13 +206,19 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
 
   // Auto-fetch on mount only - not on every dependency change
   useEffect(() => {
-    // Only fetch once on initial mount or when idea changes
+    // Check if idea has actually changed
+    if (idea && idea !== lastIdeaRef.current) {
+      lastIdeaRef.current = idea;
+      hasInitializedRef.current = false; // Reset flag for new idea
+    }
+    
+    // Only fetch once per idea
     if (!hasInitializedRef.current && idea && tileTypes.length > 0) {
       hasInitializedRef.current = true;
-      console.log('🎯 Initial dashboard load - fetching all tiles');
+      console.log('🎯 Initial dashboard load - fetching all tiles for idea:', idea.substring(0, 50));
       fetchBatchedData();
     }
-  }, [idea]); // Only re-run when idea changes
+  }, [idea, tileTypes.length]); // Only re-run when idea or tileTypes change
 
   // Refresh function for manual refresh
   const refresh = useCallback(async () => {
