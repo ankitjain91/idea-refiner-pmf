@@ -271,7 +271,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
       },
       {
         title: "Engagement Score",
-        value: `${Math.round((data.engagement.upvotes / 1000))}K`,
+        value: `${Math.round(((data?.engagement?.upvotes || 0) / 1000))}K`,
         icon: MessageCircle,
         color: "text-blue-600 dark:text-blue-400",
         levels: [
