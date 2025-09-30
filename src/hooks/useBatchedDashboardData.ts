@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { useToast } from '@/hooks/use-toast';
+import { apiCallAnalyzer } from '@/lib/api-call-analyzer';
 
 interface BatchedDataResponse {
   [tileType: string]: {
@@ -115,6 +116,9 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
         console.log(`📊 [${requestId}] Tiles requested:`, tileTypes);
         console.log(`🔑 [${requestId}] Cache key:`, cacheKey);
         
+        // Track API call start
+        const startTime = Date.now();
+        
         const { data: response, error: fetchError } = await supabase.functions.invoke('hub-batch-data', {
           body: {
             idea,
@@ -128,7 +132,17 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
           }
         });
 
-        if (fetchError) throw fetchError;
+        // Track API call completion
+        const duration = Date.now() - startTime;
+        apiCallAnalyzer.trackCall('hub-batch-data', !fetchError, duration);
+        
+        if (fetchError) {
+          // Track individual tile failures if they exist
+          tileTypes.forEach(tileType => {
+            apiCallAnalyzer.trackCall(`hub-batch-data/${tileType}`, false, duration / tileTypes.length);
+          });
+          throw fetchError;
+        }
 
         if (response?.success && response?.data) {
           // Store in localStorage for quick access

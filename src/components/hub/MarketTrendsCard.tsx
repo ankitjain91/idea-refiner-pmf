@@ -17,6 +17,7 @@ import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { AITileDialog } from '../dashboard/AITileDialog';
+import { apiCallAnalyzer } from '@/lib/api-call-analyzer';
 
 interface MarketTrendsCardProps {
   filters: {
@@ -167,6 +168,7 @@ export function MarketTrendsCard({ filters, className, batchedData }: MarketTren
       }
       
       // Fetch fresh data if cache is stale or missing
+      const startTime = Date.now();
       const { data, error } = await supabase.functions.invoke('market-trends', {
         body: { 
           idea,
@@ -174,6 +176,10 @@ export function MarketTrendsCard({ filters, className, batchedData }: MarketTren
           fetch_continents: mode === 'global'
         }
       });
+      
+      // Track API call
+      const duration = Date.now() - startTime;
+      apiCallAnalyzer.trackCall('market-trends', !error, duration);
       
       if (error) throw error;
       

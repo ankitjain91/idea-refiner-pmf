@@ -39,6 +39,8 @@ import { createConversationSummary } from '@/utils/conversationUtils';
 import { useBatchedDashboardData } from '@/hooks/useBatchedDashboardData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { APIMetricsDashboard } from '@/components/dashboard/APIMetricsDashboard';
+import { apiCallAnalyzer } from '@/lib/api-call-analyzer';
 
 export default function EnterpriseHub() {
   const { currentSession, saveCurrentSession } = useSession();
@@ -572,7 +574,7 @@ export default function EnterpriseHub() {
         {/* Main Content - All tabs render immediately for instant loading */}
         <div className="space-y-4">
           <div className="bg-muted/30 border rounded-lg p-1 inline-flex">
-            {['overview', 'market', 'competitive', 'audience', 'ai-insights'].map((tab) => (
+            {['overview', 'market', 'competitive', 'audience', 'ai-insights', 'developer'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -591,6 +593,12 @@ export default function EnterpriseHub() {
                   <span className="flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
                     AI Intelligence
+                  </span>
+                )}
+                {tab === 'developer' && (
+                  <span className="flex items-center gap-1">
+                    <Activity className="h-3 w-3" />
+                    API Metrics
                   </span>
                 )}
               </button>
@@ -753,6 +761,11 @@ export default function EnterpriseHub() {
               competitorData={batchedData['quick_stats_competition']?.data}
               sessionData={[]}
             />
+          </div>
+
+          {/* Developer Tab - API Metrics */}
+          <div className={activeTab === 'developer' ? 'space-y-4' : 'hidden'}>
+            <APIMetricsDashboard />
           </div>
         </div>
 
