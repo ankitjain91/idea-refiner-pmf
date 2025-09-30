@@ -24,8 +24,9 @@ export function APIMetricsDashboard() {
 
   useEffect(() => {
     refreshMetrics();
-    const interval = setInterval(refreshMetrics, 5000); // Auto-refresh every 5 seconds
-    return () => clearInterval(interval);
+    // Auto-refresh disabled - only manual refresh available
+    // const interval = setInterval(refreshMetrics, 5000);
+    // return () => clearInterval(interval);
   }, []);
 
   if (isLoading || !metrics) {
