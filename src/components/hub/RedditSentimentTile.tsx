@@ -243,9 +243,9 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
   };
 
   const prepareAIDialogData = () => {
-    if (!data) return null;
+    if (!data || !data.sentiment) return null;
 
-    const cps = data.sentiment.positive;
+    const cps = data.sentiment.positive || 0;
 
     // Prepare metrics for 3-level drill-down
     const metricsData = [
@@ -261,7 +261,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
           },
           {
             title: "Detailed Breakdown",
-            content: `Analysis of ${data.mentions} mentions shows ${data.sentiment.positive}% positive, ${data.sentiment.neutral}% neutral, and ${data.sentiment.negative}% negative sentiment. Top discussions found in ${data.topSubreddits?.length || 0} subreddits.`
+            content: `Analysis of ${data.mentions || 0} mentions shows ${data.sentiment?.positive || 0}% positive, ${data.sentiment?.neutral || 0}% neutral, and ${data.sentiment?.negative || 0}% negative sentiment. Top discussions found in ${data.topSubreddits?.length || 0} subreddits.`
           },
           {
             title: "Strategic Analysis",
@@ -277,7 +277,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
         levels: [
           {
             title: "Overview",
-            content: `Total engagement includes ${(data.engagement.upvotes / 1000).toFixed(1)}K upvotes and ${(data.engagement.comments / 100).toFixed(1)}00 comments across relevant discussions.`
+            content: `Total engagement includes ${((data?.engagement?.upvotes || 0) / 1000).toFixed(1)}K upvotes and ${((data?.engagement?.comments || 0) / 100).toFixed(1)}00 comments across relevant discussions.`
           },
           {
             title: "Detailed Breakdown",
@@ -291,13 +291,13 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
       },
       {
         title: "Mention Volume",
-        value: `${data.mentions}`,
+        value: `${data?.mentions || 0}`,
         icon: Hash,
         color: "text-purple-600 dark:text-purple-400",
         levels: [
           {
             title: "Overview",
-            content: `Found ${data.mentions} total mentions across Reddit, indicating ${data.mentions >= 1000 ? 'high' : data.mentions >= 500 ? 'moderate' : 'emerging'} market awareness and discussion volume.`
+            content: `Found ${data?.mentions || 0} total mentions across Reddit, indicating ${(data?.mentions || 0) >= 1000 ? 'high' : (data?.mentions || 0) >= 500 ? 'moderate' : 'emerging'} market awareness and discussion volume.`
           },
           {
             title: "Detailed Breakdown",
@@ -305,7 +305,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
           },
           {
             title: "Strategic Analysis",
-            content: `Volume growth strategy: ${data.mentions >= 1000 ? 'Maintain momentum with regular community engagement' : 'Increase awareness through targeted subreddit participation'}. Track mention velocity and sentiment trends monthly.`
+            content: `Volume growth strategy: ${(data?.mentions || 0) >= 1000 ? 'Maintain momentum with regular community engagement' : 'Increase awareness through targeted subreddit participation'}. Track mention velocity and sentiment trends monthly.`
           }
         ]
       }
@@ -313,9 +313,9 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
 
     // Prepare chart data for sentiment breakdown
     const sentimentChartData = [
-      { name: 'Positive', value: data.sentiment.positive, color: SENTIMENT_COLORS.positive },
-      { name: 'Neutral', value: data.sentiment.neutral, color: SENTIMENT_COLORS.neutral },
-      { name: 'Negative', value: data.sentiment.negative, color: SENTIMENT_COLORS.negative }
+      { name: 'Positive', value: data.sentiment?.positive || 0, color: SENTIMENT_COLORS.positive },
+      { name: 'Neutral', value: data.sentiment?.neutral || 0, color: SENTIMENT_COLORS.neutral },
+      { name: 'Negative', value: data.sentiment?.negative || 0, color: SENTIMENT_COLORS.negative }
     ];
 
     // Subreddit data for bar chart
@@ -492,13 +492,13 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="default" className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-                    😊 {data.sentiment.positive}%
+                    😊 {data?.sentiment?.positive || 0}%
                   </Badge>
                   <Badge variant="secondary" className="text-xs">
-                    😐 {data.sentiment.neutral}%
+                    😐 {data?.sentiment?.neutral || 0}%
                   </Badge>
                   <Badge variant="destructive" className="text-xs">
-                    😔 {data.sentiment.negative}%
+                    😔 {data?.sentiment?.negative || 0}%
                   </Badge>
                 </div>
               </div>
@@ -509,7 +509,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Upvotes</span>
                     <span className="text-sm font-bold text-emerald-600">
-                      {(data.engagement.upvotes / 1000).toFixed(1)}K
+                      {((data?.engagement?.upvotes || 0) / 1000).toFixed(1)}K
                     </span>
                   </div>
                 </div>
@@ -518,7 +518,7 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Comments</span>
                     <span className="text-sm font-bold text-blue-600">
-                      {(data.engagement.comments / 100).toFixed(1)}00
+                      {((data?.engagement?.comments || 0) / 100).toFixed(1)}00
                     </span>
                   </div>
                 </div>
