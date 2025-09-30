@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { createConversationSummary } from '@/utils/conversationUtils';
 import { 
   Loader2,
   BarChart3,
@@ -2094,13 +2095,10 @@ User submission: """${messageText}"""`;
               localStorage.setItem('ideaText', ideaToStore);
             }
             
-            // Store the full conversation context for dashboard
-            const conversationSummary = messages
-              .filter(m => !m.isTyping && m.content)
-              .map(m => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-              .join('\n\n');
+            // Store the summarized conversation context for dashboard
+            const conversationSummary = createConversationSummary(messages, ideaToStore);
             
-            localStorage.setItem('dashboardIdea', conversationSummary || ideaToStore);
+            localStorage.setItem('dashboardIdea', conversationSummary);
             localStorage.setItem('dashboardConversationHistory', JSON.stringify(messages));
             
             navigate('/dashboard');

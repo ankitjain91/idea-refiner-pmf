@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BRAND, SCORE_LABEL, ANALYSIS_VERB } from '@/branding';
+import { createConversationSummary } from '@/utils/conversationUtils';
 import ReactMarkdown from 'react-markdown';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -924,16 +925,16 @@ export default function ChatGPTStyleChat({
         ]
       };
       setMessages(prev => [...prev, completion]);
-      // Create conversation summary for dashboard
-      const conversationSummary = messages
-        .filter(m => !m.isTyping && m.content && m.type !== 'system')
-        .map(m => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-        .join('\n\n');
+      // Create summarized conversation for dashboard
+      const conversationSummary = createConversationSummary(
+        messages.filter(m => !m.isTyping && m.content && m.type !== 'system'),
+        primaryIdea || currentIdea
+      );
       
       localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
       localStorage.setItem(LS_KEYS.pmfScore, String(pmfScore));
       localStorage.setItem(LS_KEYS.userIdea, primaryIdea || currentIdea); // Use the actual idea that was analyzed
-      localStorage.setItem('dashboardIdea', conversationSummary || primaryIdea || currentIdea); // Full conversation for dashboard
+      localStorage.setItem('dashboardIdea', conversationSummary); // Summarized conversation for dashboard
       localStorage.setItem(LS_KEYS.userAnswers, JSON.stringify(brief));
       setAnalysisCompletedFlag(true);
       

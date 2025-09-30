@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SessionPicker } from '@/components/SessionPicker';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { createConversationSummary } from '@/utils/conversationUtils';
 
 
 import EnhancedIdeaChat from '@/components/EnhancedIdeaChat';
@@ -47,11 +48,8 @@ const EnhancedIdeaChatPage = () => {
     if (storedMessages) {
       try {
         const messages = JSON.parse(storedMessages);
-        // Create comprehensive conversation summary
-        conversationSummary = messages
-          .filter((m: any) => m.content && !m.isTyping)
-          .map((m: any) => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-          .join('\n\n');
+        // Create intelligent summary of the conversation
+        conversationSummary = createConversationSummary(messages, idea);
       } catch (e) {
         console.error('Failed to parse chat messages:', e);
       }
