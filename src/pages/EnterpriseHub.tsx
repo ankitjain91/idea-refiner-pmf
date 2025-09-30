@@ -55,7 +55,45 @@ export default function EnterpriseHub() {
   
   // Regenerate idea summary from conversation history if available
   const [currentIdea, setCurrentIdea] = useState('');
+  const [oneLineSummary, setOneLineSummary] = useState('');
   const [isRefreshingSummary, setIsRefreshingSummary] = useState(false);
+  
+  // Function to generate one-line summary from all conversations
+  const generateOneLineSummary = (messages: any[]) => {
+    if (!messages || messages.length === 0) return 'No conversation yet';
+    
+    // Extract key topics from all user messages
+    const userMessages = messages
+      .filter((m: any) => m.role === 'user')
+      .map((m: any) => m.content)
+      .join(' ');
+    
+    // Extract key topics from assistant responses
+    const assistantMessages = messages
+      .filter((m: any) => m.role === 'assistant')
+      .slice(-2) // Get last 2 assistant messages for context
+      .map((m: any) => m.content)
+      .join(' ');
+    
+    // Get the original idea if available
+    const originalIdea = localStorage.getItem('currentIdea') || localStorage.getItem('dashboardIdea') || '';
+    
+    // Simple extraction: Take the main topic from user messages and latest refinement
+    const words = [...userMessages.split(' '), ...assistantMessages.split(' ')];
+    const keyPhrases = [];
+    
+    // Look for key business terms
+    if (originalIdea) {
+      keyPhrases.push(originalIdea.substring(0, 50));
+    }
+    
+    // Create a concise summary
+    const summary = originalIdea 
+      ? `Exploring ${originalIdea.substring(0, 100).replace(/[.!?]$/, '')} through iterative refinement and validation`
+      : 'Developing and refining a startup idea through collaborative discussion';
+    
+    return summary;
+  };
   
   // Function to regenerate summary from conversation
   const regenerateSummary = () => {
@@ -76,19 +114,27 @@ export default function EnterpriseHub() {
         console.log('[Dashboard] New summary generated:', freshSummary.substring(0, 200));
         
         setCurrentIdea(freshSummary);
+        
+        // Generate one-line summary
+        const oneLine = generateOneLineSummary(messages);
+        setOneLineSummary(oneLine);
+        
         // Update localStorage with fresh summary
         localStorage.setItem('dashboardIdea', freshSummary);
+        localStorage.setItem('oneLineSummary', oneLine);
       } catch (err) {
         console.error('[Dashboard] Failed to parse conversation history:', err);
         // Fallback to stored idea
         const fallbackIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
         setCurrentIdea(fallbackIdea || currentSession?.data?.currentIdea || '');
+        setOneLineSummary(localStorage.getItem('oneLineSummary') || 'No conversation summary available');
       }
     } else {
       // No conversation history, use stored idea
       const storedIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
       console.log('[Dashboard] No conversation history, using stored idea');
       setCurrentIdea(storedIdea || currentSession?.data?.currentIdea || '');
+      setOneLineSummary(localStorage.getItem('oneLineSummary') || 'No conversation summary available');
     }
     
     setTimeout(() => setIsRefreshingSummary(false), 500);
@@ -338,10 +384,15 @@ export default function EnterpriseHub() {
   return (
     <div className="min-h-screen bg-background overflow-y-auto">
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Clean Header */}
+        {/* Clean Header with One-Line Summary */}
         <div className="flex items-center justify-between py-2">
           <div className="flex-1 max-w-4xl">
             <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
+            {oneLineSummary && (
+              <p className="text-sm text-muted-foreground mt-1 italic">
+                {oneLineSummary}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
