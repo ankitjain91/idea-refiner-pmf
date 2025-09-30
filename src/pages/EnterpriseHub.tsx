@@ -338,46 +338,10 @@ export default function EnterpriseHub() {
   return (
     <div className="min-h-screen bg-background overflow-y-auto">
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Clean Header with Idea Summary */}
+        {/* Clean Header */}
         <div className="flex items-center justify-between py-2">
           <div className="flex-1 max-w-4xl">
             <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
-            <div className="mt-2 p-3 bg-muted/50 rounded-lg border border-border/50">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-foreground">Your Idea:</p>
-                    <Button
-                      onClick={regenerateSummary}
-                      disabled={isRefreshingSummary}
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 hover:bg-muted"
-                      title="Regenerate summary from conversation"
-                    >
-                      <RefreshCw className={cn("h-3 w-3", isRefreshingSummary && "animate-spin")} />
-                      <span className="ml-1 text-xs">Refine</span>
-                    </Button>
-                  </div>
-                  
-                  {/* Clickable 5-word summary */}
-                  <Button
-                    variant="ghost"
-                    onClick={() => setExpandedIdea(!expandedIdea)}
-                    className="text-left p-0 h-auto font-normal hover:bg-transparent hover:underline"
-                  >
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {expandedIdea ? currentIdea : createFiveWordSummary(currentIdea)}
-                    </p>
-                    {currentIdea.split(' ').length > 5 && (
-                      expandedIdea ? 
-                        <ChevronUp className="h-3 w-3 ml-2 inline" /> : 
-                        <ChevronDown className="h-3 w-3 ml-2 inline" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
