@@ -43,6 +43,7 @@ interface GoogleTrendsCardProps {
     time_window?: string;
   };
   className?: string;
+  batchedData?: any; // Optional pre-fetched data from batched endpoint
 }
 
 interface TrendData {
@@ -66,7 +67,7 @@ const CONTINENT_COLORS = {
   'Oceania': '#06b6d4'
 };
 
-export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) {
+export function GoogleTrendsCard({ filters, className, batchedData }: GoogleTrendsCardProps) {
   const [data, setData] = useState<TrendData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,13 +105,19 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const geo = filters.geo || 'US';
   const timeWindow = filters.time_window || 'last_12_months';
   
-  // Auto-load on mount
+  // Auto-load on mount or use batched data if available
   useEffect(() => {
-    if (!hasLoadedOnce && keywords.length > 0) {
+    // If batched data is available, use it instead of fetching
+    if (batchedData && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+      setData(batchedData);
+      setLoading(false);
+      console.log('[GoogleTrendsCard] Using batched data, skipping individual API call');
+    } else if (!hasLoadedOnce && keywords.length > 0 && !batchedData) {
       setHasLoadedOnce(true);
       fetchTrendsData(viewMode === 'global');
     }
-  }, [hasLoadedOnce, keywords]);
+  }, [hasLoadedOnce, keywords, batchedData]);
 
   // Prepare AI dialog data
   // Enhanced business analysis

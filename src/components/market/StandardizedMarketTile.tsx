@@ -24,6 +24,7 @@ interface StandardizedMarketTileProps {
   filters: any;
   description?: string;
   currentIdea: string;
+  batchedData?: any; // Optional pre-fetched data from batched endpoint
 }
 
 // Map tile types to appropriate icons for metrics
@@ -53,6 +54,7 @@ export function StandardizedMarketTile({
   filters,
   description,
   currentIdea,
+  batchedData,
 }: StandardizedMarketTileProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);

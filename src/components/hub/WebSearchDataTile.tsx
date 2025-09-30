@@ -26,6 +26,7 @@ interface WebSearchDataTileProps {
   geography?: string;
   timeWindow?: string;
   className?: string;
+  batchedData?: any; // Optional pre-fetched data from batched endpoint
 }
 
 // Region-wise mock data for demonstration
@@ -47,7 +48,7 @@ const REGION_COLORS = {
   'Oceania': '#06b6d4'
 };
 
-export function WebSearchDataTile({ idea, industry, geography, timeWindow, className }: WebSearchDataTileProps) {
+export function WebSearchDataTile({ idea, industry, geography, timeWindow, className, batchedData }: WebSearchDataTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
@@ -151,8 +152,9 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     return { ...data, fromApi: true };
   }, [user?.id, currentSession?.id, actualIdea, industry, geography, timeWindow, currentIdea]);
 
-  const { data, error, isLoading, mutate } = useSWR(
-    hasLoadedOnce ? cacheKey : null,  // Only fetch when component has loaded
+  // Use batched data if available, otherwise use SWR
+  const { data: swrData, error, isLoading, mutate } = useSWR(
+    hasLoadedOnce && !batchedData ? cacheKey : null,  // Only fetch if no batched data
     fetcher,
     {
       revalidateOnFocus: false,
@@ -162,10 +164,17 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
     }
   );
 
-  // Trigger initial load
+  // Use batched data if available, otherwise use SWR data
+  const data = batchedData || swrData;
+
+  // Trigger initial load or use batched data
   useEffect(() => {
     if (!hasLoadedOnce && actualIdea) {
-      console.log('[WebSearchDataTile] Triggering initial load');
+      if (batchedData) {
+        console.log('[WebSearchDataTile] Using batched data, skipping individual API call');
+      } else {
+        console.log('[WebSearchDataTile] Triggering initial load');
+      }
       setHasLoadedOnce(true);
     }
   }, [hasLoadedOnce, actualIdea]);

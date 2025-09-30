@@ -601,9 +601,15 @@ export default function EnterpriseHub() {
           <div className={activeTab === 'overview' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
-                <MarketTrendsCard filters={filters} />
+                <MarketTrendsCard 
+                  filters={filters} 
+                  batchedData={batchedData['market_trends']?.data}
+                />
               </div>
-              <GoogleTrendsCard filters={filters} />
+              <GoogleTrendsCard 
+                filters={filters}
+                batchedData={batchedData['google_trends']?.data}
+              />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -612,12 +618,14 @@ export default function EnterpriseHub() {
                 industry={filters.industry}
                 geography={filters.geography}
                 timeWindow={filters.time_window}
+                batchedData={batchedData['web_search']?.data}
               />
               <RedditSentimentTile 
                 idea={currentIdea}
                 industry={filters.industry}
                 geography={filters.geography}
                 timeWindow={filters.time_window}
+                batchedData={batchedData['reddit_sentiment']?.data}
               />
             </div>
           </div>
@@ -632,6 +640,7 @@ export default function EnterpriseHub() {
                 filters={filters}
                 description="TAM, SAM, SOM breakdown"
                 currentIdea={currentIdea}
+                batchedData={batchedData['market_size']?.data}
               />
               <StandardizedMarketTile
                 title="Growth Projections"
@@ -640,6 +649,7 @@ export default function EnterpriseHub() {
                 filters={filters}
                 description="5-year forecasts"
                 currentIdea={currentIdea}
+                batchedData={batchedData['growth_projections']?.data}
               />
               <StandardizedMarketTile
                 title="Launch Timeline"
@@ -648,6 +658,7 @@ export default function EnterpriseHub() {
                 filters={filters}
                 description="Strategic milestones"
                 currentIdea={currentIdea}
+                batchedData={batchedData['launch_timeline']?.data}
               />
             </div>
           </div>
@@ -662,6 +673,7 @@ export default function EnterpriseHub() {
                 filters={filters}
                 description="Competitive landscape"
                 currentIdea={currentIdea}
+                batchedData={batchedData['competitor_analysis']?.data}
               />
               <StandardizedMarketTile
                 title="Pricing Strategy"
@@ -670,6 +682,7 @@ export default function EnterpriseHub() {
                 filters={filters}
                 description="Optimal pricing models"
                 currentIdea={currentIdea}
+                batchedData={batchedData['pricing_strategy']?.data}
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

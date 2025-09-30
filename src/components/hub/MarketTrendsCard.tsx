@@ -26,6 +26,7 @@ interface MarketTrendsCardProps {
     time_window?: string;
   };
   className?: string;
+  batchedData?: any; // Optional pre-fetched data from batched endpoint
 }
 
 interface TrendsData {
@@ -80,7 +81,7 @@ const CONTINENT_COLORS = {
   'Oceania': '#06b6d4'
 };
 
-export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) {
+export function MarketTrendsCard({ filters, className, batchedData }: MarketTrendsCardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'global' | 'single'>('single');
   const [selectedContinent, setSelectedContinent] = useState<string>('North America');
@@ -126,8 +127,8 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   // Include viewMode in cache key to refetch when switching modes
   const cacheKey = ideaText ? `market-trends:${ideaText}:${viewMode}` : null;
   
-  const { data, error, isLoading, mutate } = useSWR<TrendsData>(
-    cacheKey,
+  const { data: swrData, error, isLoading, mutate } = useSWR<TrendsData>(
+    !batchedData ? cacheKey : null,  // Only fetch if no batched data
     async (key) => {
       const [, idea, mode] = key.split(':');
       
@@ -222,6 +223,9 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
       setHasLoadedOnce(true);
     }
   }, [hasLoadedOnce, ideaText]);
+  
+  // Use batched data if available, otherwise use SWR data
+  const data = batchedData || swrData;
   
   // Manual refresh handler - bypasses cache
   const handleRefresh = async () => {

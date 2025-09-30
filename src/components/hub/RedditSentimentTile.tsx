@@ -26,6 +26,7 @@ interface RedditSentimentTileProps {
   geography?: string;
   timeWindow?: string;
   className?: string;
+  batchedData?: any; // Optional pre-fetched data from batched endpoint
 }
 
 interface RedditData {
@@ -53,7 +54,7 @@ const SENTIMENT_COLORS = {
   negative: '#ef4444'
 };
 
-export function RedditSentimentTile({ idea, industry, geography, timeWindow, className }: RedditSentimentTileProps) {
+export function RedditSentimentTile({ idea, industry, geography, timeWindow, className, batchedData }: RedditSentimentTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
@@ -68,8 +69,8 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
   const actualIdea = idea || localStorage.getItem('dashboardIdea') || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
   const cacheKey = actualIdea ? `reddit-sentiment:${actualIdea}:${industry}:${geography}:${timeWindow}` : null;
 
-  const { data, error, isLoading, mutate } = useSWR<RedditData>(
-    hasLoadedOnce ? cacheKey : null,
+  const { data: swrData, error, isLoading, mutate } = useSWR<RedditData>(
+    hasLoadedOnce && !batchedData ? cacheKey : null,  // Only fetch if no batched data
     async () => {
       // Cache -> DB -> API loading order
       if (user?.id) {
@@ -165,10 +166,18 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
     }
   );
 
+  // Use batched data if available, otherwise use SWR data
+  const data = batchedData || swrData;
+
   // Auto-load on mount and auto-trigger fetch
   useEffect(() => {
     if (!hasLoadedOnce && actualIdea) {
       setHasLoadedOnce(true);
+      // Use batched data if available
+      if (batchedData) {
+        console.log('[RedditSentimentTile] Using batched data, skipping individual API call');
+        return;
+      }
       // Automatically start loading data on page load
       setTimeout(() => {
         if (cacheKey && mutate) {
