@@ -31,6 +31,7 @@ import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
 import { OptimizedQuickStatsTile } from "@/components/hub/OptimizedQuickStatsTile";
 import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
 import { DashboardInitializer } from "@/components/dashboard/DashboardInitializer";
+import { AIHubDashboard } from "@/components/hub/AIHubDashboard";
 import { cn } from "@/lib/utils";
 
 import { dashboardDataService } from '@/lib/dashboard-data-service';
@@ -571,7 +572,7 @@ export default function EnterpriseHub() {
         {/* Main Content - All tabs render immediately for instant loading */}
         <div className="space-y-4">
           <div className="bg-muted/30 border rounded-lg p-1 inline-flex">
-            {['overview', 'market', 'competitive', 'audience'].map((tab) => (
+            {['overview', 'market', 'competitive', 'audience', 'ai-insights'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -586,6 +587,12 @@ export default function EnterpriseHub() {
                 {tab === 'market' && 'Market Analysis'}
                 {tab === 'competitive' && 'Competitive Intel'}
                 {tab === 'audience' && 'Audience Insights'}
+                {tab === 'ai-insights' && (
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    AI Intelligence
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -723,6 +730,16 @@ export default function EnterpriseHub() {
                 currentIdea={currentIdea}
               />
             </div>
+          </div>
+
+          {/* AI Intelligence Tab */}
+          <div className={activeTab === 'ai-insights' ? 'block' : 'hidden'}>
+            <AIHubDashboard 
+              idea={currentIdea}
+              marketData={batchedData['quick_stats_market_size']?.data}
+              competitorData={batchedData['quick_stats_competition']?.data}
+              sessionData={[]}
+            />
           </div>
         </div>
 
