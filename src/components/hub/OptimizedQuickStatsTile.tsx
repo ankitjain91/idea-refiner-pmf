@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import { BaseTile } from './BaseTile';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { TrendingUp, Brain, Globe, Heart, CheckCircle2, Target, AlertCircle, Sparkles, Lightbulb, TrendingDown, Clock } from 'lucide-react';
+import { 
+  TrendingUp, Brain, Globe, Heart, CheckCircle2, Target, AlertCircle, 
+  Sparkles, Lightbulb, TrendingDown, Clock, Calculator, Database, Shield, FileText
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAIInsights, useAIRecommendations } from '@/hooks/useAIInsights';
+import { ResearchMethodology } from '@/components/dashboard/ResearchMethodology';
+import { DataFormatter, MetricDisplay } from '@/components/dashboard/DataFormatter';
 import {
   Dialog,
   DialogContent,
@@ -597,87 +602,8 @@ export function OptimizedQuickStatsTile({
                   )}
                 </TabsContent>
                 
-                <TabsContent value="methodology" className="space-y-4 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Target className="h-4 w-4" />
-                        Research Methodology
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <p className="font-medium text-sm mb-2">Data Sources</p>
-                        <ul className="space-y-1 text-sm text-muted-foreground">
-                          <li>• Industry reports and market research databases</li>
-                          <li>• Web scraping of competitor data and pricing</li>
-                          <li>• Search trend analysis and keyword volumes</li>
-                          <li>• Social media sentiment and engagement metrics</li>
-                          <li>• E-commerce marketplace data aggregation</li>
-                          <li>• Government statistics and economic indicators</li>
-                        </ul>
-                      </div>
-                      
-                      <div>
-                        <p className="font-medium text-sm mb-2">Calculation Method</p>
-                        <ul className="space-y-2 text-sm">
-                          <li className="flex items-start gap-2">
-                            <Badge className="mt-0.5">TAM</Badge>
-                            <span className="text-muted-foreground">
-                              Total market value × Industry growth rate × Conservative factor (0.65)
-                            </span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Badge className="mt-0.5">SAM</Badge>
-                            <span className="text-muted-foreground">
-                              TAM × Geographic reach × Target segment share × Time factor
-                            </span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Badge className="mt-0.5">SOM</Badge>
-                            <span className="text-muted-foreground">
-                              SAM × Realistic capture rate × Competition factor × Resource constraints
-                            </span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      <div>
-                        <p className="font-medium text-sm mb-2">Conservative Adjustments</p>
-                        <ul className="space-y-1 text-sm text-muted-foreground">
-                          <li>• -35% for market uncertainty and data limitations</li>
-                          <li>• -30% for growth rate projections</li>
-                          <li>• -45% for first-year capture estimates</li>
-                          <li>• Additional sector-specific risk factors applied</li>
-                        </ul>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Data Freshness</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Last Updated</span>
-                          <Badge variant="secondary">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {new Date().toLocaleDateString()}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Data Sources Age</span>
-                          <span className="text-muted-foreground">0-3 months</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Confidence Level</span>
-                          <Badge variant="outline">Medium-High</Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <TabsContent value="methodology" className="mt-4">
+                  <ResearchMethodology tileType="market_size" data={data} />
                 </TabsContent>
                 
                 <TabsContent value="insights" className="space-y-4 mt-4">

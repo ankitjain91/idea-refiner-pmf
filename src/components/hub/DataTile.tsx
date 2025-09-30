@@ -306,18 +306,45 @@ export function DataTile({
     
     return (
       <div className="grid grid-cols-2 gap-3">
-        {data.metrics.slice(0, expanded ? undefined : 2).map((metric, idx) => (
-          <div key={idx} className="bg-muted/10 rounded-lg p-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{metric.name}</p>
-            <p className="text-xl font-bold mt-1">
-              {metric.value}
-              {metric.unit && <span className="text-sm font-normal text-muted-foreground ml-1">{metric.unit}</span>}
-            </p>
-            {metric.explanation && expanded && (
-              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{metric.explanation}</p>
-            )}
-          </div>
-        ))}
+        {data.metrics.slice(0, expanded ? undefined : 2).map((metric, idx) => {
+          // Clean up any raw JSON or object values
+          let displayValue = metric.value;
+          if (typeof displayValue === 'object' && displayValue !== null) {
+            // Format objects nicely
+            if (Array.isArray(displayValue)) {
+              displayValue = displayValue.length + ' items';
+            } else {
+              displayValue = Object.keys(displayValue).length + ' properties';
+            }
+          } else if (typeof displayValue === 'string' && displayValue.startsWith('{')) {
+            // Parse and format JSON strings
+            try {
+              const parsed = JSON.parse(displayValue);
+              displayValue = typeof parsed === 'object' ? 'Data available' : parsed;
+            } catch {
+              // If not valid JSON, show as is
+            }
+          }
+          
+          return (
+            <div key={idx} className="bg-muted/10 rounded-lg p-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{metric.name}</p>
+              <p className="text-xl font-bold mt-1">
+                {displayValue}
+                {metric.unit && <span className="text-sm font-normal text-muted-foreground ml-1">{metric.unit}</span>}
+              </p>
+              {metric.explanation && expanded && (
+                <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{metric.explanation}</p>
+              )}
+              {metric.confidence && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Progress value={metric.confidence * 100} className="h-1 flex-1" />
+                  <span className="text-xs text-muted-foreground">{Math.round(metric.confidence * 100)}%</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };

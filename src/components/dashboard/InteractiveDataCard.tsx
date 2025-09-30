@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -398,12 +399,55 @@ export function InteractiveDataCard({
                   </Button>
                 </div>
 
-                {/* Structured Data */}
+                {/* Structured Data - Formatted Display */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Raw Data</h3>
-                  <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-xs">
-                    {JSON.stringify(data, null, 2)}
-                  </pre>
+                  <h3 className="font-semibold">Detailed Data Analysis</h3>
+                  <div className="space-y-3">
+                    {data.metrics && data.metrics.length > 0 && (
+                      <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                        <h4 className="text-sm font-medium">Metrics & Calculations</h4>
+                        {data.metrics.map((metric: any, idx: number) => (
+                          <div key={idx} className="border-l-2 border-primary/20 pl-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">{metric.name}</span>
+                              <span className="text-sm font-bold">
+                                {metric.value}{metric.unit ? ` ${metric.unit}` : ''}
+                              </span>
+                            </div>
+                            {metric.explanation && (
+                              <p className="text-xs text-muted-foreground mt-1">{metric.explanation}</p>
+                            )}
+                            {metric.confidence && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Progress value={metric.confidence * 100} className="h-1 flex-1" />
+                                <span className="text-xs">{Math.round(metric.confidence * 100)}%</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {data.items && data.items.length > 0 && (
+                      <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                        <h4 className="text-sm font-medium">Related Items</h4>
+                        {data.items.map((item: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <p className="font-medium">{item.title}</p>
+                            <p className="text-xs text-muted-foreground">{item.snippet}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Technical Details (collapsed by default) */}
+                    <details className="p-4 bg-muted/30 rounded-lg">
+                      <summary className="cursor-pointer text-sm font-medium">Technical Details</summary>
+                      <pre className="mt-3 p-3 bg-background rounded text-xs overflow-x-auto">
+                        {JSON.stringify(data, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
                 </div>
 
                 {/* Citations */}
