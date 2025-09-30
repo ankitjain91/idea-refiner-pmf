@@ -626,7 +626,11 @@ export function OptimizedQuickStatsTile({
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-sm text-muted-foreground">{aiInsight.summary}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {typeof aiInsight.summary === 'string' 
+                              ? aiInsight.summary 
+                              : 'Market analysis in progress...'}
+                          </p>
                         </CardContent>
                       </Card>
                       
@@ -637,12 +641,23 @@ export function OptimizedQuickStatsTile({
                           </CardHeader>
                           <CardContent>
                             <ul className="space-y-2">
-                              {recommendations.map((rec, idx) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <Lightbulb className="h-4 w-4 text-primary mt-0.5" />
-                                  <span className="text-sm">{rec}</span>
-                                </li>
-                              ))}
+                              {recommendations.map((rec: any, idx: number) => {
+                                const recommendation = typeof rec === 'string' 
+                                  ? rec 
+                                  : (rec?.text || rec?.content || rec?.recommendation || '');
+                                
+                                // Skip if it's raw JSON or empty
+                                if (!recommendation || recommendation.startsWith('{') || recommendation.startsWith('[')) {
+                                  return null;
+                                }
+                                
+                                return (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <Lightbulb className="h-4 w-4 text-primary mt-0.5" />
+                                    <span className="text-sm">{recommendation}</span>
+                                  </li>
+                                );
+                              }).filter(Boolean)}
                             </ul>
                           </CardContent>
                         </Card>
