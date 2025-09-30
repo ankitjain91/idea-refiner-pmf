@@ -434,7 +434,11 @@ export function OptimizedQuickStatsTile({
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-sm text-muted-foreground">{aiInsight.summary}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {typeof aiInsight.summary === 'string' 
+                              ? aiInsight.summary 
+                              : 'Analyzing your idea with AI...'}
+                          </p>
                         </CardContent>
                       </Card>
                       
@@ -445,12 +449,16 @@ export function OptimizedQuickStatsTile({
                           </CardHeader>
                           <CardContent>
                             <ul className="space-y-2">
-                              {aiInsight.details.map((detail, idx) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
-                                  <span className="text-sm">{detail}</span>
-                                </li>
-                              ))}
+                              {aiInsight.details.map((detail: any, idx: number) => {
+                                const text = typeof detail === 'string' ? detail : (detail?.text || detail?.content || '');
+                                if (!text) return null;
+                                return (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm">{text}</span>
+                                  </li>
+                                );
+                              }).filter(Boolean)}
                             </ul>
                           </CardContent>
                         </Card>
