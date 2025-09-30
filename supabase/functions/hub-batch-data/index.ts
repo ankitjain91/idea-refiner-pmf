@@ -35,9 +35,91 @@ serve(async (req) => {
     // Deduplicate tile types (in case of duplicate requests)
     const uniqueTileTypes = [...new Set(tileTypes)];
     
-    // Prepare all fetch promises
+    // Separate Groq-based analyses from other API calls
+    const groqAnalyses = [];
+    const otherAPICalls = [];
+    
+    for (const tileType of uniqueTileTypes) {
+      // Identify which tiles use Groq API
+      if (['quick_stats_pmf_score', 'quick_stats_competition', 'quick_stats_sentiment',
+          'competitor_analysis', 'target_audience', 'pricing_strategy', 
+          'growth_projections'].includes(tileType)) {
+        groqAnalyses.push(tileType);
+      } else {
+        otherAPICalls.push(tileType);
+      }
+    }
+    
+    // If we have Groq analyses, batch them into a single call
+    let groqResults = {};
+    if (groqAnalyses.length > 0) {
+      try {
+        console.log(`🤖 Batching ${groqAnalyses.length} Groq analyses into single call`);
+        
+        const groqResponse = await fetch(`${supabaseUrl}/functions/v1/groq-batch-analysis`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            idea,
+            analysisTypes: groqAnalyses
+          }),
+        });
+        
+        if (groqResponse.ok) {
+          const groqData = await groqResponse.json();
+          if (groqData.success && groqData.results) {
+            groqResults = groqData.results;
+            console.log(`✅ Groq batch returned ${Object.keys(groqResults).length} results`);
+          }
+        }
+      } catch (error) {
+        console.error('Groq batch analysis failed:', error);
+        // Fall back to individual calls if batch fails
+      }
+    }
+    
+    // Prepare all fetch promises for remaining API calls
     const fetchPromises = uniqueTileTypes.map(async (tileType: string) => {
       try {
+        // Check if we already have the result from Groq batch
+        if (groqResults[tileType]) {
+          console.log(`✅ Using batched Groq result for ${tileType}`);
+          const data = groqResults[tileType];
+          
+          // Cache the batched result
+          const cacheKey = `${tileType}_${idea.substring(0, 50)}_${JSON.stringify(filters || {})}`;
+          apiCallCache.set(cacheKey, { data, timestamp: Date.now() });
+          
+          // Also cache in database if userId is provided
+          if (userId && data) {
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 12);
+            
+            try {
+              await supabase
+                .from('dashboard_data')
+                .upsert({
+                  user_id: userId,
+                  session_id: sessionId,
+                  idea_text: idea,
+                  tile_type: tileType,
+                  data: data,
+                  created_at: new Date().toISOString(),
+                  expires_at: expiresAt.toISOString(),
+                }, {
+                  onConflict: 'user_id,idea_text,tile_type'
+                });
+            } catch (dbError) {
+              console.error(`Failed to cache ${tileType} in DB:`, dbError);
+            }
+          }
+          
+          return { tileType, data, fromCache: false, cacheLevel: 'batch' };
+        }
+        
         // Create cache key for this specific request
         const cacheKey = `${tileType}_${idea.substring(0, 50)}_${JSON.stringify(filters || {})}`;
         
@@ -238,6 +320,7 @@ serve(async (req) => {
         edge: results.filter(r => r.cacheLevel === 'edge').length,
         database: results.filter(r => r.cacheLevel === 'database').length,
         deduplicated: results.filter(r => r.cacheLevel === 'deduplicated').length,
+        batch: results.filter(r => r.cacheLevel === 'batch').length,
         fresh: results.filter(r => r.cacheLevel === 'fresh').length,
       }
     };

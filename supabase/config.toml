@@ -343,6 +343,12 @@ verify_jwt = true
 [functions.generate-recommendations]
 verify_jwt = true
 
+[functions.groq-batch-analysis]
+verify_jwt = false
+
+[functions.smoothbrains-score]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
