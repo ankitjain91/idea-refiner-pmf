@@ -240,6 +240,21 @@ export function OptimizedQuickStatsTile({
         const sentimentColor = sentimentScore >= 60 ? 'text-green-600' : 
                               sentimentScore >= 35 ? 'text-yellow-600' : 'text-red-600';
         
+        // Calculate adjusted distribution values once for consistency
+        const adjustedDistribution = {
+          positive: Math.round((data.distribution?.positive || 0) * 0.78),
+          neutral: Math.round((data.distribution?.neutral || 0) * 1.1),
+          negative: Math.round((data.distribution?.negative || 0) * 1.2)
+        };
+        
+        // Normalize to ensure they sum to ~100%
+        const total = adjustedDistribution.positive + adjustedDistribution.neutral + adjustedDistribution.negative;
+        if (total > 0) {
+          adjustedDistribution.positive = Math.round((adjustedDistribution.positive / total) * 100);
+          adjustedDistribution.neutral = Math.round((adjustedDistribution.neutral / total) * 100);
+          adjustedDistribution.negative = Math.round((adjustedDistribution.negative / total) * 100);
+        }
+        
         return (
           <div 
             className="space-y-4 cursor-pointer hover:bg-accent/5 transition-all rounded-lg p-2 -m-2"
@@ -260,15 +275,15 @@ export function OptimizedQuickStatsTile({
               <div className="space-y-1 mt-3">
                 <div className="flex justify-between text-xs">
                   <span className="text-green-600">Positive</span>
-                  <span>{Math.round((data.distribution.positive || 0) * 0.78)}%</span>
+                  <span>{adjustedDistribution.positive}%</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-yellow-600">Neutral</span>
-                  <span>{Math.round((data.distribution.neutral || 0) * 1.1)}%</span>
+                  <span>{adjustedDistribution.neutral}%</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-red-600">Negative</span>
-                  <span>{Math.round((data.distribution.negative || 0) * 1.2)}%</span>
+                  <span>{adjustedDistribution.negative}%</span>
                 </div>
               </div>
             )}
@@ -1015,26 +1030,43 @@ export function OptimizedQuickStatsTile({
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4 mt-4 p-1">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Positive</p>
-                      <p className="text-xl font-bold text-green-600">
-                        {data.distribution?.positive || 0}%
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Neutral</p>
-                      <p className="text-xl font-bold text-yellow-600">
-                        {data.distribution?.neutral || 0}%
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Negative</p>
-                      <p className="text-xl font-bold text-red-600">
-                        {data.distribution?.negative || 0}%
-                      </p>
-                    </div>
-                  </div>
+                  {/* Calculate same adjusted values as in tile for consistency */}
+                  {(() => {
+                    const adjustedDist = {
+                      positive: Math.round((data.distribution?.positive || 0) * 0.78),
+                      neutral: Math.round((data.distribution?.neutral || 0) * 1.1),
+                      negative: Math.round((data.distribution?.negative || 0) * 1.2)
+                    };
+                    const total = adjustedDist.positive + adjustedDist.neutral + adjustedDist.negative;
+                    if (total > 0) {
+                      adjustedDist.positive = Math.round((adjustedDist.positive / total) * 100);
+                      adjustedDist.neutral = Math.round((adjustedDist.neutral / total) * 100);
+                      adjustedDist.negative = Math.round((adjustedDist.negative / total) * 100);
+                    }
+                    
+                    return (
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Positive</p>
+                          <p className="text-xl font-bold text-green-600">
+                            {adjustedDist.positive}%
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Neutral</p>
+                          <p className="text-xl font-bold text-yellow-600">
+                            {adjustedDist.neutral}%
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Negative</p>
+                          <p className="text-xl font-bold text-red-600">
+                            {adjustedDist.negative}%
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {data.positive_themes && data.positive_themes.length > 0 && (
                     <div>
