@@ -62,7 +62,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
   const { toast } = useToast();
 
   const storedIdea = typeof window !== 'undefined' ? 
-    (localStorage.getItem('ideaText') || localStorage.getItem('userIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '';
+    (localStorage.getItem('dashboardIdea') || localStorage.getItem('ideaText') || localStorage.getItem('userIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '';
   
   const actualIdea = idea || storedIdea || 'startup idea';
   const cacheKey = `web-search:${actualIdea}:${industry}:${geography}`;
@@ -75,7 +75,7 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
         try {
           const dbData = await dashboardDataService.getData({
             userId: user.id,
-            ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+            ideaText: localStorage.getItem('dashboardIdea') || currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
             tileType: 'web_search',
             sessionId: currentSession?.id
           });

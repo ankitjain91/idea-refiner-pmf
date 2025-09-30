@@ -62,10 +62,10 @@ export function RedditSentimentTile({ idea, industry, geography, timeWindow, cla
   const [groqInsights, setGroqInsights] = useState<any>(null);
   const { user } = useAuth();
   const { currentSession } = useSession();
-  const currentIdea = localStorage.getItem('pmfCurrentIdea') || '';
+  const currentIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('pmfCurrentIdea') || '';
   const { toast } = useToast();
-
-  const actualIdea = idea || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
+  
+  const actualIdea = idea || localStorage.getItem('dashboardIdea') || localStorage.getItem('pmfCurrentIdea') || localStorage.getItem('userIdea') || '';
   const cacheKey = actualIdea ? `reddit-sentiment:${actualIdea}:${industry}:${geography}:${timeWindow}` : null;
 
   const { data, error, isLoading, mutate } = useSWR<RedditData>(

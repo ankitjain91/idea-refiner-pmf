@@ -91,11 +91,11 @@ export function MarketTrendsCard({ filters, className }: MarketTrendsCardProps) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
-  const currentIdea = localStorage.getItem('pmfCurrentIdea') || '';
+  const currentIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('pmfCurrentIdea') || '';
   
   // Get the idea from filters or fallback to the actual startup idea
   const storedIdea = typeof window !== 'undefined' ? 
-    (localStorage.getItem('ideaText') || localStorage.getItem('userIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '';
+    (localStorage.getItem('dashboardIdea') || localStorage.getItem('ideaText') || localStorage.getItem('userIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '';
   
   // Extract the actual startup idea if it's available in the stored data
   const actualIdea = (() => {

@@ -79,13 +79,13 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
-  const currentIdea = localStorage.getItem('pmfCurrentIdea') || '';
+  const currentIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('pmfCurrentIdea') || '';
 
   // Get the idea from filters or fallback to localStorage
   const ideaKeywords = filters.idea_keywords || [];
   const ideaText = ideaKeywords.length > 0 
     ? ideaKeywords.join(' ')
-    : (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
+    : (typeof window !== 'undefined' ? (localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
   
   // Extract key concepts for better Google Trends results
   let keywords: string[] = [];

@@ -123,7 +123,7 @@ export function DataTile({
   };
   // Get current idea for AI insights
   const ideaText = filters?.idea_keywords?.join(' ') || 
-    (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
+    (typeof window !== 'undefined' ? (localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
   
   // Use database-first loading with useTileData hook
   const { data, isLoading: loading, error, loadData } = useTileData(fetchFunction, [tileType, filters], {

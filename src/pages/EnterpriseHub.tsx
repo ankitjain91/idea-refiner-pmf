@@ -49,8 +49,9 @@ export default function EnterpriseHub() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedContinent, setSelectedContinent] = useState('global');
   
-  // Get current idea from session or localStorage
-  const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('currentIdea') || '';
+  // Get current idea from session or localStorage - prioritize full conversation context
+  const dashboardIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
+  const currentIdea = dashboardIdea || currentSession?.data?.currentIdea || '';
   const subscriptionTier = subscription.tier;
   
   // Load dashboard data from session on mount

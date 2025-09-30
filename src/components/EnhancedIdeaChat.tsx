@@ -2094,7 +2094,13 @@ User submission: """${messageText}"""`;
               localStorage.setItem('ideaText', ideaToStore);
             }
             
-            // Store the full conversation context
+            // Store the full conversation context for dashboard
+            const conversationSummary = messages
+              .filter(m => !m.isTyping && m.content)
+              .map(m => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+              .join('\n\n');
+            
+            localStorage.setItem('dashboardIdea', conversationSummary || ideaToStore);
             localStorage.setItem('dashboardConversationHistory', JSON.stringify(messages));
             
             navigate('/dashboard');

@@ -40,8 +40,26 @@ const EnhancedIdeaChatPage = () => {
   }, [authLoading, user, currentSession, saving]);
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
+    // Get full conversation history for dashboard context
+    const storedMessages = localStorage.getItem('enhancedIdeaChatMessages');
+    let conversationSummary = idea;
+    
+    if (storedMessages) {
+      try {
+        const messages = JSON.parse(storedMessages);
+        // Create comprehensive conversation summary
+        conversationSummary = messages
+          .filter((m: any) => m.content && !m.isTyping)
+          .map((m: any) => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+          .join('\n\n');
+      } catch (e) {
+        console.error('Failed to parse chat messages:', e);
+      }
+    }
+    
     // Store analysis data for dashboard access
     localStorage.setItem(LS_KEYS.userIdea, idea);
+    localStorage.setItem('dashboardIdea', conversationSummary); // Full conversation for dashboard
     localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
     localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata || {}));
     
