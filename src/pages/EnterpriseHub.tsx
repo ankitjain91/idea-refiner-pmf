@@ -28,6 +28,7 @@ import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
 import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
 import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
+import { OptimizedQuickStatsTile } from "@/components/hub/OptimizedQuickStatsTile";
 import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
 import { DashboardInitializer } from "@/components/dashboard/DashboardInitializer";
 import { cn } from "@/lib/utils";
@@ -527,35 +528,43 @@ export default function EnterpriseHub() {
           </div>
         </div>
 
-        {/* Key Metrics */}
+        {/* Key Metrics - Using Batched Data */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" key={tilesKey}>
-          <QuickStatsTile
+          <OptimizedQuickStatsTile
             title="SmoothBrains Score"
             icon={Activity}
             tileType="pmf_score"
-            currentIdea={currentIdea}
-            onAnalyze={() => console.log('Analyze SmoothBrains Score')}
+            data={batchedData['quick_stats_pmf_score']?.data}
+            isLoading={batchLoading && !batchedData['quick_stats_pmf_score']}
+            error={batchedData['quick_stats_pmf_score']?.error}
+            onRefresh={refreshBatchedData}
           />
-          <QuickStatsTile
+          <OptimizedQuickStatsTile
             title="Market Size"
             icon={TrendingUp}
             tileType="market_size"
-            currentIdea={currentIdea}
-            onAnalyze={() => console.log('Analyze Market Size')}
+            data={batchedData['quick_stats_market_size']?.data}
+            isLoading={batchLoading && !batchedData['quick_stats_market_size']}
+            error={batchedData['quick_stats_market_size']?.error}
+            onRefresh={refreshBatchedData}
           />
-          <QuickStatsTile
+          <OptimizedQuickStatsTile
             title="Competition"
             icon={Building2}
             tileType="competition"
-            currentIdea={currentIdea}
-            onAnalyze={() => console.log('Analyze Competition')}
+            data={batchedData['quick_stats_competition']?.data}
+            isLoading={batchLoading && !batchedData['quick_stats_competition']}
+            error={batchedData['quick_stats_competition']?.error}
+            onRefresh={refreshBatchedData}
           />
-          <QuickStatsTile
+          <OptimizedQuickStatsTile
             title="Sentiment"
             icon={Sparkles}
             tileType="sentiment"
-            currentIdea={currentIdea}
-            onAnalyze={() => console.log('Analyze Sentiment')}
+            data={batchedData['quick_stats_sentiment']?.data}
+            isLoading={batchLoading && !batchedData['quick_stats_sentiment']}
+            error={batchedData['quick_stats_sentiment']?.error}
+            onRefresh={refreshBatchedData}
           />
         </div>
 

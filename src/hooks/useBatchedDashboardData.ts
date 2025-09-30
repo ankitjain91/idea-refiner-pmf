@@ -100,7 +100,8 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     // Create the request promise
     const requestPromise = (async () => {
       try {
-        console.log(`Making single batched API call for ${tileTypes.length} tiles`);
+        console.log(`🚀 Making SINGLE batched API call for ${tileTypes.length} tiles`);
+        console.log(`📊 Tiles requested:`, tileTypes);
         
         const { data: response, error: fetchError } = await supabase.functions.invoke('hub-batch-data', {
           body: {
