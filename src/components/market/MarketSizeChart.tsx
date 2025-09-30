@@ -12,10 +12,21 @@ interface MarketSizeChartProps {
 export function MarketSizeChart({ data }: MarketSizeChartProps) {
   if (!data) return null;
 
-  // Parse market size data
-  const tam = parseFloat(data.tam?.replace(/[^0-9.]/g, '') || '0');
-  const sam = parseFloat(data.sam?.replace(/[^0-9.]/g, '') || '0');
-  const som = parseFloat(data.som?.replace(/[^0-9.]/g, '') || '0');
+  // Parse market size data - handle both string and number formats
+  const parseValue = (value: any): number => {
+    if (typeof value === 'number') {
+      // If it's already a number, convert from dollars to billions
+      return value / 1000000000;
+    }
+    if (typeof value === 'string') {
+      return parseFloat(value.replace(/[^0-9.]/g, '') || '0');
+    }
+    return 0;
+  };
+
+  const tam = parseValue(data.tam);
+  const sam = parseValue(data.sam);
+  const som = parseValue(data.som);
 
   const marketData = [
     { name: 'TAM', value: tam, color: 'hsl(var(--chart-1))', description: 'Total Addressable Market' },
@@ -25,14 +36,17 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
 
   const segmentData = data.customer_segments?.map((segment: any, index: number) => ({
     segment: segment.segment,
-    size: parseFloat(segment.size?.replace(/[^0-9.]/g, '') || '0'),
-    growth: parseFloat(segment.growth_rate?.replace(/[^0-9.]/g, '') || '0'),
+    size: typeof segment.size === 'number' ? segment.size / 1000000000 : parseFloat(segment.size?.replace(/[^0-9.]/g, '') || '0'),
+    growth: typeof segment.growth_rate === 'number' ? segment.growth_rate : parseFloat(segment.growth_rate?.replace(/[^0-9.]/g, '') || '0'),
     color: `hsl(var(--chart-${(index % 5) + 1}))`
   })) || [];
 
+  // Parse CAGR value - handle both string and number
+  const parsedCagr = typeof data.cagr === 'number' ? data.cagr : parseFloat(data.cagr?.replace(/[^0-9.]/g, '') || '15');
+
   const competitiveData = [
     { subject: 'Market Size', A: tam / 100, B: sam / 100, fullMark: tam / 100 },
-    { subject: 'Growth Rate', A: parseFloat(data.cagr?.replace(/[^0-9.]/g, '') || '15'), B: 10, fullMark: 30 },
+    { subject: 'Growth Rate', A: parsedCagr, B: 10, fullMark: 30 },
     { subject: 'Competition', A: 60, B: 80, fullMark: 100 },
     { subject: 'Entry Barriers', A: 40, B: 70, fullMark: 100 },
     { subject: 'Profitability', A: 75, B: 60, fullMark: 100 }
