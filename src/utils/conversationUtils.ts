@@ -9,10 +9,10 @@ interface ChatMessage {
 }
 
 /**
- * Creates a concise summary of the conversation focusing on the core idea and key refinements
+ * Creates a concise startup idea summary by analyzing the entire conversation
  * @param messages - Array of chat messages
  * @param originalIdea - The original startup idea
- * @returns A concise summary of the refined idea
+ * @returns A coherent startup idea description synthesized from the conversation
  */
 export function createConversationSummary(messages: ChatMessage[], originalIdea?: string): string {
   // Filter out typing indicators and empty messages
@@ -22,102 +22,166 @@ export function createConversationSummary(messages: ChatMessage[], originalIdea?
     return originalIdea || '';
   }
   
-  // Extract key business concepts from the conversation
-  const keyElements = {
-    problem: '',
-    solution: '',
-    target: '',
-    value: '',
+  // Collect all key information from the conversation
+  const extractedInfo = {
+    problemStatements: [] as string[],
+    solutionDescriptions: [] as string[],
+    targetAudiences: [] as string[],
+    valueProps: [] as string[],
     features: [] as string[],
-    monetization: '',
-    market: ''
+    monetization: [] as string[],
+    marketInfo: [] as string[],
+    uniqueAspects: [] as string[]
   };
   
-  // Process messages to extract key information
+  // Process each message to extract relevant information
   validMessages.forEach(msg => {
-    const content = msg.content.toLowerCase();
+    const content = msg.content;
+    const lowerContent = content.toLowerCase();
     
-    // Extract problem statements
-    if (content.includes('problem') || content.includes('pain') || content.includes('challenge')) {
-      const problemMatch = msg.content.match(/(?:problem|pain|challenge)[^.!?]*[.!?]/gi);
-      if (problemMatch && !keyElements.problem) {
-        keyElements.problem = problemMatch[0];
-      }
+    // Extract problem-related content
+    if (lowerContent.includes('problem') || lowerContent.includes('pain') || lowerContent.includes('challenge') || lowerContent.includes('issue')) {
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim());
+      sentences.forEach(sentence => {
+        if (sentence.toLowerCase().includes('problem') || sentence.toLowerCase().includes('pain')) {
+          extractedInfo.problemStatements.push(sentence.trim());
+        }
+      });
     }
     
-    // Extract solution descriptions
-    if (content.includes('solution') || content.includes('platform') || content.includes('app') || content.includes('service')) {
-      const solutionMatch = msg.content.match(/(?:solution|platform|app|service)[^.!?]*[.!?]/gi);
-      if (solutionMatch && !keyElements.solution) {
-        keyElements.solution = solutionMatch[0];
-      }
+    // Extract solution/platform descriptions
+    if (lowerContent.includes('platform') || lowerContent.includes('app') || lowerContent.includes('solution') || lowerContent.includes('service') || lowerContent.includes('tool')) {
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim());
+      sentences.forEach(sentence => {
+        const lower = sentence.toLowerCase();
+        if (lower.includes('platform') || lower.includes('app') || lower.includes('solution') || lower.includes('service')) {
+          extractedInfo.solutionDescriptions.push(sentence.trim());
+        }
+      });
     }
     
-    // Extract target audience
-    if (content.includes('target') || content.includes('users') || content.includes('customers') || content.includes('audience')) {
-      const targetMatch = msg.content.match(/(?:target|users|customers|audience)[^.!?]*[.!?]/gi);
-      if (targetMatch && !keyElements.target) {
-        keyElements.target = targetMatch[0];
-      }
+    // Extract target audience information
+    if (lowerContent.includes('user') || lowerContent.includes('customer') || lowerContent.includes('target') || lowerContent.includes('audience') || lowerContent.includes('for')) {
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim());
+      sentences.forEach(sentence => {
+        const lower = sentence.toLowerCase();
+        if ((lower.includes('user') || lower.includes('customer') || lower.includes('target')) && sentence.length > 20) {
+          extractedInfo.targetAudiences.push(sentence.trim());
+        }
+      });
     }
     
-    // Extract monetization strategy
-    if (content.includes('revenue') || content.includes('pricing') || content.includes('monetization') || content.includes('subscription')) {
-      const monetizationMatch = msg.content.match(/(?:revenue|pricing|monetization|subscription)[^.!?]*[.!?]/gi);
-      if (monetizationMatch && !keyElements.monetization) {
-        keyElements.monetization = monetizationMatch[0];
-      }
+    // Extract value propositions
+    if (lowerContent.includes('value') || lowerContent.includes('benefit') || lowerContent.includes('help') || lowerContent.includes('enable')) {
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim());
+      sentences.forEach(sentence => {
+        if (sentence.toLowerCase().includes('help') || sentence.toLowerCase().includes('enable') || sentence.toLowerCase().includes('value')) {
+          extractedInfo.valueProps.push(sentence.trim());
+        }
+      });
+    }
+    
+    // Extract monetization/revenue info
+    if (lowerContent.includes('revenue') || lowerContent.includes('monetiz') || lowerContent.includes('pricing') || lowerContent.includes('subscription') || lowerContent.includes('fee')) {
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim());
+      sentences.forEach(sentence => {
+        if (sentence.toLowerCase().match(/revenue|monetiz|pricing|subscription|fee/)) {
+          extractedInfo.monetization.push(sentence.trim());
+        }
+      });
+    }
+    
+    // Extract features
+    if (lowerContent.includes('feature') || lowerContent.includes('capability') || lowerContent.includes('function')) {
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim());
+      sentences.forEach(sentence => {
+        if (sentence.toLowerCase().match(/feature|capability|function/) && sentence.length > 15) {
+          extractedInfo.features.push(sentence.trim());
+        }
+      });
     }
   });
   
-  // Get the most recent substantive user message as the base idea
-  const recentUserMessages = validMessages
-    .filter(m => m.type === 'user' && m.content.length > 50)
-    .slice(-3);
+  // Find the most recent user message that describes the idea comprehensively
+  const userMessages = validMessages.filter(m => m.type === 'user');
+  const substantialUserMessage = userMessages
+    .reverse()
+    .find(m => m.content.length > 100) || userMessages[userMessages.length - 1];
   
-  // Build the summary
-  const summaryParts: string[] = [];
+  // Build the synthesized startup idea description
+  let synthesizedIdea = '';
   
-  // Start with the original idea or most recent detailed user input
-  if (originalIdea) {
-    summaryParts.push(originalIdea);
-  } else if (recentUserMessages.length > 0) {
-    summaryParts.push(recentUserMessages[recentUserMessages.length - 1].content);
+  // Start with the core idea (from original or best user message)
+  if (originalIdea && originalIdea.length > 50) {
+    synthesizedIdea = originalIdea;
+  } else if (substantialUserMessage) {
+    synthesizedIdea = substantialUserMessage.content;
   }
   
-  // Add extracted key elements if they provide additional context
-  if (keyElements.problem && !summaryParts[0]?.includes(keyElements.problem)) {
-    summaryParts.push(`Addressing: ${keyElements.problem}`);
+  // Find the most relevant problem statement
+  const bestProblem = extractedInfo.problemStatements
+    .sort((a, b) => b.length - a.length)[0];
+  
+  // Find the best solution description
+  const bestSolution = extractedInfo.solutionDescriptions
+    .filter(s => s.length > 30)
+    .sort((a, b) => b.length - a.length)[0];
+  
+  // Find target audience
+  const bestTarget = extractedInfo.targetAudiences
+    .filter(t => t.length > 20)
+    .sort((a, b) => b.length - a.length)[0];
+  
+  // Find monetization strategy
+  const bestMonetization = extractedInfo.monetization
+    .filter(m => m.length > 20)[0];
+  
+  // Construct a coherent idea description
+  const ideaParts = [];
+  
+  // If we have a good solution description, use it as the base
+  if (bestSolution && bestSolution.length > 50) {
+    ideaParts.push(bestSolution);
+  } else if (synthesizedIdea) {
+    ideaParts.push(synthesizedIdea);
   }
   
-  if (keyElements.target && !summaryParts[0]?.includes(keyElements.target)) {
-    summaryParts.push(`For: ${keyElements.target}`);
+  // Add problem context if not already included
+  if (bestProblem && !ideaParts[0]?.toLowerCase().includes('problem')) {
+    ideaParts.push(`This addresses: ${bestProblem}`);
   }
   
-  if (keyElements.monetization && !summaryParts[0]?.includes(keyElements.monetization)) {
-    summaryParts.push(`Revenue model: ${keyElements.monetization}`);
+  // Add target audience if not already included
+  if (bestTarget && !ideaParts.join(' ').toLowerCase().includes('user') && !ideaParts.join(' ').toLowerCase().includes('customer')) {
+    ideaParts.push(`Target market: ${bestTarget}`);
   }
   
-  // If we still don't have a good summary, use the last substantial message
-  if (summaryParts.length === 0) {
-    const lastSubstantialMessage = validMessages
-      .filter(m => m.content.length > 30)
-      .pop();
-    
-    if (lastSubstantialMessage) {
-      summaryParts.push(lastSubstantialMessage.content);
+  // Add monetization if available and not included
+  if (bestMonetization && !ideaParts.join(' ').toLowerCase().includes('revenue') && !ideaParts.join(' ').toLowerCase().includes('monetiz')) {
+    ideaParts.push(`Revenue model: ${bestMonetization}`);
+  }
+  
+  // Join the parts into a coherent description
+  let finalIdea = ideaParts.join('. ').replace(/\.+/g, '.').trim();
+  
+  // If the idea is too long, truncate intelligently
+  if (finalIdea.length > 500) {
+    // Keep the first 450 characters and add ellipsis at a sentence boundary
+    const truncated = finalIdea.substring(0, 450);
+    const lastPeriod = truncated.lastIndexOf('.');
+    if (lastPeriod > 300) {
+      finalIdea = truncated.substring(0, lastPeriod + 1);
+    } else {
+      finalIdea = truncated + '...';
     }
   }
   
-  // Join the parts into a cohesive summary, limiting length
-  const summary = summaryParts.join('. ').replace(/\.\./g, '.');
-  
-  // Limit to a reasonable length for API calls (around 500 characters)
-  if (summary.length > 500) {
-    return summary.substring(0, 497) + '...';
+  // Fallback to original idea if synthesis failed
+  if (!finalIdea || finalIdea.length < 30) {
+    return originalIdea || 'A startup idea focused on solving market problems through innovative technology solutions';
   }
   
-  return summary || originalIdea || 'startup idea';
+  return finalIdea;
 }
 
 /**
