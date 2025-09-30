@@ -337,6 +337,12 @@ verify_jwt = false
 [functions.hub-batch-data]
 verify_jwt = false
 
+[functions.generate-ai-insights]
+verify_jwt = true
+
+[functions.generate-recommendations]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327
