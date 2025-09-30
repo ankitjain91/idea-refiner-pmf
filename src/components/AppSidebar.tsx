@@ -52,12 +52,6 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       badge: null
     },
     { 
-      title: "Dashboard", 
-      url: "/dashboard", 
-      icon: BarChart3,
-      badge: null
-    },
-    { 
       title: "Sessions", 
       url: "/ideajournal", 
       icon: BookOpen,
