@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { BaseTile } from './BaseTile';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { TrendingUp, Brain, Globe, Heart } from 'lucide-react';
+import { TrendingUp, Brain, Globe, Heart, CheckCircle2, Target, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -332,37 +333,186 @@ export function OptimizedQuickStatsTile({
       case 'competition':
         return (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Competition Analysis</DialogTitle>
                 <DialogDescription>
-                  Competitive landscape and market positioning
+                  Detailed competitive landscape analysis for your idea
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 p-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Competition Level</p>
-                  <p className="text-2xl font-bold">{data.level}</p>
+              <div className="space-y-6 p-4">
+                {/* Competition Rating Overview */}
+                <div className="bg-secondary/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-muted-foreground">Competition Level</p>
+                    <Badge 
+                      variant={
+                        data.level === 'Low' ? 'default' : 
+                        data.level === 'Medium' ? 'secondary' : 
+                        'destructive'
+                      }
+                      className="text-lg px-3 py-1"
+                    >
+                      {data.level} Competition
+                    </Badge>
+                  </div>
+                  
+                  {/* How We Calculated This Rating */}
+                  <div className="space-y-2">
+                    <p className="font-semibold text-sm">How We Reached This Rating:</p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>• <strong>Number of Competitors:</strong> {data.competitors?.length || 0} {data.competitors?.length > 5 ? '(High density)' : data.competitors?.length > 2 ? '(Moderate density)' : '(Low density)'}</p>
+                      <p>• <strong>Market Maturity:</strong> {data.competitors?.some((c: any) => c.type === 'Enterprise') ? 'Established players present' : 'Emerging market'}</p>
+                      <p>• <strong>Differentiation Potential:</strong> {data.level === 'Low' ? 'High opportunity for unique positioning' : data.level === 'Medium' ? 'Moderate differentiation needed' : 'Requires strong unique value proposition'}</p>
+                      <p>• <strong>Barrier to Entry:</strong> {data.level === 'High' ? 'Significant resources needed' : data.level === 'Medium' ? 'Moderate investment required' : 'Relatively accessible market'}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Competition Score Breakdown */}
+                  {data.metrics && (
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="bg-background/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">Market Saturation</p>
+                        <div className="flex items-center gap-2">
+                          <Progress value={data.metrics.saturation || 50} className="h-2 flex-1" />
+                          <span className="text-xs font-medium">{data.metrics.saturation || 50}%</span>
+                        </div>
+                      </div>
+                      <div className="bg-background/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">Differentiation Difficulty</p>
+                        <div className="flex items-center gap-2">
+                          <Progress value={data.metrics.difficulty || 50} className="h-2 flex-1" />
+                          <span className="text-xs font-medium">{data.metrics.difficulty || 50}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Key Competitors Analysis */}
                 {data.competitors && data.competitors.length > 0 && (
                   <div>
-                    <p className="font-semibold mb-2">Key Competitors</p>
-                    {data.competitors.map((comp: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center p-2 border-b">
-                        <span>{comp.name}</span>
-                        <Badge variant="outline">{comp.type}</Badge>
-                      </div>
-                    ))}
+                    <p className="font-semibold mb-3">Key Competitors Identified</p>
+                    <div className="space-y-2">
+                      {data.competitors.map((comp: any, i: number) => (
+                        <div key={i} className="border rounded-lg p-3 hover:bg-secondary/20 transition-colors">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <span className="font-medium">{comp.name}</span>
+                              <Badge variant="outline" className="ml-2">{comp.type}</Badge>
+                            </div>
+                            {comp.strength && (
+                              <Badge 
+                                variant={comp.strength === 'Strong' ? 'destructive' : comp.strength === 'Moderate' ? 'secondary' : 'default'}
+                              >
+                                {comp.strength}
+                              </Badge>
+                            )}
+                          </div>
+                          {comp.description && (
+                            <p className="text-sm text-muted-foreground mb-2">{comp.description}</p>
+                          )}
+                          {(comp.strengths || comp.weaknesses) && (
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {comp.strengths && (
+                                <div>
+                                  <span className="font-medium text-green-600">Strengths:</span>
+                                  <ul className="list-disc list-inside mt-1">
+                                    {comp.strengths.map((s: string, idx: number) => (
+                                      <li key={idx} className="text-muted-foreground">{s}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {comp.weaknesses && (
+                                <div>
+                                  <span className="font-medium text-orange-600">Opportunities:</span>
+                                  <ul className="list-disc list-inside mt-1">
+                                    {comp.weaknesses.map((w: string, idx: number) => (
+                                      <li key={idx} className="text-muted-foreground">{w}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* Strategic Insights & Recommendations */}
                 {data.insights && (
                   <div>
-                    <p className="font-semibold mb-2">Strategic Insights</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {data.insights.map((insight: string, i: number) => (
-                        <li key={i} className="text-sm">{insight}</li>
-                      ))}
-                    </ul>
+                    <p className="font-semibold mb-3">Strategic Insights for Your Idea</p>
+                    <div className="bg-primary/5 rounded-lg p-4">
+                      <ul className="space-y-2">
+                        {data.insights.map((insight: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-primary mt-1">•</span>
+                            <span className="text-sm">{insight}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Competitive Advantage Opportunities */}
+                {data.level && (
+                  <div className="border-t pt-4">
+                    <p className="font-semibold mb-3">Your Competitive Advantage Path</p>
+                    <div className="space-y-2 text-sm">
+                      {data.level === 'Low' && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                            <span>First-mover advantage potential in an emerging market</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                            <span>Opportunity to define market standards and user expectations</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                            <span>Lower customer acquisition costs due to less competition</span>
+                          </div>
+                        </>
+                      )}
+                      {data.level === 'Medium' && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <Target className="h-4 w-4 text-yellow-600 mt-0.5" />
+                            <span>Focus on underserved niches within the market</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <Target className="h-4 w-4 text-yellow-600 mt-0.5" />
+                            <span>Differentiate through superior user experience or pricing</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <Target className="h-4 w-4 text-yellow-600 mt-0.5" />
+                            <span>Partner strategically to accelerate market entry</span>
+                          </div>
+                        </>
+                      )}
+                      {data.level === 'High' && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                            <span>Requires innovative disruption or significant differentiation</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                            <span>Consider focusing on specific vertical markets first</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                            <span>Build strategic partnerships to compete effectively</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
