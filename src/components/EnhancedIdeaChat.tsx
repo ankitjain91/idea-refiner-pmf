@@ -2102,7 +2102,9 @@ User submission: """${messageText}"""`;
               });
               
               // Summarize the conversation into a coherent startup idea
+              console.log('[IdeaChat] Creating summary from messages:', messages.length);
               const conversationSummary = createConversationSummary(messages, ideaToStore);
+              console.log('[IdeaChat] Summary created:', conversationSummary.substring(0, 200));
               
               // Store the summarized idea for dashboard
               localStorage.setItem('dashboardIdea', conversationSummary);

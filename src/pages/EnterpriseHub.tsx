@@ -58,16 +58,25 @@ export default function EnterpriseHub() {
   useEffect(() => {
     // Try to get conversation history and regenerate summary
     const conversationHistory = localStorage.getItem('dashboardConversationHistory');
+    console.log('[Dashboard] Conversation history exists:', !!conversationHistory);
+    
     if (conversationHistory) {
       try {
         const messages = JSON.parse(conversationHistory);
+        console.log('[Dashboard] Messages count:', messages.length);
+        console.log('[Dashboard] First few messages:', messages.slice(0, 3));
+        
         const rawIdea = localStorage.getItem('currentIdea') || '';
+        console.log('[Dashboard] Raw idea:', rawIdea.substring(0, 100));
+        
         const freshSummary = createConversationSummary(messages, rawIdea);
+        console.log('[Dashboard] Fresh summary generated:', freshSummary.substring(0, 200));
+        
         setCurrentIdea(freshSummary);
         // Update localStorage with fresh summary
         localStorage.setItem('dashboardIdea', freshSummary);
       } catch (err) {
-        console.error('Failed to parse conversation history:', err);
+        console.error('[Dashboard] Failed to parse conversation history:', err);
         // Fallback to stored idea
         const fallbackIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
         setCurrentIdea(fallbackIdea || currentSession?.data?.currentIdea || '');
@@ -75,6 +84,7 @@ export default function EnterpriseHub() {
     } else {
       // No conversation history, use stored idea
       const storedIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
+      console.log('[Dashboard] Using stored idea (no conversation history):', storedIdea.substring(0, 100));
       setCurrentIdea(storedIdea || currentSession?.data?.currentIdea || '');
     }
   }, [currentSession]);

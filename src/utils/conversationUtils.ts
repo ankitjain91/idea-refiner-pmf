@@ -15,10 +15,15 @@ interface ChatMessage {
  * @returns A coherent startup idea description synthesized from the conversation
  */
 export function createConversationSummary(messages: ChatMessage[], originalIdea?: string): string {
+  console.log('[ConversationSummary] Starting with', messages?.length || 0, 'messages');
+  console.log('[ConversationSummary] Original idea:', originalIdea?.substring(0, 100));
+  
   // Filter out typing indicators and empty messages
-  const validMessages = messages.filter(m => !m.isTyping && m.content);
+  const validMessages = messages?.filter(m => !m.isTyping && m.content) || [];
+  console.log('[ConversationSummary] Valid messages after filtering:', validMessages.length);
   
   if (validMessages.length === 0) {
+    console.log('[ConversationSummary] No valid messages, returning original idea');
     return originalIdea || '';
   }
   
@@ -178,9 +183,11 @@ export function createConversationSummary(messages: ChatMessage[], originalIdea?
   
   // Fallback to original idea if synthesis failed
   if (!finalIdea || finalIdea.length < 30) {
+    console.log('[ConversationSummary] Synthesis failed, using fallback');
     return originalIdea || 'A startup idea focused on solving market problems through innovative technology solutions';
   }
   
+  console.log('[ConversationSummary] Final idea generated:', finalIdea.substring(0, 200));
   return finalIdea;
 }
 
