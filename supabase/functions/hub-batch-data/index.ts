@@ -35,8 +35,9 @@ serve(async (req) => {
     // Deduplicate tile types (in case of duplicate requests)
     const uniqueTileTypes = [...new Set(tileTypes)];
     
-    // Separate Groq-based analyses from other API calls
+    // Separate different API types
     const groqAnalyses = [];
+    const serperSearches = [];
     const otherAPICalls = [];
     
     for (const tileType of uniqueTileTypes) {
@@ -45,13 +46,23 @@ serve(async (req) => {
           'competitor_analysis', 'target_audience', 'pricing_strategy', 
           'growth_projections'].includes(tileType)) {
         groqAnalyses.push(tileType);
-      } else {
+      } 
+      // Identify which tiles use Serper API  
+      else if (['quick_stats_market_size', 'market_size', 'google_trends', 
+                'market_trends'].includes(tileType)) {
+        serperSearches.push(tileType);
+      }
+      // Everything else
+      else {
         otherAPICalls.push(tileType);
       }
     }
     
-    // If we have Groq analyses, batch them into a single call
+    // Batch API calls by provider
     let groqResults = {};
+    let serperResults = {};
+    
+    // Batch Groq analyses
     if (groqAnalyses.length > 0) {
       try {
         console.log(`🤖 Batching ${groqAnalyses.length} Groq analyses into single call`);
@@ -77,17 +88,95 @@ serve(async (req) => {
         }
       } catch (error) {
         console.error('Groq batch analysis failed:', error);
-        // Fall back to individual calls if batch fails
       }
     }
     
-    // Prepare all fetch promises for remaining API calls
+    // Batch Serper searches
+    if (serperSearches.length > 0) {
+      try {
+        console.log(`🔍 Batching ${serperSearches.length} Serper searches into single call`);
+        
+        // Map tile types to search types
+        const searchTypes = serperSearches.map(tile => {
+          if (tile === 'quick_stats_market_size' || tile === 'market_size') return 'market_size';
+          if (tile === 'google_trends') return 'google_trends';
+          if (tile === 'market_trends') return 'market_trends';
+          return tile;
+        });
+        
+        const serperResponse = await fetch(`${supabaseUrl}/functions/v1/serper-batch-search`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            idea,
+            searchTypes: [...new Set(searchTypes)] // Dedupe search types
+          }),
+        });
+        
+        if (serperResponse.ok) {
+          const serperData = await serperResponse.json();
+          if (serperData.success && serperData.results) {
+            // Map results back to tile types
+            serperSearches.forEach(tile => {
+              const searchType = tile === 'quick_stats_market_size' || tile === 'market_size' ? 'market_size' :
+                                tile === 'google_trends' ? 'google_trends' :
+                                tile === 'market_trends' ? 'market_trends' : tile;
+              serperResults[tile] = serperData.results[searchType];
+            });
+            console.log(`✅ Serper batch returned results for ${Object.keys(serperResults).length} tiles`);
+          }
+        }
+      } catch (error) {
+        console.error('Serper batch search failed:', error);
+      }
+    }
+    
+    // Prepare all fetch promises for remaining API calls and batch results
     const fetchPromises = uniqueTileTypes.map(async (tileType: string) => {
       try {
         // Check if we already have the result from Groq batch
         if (groqResults[tileType]) {
           console.log(`✅ Using batched Groq result for ${tileType}`);
           const data = groqResults[tileType];
+          
+          // Cache the batched result
+          const cacheKey = `${tileType}_${idea.substring(0, 50)}_${JSON.stringify(filters || {})}`;
+          apiCallCache.set(cacheKey, { data, timestamp: Date.now() });
+          
+          // Also cache in database if userId is provided
+          if (userId && data) {
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 12);
+            
+            try {
+              await supabase
+                .from('dashboard_data')
+                .upsert({
+                  user_id: userId,
+                  session_id: sessionId,
+                  idea_text: idea,
+                  tile_type: tileType,
+                  data: data,
+                  created_at: new Date().toISOString(),
+                  expires_at: expiresAt.toISOString(),
+                }, {
+                  onConflict: 'user_id,idea_text,tile_type'
+                });
+            } catch (dbError) {
+              console.error(`Failed to cache ${tileType} in DB:`, dbError);
+            }
+          }
+          
+          return { tileType, data, fromCache: false, cacheLevel: 'batch' };
+        }
+        
+        // Check if we have Serper batch results
+        if (serperResults[tileType]) {
+          console.log(`✅ Using batched Serper result for ${tileType}`);
+          const data = serperResults[tileType];
           
           // Cache the batched result
           const cacheKey = `${tileType}_${idea.substring(0, 50)}_${JSON.stringify(filters || {})}`;
@@ -161,24 +250,13 @@ serve(async (req) => {
         let functionName = '';
         let payload: any = { idea };
 
-        // Skip Groq-batched tiles that are already handled
-        if (groqResults[tileType]) {
+        // Skip tiles that are already handled by batch functions
+        if (groqResults[tileType] || serperResults[tileType]) {
           // Already handled in batch
-          return { tileType, data: groqResults[tileType], fromCache: false, cacheLevel: 'batch' };
+          return { tileType, data: groqResults[tileType] || serperResults[tileType], fromCache: false, cacheLevel: 'batch' };
         }
 
         switch (tileType) {
-          case 'quick_stats_market_size':
-            functionName = 'market-size';
-            break;
-          case 'market_trends':
-            functionName = 'market-trends';
-            payload = { ...payload, filters };
-            break;
-          case 'google_trends':
-            functionName = 'google-trends';
-            payload = { query: idea.split(' ').slice(0, 3).join(' ') };
-            break;
           case 'web_search':
             functionName = 'web-search-optimized';
             payload = { query: idea, category: 'news' };
@@ -187,19 +265,11 @@ serve(async (req) => {
             functionName = 'reddit-sentiment';
             payload = { query: idea };
             break;
-          case 'market_size':
-            functionName = 'market-size';
-            break;
           case 'user_engagement':
             functionName = 'user-engagement';
             break;
           case 'launch_timeline':
             functionName = 'launch-timeline';
-            break;
-          case 'market_insights':
-            // For non-audience/pricing insights, still use the original function
-            functionName = 'market-insights';
-            payload = { ...payload, insightType: 'general' };
             break;
           default:
             console.warn(`Unknown tile type: ${tileType}`);

@@ -202,8 +202,6 @@ verify_jwt = false
 [functions.enterprise-features]
 verify_jwt = true
 
-[functions.google-trends]
-verify_jwt = false
 
 [functions.idea-chat]
 verify_jwt = true
@@ -253,8 +251,6 @@ verify_jwt = true
 [functions.generate-analysis-suggestions]
 verify_jwt = false
 
-[functions.market-trends]
-verify_jwt = true
 
 [functions.financial-analysis]
 verify_jwt = true
@@ -286,14 +282,8 @@ verify_jwt = true
 [functions.dashboard-insights-realtime]
 verify_jwt = true
 
-[functions.serper-search]
-verify_jwt = true
 
-[functions.tavily-search]
-verify_jwt = true
 
-[functions.firecrawl-fetch]
-verify_jwt = true
 
 [functions.gdelt-news]
 verify_jwt = false
@@ -310,8 +300,6 @@ verify_jwt = false
 [functions.reddit-sentiment]
 verify_jwt = false
 
-[functions.market-size]
-verify_jwt = false
 
 
 [functions.user-engagement]
@@ -330,6 +318,9 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.groq-batch-analysis]
+verify_jwt = false
+
+[functions.serper-batch-search]
 verify_jwt = false
 
 [analytics]
