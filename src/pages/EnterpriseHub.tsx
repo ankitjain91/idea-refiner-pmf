@@ -8,7 +8,7 @@ import {
   Brain, TrendingUp, Globe2, Newspaper, MessageSquare, Youtube,
   Twitter, ShoppingBag, Users, Target, DollarSign, Rocket,
   BarChart3, AlertCircle, RefreshCw, Sparkles, Building2,
-  Calendar, Clock, Activity, Layers, Shield, Zap, RotateCw, Globe, ChevronDown
+  Calendar, Clock, Activity, Layers, Shield, Zap, RotateCw, Globe, ChevronDown, ChevronUp
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
@@ -48,6 +49,7 @@ export default function EnterpriseHub() {
   const [tilesKey, setTilesKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedContinent, setSelectedContinent] = useState('global');
+  const [showFullIdea, setShowFullIdea] = useState(false);
   
   // Get current idea from session or localStorage - prioritize full conversation context
   const dashboardIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
@@ -284,13 +286,43 @@ export default function EnterpriseHub() {
   return (
     <div className="min-h-screen bg-background overflow-y-auto">
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Clean Header */}
+        {/* Clean Header with Idea Summary */}
         <div className="flex items-center justify-between py-2">
-          <div>
+          <div className="flex-1 max-w-4xl">
             <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {currentIdea}
-            </p>
+            <Collapsible open={showFullIdea} onOpenChange={setShowFullIdea}>
+              <div className="mt-2 p-3 bg-muted/50 rounded-lg border border-border/50">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground mb-1">Your Idea Summary:</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {!showFullIdea && currentIdea.length > 300 
+                        ? currentIdea.substring(0, 297) + '...' 
+                        : showFullIdea 
+                        ? currentIdea 
+                        : currentIdea}
+                    </p>
+                  </div>
+                  {currentIdea.length > 300 && (
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 px-2">
+                        {showFullIdea ? (
+                          <>
+                            <ChevronUp className="h-3 w-3 mr-1" />
+                            Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-3 w-3 mr-1" />
+                            More
+                          </>
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                  )}
+                </div>
+              </div>
+            </Collapsible>
           </div>
           <div className="flex items-center gap-2">
             <Button
