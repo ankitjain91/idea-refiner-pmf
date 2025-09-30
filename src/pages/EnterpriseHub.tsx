@@ -590,7 +590,8 @@ export default function EnterpriseHub() {
             ))}
           </div>
 
-          <TabsContent value="overview" className="space-y-4">
+          {/* Overview Tab */}
+          <div className={activeTab === 'overview' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
                 <MarketTrendsCard filters={filters} />
@@ -612,9 +613,10 @@ export default function EnterpriseHub() {
                 timeWindow={filters.time_window}
               />
             </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="market" className="space-y-4">
+          {/* Market Tab */}
+          <div className={activeTab === 'market' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <StandardizedMarketTile
                 title="Market Size Analysis"
@@ -641,9 +643,10 @@ export default function EnterpriseHub() {
                 currentIdea={currentIdea}
               />
             </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="competitive" className="space-y-4">
+          {/* Competitive Tab */}
+          <div className={activeTab === 'competitive' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <StandardizedMarketTile
                 title="Competitor Analysis"
@@ -680,9 +683,10 @@ export default function EnterpriseHub() {
                 currentIdea={currentIdea}
               />
             </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="audience" className="space-y-4">
+          {/* Audience Tab */}
+          <div className={activeTab === 'audience' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <StandardizedMarketTile
                 title="Target Audience"
@@ -719,9 +723,8 @@ export default function EnterpriseHub() {
                 currentIdea={currentIdea}
               />
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </div>
 
         {/* Pro/Enterprise Notice */}
         {subscriptionTier !== 'enterprise' && (
@@ -740,6 +743,7 @@ export default function EnterpriseHub() {
           </Alert>
         )}
       </div>
+      
       {/* Dashboard Data Initializer */}
       <DashboardInitializer />
     </div>
