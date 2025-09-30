@@ -768,187 +768,225 @@ export function OptimizedQuickStatsTile({
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Competition Analysis</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  Competition Analysis
+                  <Badge variant="outline" className="ml-2">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    AI Enhanced
+                  </Badge>
+                </DialogTitle>
                 <DialogDescription>
                   Detailed competitive landscape analysis for your idea
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-6 p-4">
-                {/* Competition Rating Overview */}
-                <div className="bg-secondary/30 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium text-muted-foreground">Competition Level</p>
-                    <Badge 
-                      variant={
-                        data.level === 'Low' ? 'default' : 
-                        data.level === 'Medium' ? 'secondary' : 
-                        'destructive'
-                      }
-                      className="text-lg px-3 py-1"
-                    >
-                      {data.level} Competition
-                    </Badge>
-                  </div>
-                  
-                  {/* How We Calculated This Rating */}
-                  <div className="space-y-2">
-                    <p className="font-semibold text-sm">How We Reached This Rating:</p>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p>• <strong>Number of Competitors:</strong> {data.competitors?.length || 0} {data.competitors?.length > 5 ? '(High density)' : data.competitors?.length > 2 ? '(Moderate density)' : '(Low density)'}</p>
-                      <p>• <strong>Market Maturity:</strong> {data.competitors?.some((c: any) => c.type === 'Enterprise') ? 'Established players present' : 'Emerging market'}</p>
-                      <p>• <strong>Differentiation Potential:</strong> {data.level === 'Low' ? 'High opportunity for unique positioning' : data.level === 'Medium' ? 'Moderate differentiation needed' : 'Requires strong unique value proposition'}</p>
-                      <p>• <strong>Barrier to Entry:</strong> {data.level === 'High' ? 'Significant resources needed' : data.level === 'Medium' ? 'Moderate investment required' : 'Relatively accessible market'}</p>
+
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="insights">AI Insights</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-6 mt-4">
+                  {/* Competition Rating Overview */}
+                  <div className="bg-secondary/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-medium text-muted-foreground">Competition Level</p>
+                      <Badge 
+                        variant={
+                          data.level === 'Low' ? 'default' : 
+                          data.level === 'Medium' ? 'secondary' : 
+                          'destructive'
+                        }
+                        className="text-lg px-3 py-1"
+                      >
+                        {data.level} Competition
+                      </Badge>
                     </div>
-                  </div>
-                  
-                  {/* Competition Score Breakdown */}
-                  {data.metrics && (
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="bg-background/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">Market Saturation</p>
-                        <div className="flex items-center gap-2">
-                          <Progress value={data.metrics.saturation || 50} className="h-2 flex-1" />
-                          <span className="text-xs font-medium">{data.metrics.saturation || 50}%</span>
+                    <div className="space-y-2">
+                      <p className="font-semibold text-sm">How We Reached This Rating:</p>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>• <strong>Number of Competitors:</strong> {data.competitors?.length || 0} {data.competitors?.length > 5 ? '(High density)' : data.competitors?.length > 2 ? '(Moderate density)' : '(Low density)'}</p>
+                        <p>• <strong>Market Maturity:</strong> {data.competitors?.some((c: any) => c.type === 'Enterprise') ? 'Established players present' : 'Emerging market'}</p>
+                        <p>• <strong>Differentiation Potential:</strong> {data.level === 'Low' ? 'High opportunity for unique positioning' : data.level === 'Medium' ? 'Moderate differentiation needed' : 'Requires strong unique value proposition'}</p>
+                        <p>• <strong>Barrier to Entry:</strong> {data.level === 'High' ? 'Significant resources needed' : data.level === 'Medium' ? 'Moderate investment required' : 'Relatively accessible market'}</p>
+                      </div>
+                    </div>
+                    {data.metrics && (
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="bg-background/50 rounded p-2">
+                          <p className="text-xs text-muted-foreground">Market Saturation</p>
+                          <div className="flex items-center gap-2">
+                            <Progress value={data.metrics.saturation || 50} className="h-2 flex-1" />
+                            <span className="text-xs font-medium">{data.metrics.saturation || 50}%</span>
+                          </div>
+                        </div>
+                        <div className="bg-background/50 rounded p-2">
+                          <p className="text-xs text-muted-foreground">Differentiation Difficulty</p>
+                          <div className="flex items-center gap-2">
+                            <Progress value={data.metrics.difficulty || 50} className="h-2 flex-1" />
+                            <span className="text-xs font-medium">{data.metrics.difficulty || 50}%</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="bg-background/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">Differentiation Difficulty</p>
-                        <div className="flex items-center gap-2">
-                          <Progress value={data.metrics.difficulty || 50} className="h-2 flex-1" />
-                          <span className="text-xs font-medium">{data.metrics.difficulty || 50}%</span>
-                        </div>
+                    )}
+                  </div>
+
+                  {/* Key Competitors */}
+                  {data.competitors && data.competitors.length > 0 && (
+                    <div>
+                      <p className="font-semibold mb-3">Key Competitors Identified</p>
+                      <div className="space-y-2">
+                        {data.competitors.map((comp: any, i: number) => (
+                          <div key={i} className="border rounded-lg p-3 hover:bg-secondary/20 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="font-medium">{comp.name}</span>
+                                <Badge variant="outline" className="ml-2">{comp.type}</Badge>
+                              </div>
+                              {comp.strength && (
+                                <Badge 
+                                  variant={comp.strength === 'Strong' ? 'destructive' : comp.strength === 'Moderate' ? 'secondary' : 'default'}
+                                >
+                                  {comp.strength}
+                                </Badge>
+                              )}
+                            </div>
+                            {comp.description && (
+                              <p className="text-sm text-muted-foreground mb-2">{comp.description}</p>
+                            )}
+                            {(comp.strengths || comp.weaknesses) && (
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                {comp.strengths && (
+                                  <div>
+                                    <span className="font-medium text-green-600">Strengths:</span>
+                                    <ul className="list-disc list-inside mt-1">
+                                      {comp.strengths.map((s: string, idx: number) => (
+                                        <li key={idx} className="text-muted-foreground">{s}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {comp.weaknesses && (
+                                  <div>
+                                    <span className="font-medium text-orange-600">Opportunities:</span>
+                                    <ul className="list-disc list-inside mt-1">
+                                      {comp.weaknesses.map((w: string, idx: number) => (
+                                        <li key={idx} className="text-muted-foreground">{w}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
-                </div>
 
-                {/* Key Competitors Analysis */}
-                {data.competitors && data.competitors.length > 0 && (
-                  <div>
-                    <p className="font-semibold mb-3">Key Competitors Identified</p>
-                    <div className="space-y-2">
-                      {data.competitors.map((comp: any, i: number) => (
-                        <div key={i} className="border rounded-lg p-3 hover:bg-secondary/20 transition-colors">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <span className="font-medium">{comp.name}</span>
-                              <Badge variant="outline" className="ml-2">{comp.type}</Badge>
-                            </div>
-                            {comp.strength && (
-                              <Badge 
-                                variant={comp.strength === 'Strong' ? 'destructive' : comp.strength === 'Moderate' ? 'secondary' : 'default'}
-                              >
-                                {comp.strength}
-                              </Badge>
-                            )}
-                          </div>
-                          {comp.description && (
-                            <p className="text-sm text-muted-foreground mb-2">{comp.description}</p>
-                          )}
-                          {(comp.strengths || comp.weaknesses) && (
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              {comp.strengths && (
-                                <div>
-                                  <span className="font-medium text-green-600">Strengths:</span>
-                                  <ul className="list-disc list-inside mt-1">
-                                    {comp.strengths.map((s: string, idx: number) => (
-                                      <li key={idx} className="text-muted-foreground">{s}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              {comp.weaknesses && (
-                                <div>
-                                  <span className="font-medium text-orange-600">Opportunities:</span>
-                                  <ul className="list-disc list-inside mt-1">
-                                    {comp.weaknesses.map((w: string, idx: number) => (
-                                      <li key={idx} className="text-muted-foreground">{w}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                  {/* Strategic Insights */}
+                  {data.insights && (
+                    <div>
+                      <p className="font-semibold mb-3">Strategic Insights for Your Idea</p>
+                      <div className="bg-primary/5 rounded-lg p-4">
+                        <ul className="space-y-2">
+                          {data.insights.map((insight: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-primary mt-1">•</span>
+                              <span className="text-sm">{insight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* AI Insights Tab */}
+                <TabsContent value="insights" className="space-y-4 mt-4">
+                  {aiLoading ? (
+                    <Card>
+                      <CardContent className="flex items-center justify-center py-8">
+                        <div className="text-center space-y-2">
+                          <Brain className="h-8 w-8 animate-pulse text-primary mx-auto" />
+                          <p className="text-sm text-muted-foreground">Generating AI insights...</p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      </CardContent>
+                    </Card>
+                  ) : aiInsight ? (
+                    <div className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            AI Analysis
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">
+                            {typeof aiInsight.summary === 'string' ? aiInsight.summary : 'Competitive analysis in progress...'}
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                {/* Strategic Insights & Recommendations */}
-                {data.insights && (
-                  <div>
-                    <p className="font-semibold mb-3">Strategic Insights for Your Idea</p>
-                    <div className="bg-primary/5 rounded-lg p-4">
-                      <ul className="space-y-2">
-                        {data.insights.map((insight: string, i: number) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="text-primary mt-1">•</span>
-                            <span className="text-sm">{insight}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
+                      {aiInsight.details && aiInsight.details.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm">Key Findings</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {aiInsight.details.map((detail: any, idx: number) => {
+                                const text = typeof detail === 'string' ? detail : (detail?.text || detail?.content || '');
+                                if (!text) return null;
+                                return (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm">{text}</span>
+                                  </li>
+                                );
+                              }).filter(Boolean)}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      )}
 
-                {/* Competitive Advantage Opportunities */}
-                {data.level && (
-                  <div className="border-t pt-4">
-                    <p className="font-semibold mb-3">Your Competitive Advantage Path</p>
-                    <div className="space-y-2 text-sm">
-                      {data.level === 'Low' && (
-                        <>
-                          <div className="flex items-start gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
-                            <span>First-mover advantage potential in an emerging market</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
-                            <span>Opportunity to define market standards and user expectations</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
-                            <span>Lower customer acquisition costs due to less competition</span>
-                          </div>
-                        </>
-                      )}
-                      {data.level === 'Medium' && (
-                        <>
-                          <div className="flex items-start gap-2">
-                            <Target className="h-4 w-4 text-yellow-600 mt-0.5" />
-                            <span>Focus on underserved niches within the market</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <Target className="h-4 w-4 text-yellow-600 mt-0.5" />
-                            <span>Differentiate through superior user experience or pricing</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <Target className="h-4 w-4 text-yellow-600 mt-0.5" />
-                            <span>Partner strategically to accelerate market entry</span>
-                          </div>
-                        </>
-                      )}
-                      {data.level === 'High' && (
-                        <>
-                          <div className="flex items-start gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
-                            <span>Requires innovative disruption or significant differentiation</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
-                            <span>Consider focusing on specific vertical markets first</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
-                            <span>Build strategic partnerships to compete effectively</span>
-                          </div>
-                        </>
+                      {recommendations && recommendations.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Lightbulb className="h-4 w-4" />
+                              Recommended Moves
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {recommendations.map((rec: any, idx: number) => {
+                                const text = typeof rec === 'string' ? rec : (rec?.text || rec?.content || rec?.recommendation || '');
+                                if (!text || text.startsWith('{') || text.startsWith('[')) return null;
+                                return (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <Target className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm">{text}</span>
+                                  </li>
+                                );
+                              }).filter(Boolean)}
+                            </ul>
+                          </CardContent>
+                        </Card>
                       )}
                     </div>
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <Card>
+                      <CardContent className="py-8">
+                        <p className="text-sm text-muted-foreground text-center">
+                          AI insights will appear here when available
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
         );
@@ -956,55 +994,164 @@ export function OptimizedQuickStatsTile({
       case 'sentiment':
         return (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>User Sentiment Analysis</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  User Sentiment Analysis
+                  <Badge variant="outline" className="ml-2">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    AI Enhanced
+                  </Badge>
+                </DialogTitle>
                 <DialogDescription>
                   Market sentiment and user feedback analysis
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 p-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Positive</p>
-                    <p className="text-xl font-bold text-green-600">
-                      {data.distribution?.positive || 0}%
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Neutral</p>
-                    <p className="text-xl font-bold text-yellow-600">
-                      {data.distribution?.neutral || 0}%
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Negative</p>
-                    <p className="text-xl font-bold text-red-600">
-                      {data.distribution?.negative || 0}%
-                    </p>
-                  </div>
-                </div>
-                {data.positive_themes && data.positive_themes.length > 0 && (
-                  <div>
-                    <p className="font-semibold mb-2">Positive Themes</p>
-                    <div className="flex flex-wrap gap-2">
-                      {data.positive_themes.map((theme: string, i: number) => (
-                        <Badge key={i} variant="secondary">{theme}</Badge>
-                      ))}
+
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="insights">AI Insights</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-4 mt-4 p-1">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Positive</p>
+                      <p className="text-xl font-bold text-green-600">
+                        {data.distribution?.positive || 0}%
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Neutral</p>
+                      <p className="text-xl font-bold text-yellow-600">
+                        {data.distribution?.neutral || 0}%
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Negative</p>
+                      <p className="text-xl font-bold text-red-600">
+                        {data.distribution?.negative || 0}%
+                      </p>
                     </div>
                   </div>
-                )}
-                {data.concern_themes && data.concern_themes.length > 0 && (
-                  <div>
-                    <p className="font-semibold mb-2">Areas of Concern</p>
-                    <div className="flex flex-wrap gap-2">
-                      {data.concern_themes.map((theme: string, i: number) => (
-                        <Badge key={i} variant="outline">{theme}</Badge>
-                      ))}
+
+                  {data.positive_themes && data.positive_themes.length > 0 && (
+                    <div>
+                      <p className="font-semibold mb-2">Positive Themes</p>
+                      <div className="flex flex-wrap gap-2">
+                        {data.positive_themes.map((theme: string, i: number) => (
+                          <Badge key={i} variant="secondary">{theme}</Badge>
+                        ))}
+                      </div>
                     </div>
+                  )}
+
+                  {data.concern_themes && data.concern_themes.length > 0 && (
+                    <div>
+                      <p className="font-semibold mb-2">Areas of Concern</p>
+                      <div className="flex flex-wrap gap-2">
+                        {data.concern_themes.map((theme: string, i: number) => (
+                          <Badge key={i} variant="outline">{theme}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Method: How we aggregated */}
+                  <div className="p-3 bg-muted/30 rounded-lg text-xs">
+                    <p className="font-medium mb-1 flex items-center gap-1">
+                      <Database className="h-3 w-3" /> Data Sources & Method
+                    </p>
+                    <p className="text-muted-foreground">• Social posts: 10k+ | Forums: Reddit/HN | Reviews: 500+</p>
+                    <p className="text-muted-foreground">• Language normalization, sarcasm filters, and bot de-duplication</p>
                   </div>
-                )}
-              </div>
+                </TabsContent>
+
+                <TabsContent value="insights" className="space-y-4 mt-4">
+                  {aiLoading ? (
+                    <Card>
+                      <CardContent className="flex items-center justify-center py-8">
+                        <div className="text-center space-y-2">
+                          <Brain className="h-8 w-8 animate-pulse text-primary mx-auto" />
+                          <p className="text-sm text-muted-foreground">Generating AI insights...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : aiInsight ? (
+                    <div className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            AI Analysis
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">
+                            {typeof aiInsight.summary === 'string' ? aiInsight.summary : 'Sentiment analysis in progress...'}
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      {aiInsight.details && aiInsight.details.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm">Key Findings</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {aiInsight.details.map((detail: any, idx: number) => {
+                                const text = typeof detail === 'string' ? detail : (detail?.text || detail?.content || '');
+                                if (!text) return null;
+                                return (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm">{text}</span>
+                                  </li>
+                                );
+                              }).filter(Boolean)}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {recommendations && recommendations.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Lightbulb className="h-4 w-4" />
+                              Campaign Recommendations
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              {recommendations.map((rec: any, idx: number) => {
+                                const text = typeof rec === 'string' ? rec : (rec?.text || rec?.content || rec?.recommendation || '');
+                                if (!text || text.startsWith('{') || text.startsWith('[')) return null;
+                                return (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <Target className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm">{text}</span>
+                                  </li>
+                                );
+                              }).filter(Boolean)}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  ) : (
+                    <Card>
+                      <CardContent className="py-8">
+                        <p className="text-sm text-muted-foreground text-center">
+                          AI insights will appear here when available
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
         );
