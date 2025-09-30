@@ -54,23 +54,25 @@ export default function EnterpriseHub() {
   
   // Regenerate idea summary from conversation history if available
   const [currentIdea, setCurrentIdea] = useState('');
+  const [isRefreshingSummary, setIsRefreshingSummary] = useState(false);
   
-  useEffect(() => {
+  // Function to regenerate summary from conversation
+  const regenerateSummary = () => {
+    setIsRefreshingSummary(true);
+    
     // Try to get conversation history and regenerate summary
     const conversationHistory = localStorage.getItem('dashboardConversationHistory');
-    console.log('[Dashboard] Conversation history exists:', !!conversationHistory);
+    console.log('[Dashboard] Regenerating summary from conversation history');
     
     if (conversationHistory) {
       try {
         const messages = JSON.parse(conversationHistory);
-        console.log('[Dashboard] Messages count:', messages.length);
-        console.log('[Dashboard] First few messages:', messages.slice(0, 3));
-        
         const rawIdea = localStorage.getItem('currentIdea') || '';
-        console.log('[Dashboard] Raw idea:', rawIdea.substring(0, 100));
+        console.log('[Dashboard] Processing', messages.length, 'messages');
         
+        // Generate fresh summary
         const freshSummary = createConversationSummary(messages, rawIdea);
-        console.log('[Dashboard] Fresh summary generated:', freshSummary.substring(0, 200));
+        console.log('[Dashboard] New summary generated:', freshSummary.substring(0, 200));
         
         setCurrentIdea(freshSummary);
         // Update localStorage with fresh summary
@@ -84,9 +86,16 @@ export default function EnterpriseHub() {
     } else {
       // No conversation history, use stored idea
       const storedIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
-      console.log('[Dashboard] Using stored idea (no conversation history):', storedIdea.substring(0, 100));
+      console.log('[Dashboard] No conversation history, using stored idea');
       setCurrentIdea(storedIdea || currentSession?.data?.currentIdea || '');
     }
+    
+    setTimeout(() => setIsRefreshingSummary(false), 500);
+  };
+  
+  // Load summary on mount
+  useEffect(() => {
+    regenerateSummary();
   }, [currentSession]);
   const subscriptionTier = subscription.tier;
   
@@ -328,7 +337,20 @@ export default function EnterpriseHub() {
               <div className="mt-2 p-3 bg-muted/50 rounded-lg border border-border/50">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground mb-1">Your Idea Summary:</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-medium text-foreground">Your Idea Summary:</p>
+                      <Button
+                        onClick={regenerateSummary}
+                        disabled={isRefreshingSummary}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 hover:bg-muted"
+                        title="Regenerate summary from conversation"
+                      >
+                        <RefreshCw className={cn("h-3 w-3", isRefreshingSummary && "animate-spin")} />
+                        <span className="ml-1 text-xs">Refine</span>
+                      </Button>
+                    </div>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {!showFullIdea && currentIdea.length > 300 
                         ? currentIdea.substring(0, 297) + '...' 
