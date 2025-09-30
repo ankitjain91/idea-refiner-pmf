@@ -251,9 +251,20 @@ export class APICallAnalyzer {
   }
 
   private extractServiceName(endpoint: string): string {
-    // Extract service name from endpoint
-    const match = endpoint.match(/functions\/v1\/([^\/\?]+)/);
-    return match ? match[1] : endpoint;
+    // Extract service name from various endpoint formats
+    // Format 1: functions/v1/service-name
+    let match = endpoint.match(/functions\/v1\/([^\/\?]+)/);
+    if (match) return match[1];
+    
+    // Format 2: functions/service-name
+    match = endpoint.match(/functions\/([^\/\?]+)/);
+    if (match) return match[1];
+    
+    // Format 3: supabase.functions.invoke('service-name')
+    match = endpoint.match(/supabase\.functions\.invoke\('([^']+)'\)/);
+    if (match) return match[1];
+    
+    return endpoint;
   }
 
   /**

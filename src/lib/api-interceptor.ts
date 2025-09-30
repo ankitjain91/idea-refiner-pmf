@@ -42,17 +42,19 @@ export function installAPIInterceptor(supabaseClient: any) {
       error = err;
       throw err;
     } finally {
-      // Track the API call
+      // Track the API call with full path
       const duration = Date.now() - startTime;
-      apiCallAnalyzer.trackCall(`functions/${functionName}`, success, duration);
+      const fullPath = `supabase.functions.invoke('${functionName}')`;
+      apiCallAnalyzer.trackCall(fullPath, success, duration);
       
       // Log detailed information in development
       if (process.env.NODE_ENV === 'development') {
         const emoji = success ? '✅' : '❌';
         const statusText = success ? 'SUCCESS' : 'FAILED';
         console.log(
-          `${emoji} [API] ${functionName} - ${statusText} (${duration}ms)`,
+          `${emoji} [API] ${fullPath} - ${statusText} (${duration}ms)`,
           {
+            service: functionName,
             body: options?.body,
             response: success ? response?.data : undefined,
             error: error

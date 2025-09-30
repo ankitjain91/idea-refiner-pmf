@@ -45,7 +45,8 @@ export function APIMetricsDashboard() {
     .filter((s: any) => s.totalCalls > 0)
     .slice(0, 8)
     .map((s: any) => ({
-      name: s.serviceName.replace('-', '\n'),
+      name: s.serviceName.length > 15 ? s.serviceName.substring(0, 15) + '...' : s.serviceName,
+      fullName: s.serviceName,
       total: s.totalCalls,
       duplicates: s.duplicateCalls,
       failed: s.failedCalls,
@@ -175,7 +176,23 @@ export function APIMetricsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip 
+                    content={({active, payload}) => {
+                      if (active && payload && payload[0]) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-background border rounded-lg p-2">
+                            <p className="text-sm font-medium">{data.fullName}</p>
+                            <p className="text-xs text-muted-foreground">Total: {data.total}</p>
+                            <p className="text-xs text-muted-foreground">Duplicates: {data.duplicates}</p>
+                            <p className="text-xs text-muted-foreground">Failed: {data.failed}</p>
+                            <p className="text-xs text-muted-foreground">Cost: ${data.cost}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Bar dataKey="total" fill="#0088FE" name="Total Calls" />
                   <Bar dataKey="duplicates" fill="#FFBB28" name="Duplicates" />
                   <Bar dataKey="failed" fill="#FF8042" name="Failed" />
@@ -223,35 +240,49 @@ export function APIMetricsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {metrics.byEndpoint.slice(0, 10).map((endpoint: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium truncate">{endpoint.endpoint}</p>
-                      <div className="flex gap-4 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {endpoint.count} calls
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {endpoint.averageTime.toFixed(0)}ms avg
-                        </span>
-                        {endpoint.duplicationRate > 20 && (
-                          <Badge variant="outline" className="text-xs">
-                            {endpoint.duplicationRate.toFixed(0)}% duplicates
+                {metrics.byEndpoint.slice(0, 10).map((endpoint: any, idx: number) => {
+                  // Extract service name and method from endpoint
+                  const serviceName = endpoint.endpoint.match(/supabase\.functions\.invoke\('([^']+)'\)/)?.[1] || 
+                                     endpoint.endpoint.match(/functions\/([^\/\?]+)/)?.[1] || 
+                                     endpoint.endpoint;
+                  const isSupabase = endpoint.endpoint.includes('supabase.functions');
+                  
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={isSupabase ? "default" : "secondary"} className="text-xs">
+                            {isSupabase ? 'Supabase' : 'External'}
                           </Badge>
-                        )}
+                          <p className="text-sm font-medium">{serviceName}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 font-mono">{endpoint.endpoint}</p>
+                        <div className="flex gap-4 mt-2">
+                          <span className="text-xs text-muted-foreground">
+                            {endpoint.count} calls
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {endpoint.averageTime.toFixed(0)}ms avg
+                          </span>
+                          {endpoint.duplicationRate > 20 && (
+                            <Badge variant="outline" className="text-xs">
+                              {endpoint.duplicationRate.toFixed(0)}% duplicates
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={endpoint.successRate} 
+                          className="w-16 h-1"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {endpoint.successRate.toFixed(0)}%
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={endpoint.successRate} 
-                        className="w-16 h-1"
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {endpoint.successRate.toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
