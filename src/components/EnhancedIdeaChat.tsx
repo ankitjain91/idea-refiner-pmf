@@ -841,10 +841,10 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         let suggestions = data.suggestions || [];
         if (suggestions.length === 0) {
           suggestions = [
-            "I need to validate this with customers by...",
-            "My minimum viable version would include...",
-            "My main competitors are... but I differentiate by...",
-            "The biggest risks are... and I'll mitigate them by..."
+            "How do I validate this with real customers?",
+            "What's my minimum viable product?",
+            "Who are my main competitors?",
+            "What are the biggest risks?"
           ];
         }
 

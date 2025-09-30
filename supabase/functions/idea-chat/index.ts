@@ -137,11 +137,22 @@ serve(async (req) => {
       const suggestionResponse = await callGroq([
         { 
           role: 'system', 
-          content: 'Generate 4 very SHORT user follow-up questions. Each under 8 words. Return as JSON array only.'
+          content: 'You help generate natural follow-up responses a USER might want to say in a startup idea discussion. Focus on what the user would actually want to ask or say next to continue developing their idea. Make them sound like real user responses, not bot prompts.'
         },
         { 
           role: 'user', 
-          content: `Based on: "${content.substring(0, 100)}..." generate 4 brief user questions. Format: ["q1", "q2", "q3", "q4"]` 
+          content: `The AI just said: "${content.substring(0, 200)}..."
+          
+Generate 4 natural follow-up responses the USER might want to say next. 
+Examples of good user responses:
+- "How do I validate this with real customers?"
+- "What about the technical implementation?"
+- "I'm worried about the competition"
+- "Can you help me with pricing strategy?"
+- "What are the biggest risks?"
+- "How much funding would I need?"
+
+Return exactly 4 short, natural user responses as a JSON array. Each should be 5-12 words and sound like something a real person would say.` 
         }
       ], 200, 0.9);
       
@@ -173,10 +184,10 @@ serve(async (req) => {
     // Fallback with user-perspective suggestions if generation failed
     if (!suggestions || suggestions.length === 0) {
       suggestions = [
-        "Can you give me specific examples of how this would work?",
-        "What would be the first steps I should take?",
-        "I'm concerned about scalability - how do I address that?",
-        "Tell me more about the competitive landscape"
+        "How do I validate this idea?",
+        "What's my first step?",
+        "Help me with the business model",
+        "What about competitors?"
       ];
     }
 
