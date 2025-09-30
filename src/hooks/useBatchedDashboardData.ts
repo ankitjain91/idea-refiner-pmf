@@ -190,12 +190,13 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
 
   // Auto-fetch on mount only - not on every dependency change
   useEffect(() => {
-    // Only fetch once on initial mount
-    if (!hasInitializedRef.current) {
+    // Only fetch once on initial mount or when idea changes
+    if (!hasInitializedRef.current && idea && tileTypes.length > 0) {
       hasInitializedRef.current = true;
+      console.log('🎯 Initial dashboard load - fetching all tiles');
       fetchBatchedData();
     }
-  }, []); // Empty dependency array - only run once
+  }, [idea]); // Only re-run when idea changes
 
   // Refresh function for manual refresh
   const refresh = useCallback(async () => {

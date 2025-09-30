@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { BaseTile } from './BaseTile';
-import { TileInsightsDialog } from './TileInsightsDialog';
-import { SmoothBrainsDialog } from './SmoothBrainsDialog';
-import { MarketSizeDialog } from './MarketSizeDialog';
-import { UserSentimentDialog } from './UserSentimentDialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Brain, Globe, Heart } from 'lucide-react';
+import { TrendingUp, Brain, Globe, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface OptimizedQuickStatsTileProps {
   title: string;
@@ -28,10 +31,7 @@ export function OptimizedQuickStatsTile({
   error,
   onRefresh
 }: OptimizedQuickStatsTileProps) {
-  const [showInsights, setShowInsights] = useState(false);
-  const [showSmoothBrainsDialog, setShowSmoothBrainsDialog] = useState(false);
-  const [showMarketSizeDialog, setShowMarketSizeDialog] = useState(false);
-  const [showUserSentimentDialog, setShowUserSentimentDialog] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
 
   const renderTileContent = () => {
     if (!data) return null;
@@ -44,7 +44,7 @@ export function OptimizedQuickStatsTile({
           <div className="space-y-4">
             <div 
               className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setShowSmoothBrainsDialog(true)}
+              onClick={() => setShowDialog(true)}
             >
               <div>
                 <p className={cn("text-3xl font-bold", scoreColor)}>
@@ -96,7 +96,7 @@ export function OptimizedQuickStatsTile({
           <div className="space-y-4">
             <div 
               className="cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setShowMarketSizeDialog(true)}
+              onClick={() => setShowDialog(true)}
             >
               <div className="space-y-3">
                 <div>
@@ -160,7 +160,7 @@ export function OptimizedQuickStatsTile({
               variant="ghost" 
               size="sm" 
               className="h-6 px-2 text-xs w-full"
-              onClick={() => setShowInsights(true)}
+              onClick={() => setShowDialog(true)}
             >
               View Details
             </Button>
@@ -176,7 +176,7 @@ export function OptimizedQuickStatsTile({
           <div className="space-y-4">
             <div 
               className="cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setShowUserSentimentDialog(true)}
+              onClick={() => setShowDialog(true)}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -218,16 +218,232 @@ export function OptimizedQuickStatsTile({
     }
   };
 
+  const renderDialog = () => {
+    if (!showDialog || !data) return null;
+
+    switch (tileType) {
+      case 'pmf_score':
+        return (
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>SmoothBrains Score Analysis</DialogTitle>
+                <DialogDescription>
+                  Detailed breakdown of your Product-Market Fit score
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Score</p>
+                    <p className="text-2xl font-bold">{data.score}%</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tier</p>
+                    <p className="text-lg font-semibold">{data.tier}</p>
+                  </div>
+                </div>
+                {data.analysis && (
+                  <div className="space-y-3">
+                    {data.analysis.strengths && (
+                      <div>
+                        <p className="font-semibold mb-2">Strengths</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {data.analysis.strengths.map((s: string, i: number) => (
+                            <li key={i} className="text-sm">{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {data.analysis.weaknesses && (
+                      <div>
+                        <p className="font-semibold mb-2">Weaknesses</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {data.analysis.weaknesses.map((w: string, i: number) => (
+                            <li key={i} className="text-sm">{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {data.analysis.verdict && (
+                      <div>
+                        <p className="font-semibold mb-2">Verdict</p>
+                        <p className="text-sm">{data.analysis.verdict}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+
+      case 'market_size':
+        return (
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Market Size Analysis</DialogTitle>
+                <DialogDescription>
+                  Total Addressable Market, Serviceable Market, and Obtainable Market
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 p-4">
+                {data.calculationDetails && (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-semibold">TAM - Total Addressable Market</p>
+                      <p className="text-2xl font-bold">${(data.tam / 1000000).toFixed(1)}M</p>
+                      <p className="text-sm text-muted-foreground">{data.calculationDetails.calculations?.tam?.explanation}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">SAM - Serviceable Addressable Market</p>
+                      <p className="text-xl font-bold">${(data.sam / 1000000).toFixed(1)}M</p>
+                      <p className="text-sm text-muted-foreground">{data.calculationDetails.calculations?.sam?.explanation}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold">SOM - Serviceable Obtainable Market</p>
+                      <p className="text-xl font-bold">${(data.som / 1000000).toFixed(1)}M</p>
+                      <p className="text-sm text-muted-foreground">{data.calculationDetails.calculations?.som?.explanation}</p>
+                    </div>
+                  </div>
+                )}
+                {data.segments && (
+                  <div>
+                    <p className="font-semibold mb-2">Market Segments</p>
+                    {data.segments.map((segment: any, i: number) => (
+                      <div key={i} className="border rounded p-3 mb-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{segment.name}</span>
+                          <Badge>{segment.priority}</Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {segment.share}% share • {segment.growth}% growth
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+
+      case 'competition':
+        return (
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Competition Analysis</DialogTitle>
+                <DialogDescription>
+                  Competitive landscape and market positioning
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 p-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Competition Level</p>
+                  <p className="text-2xl font-bold">{data.level}</p>
+                </div>
+                {data.competitors && data.competitors.length > 0 && (
+                  <div>
+                    <p className="font-semibold mb-2">Key Competitors</p>
+                    {data.competitors.map((comp: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center p-2 border-b">
+                        <span>{comp.name}</span>
+                        <Badge variant="outline">{comp.type}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {data.insights && (
+                  <div>
+                    <p className="font-semibold mb-2">Strategic Insights</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {data.insights.map((insight: string, i: number) => (
+                        <li key={i} className="text-sm">{insight}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+
+      case 'sentiment':
+        return (
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>User Sentiment Analysis</DialogTitle>
+                <DialogDescription>
+                  Market sentiment and user feedback analysis
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 p-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">Positive</p>
+                    <p className="text-xl font-bold text-green-600">
+                      {data.distribution?.positive || 0}%
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">Neutral</p>
+                    <p className="text-xl font-bold text-yellow-600">
+                      {data.distribution?.neutral || 0}%
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">Negative</p>
+                    <p className="text-xl font-bold text-red-600">
+                      {data.distribution?.negative || 0}%
+                    </p>
+                  </div>
+                </div>
+                {data.positive_themes && data.positive_themes.length > 0 && (
+                  <div>
+                    <p className="font-semibold mb-2">Positive Themes</p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.positive_themes.map((theme: string, i: number) => (
+                        <Badge key={i} variant="secondary">{theme}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {data.concern_themes && data.concern_themes.length > 0 && (
+                  <div>
+                    <p className="font-semibold mb-2">Areas of Concern</p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.concern_themes.map((theme: string, i: number) => (
+                        <Badge key={i} variant="outline">{theme}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
-    <BaseTile
-      title={title}
-      icon={icon}
-      isLoading={isLoading}
-      error={error}
-      data={data}
-      className="h-full"
-    >
-      {renderTileContent()}
-    </BaseTile>
+    <>
+      <BaseTile
+        title={title}
+        icon={icon}
+        isLoading={isLoading}
+        error={error}
+        data={data}
+        className="h-full"
+      >
+        {renderTileContent()}
+      </BaseTile>
+      {renderDialog()}
+    </>
   );
 }

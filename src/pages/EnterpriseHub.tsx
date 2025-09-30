@@ -568,14 +568,27 @@ export default function EnterpriseHub() {
           />
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-muted/30 border">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="market">Market Analysis</TabsTrigger>
-            <TabsTrigger value="competitive">Competitive Intel</TabsTrigger>
-            <TabsTrigger value="audience">Audience Insights</TabsTrigger>
-          </TabsList>
+        {/* Main Content - All tabs render immediately for instant loading */}
+        <div className="space-y-4">
+          <div className="bg-muted/30 border rounded-lg p-1 inline-flex">
+            {['overview', 'market', 'competitive', 'audience'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded transition-colors",
+                  activeTab === tab 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab === 'overview' && 'Overview'}
+                {tab === 'market' && 'Market Analysis'}
+                {tab === 'competitive' && 'Competitive Intel'}
+                {tab === 'audience' && 'Audience Insights'}
+              </button>
+            ))}
+          </div>
 
           <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -708,6 +721,7 @@ export default function EnterpriseHub() {
             </div>
           </TabsContent>
         </Tabs>
+      </div>
 
         {/* Pro/Enterprise Notice */}
         {subscriptionTier !== 'enterprise' && (
