@@ -504,12 +504,16 @@ export function OptimizedQuickStatsTile({
                     <CardContent>
                       {recommendations && recommendations.length > 0 ? (
                         <ul className="space-y-2">
-                          {recommendations.map((rec, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <Target className="h-4 w-4 text-primary mt-0.5" />
-                              <span className="text-sm">{rec}</span>
-                            </li>
-                          ))}
+                          {recommendations.map((rec: any, idx: number) => {
+                            const text = typeof rec === 'string' ? rec : (rec?.text || rec?.content || rec?.recommendation || '');
+                            if (!text || text.startsWith('{') || text.startsWith('[')) return null;
+                            return (
+                              <li key={idx} className="flex items-start gap-2">
+                                <Target className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">{text}</span>
+                              </li>
+                            );
+                          }).filter(Boolean)}
                         </ul>
                       ) : (
                         <div className="space-y-2">
