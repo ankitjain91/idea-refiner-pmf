@@ -2089,19 +2089,37 @@ User submission: """${messageText}"""`;
             
             // Store the idea properly before navigation
             if (ideaToStore) {
-              localStorage.setItem('dashboardIdea', ideaToStore);
+              // First store the raw idea
               localStorage.setItem('currentIdea', ideaToStore);
               localStorage.setItem(LS_KEYS.userIdea, ideaToStore);
               localStorage.setItem('ideaText', ideaToStore);
+              
+              // Show processing toast
+              toast({
+                title: "Preparing Dashboard",
+                description: "Analyzing and summarizing your conversation...",
+                duration: 2000,
+              });
+              
+              // Summarize the conversation into a coherent startup idea
+              const conversationSummary = createConversationSummary(messages, ideaToStore);
+              
+              // Store the summarized idea for dashboard
+              localStorage.setItem('dashboardIdea', conversationSummary);
+              localStorage.setItem('dashboardConversationHistory', JSON.stringify(messages));
+              
+              // Navigate to dashboard after brief delay for toast
+              setTimeout(() => {
+                navigate('/dashboard');
+              }, 300);
+            } else {
+              // If no idea, still navigate but show warning
+              toast({
+                title: "No Idea Found",
+                description: "Please describe your startup idea first",
+                variant: "destructive",
+              });
             }
-            
-            // Store the summarized conversation context for dashboard
-            const conversationSummary = createConversationSummary(messages, ideaToStore);
-            
-            localStorage.setItem('dashboardIdea', conversationSummary);
-            localStorage.setItem('dashboardConversationHistory', JSON.stringify(messages));
-            
-            navigate('/dashboard');
           }}
           variant="outline"
           size="sm"
