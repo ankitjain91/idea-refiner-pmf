@@ -215,10 +215,11 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
     
     // Use simplified keywords for better Google Trends results
     const trendsKeywords = keywords.slice(0, 1); // Use the strongest single keyword for accuracy
-    console.log('[GoogleTrendsCard] Using keywords:', trendsKeywords);
+    console.log('[GoogleTrendsCard] Starting fetch, keywords:', trendsKeywords, 'forceRefresh:', forceRefresh);
     
     // First, try to load from database if user is authenticated and not forcing refresh
     if (user?.id && !forceRefresh) {
+      console.log('[GoogleTrendsCard] Checking database...');
       try {
         // Try with session ID first, then without if that fails
         let dbData = await dashboardDataService.getData({
@@ -238,10 +239,11 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         }
         
         if (dbData) {
-          console.log('[GoogleTrendsCard] Loaded from database:', dbData);
+          console.log('[GoogleTrendsCard] ✅ Loaded from database');
           setData(dbData);
           return;
         }
+        console.log('[GoogleTrendsCard] No database data found');
       } catch (dbError) {
         console.warn('[GoogleTrendsCard] Database load failed:', dbError);
       }
@@ -258,14 +260,17 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
       
       // Return cached data if less than 7 days old
       if (cacheAge < SEVEN_DAYS) {
+        console.log('[GoogleTrendsCard] ✅ Loaded from localStorage cache, age:', Math.round(cacheAge / 1000 / 60 / 60 / 24), 'days');
         setData({ ...parsed.data, fromCache: true });
         return;
       }
+      console.log('[GoogleTrendsCard] Cache expired, age:', Math.round(cacheAge / 1000 / 60 / 60 / 24), 'days');
     }
     
     setLoading(true);
     setError(null);
     
+    console.log('[GoogleTrendsCard] Fetching fresh data from API...');
     try {
       const { data: trendsData, error: trendsError } = await supabase.functions.invoke('google-trends', {
         body: { 
@@ -281,12 +286,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         throw trendsError;
       }
       
-      console.log('[GoogleTrendsCard] Data received:', {
-        type: trendsData?.type,
-        hasData: !!trendsData,
-        hasContinentData: !!trendsData?.continentData,
-        continents: trendsData?.continentData ? Object.keys(trendsData.continentData) : []
-      });
+      console.log('[GoogleTrendsCard] ✅ Data received from API');
       
       setData(trendsData);
       
@@ -295,6 +295,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
         data: trendsData,
         timestamp: Date.now()
       }));
+      console.log('[GoogleTrendsCard] Saved to localStorage cache');
       
       // Save to database if user is authenticated
       if (user?.id && trendsData) {
@@ -309,7 +310,7 @@ export function GoogleTrendsCard({ filters, className }: GoogleTrendsCardProps) 
             trendsData,
             10080 // 7 days in minutes (7 * 24 * 60)
           );
-          console.log('[GoogleTrendsCard] Saved to database');
+          console.log('[GoogleTrendsCard] ✅ Saved to database');
         } catch (saveError) {
           console.warn('[GoogleTrendsCard] Database save failed:', saveError);
         }

@@ -67,83 +67,93 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
   const actualIdea = idea || storedIdea || 'startup idea';
   const cacheKey = `web-search:${actualIdea}:${industry}:${geography}`;
 
-  const { data, error, isLoading, mutate } = useSWR(
-    cacheKey,
-    async (key) => {
-      // First, try to load from database if user is authenticated
+  const fetcher = useCallback(async (key: string) => {
+    console.log('[WebSearchDataTile] Starting fetch with key:', key);
+    
+    // First, try to load from database if user is authenticated
+    if (user?.id) {
+      try {
+        const dbData = await dashboardDataService.getData({
+          userId: user.id,
+          ideaText: localStorage.getItem('dashboardIdea') || currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+          tileType: 'web_search',
+          sessionId: currentSession?.id
+        });
+        
+        if (dbData) {
+          console.log('[WebSearchDataTile] ✅ Loaded from database');
+          return { ...dbData, fromDatabase: true };
+        }
+        console.log('[WebSearchDataTile] No database data found');
+      } catch (dbError) {
+        console.warn('[WebSearchDataTile] Database load failed:', dbError);
+      }
+    }
+
+    // Fallback to localStorage cache
+    const cacheKeyStorage = `web-search-cache:${actualIdea}:${industry}:${geography}`;
+    const cachedData = localStorage.getItem(cacheKeyStorage);
+    
+    if (cachedData) {
+      const parsed = JSON.parse(cachedData);
+      const cacheAge = Date.now() - parsed.timestamp;
+      const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+      
+      if (cacheAge < CACHE_DURATION) {
+        console.log('[WebSearchDataTile] ✅ Loaded from localStorage cache, age:', Math.round(cacheAge / 1000 / 60), 'minutes');
+        return { ...parsed.data, fromCache: true };
+      }
+      console.log('[WebSearchDataTile] Cache expired, age:', Math.round(cacheAge / 1000 / 60), 'minutes');
+    }
+    
+    console.log('[WebSearchDataTile] Fetching fresh data from API...');
+    // Fetch fresh data from edge function
+    const { data, error } = await supabase.functions.invoke('web-search-profitability', {
+      body: { 
+        idea: actualIdea,
+        industry,
+        geo: geography,
+        time_window: timeWindow
+      }
+    });
+    
+    if (error) throw error;
+    
+    // Store in localStorage
+    if (data) {
+      localStorage.setItem(cacheKeyStorage, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }));
+      console.log('[WebSearchDataTile] Saved to localStorage cache');
+      
+      // Save to database if user is authenticated
       if (user?.id) {
         try {
-          const dbData = await dashboardDataService.getData({
-            userId: user.id,
-            ideaText: localStorage.getItem('dashboardIdea') || currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
-            tileType: 'web_search',
-            sessionId: currentSession?.id
-          });
-          
-          if (dbData) {
-            console.log('[WebSearchDataTile] Loaded from database');
-            return { ...dbData, fromDatabase: true };
-          }
-        } catch (dbError) {
-          console.warn('[WebSearchDataTile] Database load failed:', dbError);
+          await dashboardDataService.saveData(
+            {
+              userId: user.id,
+              ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+              tileType: 'web_search',
+              sessionId: currentSession?.id
+            },
+            data,
+            30 // 30 minutes cache
+          );
+          console.log('[WebSearchDataTile] ✅ Saved to database');
+        } catch (saveError) {
+          console.warn('[WebSearchDataTile] Database save failed:', saveError);
         }
       }
+    }
+    
+    console.log('[WebSearchDataTile] ✅ Returning fresh API data');
+    return { ...data, fromApi: true };
+  }, [user?.id, currentSession?.id, actualIdea, industry, geography, timeWindow, currentIdea]);
 
-      // Fallback to localStorage cache
-      const cacheKeyStorage = `web-search-cache:${actualIdea}:${industry}:${geography}`;
-      const cachedData = localStorage.getItem(cacheKeyStorage);
-      
-      if (cachedData) {
-        const parsed = JSON.parse(cachedData);
-        const cacheAge = Date.now() - parsed.timestamp;
-        const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
-        
-        if (cacheAge < CACHE_DURATION) {
-          return { ...parsed.data, fromCache: true };
-        }
-      }
-      
-      // Fetch fresh data from edge function
-      const { data, error } = await supabase.functions.invoke('web-search-profitability', {
-        body: { 
-          idea: actualIdea,
-          industry,
-          geo: geography,
-          time_window: timeWindow
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Store in localStorage
-      if (data) {
-        localStorage.setItem(cacheKeyStorage, JSON.stringify({
-          data,
-          timestamp: Date.now()
-        }));
-        
-        // Save to database if user is authenticated
-        if (user?.id) {
-          try {
-            await dashboardDataService.saveData(
-              {
-                userId: user.id,
-                ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
-                tileType: 'web_search',
-                sessionId: currentSession?.id
-              },
-              data,
-              30 // 30 minutes cache
-            );
-            console.log('[WebSearchDataTile] Saved to database');
-          } catch (saveError) {
-            console.warn('[WebSearchDataTile] Database save failed:', saveError);
-          }
-        }
-      }
-      
-      return { ...data, fromApi: true };
-    },
+  const { data, error, isLoading, mutate } = useSWR(
+    hasLoadedOnce ? cacheKey : null,  // Only fetch when component has loaded
+    fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -151,6 +161,14 @@ export function WebSearchDataTile({ idea, industry, geography, timeWindow, class
       onSuccess: () => setHasLoadedOnce(true)
     }
   );
+
+  // Trigger initial load
+  useEffect(() => {
+    if (!hasLoadedOnce && actualIdea) {
+      console.log('[WebSearchDataTile] Triggering initial load');
+      setHasLoadedOnce(true);
+    }
+  }, [hasLoadedOnce, actualIdea]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
