@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
@@ -12,6 +12,11 @@ interface BatchedDataResponse {
   };
 }
 
+// Cache for preventing duplicate requests
+const requestCache = new Map<string, Promise<any>>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const lastFetchTime = new Map<string, number>();
+
 export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
   const [data, setData] = useState<BatchedDataResponse>({});
   const [loading, setLoading] = useState(false);
@@ -19,43 +24,137 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
   const { user } = useAuth();
   const { currentSession } = useSession();
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const hasInitializedRef = useRef(false);
 
-  const fetchBatchedData = useCallback(async () => {
-    if (!idea || tileTypes.length === 0) return;
+  const getCacheKey = useCallback(() => {
+    if (!idea || !user?.id) return null;
+    return `${user.id}_${idea.substring(0, 50)}_${tileTypes.sort().join(',')}`;
+  }, [idea, user?.id, tileTypes]);
+
+  const fetchBatchedData = useCallback(async (forceRefresh = false) => {
+    const cacheKey = getCacheKey();
+    if (!cacheKey || tileTypes.length === 0) return;
+
+    // Check if we recently fetched this data (within 5 minutes)
+    if (!forceRefresh) {
+      const lastFetch = lastFetchTime.get(cacheKey);
+      if (lastFetch && Date.now() - lastFetch < CACHE_DURATION) {
+        console.log('Skipping fetch - data recently fetched');
+        
+        // Try to load from localStorage
+        const cachedResponse: BatchedDataResponse = {};
+        let hasAllData = true;
+        
+        for (const tileType of tileTypes) {
+          const localCacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
+          const cachedData = localStorage.getItem(localCacheKey);
+          
+          if (cachedData) {
+            try {
+              cachedResponse[tileType] = {
+                data: JSON.parse(cachedData),
+                fromCache: true
+              };
+            } catch {
+              hasAllData = false;
+              break;
+            }
+          } else {
+            hasAllData = false;
+            break;
+          }
+        }
+        
+        if (hasAllData) {
+          setData(cachedResponse);
+          return;
+        }
+      }
+    }
+
+    // Check if there's already a request in flight for this exact data
+    if (!forceRefresh && requestCache.has(cacheKey)) {
+      console.log('Request already in flight, waiting for existing request');
+      try {
+        const existingRequest = await requestCache.get(cacheKey);
+        if (existingRequest?.success && existingRequest?.data) {
+          setData(existingRequest.data);
+          lastFetchTime.set(cacheKey, Date.now());
+        }
+        return;
+      } catch (err) {
+        console.error('Error waiting for existing request:', err);
+      }
+    }
 
     setLoading(true);
     setError(null);
 
-    try {
-      console.log(`Fetching batch data for ${tileTypes.length} tiles`);
-      
-      const { data: response, error: fetchError } = await supabase.functions.invoke('hub-batch-data', {
-        body: {
-          idea,
-          tileTypes,
-          userId: user?.id,
-          sessionId: currentSession?.id,
-          filters: {
-            geography: localStorage.getItem('selectedContinent') || 'global',
-            time_window: 'last_12_months'
-          }
-        }
-      });
+    // Cancel any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
-      if (fetchError) throw fetchError;
-
-      if (response?.success && response?.data) {
-        setData(response.data);
+    // Create the request promise
+    const requestPromise = (async () => {
+      try {
+        console.log(`Making single batched API call for ${tileTypes.length} tiles`);
         
-        // Store in localStorage for quick access
-        Object.entries(response.data).forEach(([tileType, tileData]: [string, any]) => {
-          if (tileData.data && !tileData.error) {
-            const cacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
-            localStorage.setItem(cacheKey, JSON.stringify(tileData.data));
-            localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
+        const { data: response, error: fetchError } = await supabase.functions.invoke('hub-batch-data', {
+          body: {
+            idea,
+            tileTypes,
+            userId: user?.id,
+            sessionId: currentSession?.id,
+            filters: {
+              geography: localStorage.getItem('selectedContinent') || 'global',
+              time_window: 'last_12_months'
+            }
           }
         });
 
+        if (fetchError) throw fetchError;
+
+        if (response?.success && response?.data) {
+          // Store in localStorage for quick access
+          Object.entries(response.data).forEach(([tileType, tileData]: [string, any]) => {
+            if (tileData.data && !tileData.error) {
+              const localCacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
+              localStorage.setItem(localCacheKey, JSON.stringify(tileData.data));
+              localStorage.setItem(`${localCacheKey}_timestamp`, Date.now().toString());
+            }
+          });
+
+          // Update last fetch time
+          lastFetchTime.set(cacheKey, Date.now());
+          
+          // Clear the request cache after success
+          requestCache.delete(cacheKey);
+          
+          return response;
+        }
+        
+        throw new Error('Invalid response from server');
+      } catch (err) {
+        // Clear the request cache on error
+        requestCache.delete(cacheKey);
+        throw err;
+      }
+    })();
+
+    // Store the promise in the cache to prevent duplicate requests
+    if (!forceRefresh) {
+      requestCache.set(cacheKey, requestPromise);
+    }
+
+    try {
+      const response = await requestPromise;
+      
+      if (response?.success && response?.data) {
+        setData(response.data);
+        
         // Show success toast if all data fetched successfully
         if (response.errorCount === 0) {
           toast({
@@ -75,32 +174,46 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     } catch (err) {
       console.error('Batch fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
-      toast({
-        title: "Error loading data",
-        description: "Some dashboard tiles couldn't be loaded. Please try refreshing.",
-        variant: "destructive",
-        duration: 4000
-      });
+      if (forceRefresh) {  // Only show error toast on manual refresh
+        toast({
+          title: "Error loading data",
+          description: "Some dashboard tiles couldn't be loaded. Please try refreshing.",
+          variant: "destructive",
+          duration: 4000
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, [idea, tileTypes, user?.id, currentSession?.id, toast]);
+  }, [idea, tileTypes, user?.id, currentSession?.id, toast, getCacheKey]);
 
-  // Auto-fetch on mount and when dependencies change
+  // Auto-fetch on mount only - not on every dependency change
   useEffect(() => {
-    fetchBatchedData();
-  }, [fetchBatchedData]);
+    // Only fetch once on initial mount
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      fetchBatchedData();
+    }
+  }, []); // Empty dependency array - only run once
 
   // Refresh function for manual refresh
   const refresh = useCallback(async () => {
+    const cacheKey = getCacheKey();
+    
+    // Clear the request cache to force a fresh fetch
+    if (cacheKey) {
+      requestCache.delete(cacheKey);
+      lastFetchTime.delete(cacheKey);
+    }
+    
     // Clear local storage cache for all tile types
     tileTypes.forEach(tileType => {
-      const cacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
-      localStorage.removeItem(cacheKey);
-      localStorage.removeItem(`${cacheKey}_timestamp`);
+      const localCacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
+      localStorage.removeItem(localCacheKey);
+      localStorage.removeItem(`${localCacheKey}_timestamp`);
     });
 
-    // Clear database cache (simplified to avoid TypeScript issues)
+    // Clear database cache
     if (user?.id) {
       try {
         const deletePromises = tileTypes.map(tileType => 
@@ -119,9 +232,9 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
       }
     }
 
-    // Refetch
-    await fetchBatchedData();
-  }, [idea, tileTypes, user?.id, fetchBatchedData]);
+    // Force refresh
+    await fetchBatchedData(true);
+  }, [idea, tileTypes, user?.id, fetchBatchedData, getCacheKey]);
 
   return {
     data,
