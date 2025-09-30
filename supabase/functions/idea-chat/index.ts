@@ -44,7 +44,16 @@ async function callGroq(messages: any[], maxTokens = 2000, temperature = 0.7) {
 }
 
 // System prompt for the business advisor
-const BUSINESS_ADVISOR_PROMPT = `You are a concise business advisor. Give SHORT, SUMMARIZED responses - maximum 2-3 sentences. Be friendly but extremely brief. Focus only on the most critical point. No long explanations, no lists, no detailed analysis. Just quick, helpful insights.`;
+const BUSINESS_ADVISOR_PROMPT = `You are a sharp, contextual startup advisor. 
+
+CRITICAL RULES:
+1. ALWAYS reference specific points from the conversation history
+2. Build on what was already discussed - never repeat advice
+3. Track the evolving idea and address NEW aspects each time
+4. Make suggestions that directly relate to the last few exchanges
+5. Keep responses to 2-3 sentences but make them highly specific to THIS conversation
+
+Never give generic advice. Every response must show you remember and build upon the entire conversation.`;
 
 serve(async (req) => {
   // Handle CORS
@@ -131,30 +140,38 @@ serve(async (req) => {
     const response = await callGroq(messages, 400, 0.7); // Reduced from 2000 to 400 tokens
     const content = response.choices?.[0]?.message?.content || "I understand. Let me help you develop that idea further.";
     
-    // Generate follow-up suggestions for what the USER could say next
+    // Generate contextual follow-up suggestions based on the ENTIRE conversation
     let suggestions = [];
     try {
+      // Build context from conversation history
+      const recentContext = conversationHistory.slice(-3).map((msg: any) => 
+        `${msg.type === 'user' ? 'User' : 'AI'}: ${msg.content.substring(0, 150)}`
+      ).join('\n');
+      
       const suggestionResponse = await callGroq([
         { 
           role: 'system', 
-          content: 'You help generate natural follow-up responses a USER might want to say in a startup idea discussion. Focus on what the user would actually want to ask or say next to continue developing their idea. Make them sound like real user responses, not bot prompts.'
+          content: `You are analyzing a startup idea discussion. Based on the conversation history and the latest AI response, generate 4 highly contextual follow-up questions or responses the USER would naturally want to say next.
+          
+These should:
+- Build directly on what was just discussed
+- Reference specific points from the conversation
+- Move the conversation forward productively
+- Sound like natural user responses, not generic questions
+- Be 5-12 words each
+
+Never generate generic questions like "Tell me more" or "What else?". Always make them specific to the actual conversation.`
         },
         { 
           role: 'user', 
-          content: `The AI just said: "${content.substring(0, 200)}..."
-          
-Generate 4 natural follow-up responses the USER might want to say next. 
-Examples of good user responses:
-- "How do I validate this with real customers?"
-- "What about the technical implementation?"
-- "I'm worried about the competition"
-- "Can you help me with pricing strategy?"
-- "What are the biggest risks?"
-- "How much funding would I need?"
+          content: `Recent conversation:
+${recentContext}
 
-Return exactly 4 short, natural user responses as a JSON array. Each should be 5-12 words and sound like something a real person would say.` 
+Latest AI response: "${content.substring(0, 300)}..."
+
+Based on this specific conversation, what are 4 natural, contextual things the user would want to say or ask next? Return as JSON array only.` 
         }
-      ], 200, 0.9);
+      ], 250, 0.9);
       
       if (suggestionResponse.choices?.[0]?.message?.content) {
         let text = suggestionResponse.choices[0].message.content.trim();
@@ -181,14 +198,34 @@ Return exactly 4 short, natural user responses as a JSON array. Each should be 5
       console.error('Error generating suggestions:', e);
     }
     
-    // Fallback with user-perspective suggestions if generation failed
+    // Fallback with contextual suggestions based on conversation stage
     if (!suggestions || suggestions.length === 0) {
-      suggestions = [
-        "How do I validate this idea?",
-        "What's my first step?",
-        "Help me with the business model",
-        "What about competitors?"
-      ];
+      // Try to provide contextual fallbacks based on conversation length
+      if (conversationHistory && conversationHistory.length > 4) {
+        // Later in conversation - more specific questions
+        suggestions = [
+          "What specific metrics should I track?",
+          "How do I scale this efficiently?",
+          "What partnerships would accelerate growth?",
+          "Should I bootstrap or seek funding?"
+        ];
+      } else if (conversationHistory && conversationHistory.length > 2) {
+        // Mid conversation - validation questions
+        suggestions = [
+          "How do I test this with customers?",
+          "What's my competitive advantage?",
+          "How quickly can I launch an MVP?",
+          "What are the unit economics?"
+        ];
+      } else {
+        // Early conversation - foundational questions
+        suggestions = [
+          "Who exactly is my target customer?",
+          "What problem am I solving?",
+          "How will I make money?",
+          "Why would customers choose me?"
+        ];
+      }
     }
 
     // Track usage if user is authenticated
