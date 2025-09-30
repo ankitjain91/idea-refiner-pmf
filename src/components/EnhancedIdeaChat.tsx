@@ -23,9 +23,7 @@ import {
   ListMinus,    // Better icon for summary mode
   Layers,       // Better icon for verbose mode
   RefreshCw,    // For retry button
-  AlertCircle,   // For error indicator
-  ChevronUp,
-  ChevronDown
+  AlertCircle   // For error indicator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -114,7 +112,6 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const [isRefining, setIsRefining] = useState(false);
   const [hoveringBrain, setHoveringBrain] = useState(false);
   const [hasValidIdea, setHasValidIdea] = useState(false);
-  const [expandedIdea, setExpandedIdea] = useState(false);
   const [persistenceLevel, setPersistenceLevel] = useState(0);
   const [offTopicAttempts, setOffTopicAttempts] = useState(0);
   const [ideaSummaryName, setIdeaSummaryName] = useState<string>(() => {
@@ -174,14 +171,6 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
         return 'Keep refining with specificity and measurable outcomes.';
     }
   }, [wrinkleTier, hasValidIdea]);
-  
-  // Helper function to create 5-word summary
-  const createFiveWordSummary = (text: string): string => {
-    if (!text) return 'No idea yet';
-    const words = text.split(' ').filter(word => word.length > 0);
-    if (words.length <= 5) return text;
-    return words.slice(0, 5).join(' ') + '...';
-  };
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1700,11 +1689,11 @@ User submission: """${messageText}"""`;
 
         // Approved idea: capture preview + unlock analyses
         const ideaPreview = createIdeaPreview(messageText);
-        setCurrentIdea(messageText); // Store full idea text
+        setCurrentIdea(ideaPreview);
         setHasValidIdea(true);
         
         // Generate AI summary name for the idea
-        generateIdeaSummaryName(messageText);
+        generateIdeaSummaryName(ideaPreview);
         
         // Save the idea text to localStorage for dashboard
         console.log('Saving idea to localStorage (validation approved):', { 
@@ -2010,30 +1999,6 @@ User submission: """${messageText}"""`;
                 <RotateCcw className="h-3.5 w-3.5" />
               </Button>
             </div>
-            
-            {/* Clickable Idea Summary */}
-            {hasValidIdea && currentIdea && (
-              <div className="mt-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setExpandedIdea(!expandedIdea)}
-                  className="text-left p-2 hover:bg-muted/50 rounded-lg w-full"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Your idea:</span>
-                    <span className="font-semibold text-sm">
-                      {expandedIdea ? currentIdea : createFiveWordSummary(currentIdea)}
-                    </span>
-                    {currentIdea.split(' ').length > 5 && (
-                      expandedIdea ? 
-                        <ChevronUp className="h-3 w-3 ml-auto" /> : 
-                        <ChevronDown className="h-3 w-3 ml-auto" />
-                    )}
-                  </div>
-                </Button>
-              </div>
-            )}
-            
             <p className="fluid-text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[0.75rem] tracking-tight text-primary/90">{wrinklePoints.toFixed(1)}</span>
               <span className="text-[0.65rem] uppercase tracking-wide font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">Wrinkles</span>
