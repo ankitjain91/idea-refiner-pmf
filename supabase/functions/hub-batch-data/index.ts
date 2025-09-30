@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// In-memory cache for preventing duplicate API calls (edge function level)
+const apiCallCache = new Map<string, { data: any; timestamp: number }>();
+const EDGE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Track ongoing requests to prevent duplicate simultaneous calls
+const ongoingRequests = new Map<string, Promise<any>>();
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,17 +25,30 @@ serve(async (req) => {
       throw new Error('Missing required parameters: idea and tileTypes array');
     }
 
-    console.log(`Batch fetching ${tileTypes.length} tiles for idea: ${idea.substring(0, 50)}...`);
+    console.log(`📋 Batch request for ${tileTypes.length} tiles - User: ${userId?.substring(0, 8) || 'anonymous'}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Deduplicate tile types (in case of duplicate requests)
+    const uniqueTileTypes = [...new Set(tileTypes)];
+    
     // Prepare all fetch promises
-    const fetchPromises = tileTypes.map(async (tileType: string) => {
+    const fetchPromises = uniqueTileTypes.map(async (tileType: string) => {
       try {
-        // Check if data exists in database cache first
+        // Create cache key for this specific request
+        const cacheKey = `${tileType}_${idea.substring(0, 50)}_${JSON.stringify(filters || {})}`;
+        
+        // Check in-memory edge cache first (fastest)
+        const cachedResponse = apiCallCache.get(cacheKey);
+        if (cachedResponse && Date.now() - cachedResponse.timestamp < EDGE_CACHE_DURATION) {
+          console.log(`✅ Edge cache hit for ${tileType}`);
+          return { tileType, data: cachedResponse.data, fromCache: true, cacheLevel: 'edge' };
+        }
+        
+        // Check if data exists in database cache
         if (userId) {
           const { data: cachedData } = await supabase
             .from('dashboard_data')
@@ -40,9 +60,19 @@ serve(async (req) => {
             .maybeSingle();
 
           if (cachedData?.data) {
-            console.log(`Using cached data for ${tileType}`);
-            return { tileType, data: cachedData.data, fromCache: true };
+            console.log(`✅ DB cache hit for ${tileType}`);
+            // Also store in edge cache for faster subsequent access
+            apiCallCache.set(cacheKey, { data: cachedData.data, timestamp: Date.now() });
+            return { tileType, data: cachedData.data, fromCache: true, cacheLevel: 'database' };
           }
+        }
+
+        // Check if there's already an ongoing request for this exact data
+        const requestKey = `${cacheKey}_request`;
+        if (ongoingRequests.has(requestKey)) {
+          console.log(`⏳ Waiting for existing request for ${tileType}`);
+          const existingRequest = await ongoingRequests.get(requestKey);
+          return { tileType, data: existingRequest, fromCache: false, cacheLevel: 'deduplicated' };
         }
 
         // Determine which edge function to call based on tile type
@@ -106,45 +136,71 @@ serve(async (req) => {
             return { tileType, data: null, error: 'Unknown tile type' };
         }
 
-        // Fetch data from the appropriate edge function
-        const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
+        // Create the request promise
+        const requestPromise = (async () => {
+          console.log(`🔄 Fetching fresh data for ${tileType}`);
+          
+          const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch ${tileType}: ${response.statusText}`);
-        }
+          if (!response.ok) {
+            throw new Error(`Failed to fetch ${tileType}: ${response.statusText}`);
+          }
 
-        const data = await response.json();
+          const data = await response.json();
+          
+          // Store in edge cache
+          apiCallCache.set(cacheKey, { data, timestamp: Date.now() });
+          
+          // Clean up ongoing request tracking
+          ongoingRequests.delete(requestKey);
+          
+          return data;
+        })();
 
-        // Cache the data if userId is provided
+        // Track this ongoing request to prevent duplicates
+        ongoingRequests.set(requestKey, requestPromise);
+
+        const data = await requestPromise;
+
+        // Cache the data in database if userId is provided
         if (userId && data) {
           const expiresAt = new Date();
           expiresAt.setHours(expiresAt.getHours() + 12); // 12 hour cache
 
-          await supabase
-            .from('dashboard_data')
-            .upsert({
-              user_id: userId,
-              session_id: sessionId,
-              idea_text: idea,
-              tile_type: tileType,
-              data: data,
-              created_at: new Date().toISOString(),
-              expires_at: expiresAt.toISOString(),
-            }, {
-              onConflict: 'user_id,idea_text,tile_type'
-            });
+          // Use upsert with a try-catch to handle potential conflicts
+          try {
+            await supabase
+              .from('dashboard_data')
+              .upsert({
+                user_id: userId,
+                session_id: sessionId,
+                idea_text: idea,
+                tile_type: tileType,
+                data: data,
+                created_at: new Date().toISOString(),
+                expires_at: expiresAt.toISOString(),
+              }, {
+                onConflict: 'user_id,idea_text,tile_type'
+              });
+          } catch (dbError) {
+            console.error(`Failed to cache ${tileType} in DB:`, dbError);
+            // Continue even if caching fails
+          }
         }
 
-        return { tileType, data, fromCache: false };
+        return { tileType, data, fromCache: false, cacheLevel: 'fresh' };
       } catch (error) {
-        console.error(`Error fetching ${tileType}:`, error);
+        console.error(`❌ Error fetching ${tileType}:`, error);
+        // Clean up on error
+        const requestKey = `${tileType}_${idea.substring(0, 50)}_${JSON.stringify(filters || {})}_request`;
+        ongoingRequests.delete(requestKey);
         return { tileType, data: null, error: error.message };
       }
     });
@@ -157,17 +213,45 @@ serve(async (req) => {
       acc[result.tileType] = {
         data: result.data,
         fromCache: result.fromCache || false,
+        cacheLevel: result.cacheLevel || 'unknown',
         error: result.error
       };
       return acc;
     }, {} as any);
+
+    // Clean up old cache entries if cache is getting too large
+    if (apiCallCache.size > 100) {
+      const now = Date.now();
+      for (const [key, value] of apiCallCache.entries()) {
+        if (now - value.timestamp > EDGE_CACHE_DURATION) {
+          apiCallCache.delete(key);
+        }
+      }
+    }
+
+    const summary = {
+      total: results.length,
+      cached: results.filter(r => r.fromCache).length,
+      fresh: results.filter(r => !r.fromCache && !r.error).length,
+      errors: results.filter(r => r.error).length,
+      cacheBreakdown: {
+        edge: results.filter(r => r.cacheLevel === 'edge').length,
+        database: results.filter(r => r.cacheLevel === 'database').length,
+        deduplicated: results.filter(r => r.cacheLevel === 'deduplicated').length,
+        fresh: results.filter(r => r.cacheLevel === 'fresh').length,
+      }
+    };
+    
+    console.log(`✅ Batch complete: ${summary.cached} cached, ${summary.fresh} fresh, ${summary.errors} errors`);
+    console.log(`   Cache breakdown: Edge=${summary.cacheBreakdown.edge}, DB=${summary.cacheBreakdown.database}, Dedup=${summary.cacheBreakdown.deduplicated}, Fresh=${summary.cacheBreakdown.fresh}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         data: batchedData,
         fetchedCount: results.filter(r => !r.error).length,
-        errorCount: results.filter(r => r.error).length
+        errorCount: results.filter(r => r.error).length,
+        summary
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
