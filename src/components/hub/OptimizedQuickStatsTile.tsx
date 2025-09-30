@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { 
   TrendingUp, Brain, Globe, Heart, CheckCircle2, Target, AlertCircle, 
-  Sparkles, Lightbulb, TrendingDown, Clock, Calculator, Database, Shield, FileText
+  Sparkles, Lightbulb, TrendingDown, Clock, Calculator, Database, Shield, FileText, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -42,6 +42,7 @@ export function OptimizedQuickStatsTile({
 }: OptimizedQuickStatsTileProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Get idea from localStorage
   const idea = localStorage.getItem('pmfCurrentIdea') || 
@@ -68,6 +69,17 @@ export function OptimizedQuickStatsTile({
     showDialog ? data : null,
     focusArea
   );
+
+  const handleRefresh = async () => {
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true);
+      try {
+        await onRefresh();
+      } finally {
+        setTimeout(() => setIsRefreshing(false), 500);
+      }
+    }
+  };
 
   const renderTileContent = () => {
     if (!data) return null;
@@ -1202,6 +1214,8 @@ export function OptimizedQuickStatsTile({
         error={error}
         data={data}
         className="h-full"
+        onRefresh={handleRefresh}
+        showRefreshButton={true}
       >
         {renderTileContent()}
       </BaseTile>

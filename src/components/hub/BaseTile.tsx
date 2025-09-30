@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { AlertCircle, Info, LucideIcon, Loader2 } from "lucide-react";
+import { AlertCircle, Info, LucideIcon, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { dashboardDataService } from '@/lib/dashboard-data-service';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
@@ -21,6 +21,7 @@ export interface BaseTileProps {
   error?: string | null;
   data?: any;
   onLoad?: () => void | Promise<void>;
+  onRefresh?: () => void | Promise<void>;
   autoLoad?: boolean;
   badge?: {
     text: string;
@@ -34,6 +35,7 @@ export interface BaseTileProps {
   tileType?: string;
   fetchFromApi?: () => Promise<any>;
   useDatabase?: boolean;
+  showRefreshButton?: boolean;
 }
 
 export function BaseTile({
@@ -46,6 +48,7 @@ export function BaseTile({
   error = null,
   data = null,
   onLoad,
+  onRefresh,
   autoLoad = true,
   badge,
   headerActions,
@@ -55,9 +58,11 @@ export function BaseTile({
   loadingRows = 3,
   tileType,
   fetchFromApi,
-  useDatabase = true
+  useDatabase = true,
+  showRefreshButton = true
 }: BaseTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
 
@@ -68,6 +73,17 @@ export function BaseTile({
       onLoad();
     }
   }, [autoLoad, hasLoadedOnce, onLoad]);
+
+  const handleRefresh = async () => {
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true);
+      try {
+        await onRefresh();
+      } finally {
+        setTimeout(() => setIsRefreshing(false), 500);
+      }
+    }
+  };
 
   const renderLoadingState = () => (
     <div className="space-y-3 animate-fade-in">
@@ -159,11 +175,38 @@ export function BaseTile({
               )}
             </div>
           </div>
-          {headerActions && (
-            <div className="flex items-center gap-1">
-              {headerActions}
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            {showRefreshButton && onRefresh && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRefresh}
+                      disabled={isRefreshing || isLoading}
+                      className="h-7 w-7"
+                    >
+                      <RefreshCw 
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          (isRefreshing || isLoading) && "animate-spin"
+                        )} 
+                      />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Refresh data</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {headerActions && (
+              <div className="flex items-center gap-1">
+                {headerActions}
+              </div>
+            )}
+          </div>
         </div>
       </CardHeader>
 
