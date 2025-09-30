@@ -256,9 +256,6 @@ verify_jwt = false
 [functions.market-trends]
 verify_jwt = true
 
-[functions.competitor-analysis]
-verify_jwt = true
-
 [functions.financial-analysis]
 verify_jwt = true
 
@@ -316,22 +313,11 @@ verify_jwt = false
 [functions.market-size]
 verify_jwt = false
 
-[functions.growth-projections]
-verify_jwt = false
 
 [functions.user-engagement]
 verify_jwt = false
 
 [functions.launch-timeline]
-verify_jwt = false
-
-[functions.pmf-score]
-verify_jwt = false
-
-[functions.competition]
-verify_jwt = false
-
-[functions.sentiment]
 verify_jwt = false
 
 [functions.hub-batch-data]
@@ -344,9 +330,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.groq-batch-analysis]
-verify_jwt = false
-
-[functions.smoothbrains-score]
 verify_jwt = false
 
 [analytics]

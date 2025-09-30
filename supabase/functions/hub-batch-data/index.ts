@@ -161,18 +161,15 @@ serve(async (req) => {
         let functionName = '';
         let payload: any = { idea };
 
+        // Skip Groq-batched tiles that are already handled
+        if (groqResults[tileType]) {
+          // Already handled in batch
+          return { tileType, data: groqResults[tileType], fromCache: false, cacheLevel: 'batch' };
+        }
+
         switch (tileType) {
-          case 'quick_stats_pmf_score':
-            functionName = 'smoothbrains-score';
-            break;
           case 'quick_stats_market_size':
             functionName = 'market-size';
-            break;
-          case 'quick_stats_competition':
-            functionName = 'competition';
-            break;
-          case 'quick_stats_sentiment':
-            functionName = 'sentiment';
             break;
           case 'market_trends':
             functionName = 'market-trends';
@@ -190,28 +187,19 @@ serve(async (req) => {
             functionName = 'reddit-sentiment';
             payload = { query: idea };
             break;
-          case 'competitor_analysis':
-            functionName = 'competitor-analysis';
-            break;
-          case 'target_audience':
-            functionName = 'market-insights';
-            payload = { ...payload, insightType: 'audience' };
-            break;
-          case 'pricing_strategy':
-            functionName = 'market-insights';
-            payload = { ...payload, insightType: 'pricing' };
-            break;
           case 'market_size':
             functionName = 'market-size';
-            break;
-          case 'growth_projections':
-            functionName = 'growth-projections';
             break;
           case 'user_engagement':
             functionName = 'user-engagement';
             break;
           case 'launch_timeline':
             functionName = 'launch-timeline';
+            break;
+          case 'market_insights':
+            // For non-audience/pricing insights, still use the original function
+            functionName = 'market-insights';
+            payload = { ...payload, insightType: 'general' };
             break;
           default:
             console.warn(`Unknown tile type: ${tileType}`);
