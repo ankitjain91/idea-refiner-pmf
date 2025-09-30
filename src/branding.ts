@@ -22,8 +22,10 @@ export const brand = {
 };
 
 // Helper to swap legacy PMF phrasing inside dynamic strings
-export function replaceLegacyPMF(text: string = ''): string {
-  return text
+export function replaceLegacyPMF(text: string | number | null | undefined = ''): string {
+  // Convert to string and handle null/undefined
+  const textStr = String(text || '');
+  return textStr
     .replace(/PM-?F(it)?/gi, SCORE_LABEL)
     .replace(/product-market fit/gi, 'market traction & fit');
 }
