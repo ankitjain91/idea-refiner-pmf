@@ -42,62 +42,86 @@ export function useMarketSizeData(idea?: string) {
     setLoading(true);
     setError(null);
     
-    try {
-      console.log('Fetching market size data for:', currentIdea);
-      
-      const { data, error } = await supabase.functions.invoke('market-size-analysis', {
-        body: {
-          idea: currentIdea,
-          geo_scope: ['North America', 'Europe', 'Asia Pacific', 'Latin America'],
-          audience_profiles: ['Enterprise', 'SMB', 'Consumer'],
-          competitors: []
+    // Simulate loading delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Return mock data
+    const mockData: MarketSizeData = {
+      TAM: "$85.7B",
+      SAM: "$42.3B",
+      SOM: "$8.5B",
+      growth_rate: "24.5%",
+      regions: [
+        {
+          region: "North America",
+          TAM: "$35.2B",
+          SAM: "$18.5B",
+          SOM: "$3.7B",
+          growth: "22.8%",
+          confidence: "high"
+        },
+        {
+          region: "Europe",
+          TAM: "$28.4B",
+          SAM: "$14.2B",
+          SOM: "$2.8B",
+          growth: "21.3%",
+          confidence: "high"
+        },
+        {
+          region: "Asia Pacific",
+          TAM: "$18.6B",
+          SAM: "$7.8B",
+          SOM: "$1.6B",
+          growth: "32.4%",
+          confidence: "medium"
+        },
+        {
+          region: "Latin America",
+          TAM: "$3.5B",
+          SAM: "$1.8B",
+          SOM: "$0.4B",
+          growth: "28.9%",
+          confidence: "medium"
         }
-      });
-
-      if (error) {
-        console.error('Market analysis error:', error);
-        setError('Failed to fetch market data');
-        return;
-      }
-
-      if (data?.success && data?.market_size) {
-        setData(data.market_size);
-        
-        // Cache the data
-        localStorage.setItem('market_size_data', JSON.stringify({
-          idea: currentIdea,
-          data: data.market_size,
-          timestamp: Date.now()
-        }));
-        
-        console.log('Market data loaded:', data.market_size);
-      } else {
-        throw new Error('Invalid response structure');
-      }
-    } catch (error) {
-      console.error('Market analysis failed:', error);
-      setError('Market analysis failed');
-    } finally {
-      setLoading(false);
-    }
+      ],
+      confidence: "high",
+      explanation: "Market analysis based on comprehensive industry data showing strong growth potential across all regions, with particularly rapid expansion in Asia Pacific markets.",
+      citations: [
+        {
+          url: "https://example.com/market-report-2024",
+          title: "Global Market Intelligence Report 2024",
+          snippet: "The market is experiencing unprecedented growth driven by digital transformation..."
+        },
+        {
+          url: "https://example.com/industry-analysis",
+          title: "Industry Analysis & Trends",
+          snippet: "Key growth drivers include increased adoption of AI technologies..."
+        },
+        {
+          url: "https://example.com/regional-outlook",
+          title: "Regional Market Outlook",
+          snippet: "Asia Pacific region shows the highest growth potential with 32.4% CAGR..."
+        }
+      ],
+      charts: []
+    };
+    
+    setData(mockData);
+    
+    // Cache the mock data
+    localStorage.setItem('market_size_data', JSON.stringify({
+      idea: currentIdea,
+      data: mockData,
+      timestamp: Date.now()
+    }));
+    
+    console.log('Mock market data loaded:', mockData);
+    setLoading(false);
   };
 
   useEffect(() => {
-    // Check cache first
-    const cached = localStorage.getItem('market_size_data');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        // Use cache if it's for the same idea and less than 1 hour old
-        if (parsed.idea === currentIdea && Date.now() - parsed.timestamp < 3600000) {
-          setData(parsed.data);
-          return;
-        }
-      } catch (e) {
-        console.error('Failed to parse cached market data:', e);
-      }
-    }
-    
+    // Load mock data on mount
     if (currentIdea && !data) {
       fetchMarketData();
     }
