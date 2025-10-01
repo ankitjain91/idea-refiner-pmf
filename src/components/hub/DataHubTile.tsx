@@ -208,17 +208,17 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               
               {/* Display metrics from data.metrics object */}
               {data?.metrics && Object.keys(data.metrics).length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {Object.entries(data.metrics).map(([key, value], index) => (
-                    <Card key={key} className="border-primary/10 bg-gradient-to-br from-background to-muted/20 hover:shadow-md transition-all">
-                      <CardContent className="pt-4 pb-3">
-                        <div className="text-xs text-muted-foreground mb-1.5 capitalize">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {Object.entries(data.metrics).slice(0, 6).map(([key, value], index) => (
+                    <Card key={key} className="border-primary/10 bg-gradient-to-br from-background to-muted/20 hover:shadow-md transition-all overflow-hidden">
+                      <CardContent className="p-3">
+                        <div className="text-xs text-muted-foreground mb-1 truncate" title={key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}>
                           {key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
                         </div>
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-1">
                           <span className={cn(
-                            "font-bold",
-                            index < 2 ? "text-xl" : "text-lg"
+                            "font-bold truncate",
+                            index < 2 ? "text-lg" : "text-base"
                           )}>{
                             typeof value === 'number' && (key.includes('Rate') || key.includes('positive') || key.includes('negative') || key.includes('neutral')) ? `${value}%` :
                             typeof value === 'number' && (key.includes('Cap') || key.includes('reach')) ? 
@@ -228,15 +228,27 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                               `${(value / 1000000).toFixed(1)}M` :
                             typeof value === 'number' && value > 1000 ? 
                               `${(value / 1000).toFixed(1)}K` :
-                            String(value)
+                            String(value).length > 15 ? String(value).substring(0, 12) + '...' : String(value)
                           }</span>
                           {key.includes('trending') && value.toString().includes('+') && (
-                            <TrendingUp className="h-3 w-3 text-success" />
+                            <TrendingUp className="h-3 w-3 text-success flex-shrink-0" />
                           )}
                         </div>
                       </CardContent>
                     </Card>
                   ))}
+                  {Object.keys(data.metrics).length > 6 && (
+                    <div className="col-span-full text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowDetails(true)}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        View {Object.keys(data.metrics).length - 6} more metrics
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
               

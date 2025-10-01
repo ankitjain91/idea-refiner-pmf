@@ -263,42 +263,42 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
       title: "Web Search", 
       icon: Search,
       data: webSearchData,
-      span: "col-span-1 lg:col-span-2"
+      span: "col-span-full md:col-span-2 lg:col-span-2"
     },
     { 
       id: "reddit_sentiment", 
       title: "Reddit Sentiment", 
       icon: MessageSquare,
       data: redditData,
-      span: "col-span-1"
+      span: "col-span-full md:col-span-1"
     },
     { 
       id: "twitter_buzz", 
       title: "Twitter/X Buzz", 
       icon: Twitter,
       data: twitterData,
-      span: "col-span-1"
+      span: "col-span-full md:col-span-1"
     },
     { 
       id: "amazon_reviews", 
       title: "Amazon Reviews", 
       icon: ShoppingBag,
       data: amazonData,
-      span: "col-span-1"
+      span: "col-span-full md:col-span-1"
     },
     { 
       id: "youtube_analytics", 
       title: "YouTube Analytics", 
       icon: Youtube,
       data: youtubeData,
-      span: "col-span-1"
+      span: "col-span-full md:col-span-1"
     },
     { 
       id: "risk_assessment", 
       title: "Risk Assessment", 
       icon: AlertTriangle,
       data: riskData,
-      span: "col-span-1 lg:col-span-2"
+      span: "col-span-full md:col-span-2 lg:col-span-2"
     }
   ];
 
@@ -308,15 +308,19 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
         <TrendingUp className="h-5 w-5 text-primary" />
         Extended Insights
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-fr">
         {extendedTiles.map((tile) => (
-          <div key={tile.id} className={tile.span}>
+          <div 
+            key={tile.id} 
+            className={`${tile.span} min-h-0`}
+          >
             <DataHubTile
               title={tile.title}
               Icon={tile.icon}
               data={tile.data}
               loading={loading}
               tileType={tile.id}
+              className="h-full overflow-hidden"
             />
           </div>
         ))}
