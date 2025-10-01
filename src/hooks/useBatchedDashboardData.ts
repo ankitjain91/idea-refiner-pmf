@@ -246,7 +246,7 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     
     // Clear local storage cache for all tile types
     tileTypes.forEach(tileType => {
-      const localCacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
+      const localCacheKey = `tile_cache_${tileType}_${idea?.substring(0, 50)}`;
       localStorage.removeItem(localCacheKey);
       localStorage.removeItem(`${localCacheKey}_timestamp`);
     });
@@ -274,10 +274,71 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     await fetchBatchedData(true);
   }, [idea, tileTypes, user?.id, fetchBatchedData, getCacheKey]);
 
+  // Refresh a single tile only
+  const refreshTile = useCallback(async (tileType: string) => {
+    if (!tileType) return;
+
+    // Clear local cache for this tile
+    const localCacheKey = `tile_cache_${tileType}_${idea?.substring(0, 50)}`;
+    if (idea) {
+      localStorage.removeItem(localCacheKey);
+      localStorage.removeItem(`${localCacheKey}_timestamp`);
+    }
+
+    // Clear database cache for this tile
+    if (user?.id && idea) {
+      try {
+        await supabase
+          .from('dashboard_data')
+          .delete()
+          .match({ user_id: user.id, idea_text: idea, tile_type: tileType });
+      } catch (err) {
+        console.error('Failed to clear tile cache:', err);
+      }
+    }
+
+    // Fetch fresh data only for this tile
+    try {
+      const startTime = Date.now();
+      const { data: response, error: fetchError } = await supabase.functions.invoke('hub-batch-data', {
+        body: {
+          idea,
+          tileTypes: [tileType],
+          userId: user?.id,
+          sessionId: currentSession?.id,
+          filters: {
+            geography: localStorage.getItem('selectedContinent') || 'global',
+            time_window: 'last_12_months'
+          }
+        }
+      });
+
+      const duration = Date.now() - startTime;
+      apiCallAnalyzer.trackCall(`hub-batch-data/${tileType}`, !fetchError, duration);
+
+      if (fetchError) throw fetchError;
+
+      if (response?.success && response?.data && response.data[tileType]) {
+        const tileData = response.data[tileType];
+        setData(prev => ({ ...prev, [tileType]: tileData }));
+
+        // Persist to local storage
+        if (idea && tileData.data && !tileData.error) {
+          localStorage.setItem(localCacheKey, JSON.stringify(tileData.data));
+          localStorage.setItem(`${localCacheKey}_timestamp`, Date.now().toString());
+        }
+      }
+    } catch (err) {
+      console.error('Single tile refresh error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to refresh tile');
+    }
+  }, [idea, user?.id, currentSession?.id]);
+
   return {
     data,
     loading,
     error,
-    refresh
+    refresh,
+    refreshTile
   };
 }

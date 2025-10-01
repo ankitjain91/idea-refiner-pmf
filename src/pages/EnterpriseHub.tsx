@@ -279,7 +279,8 @@ export default function EnterpriseHub() {
   const { 
     data: batchedData, 
     loading: batchLoading, 
-    refresh: refreshBatchedData 
+    refresh: refreshBatchedData,
+    refreshTile
   } = useBatchedDashboardData(currentIdea, currentIdea ? allTileTypes : []);
 
   // Handle continent change
@@ -540,7 +541,7 @@ export default function EnterpriseHub() {
             data={batchedData['quick_stats_pmf_score']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_pmf_score']}
             error={batchedData['quick_stats_pmf_score']?.error}
-            onRefresh={refreshBatchedData}
+            onRefresh={() => refreshTile('quick_stats_pmf_score')}
           />
           <OptimizedQuickStatsTile
             title="Market Size"
@@ -549,7 +550,7 @@ export default function EnterpriseHub() {
             data={batchedData['quick_stats_market_size']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_market_size']}
             error={batchedData['quick_stats_market_size']?.error}
-            onRefresh={refreshBatchedData}
+            onRefresh={() => refreshTile('quick_stats_market_size')}
           />
           <OptimizedQuickStatsTile
             title="Competition"
@@ -558,7 +559,7 @@ export default function EnterpriseHub() {
             data={batchedData['quick_stats_competition']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_competition']}
             error={batchedData['quick_stats_competition']?.error}
-            onRefresh={refreshBatchedData}
+            onRefresh={() => refreshTile('quick_stats_competition')}
           />
           <OptimizedQuickStatsTile
             title="Sentiment"
@@ -567,7 +568,7 @@ export default function EnterpriseHub() {
             data={batchedData['quick_stats_sentiment']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_sentiment']}
             error={batchedData['quick_stats_sentiment']?.error}
-            onRefresh={refreshBatchedData}
+            onRefresh={() => refreshTile('quick_stats_sentiment')}
           />
         </div>
 
