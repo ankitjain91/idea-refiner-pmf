@@ -29,6 +29,7 @@ import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
 import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
 import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
 import { OptimizedQuickStatsTile } from "@/components/hub/OptimizedQuickStatsTile";
+import { EnrichedDataTile } from "@/components/hub/EnrichedDataTile";
 import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
 import { DashboardInitializer } from "@/components/dashboard/DashboardInitializer";
 import { AIHubDashboard } from "@/components/hub/AIHubDashboard";
@@ -532,39 +533,39 @@ export default function EnterpriseHub() {
           </div>
         </div>
 
-        {/* Key Metrics - Using Batched Data */}
+        {/* Key Metrics - Using Enriched Data Tiles */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" key={tilesKey}>
-          <OptimizedQuickStatsTile
+          <EnrichedDataTile
             title="SmoothBrains Score"
             icon={Activity}
-            tileType="pmf_score"
+            tileType="quick_stats_pmf_score"
             data={batchedData['quick_stats_pmf_score']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_pmf_score']}
             error={batchedData['quick_stats_pmf_score']?.error}
             onRefresh={() => refreshTile('quick_stats_pmf_score')}
           />
-          <OptimizedQuickStatsTile
+          <EnrichedDataTile
             title="Market Size"
             icon={TrendingUp}
-            tileType="market_size"
+            tileType="quick_stats_market_size"
             data={batchedData['quick_stats_market_size']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_market_size']}
             error={batchedData['quick_stats_market_size']?.error}
             onRefresh={() => refreshTile('quick_stats_market_size')}
           />
-          <OptimizedQuickStatsTile
+          <EnrichedDataTile
             title="Competition"
             icon={Building2}
-            tileType="competition"
+            tileType="quick_stats_competition"
             data={batchedData['quick_stats_competition']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_competition']}
             error={batchedData['quick_stats_competition']?.error}
             onRefresh={() => refreshTile('quick_stats_competition')}
           />
-          <OptimizedQuickStatsTile
+          <EnrichedDataTile
             title="Sentiment"
             icon={Sparkles}
-            tileType="sentiment"
+            tileType="quick_stats_sentiment"
             data={batchedData['quick_stats_sentiment']?.data}
             isLoading={batchLoading && !batchedData['quick_stats_sentiment']}
             error={batchedData['quick_stats_sentiment']?.error}
