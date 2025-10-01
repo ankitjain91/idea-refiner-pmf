@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { 
@@ -20,6 +21,45 @@ interface ExtendedInsightsGridProps {
 }
 
 export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridProps) {
+  // State for lazy-loaded tile data
+  const [tileData, setTileData] = useState<Record<string, TileData | null>>({});
+  const [tileLoading, setTileLoading] = useState<Record<string, boolean>>({});
+
+  // Load tile data on first expansion
+  const loadTileData = useCallback(async (tileId: string) => {
+    if (tileData[tileId]) return; // Already loaded
+    
+    setTileLoading(prev => ({ ...prev, [tileId]: true }));
+    
+    // Simulate API call with a delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Set the mock data based on tile ID
+    let mockData: TileData | null = null;
+    switch(tileId) {
+      case 'web_search':
+        mockData = mockWebSearchData;
+        break;
+      case 'reddit_sentiment':
+        mockData = mockRedditData;
+        break;
+      case 'twitter_buzz':
+        mockData = mockTwitterData;
+        break;
+      case 'amazon_reviews':
+        mockData = mockAmazonData;
+        break;
+      case 'youtube_analytics':
+        mockData = mockYouTubeData;
+        break;
+      case 'risk_assessment':
+        mockData = mockRiskData;
+        break;
+    }
+    
+    setTileData(prev => ({ ...prev, [tileId]: mockData }));
+    setTileLoading(prev => ({ ...prev, [tileId]: false }));
+  }, [tileData]);
   // Rich mock data for Extended Insights tiles
   const mockWebSearchData: TileData = {
     metrics: {
@@ -317,9 +357,10 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
             <DataHubTile
               title={tile.title}
               Icon={tile.icon}
-              data={tile.data}
-              loading={loading}
+              data={tileData[tile.id] || null}
+              loading={tileLoading[tile.id]}
               tileType={tile.id}
+              onRefresh={() => loadTileData(tile.id)}
               className="h-full overflow-hidden"
             />
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Building2, TrendingUp, Users, Shield, Brain, ChevronRight, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Lightbulb, Target, Sparkles, MessageSquare } from 'lucide-react';
+import { Building2, TrendingUp, Users, Shield, Brain, ChevronRight, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Lightbulb, Target, Sparkles, MessageSquare, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -186,20 +186,43 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
     }
   };
 
+  const getLoadingMessage = () => {
+    const messages = [
+      "Analyzing the competition landscape... 🕵️",
+      "Spying on competitors... 👀",
+      "Gathering intel from the field... 📊",
+      "Running competitive analysis... 🎯",
+      "Checking who's in your space... 🏢"
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
+
   if (loading) {
     return (
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Competition Analysis
-          </CardTitle>
+      <Card className="h-full transition-all duration-300 hover:shadow-lg">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              Competition Analysis
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-1 h-6 w-6 hover:bg-muted/50 rounded-full transition-all duration-200"
+              onClick={handleToggleCollapse}
+              aria-label="Collapse"
+            >
+              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="h-4 bg-muted animate-pulse rounded" />
-            <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
-            <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+          <div className="flex flex-col items-center justify-center py-8">
+            <Activity className="h-8 w-8 mb-3 text-primary animate-bounce" />
+            <p className="text-sm font-medium text-center animate-pulse">
+              {getLoadingMessage()}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -260,14 +283,14 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0"
+                className="p-1 h-6 w-6 hover:bg-muted/50 rounded-full transition-all duration-200"
                 onClick={handleToggleCollapse}
                 aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
               >
                 {isCollapsed ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 ) : (
-                  <ChevronUp className="h-4 w-4" />
+                  <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
                 )}
               </Button>
             </div>

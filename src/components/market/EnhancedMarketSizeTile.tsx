@@ -169,10 +169,11 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="p-1 h-6 w-6 hover:bg-muted/50 rounded-full transition-all duration-200"
               onClick={handleToggleCollapse}
+              aria-label="Collapse"
             >
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </div>
         </CardHeader>
@@ -273,14 +274,14 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="p-1 h-6 w-6 hover:bg-muted/50 rounded-full transition-all duration-200"
               onClick={handleToggleCollapse}
               aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
             >
               {isCollapsed ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               ) : (
-                <ChevronUp className="h-4 w-4" />
+                <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
               )}
             </Button>
           </div>
