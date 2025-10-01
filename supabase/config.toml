@@ -332,6 +332,12 @@ verify_jwt = false
 [functions.market-size-analysis]
 verify_jwt = false
 
+[functions.competition-chat]
+verify_jwt = false
+
+[functions.ai-market-analysis]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
