@@ -88,7 +88,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
       const { data, error } = await supabase.functions.invoke('market-size-analysis', {
         body: { 
           idea: currentIdea,
-          geo_scope: 'global',
+          geo_scope: ['global'], // Edge function expects an array
           audience_profiles: [],
           competitors: []
         }
