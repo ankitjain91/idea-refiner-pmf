@@ -47,9 +47,13 @@ export function EvidenceExplorer({
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
-  // Ensure arrays are not undefined
-  const safeEvidenceStore = evidenceStore || [];
-  const safeProviderLog = providerLog || [];
+  // Ensure arrays are not undefined and coerce non-arrays to arrays
+  const safeEvidenceStore: Citation[] = Array.isArray(evidenceStore)
+    ? evidenceStore
+    : (Object.values(evidenceStore || {}) as Citation[]);
+  const safeProviderLog: ProviderLogEntry[] = Array.isArray(providerLog)
+    ? providerLog
+    : (Object.values(providerLog || {}) as ProviderLogEntry[]);
   
   // Filter evidence based on search and filters
   const filteredEvidence = useMemo(() => {
