@@ -59,10 +59,10 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
                   <Sparkles className="h-8 w-8 text-primary" />
                 </div>
                 <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Discover Your PMF Score
+                  Discover Your SmoothBrains Score
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                  Get instant insights into your startup's Product-Market Fit with our AI-powered analysis engine
+                  Get instant insights into your startup's potential with our AI-powered analysis engine
                 </p>
               </div>
 
@@ -188,7 +188,7 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
                   <span className={cn("text-5xl font-bold transition-all duration-500", getScoreColor(score))}>
                     {loading ? "..." : score}
                   </span>
-                  <span className="text-sm text-muted-foreground">PMF Score</span>
+                  <span className="text-sm text-muted-foreground">SmoothBrains Score</span>
                 </div>
               </div>
             </div>
@@ -208,7 +208,7 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
           {/* Insights */}
           <div className="space-y-4 animate-fade-in animation-delay-300">
             <div>
-              <h1 className="text-3xl font-bold mb-2">PMF Analysis Complete</h1>
+              <h1 className="text-3xl font-bold mb-2">SmoothBrains Analysis Complete</h1>
               <p className="text-lg text-muted-foreground leading-relaxed">
                 {insight}
               </p>
