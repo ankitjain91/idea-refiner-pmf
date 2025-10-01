@@ -139,6 +139,7 @@ export type Database = {
           data: Json
           expires_at: string | null
           id: string
+          idea_text: string | null
           metadata: Json | null
           session_id: string | null
           tile_type: string
@@ -150,6 +151,7 @@ export type Database = {
           data: Json
           expires_at?: string | null
           id?: string
+          idea_text?: string | null
           metadata?: Json | null
           session_id?: string | null
           tile_type: string
@@ -161,6 +163,7 @@ export type Database = {
           data?: Json
           expires_at?: string | null
           id?: string
+          idea_text?: string | null
           metadata?: Json | null
           session_id?: string | null
           tile_type?: string

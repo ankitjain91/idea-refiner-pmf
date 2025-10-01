@@ -32,7 +32,9 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
 
   const getCacheKey = useCallback(() => {
     if (!idea || !user?.id) return null;
-    return `${user.id}_${idea.substring(0, 50)}_${tileTypes.sort().join(',')}`;
+    // Use hash for cache key to avoid issues with special characters
+    const ideaHash = btoa(idea).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+    return `${user.id}_${ideaHash}_${tileTypes.sort().join(',')}`;
   }, [idea, user?.id, tileTypes]);
 
   const fetchBatchedData = useCallback(async (forceRefresh = false) => {
@@ -56,7 +58,8 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
         let hasAllData = true;
         
         for (const tileType of tileTypes) {
-          const localCacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
+          const ideaHash = btoa(idea).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+          const localCacheKey = `tile_cache_${tileType}_${ideaHash}`;
           const cachedData = localStorage.getItem(localCacheKey);
           
           if (cachedData) {
@@ -121,7 +124,7 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
         
         const { data: response, error: fetchError } = await supabase.functions.invoke('hub-batch-data', {
           body: {
-            idea,
+            idea, // Pass the full idea text
             tileTypes,
             userId: user?.id,
             sessionId: currentSession?.id,
@@ -148,7 +151,8 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
           // Store in localStorage for quick access
           Object.entries(response.data).forEach(([tileType, tileData]: [string, any]) => {
             if (tileData.data && !tileData.error) {
-              const localCacheKey = `tile_cache_${tileType}_${idea.substring(0, 50)}`;
+              const ideaHash = btoa(idea).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+              const localCacheKey = `tile_cache_${tileType}_${ideaHash}`;
               localStorage.setItem(localCacheKey, JSON.stringify(tileData.data));
               localStorage.setItem(`${localCacheKey}_timestamp`, Date.now().toString());
             }
@@ -229,7 +233,7 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     // Only fetch once per idea
     if (!hasInitializedRef.current && idea && tileTypes.length > 0) {
       hasInitializedRef.current = true;
-      console.log('🎯 Initial dashboard load - fetching all tiles for idea:', idea.substring(0, 50));
+      console.log('🎯 Initial dashboard load - fetching all tiles for idea:', idea.substring(0, 100), '...');
       fetchBatchedData();
     }
   }, [idea, tileTypes.length]); // Only re-run when idea or tileTypes change
@@ -246,7 +250,8 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     
     // Clear local storage cache for all tile types
     tileTypes.forEach(tileType => {
-      const localCacheKey = `tile_cache_${tileType}_${idea?.substring(0, 50)}`;
+      const ideaHash = idea ? btoa(idea).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20) : '';
+      const localCacheKey = `tile_cache_${tileType}_${ideaHash}`;
       localStorage.removeItem(localCacheKey);
       localStorage.removeItem(`${localCacheKey}_timestamp`);
     });
@@ -279,7 +284,8 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
     if (!tileType) return;
 
     // Clear local cache for this tile
-    const localCacheKey = `tile_cache_${tileType}_${idea?.substring(0, 50)}`;
+    const ideaHash = idea ? btoa(idea).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20) : '';
+    const localCacheKey = `tile_cache_${tileType}_${ideaHash}`;
     if (idea) {
       localStorage.removeItem(localCacheKey);
       localStorage.removeItem(`${localCacheKey}_timestamp`);
@@ -324,8 +330,10 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
 
         // Persist to local storage
         if (idea && tileData.data && !tileData.error) {
-          localStorage.setItem(localCacheKey, JSON.stringify(tileData.data));
-          localStorage.setItem(`${localCacheKey}_timestamp`, Date.now().toString());
+          const ideaHash = btoa(idea).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+          const updatedLocalCacheKey = `tile_cache_${tileType}_${ideaHash}`;
+          localStorage.setItem(updatedLocalCacheKey, JSON.stringify(tileData.data));
+          localStorage.setItem(`${updatedLocalCacheKey}_timestamp`, Date.now().toString());
         }
       }
     } catch (err) {
