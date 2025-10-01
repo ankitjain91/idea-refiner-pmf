@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, TrendingUp, Users, Shield, Brain, Sparkles, MessageSquare, Target, Lightbulb, ChevronRight, ExternalLink, AlertCircle } from 'lucide-react';
+import { Building2, TrendingUp, Users, Shield, Brain, ChevronRight, ExternalLink, AlertCircle, Lightbulb, Target, Sparkles, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,13 +11,10 @@ import {
   DialogDescription, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger 
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { CompetitionChatDialog } from './CompetitionChatDialog';
 
 interface Competitor {
   name: string;
@@ -56,11 +53,7 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
-  const [aiDialogOpen, setAiDialogOpen] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<string>('');
-  const [analysisType, setAnalysisType] = useState('competitive-positioning');
-  const [customPrompt, setCustomPrompt] = useState('');
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Load mock data on mount
@@ -536,13 +529,15 @@ Your startup would enter a moderately concentrated market with clear opportuniti
             <Badge variant={getThreatBadgeVariant(data.analysis.threat)}>
               {data.analysis.threat.toUpperCase()} THREAT
             </Badge>
-            <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Brain className="h-4 w-4" />
-                  AI Analysis
-                </Button>
-              </DialogTrigger>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setChatDialogOpen(true)}
+            >
+              <Brain className="h-4 w-4" />
+              AI Analysis
+            </Button>
               <DialogContent className="max-w-4xl max-h-[80vh]">
                 <DialogHeader>
                   <DialogTitle>AI Competitive Analysis</DialogTitle>
