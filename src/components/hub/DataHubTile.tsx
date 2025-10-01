@@ -208,24 +208,31 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               
               {/* Display metrics from data.metrics object */}
               {data?.metrics && Object.keys(data.metrics).length > 0 && (
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(data.metrics).slice(0, 4).map(([key, value], index) => (
-                    <Card key={key} className="border-primary/20">
-                      <CardContent className="pt-4">
-                        <div className="text-xs text-muted-foreground mb-1 capitalize">
-                          {key.replace(/_/g, ' ')}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {Object.entries(data.metrics).map(([key, value], index) => (
+                    <Card key={key} className="border-primary/10 bg-gradient-to-br from-background to-muted/20 hover:shadow-md transition-all">
+                      <CardContent className="pt-4 pb-3">
+                        <div className="text-xs text-muted-foreground mb-1.5 capitalize">
+                          {key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
                         </div>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-bold">{
-                            typeof value === 'number' && key.includes('Rate') ? `${value}%` :
+                          <span className={cn(
+                            "font-bold",
+                            index < 2 ? "text-xl" : "text-lg"
+                          )}>{
+                            typeof value === 'number' && (key.includes('Rate') || key.includes('positive') || key.includes('negative') || key.includes('neutral')) ? `${value}%` :
                             typeof value === 'number' && (key.includes('Cap') || key.includes('reach')) ? 
-                              `$${(value / 1000000000).toFixed(1)}B` :
+                              value > 1000000000 ? `$${(value / 1000000000).toFixed(1)}B` :
+                              `$${(value / 1000000).toFixed(1)}M` :
                             typeof value === 'number' && value > 1000000 ? 
                               `${(value / 1000000).toFixed(1)}M` :
                             typeof value === 'number' && value > 1000 ? 
                               `${(value / 1000).toFixed(1)}K` :
                             String(value)
                           }</span>
+                          {key.includes('trending') && value.toString().includes('+') && (
+                            <TrendingUp className="h-3 w-3 text-success" />
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -389,7 +396,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Top Themes</div>
                     <div className="space-y-2">
-                      {(data as any).topThemes.slice(0, 3).map((theme: any, idx: number) => (
+                      {(data as any).topThemes.map((theme: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between">
                           <span className="text-xs font-medium">{theme.theme}</span>
                           <div className="flex items-center gap-2">
@@ -441,7 +448,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Trending Searches</div>
                     <div className="space-y-2">
-                      {(data as any).relatedQueries.slice(0, 3).map((query: any, idx: number) => (
+                      {(data as any).relatedQueries.map((query: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between">
                           <span className="text-xs">{query.query}</span>
                           <div className="flex items-center gap-2">
@@ -463,7 +470,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Top Publications</div>
                     <div className="space-y-2">
-                      {(data as any).topPublications.slice(0, 3).map((pub: any, idx: number) => (
+                      {(data as any).topPublications.map((pub: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between">
                           <span className="text-xs font-medium">{pub.publication}</span>
                           <div className="flex items-center gap-2">
@@ -538,7 +545,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Recent Key Events</div>
                     <div className="space-y-2">
-                      {(data as any).keyEvents.slice(0, 3).map((event: any, idx: number) => (
+                      {(data as any).keyEvents.map((event: any, idx: number) => (
                         <div key={idx} className="flex items-start gap-2">
                           <div className="mt-0.5">
                             <div className={cn(
@@ -566,7 +573,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Platform Analytics</div>
                     <div className="space-y-3">
-                      {Object.entries((data as any).platforms).slice(0, 6).map(([platform, data]: [string, any], idx) => (
+                      {Object.entries((data as any).platforms).map(([platform, data]: [string, any], idx) => (
                         <div key={idx} className="space-y-2 p-2 rounded-lg bg-muted/10">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium capitalize">{platform}</span>
@@ -650,7 +657,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Emotional Analysis</div>
                     <div className="space-y-2">
-                      {Object.entries((data as any).emotionalBreakdown).slice(0, 4).map(([emotion, value]: [string, any]) => (
+                      {Object.entries((data as any).emotionalBreakdown).map(([emotion, value]: [string, any]) => (
                         <div key={emotion} className="flex items-center justify-between">
                           <span className="text-xs capitalize">{emotion}</span>
                           <div className="flex items-center gap-2 flex-1 max-w-[200px] ml-4">
@@ -795,7 +802,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Coverage Topics</div>
                     <div className="space-y-2">
-                      {(data as any).topics.slice(0, 3).map((topic: any, idx: number) => (
+                      {(data as any).topics.map((topic: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between">
                           <span className="text-xs font-medium">{topic.topic}</span>
                           <div className="flex items-center gap-2">
@@ -833,23 +840,30 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               
               {/* Citations */}
               {data?.citations && data.citations.length > 0 && (
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <FileText className="h-3 w-3" />
                     <span>{data.citations.length} sources analyzed</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDetails(true);
-                    }}
-                  >
-                    View All
-                    <ChevronRight className="h-3 w-3 ml-1" />
-                  </Button>
+                  <div className="grid grid-cols-1 gap-1">
+                    {data.citations.map((citation, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary/60 flex-shrink-0" />
+                        <a 
+                          href={citation.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors truncate flex-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="font-medium">{citation.source}:</span> {citation.title}
+                        </a>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {Math.round(citation.relevance * 100)}%
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
