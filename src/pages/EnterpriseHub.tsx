@@ -240,10 +240,11 @@ export default function EnterpriseHub() {
           pmfScore={hasLoadedData ? tiles.pmf_score : null}
           loading={hasLoadedData && loading}
           onGetScore={handleGetScore}
+          hasData={hasLoadedData}
         />
 
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
-        {viewMode === "deep" && (
+        {hasLoadedData && viewMode === "deep" && (
           <div className="space-y-6">
             <ProfessionalWorldMap 
               marketData={tiles.market_size}
@@ -253,21 +254,23 @@ export default function EnterpriseHub() {
         )}
 
         {/* 3. MAIN ANALYSIS GRID */}
-        <MainAnalysisGrid
-          tiles={{
-            market_size: tiles.market_size,
-            competition: tiles.competition,
-            sentiment: tiles.sentiment,
-            market_trends: tiles.market_trends,
-            google_trends: tiles.google_trends,
-            news_analysis: tiles.news_analysis
-          }}
-          loading={loading}
-          viewMode={viewMode}
-        />
+        {hasLoadedData && (
+          <MainAnalysisGrid
+            tiles={{
+              market_size: tiles.market_size,
+              competition: tiles.competition,
+              sentiment: tiles.sentiment,
+              market_trends: tiles.market_trends,
+              google_trends: tiles.google_trends,
+              news_analysis: tiles.news_analysis
+            }}
+            loading={loading}
+            viewMode={viewMode}
+          />
+        )}
 
         {/* 4. EXTENDED INSIGHTS GRID - Only in Deep Dive */}
-        {viewMode === "deep" && (
+        {hasLoadedData && viewMode === "deep" && (
           <ExtendedInsightsGrid
             tiles={{
               web_search: tiles.web_search,
@@ -282,15 +285,17 @@ export default function EnterpriseHub() {
         )}
 
         {/* 5. QUICK STATS STRIP - Always visible */}
-        <QuickStatsStrip
-          tiles={{
-            growth_potential: tiles.growth_potential,
-            market_readiness: tiles.market_readiness,
-            competitive_advantage: tiles.competitive_advantage,
-            risk_assessment: tiles.risk_assessment
-          }}
-          loading={loading}
-        />
+        {hasLoadedData && (
+          <QuickStatsStrip
+            tiles={{
+              growth_potential: tiles.growth_potential,
+              market_readiness: tiles.market_readiness,
+              competitive_advantage: tiles.competitive_advantage,
+              risk_assessment: tiles.risk_assessment
+            }}
+            loading={loading}
+          />
+        )}
       </div>
 
       {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}
