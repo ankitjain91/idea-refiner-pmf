@@ -323,8 +323,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               >
                 <CardContent>
                   <div className="space-y-4">
-              {/* Display primary insight if available - only in expanded mode */}
-              {(data as any)?.primaryInsight && expanded && (
+              {/* Display primary insight if available */}
+              {(data as any)?.primaryInsight && (
                 <div className="p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                   <p className="text-sm font-medium leading-relaxed">
                     {(data as any).primaryInsight}
@@ -378,8 +378,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
               )}
               
-              {/* Display regional breakdown if available - Enhanced for sentiment - only in expanded mode */}
-              {(data as any)?.regionalBreakdown && expanded && (
+              {/* Display regional breakdown if available */}
+              {(data as any)?.regionalBreakdown && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Regional Analysis</div>
