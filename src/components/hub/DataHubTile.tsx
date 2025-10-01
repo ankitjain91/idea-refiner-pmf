@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EnhancedTileDialog } from "./EnhancedTileDialog";
+import { TileAIChat } from "./TileAIChat";
 import { Progress } from "@/components/ui/progress";
 import { 
   ChevronRight, TrendingUp, TrendingDown, 
@@ -13,6 +14,7 @@ import { useState } from "react";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useSession } from "@/contexts/SimpleSessionContext";
 
 interface DataHubTileProps {
   title: string;
@@ -26,7 +28,10 @@ interface DataHubTileProps {
 
 export function DataHubTile({ title, tileType = "default", data, Icon, loading, onRefresh, expanded }: DataHubTileProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const { currentSession } = useSession();
+  const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
   const icon = Icon ? <Icon className="h-5 w-5" /> : null;
   
   // Get tile color scheme based on type
@@ -281,10 +286,18 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <FileText className="h-3 w-3" />
-                  <span className="font-medium">{data?.citations?.length || 0} sources analyzed</span>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-xs hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAIChat(true);
+                  }}
+                >
+                  <Brain className="h-3.5 w-3.5" />
+                  AI Analysis
+                </Button>
                 <motion.div
                   animate={{ x: isHovered ? 5 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -305,6 +318,15 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         tileType={tileType}
         data={data}
         icon={icon}
+      />
+      
+      {/* AI Chat Dialog */}
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={data}
+        tileTitle={title}
+        idea={currentIdea}
       />
     </>
   );

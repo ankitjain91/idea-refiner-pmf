@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, Send, Sparkles, Target, Shield, Users, MessageSquare, Loader2 } from 'lucide-react';
+import { Brain, Send, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
@@ -22,46 +21,24 @@ interface Message {
   suggestions?: string[];
 }
 
-interface CompetitionChatDialogProps {
+interface TileAIChatProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  competitionData: any;
+  tileData: any;
+  tileTitle: string;
   idea: string;
 }
 
-const suggestedQuestions = [
-  {
-    icon: Target,
-    label: "Competitive Positioning",
-    question: "How should I position my product against these competitors?"
-  },
-  {
-    icon: Shield,
-    label: "Weakness Exploitation",
-    question: "What competitor weaknesses can I exploit to gain market share?"
-  },
-  {
-    icon: Sparkles,
-    label: "Differentiation Strategy",
-    question: "How can I differentiate my offering from existing solutions?"
-  },
-  {
-    icon: Users,
-    label: "Partnership Opportunities",
-    question: "Which competitors could be potential partners instead of rivals?"
-  }
-];
-
-export function CompetitionChatDialog({ 
+export function TileAIChat({ 
   open, 
   onOpenChange, 
-  competitionData, 
+  tileData, 
+  tileTitle,
   idea 
-}: CompetitionChatDialogProps) {
+}: TileAIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [responseSuggestions, setResponseSuggestions] = useState<string[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -70,11 +47,11 @@ export function CompetitionChatDialog({
       // Add initial welcome message
       setMessages([{
         role: 'assistant',
-        content: `Hello! I'm here to help you analyze the competitive landscape for "${idea}". I have access to data about ${competitionData?.competitors?.length || 0} competitors, market concentration, and strategic opportunities. What would you like to know?`,
+        content: `Hello! I'm here to help you analyze the ${tileTitle} data for "${idea}". What would you like to know?`,
         timestamp: new Date()
       }]);
     }
-  }, [open, competitionData, idea]);
+  }, [open, tileData, idea, tileTitle]);
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages are added
@@ -100,10 +77,11 @@ export function CompetitionChatDialog({
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('competition-chat', {
+      const { data, error } = await supabase.functions.invoke('tile-ai-chat', {
         body: {
           message: messageText,
-          competitionData,
+          tileData,
+          tileTitle,
           idea,
           chatHistory: messages
         }
@@ -113,13 +91,12 @@ export function CompetitionChatDialog({
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.response || 'I apologize, but I couldn\'t generate a response. Please try again.',
+        content: data.response || "I apologize, but I couldn't generate a response. Please try again.",
         timestamp: new Date(),
         suggestions: data.suggestions || []
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setResponseSuggestions(data.suggestions || []);
     } catch (error: any) {
       console.error('Chat error:', error);
       
@@ -148,10 +125,6 @@ export function CompetitionChatDialog({
     }
   };
 
-  const handleSuggestedQuestion = (question: string) => {
-    sendMessage(question);
-  };
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -167,36 +140,14 @@ export function CompetitionChatDialog({
             <div className="p-2 rounded-lg bg-primary/10 backdrop-blur-sm">
               <Brain className="h-6 w-6 text-primary" />
             </div>
-            Competition Analysis Assistant
+            {tileTitle} Analysis Assistant
           </DialogTitle>
           <DialogDescription className="mt-2 text-sm text-muted-foreground">
-            Explore competitive insights and strategic positioning for your business
+            Explore insights and analysis for {tileTitle.toLowerCase()} data
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-background to-muted/20">
-          {/* Suggested Questions */}
-          {messages.length === 1 && (
-            <div className="px-6 py-4 border-b bg-gradient-to-r from-accent/5 to-primary/5 backdrop-blur-sm">
-              <p className="text-sm font-semibold mb-3 text-foreground/80">Quick Questions:</p>
-              <div className="grid grid-cols-2 gap-2">
-                {suggestedQuestions.map((sq, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    className="justify-start gap-2 h-auto py-3 px-4 text-left hover:bg-gradient-to-r hover:from-accent/20 hover:to-primary/20 hover:border-accent/50 transition-all duration-200 group"
-                    onClick={() => handleSuggestedQuestion(sq.question)}
-                    disabled={loading}
-                  >
-                    <sq.icon className="h-4 w-4 flex-shrink-0 text-accent group-hover:text-primary transition-colors" />
-                    <span className="text-xs font-medium">{sq.label}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Chat Messages */}
           <ScrollArea ref={scrollAreaRef} className="flex-1 px-6 py-4">
             <div className="space-y-4 max-w-full">
@@ -288,7 +239,7 @@ export function CompetitionChatDialog({
                   <div className="bg-card border border-border/50 rounded-2xl px-5 py-3 shadow-sm">
                     <div className="flex items-center gap-3">
                       <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">Analyzing competition data...</span>
+                      <span className="text-sm text-muted-foreground">Analyzing {tileTitle.toLowerCase()} data...</span>
                     </div>
                   </div>
                 </div>
@@ -303,7 +254,7 @@ export function CompetitionChatDialog({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask about competitors, market positioning, strategies..."
+                placeholder={`Ask about ${tileTitle.toLowerCase()} insights, trends, analysis...`}
                 disabled={loading}
                 className="flex-1 h-11 px-4 bg-background/80 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-colors"
               />
