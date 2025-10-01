@@ -21,41 +21,46 @@ serve(async (req) => {
     console.log('[web-search] Processing query:', idea_keywords);
 
     // Get API keys
-    const serpApiKey = Deno.env.get('SERPAPI_API_KEY');
+    const scraperApiKey = Deno.env.get('SCRAPERAPI_API_KEY');
     const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
     const serperApiKey = Deno.env.get('SERPER_API_KEY');
+    const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
 
-    // Primary: SerpApi for Google SERP + Trends
+    // Primary: ScraperAPI for Google search results
     let searchResults: any = null;
     let searchError: string | null = null;
 
-    if (serpApiKey) {
+    if (scraperApiKey) {
       try {
-        console.log('[web-search] Using SerpApi for primary search');
+        console.log('[web-search] Using ScraperAPI for primary search');
         
-        // Search for main keywords
-        const serpResponse = await fetch(
-          `https://serpapi.com/search.json?` + new URLSearchParams({
-            api_key: serpApiKey,
-            q: idea_keywords,
-            location: geography || 'United States',
-            hl: 'en',
-            gl: 'us',
-            num: '20',
-            device: 'desktop'
+        // Use ScraperAPI to scrape Google search results
+        const googleSearchUrl = `https://www.google.com/search?` + new URLSearchParams({
+          q: idea_keywords,
+          num: '20',
+          hl: 'en',
+          gl: geography?.toLowerCase()?.substring(0, 2) || 'us'
+        });
+
+        const scraperResponse = await fetch(
+          `https://api.scraperapi.com?` + new URLSearchParams({
+            api_key: scraperApiKey,
+            url: googleSearchUrl,
+            render: 'false'
           })
         );
 
-        if (serpResponse.ok) {
-          const serpData = await serpResponse.json();
-          searchResults = serpData;
-          console.log('[web-search] SerpApi returned', serpData.organic_results?.length || 0, 'results');
+        if (scraperResponse.ok) {
+          const htmlContent = await scraperResponse.text();
+          // Parse the HTML to extract search results
+          searchResults = parseGoogleSearchResults(htmlContent);
+          console.log('[web-search] ScraperAPI returned', searchResults.organic_results?.length || 0, 'results');
         } else {
-          searchError = `SerpApi error: ${serpResponse.status}`;
+          searchError = `ScraperAPI error: ${scraperResponse.status}`;
         }
       } catch (error: any) {
-        console.error('[web-search] SerpApi error:', error);
+        console.error('[web-search] ScraperAPI error:', error);
         searchError = error.message || String(error);
       }
     }
@@ -365,3 +370,65 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to parse Google search results from HTML
+function parseGoogleSearchResults(html: string): any {
+  const results = {
+    organic_results: [],
+    ads: [],
+    related_searches: [],
+    people_also_ask: []
+  };
+
+  try {
+    // Extract organic results - looking for search result patterns
+    const organicMatches = html.matchAll(/<a[^>]*href="([^"]*)"[^>]*><h3[^>]*>([^<]*)<\/h3>/gi);
+    let position = 1;
+    for (const match of organicMatches) {
+      const url = match[1];
+      const title = match[2];
+      
+      // Skip Google's own URLs
+      if (url && !url.includes('google.com') && title) {
+        // Extract snippet - usually in a span after the title
+        const snippetMatch = html.match(new RegExp(`${title}[^>]*>([^<]{50,300})`, 'i'));
+        
+        results.organic_results.push({
+          title: title.replace(/&[^;]+;/g, ''), // Remove HTML entities
+          link: url.startsWith('/url?q=') ? url.split('/url?q=')[1].split('&')[0] : url,
+          snippet: snippetMatch ? snippetMatch[1].replace(/&[^;]+;/g, '') : '',
+          position: position++
+        });
+      }
+    }
+
+    // Extract "People also ask" questions
+    const paaMatches = html.matchAll(/role="heading"[^>]*>([^<]*\?)/gi);
+    for (const match of paaMatches) {
+      const question = match[1];
+      if (question && !results.people_also_ask.includes(question)) {
+        results.people_also_ask.push({ question: question.replace(/&[^;]+;/g, '') });
+      }
+    }
+
+    // Extract related searches
+    const relatedMatches = html.matchAll(/Related searches[^>]*>([^<]*)</gi);
+    for (const match of relatedMatches) {
+      const query = match[1];
+      if (query && query.length > 3) {
+        results.related_searches.push({ query: query.replace(/&[^;]+;/g, '') });
+      }
+    }
+
+    // Count ads (simplified - looking for "Ad" or "Sponsored" markers)
+    const adCount = (html.match(/\bAd\b|\bSponsored\b/gi) || []).length;
+    for (let i = 0; i < Math.min(adCount, 3); i++) {
+      results.ads.push({ position: i + 1 });
+    }
+
+  } catch (error) {
+    console.error('[web-search] Error parsing HTML:', error);
+  }
+
+  return results;
+}

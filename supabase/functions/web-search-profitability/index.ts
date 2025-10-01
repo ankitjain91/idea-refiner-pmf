@@ -20,17 +20,18 @@ serve(async (req) => {
 
     console.log('[web-search-profitability] Processing query:', { idea, industry, geo });
 
+    const scraperApiKey = Deno.env.get('SCRAPERAPI_API_KEY');
     const serperApiKey = Deno.env.get('SERPER_API_KEY');
+    const braveApiKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
-    // Build commercial-intent query - Serper doesn't support complex boolean queries
-    // Add simple commercial keywords without boolean operators
+    // Build commercial-intent query
     const commercialKeywords = 'pricing reviews comparison best';
     const query = `${idea} ${industry || ''} ${geo || ''} ${commercialKeywords}`.trim();
     
     // ============================
-    // 1. Discovery Phase (Serper API)
+    // 1. Discovery Phase (ScraperAPI first, then fallback to Serper/Brave)
     // ============================
     let searchResults: any = null;
     let organicResults: any[] = [];
@@ -38,8 +39,119 @@ serve(async (req) => {
     let relatedQueries: string[] = [];
     let allCompetitors: Map<string, number> = new Map();
 
-    if (!serperApiKey) {
-      console.log('[web-search-profitability] No Serper API key - using mock data');
+    // Try ScraperAPI first
+    if (scraperApiKey) {
+      try {
+        console.log('[web-search-profitability] Using ScraperAPI');
+        
+        const googleSearchUrl = `https://www.google.com/search?` + new URLSearchParams({
+          q: query,
+          num: '30',
+          hl: 'en',
+          gl: geo?.toLowerCase()?.substring(0, 2) || 'us'
+        });
+
+        const scraperResponse = await fetch(
+          `https://api.scraperapi.com?` + new URLSearchParams({
+            api_key: scraperApiKey,
+            url: googleSearchUrl,
+            render: 'false'
+          })
+        );
+
+        if (scraperResponse.ok) {
+          const htmlContent = await scraperResponse.text();
+          searchResults = parseGoogleSearchResultsForProfitability(htmlContent);
+          console.log('[web-search-profitability] ScraperAPI returned', searchResults.organic_results?.length || 0, 'results');
+        }
+      } catch (error) {
+        console.error('[web-search-profitability] ScraperAPI error:', error);
+      }
+    }
+
+    // Fallback to Brave Search
+    if (!searchResults && braveApiKey) {
+      try {
+        console.log('[web-search-profitability] Using Brave Search');
+        
+        const braveUrl = new URL('https://api.search.brave.com/res/v1/web/search');
+        braveUrl.searchParams.append('q', query);
+        braveUrl.searchParams.append('count', '30');
+        
+        const braveResponse = await fetch(braveUrl.toString(), {
+          method: 'GET',
+          headers: {
+            'X-Subscription-Token': braveApiKey,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (braveResponse.ok) {
+          const braveData = await braveResponse.json();
+          searchResults = {
+            organic_results: braveData.web?.results?.map((item: any) => ({
+              title: item.title,
+              link: item.url,
+              snippet: item.description
+            })) || [],
+            ads: [], // Brave doesn't return ads in the same way
+            related_searches: braveData.query?.related?.map((q: any) => ({ query: q })) || [],
+            related_questions: []
+          };
+        }
+      } catch (error) {
+        console.error('[web-search-profitability] Brave error:', error);
+      }
+    }
+
+    // Fallback to Serper
+    if (!searchResults && serperApiKey) {
+      try {
+        console.log('[web-search-profitability] Using Serper API');
+        
+        const payload = {
+          q: query,
+          gl: geo === 'United States' ? 'us' : (geo?.toLowerCase().substring(0, 2) || 'us'),
+          num: 30
+        };
+
+        const serperResponse = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': serperApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (serperResponse.ok) {
+          const data = await serperResponse.json();
+          // Normalize Serper response to our expected structure
+          searchResults = {
+            organic_results: (data.organic || []).map((o: any) => ({
+              title: o.title,
+              link: o.link,
+              snippet: o.snippet,
+            })),
+            ads: data.ads || [],
+            shopping_results: data.shopping || [],
+            inline_shopping: data.inlineShopping || [],
+            related_searches: (data.relatedSearches || []).map((q: any) =>
+              typeof q === 'string' ? { query: q } : { query: q?.query || '' }
+            ),
+            related_questions: (data.peopleAlsoAsk || []).map((p: any) => ({
+              question: p?.question || (typeof p === 'string' ? p : ''),
+            })),
+          };
+        }
+      } catch (error) {
+        console.error('[web-search-profitability] Serper error:', error);
+      }
+    }
+
+    // Use mock data if no API is available
+    if (!searchResults) {
+      console.log('[web-search-profitability] No API keys available - using mock data');
       // Enhanced mock data for development
       searchResults = {
         organic_results: [
@@ -84,47 +196,6 @@ serve(async (req) => {
           { question: 'What are the risks of peer-to-peer lending?' },
           { question: 'Which P2P platform has the best rates?' }
         ]
-      };
-    } else {
-      const payload = {
-        q: query,
-        gl: geo === 'United States' ? 'us' : (geo?.toLowerCase().substring(0, 2) || 'us'),
-        num: 30
-      };
-
-      const serperResponse = await fetch('https://google.serper.dev/search', {
-        method: 'POST',
-        headers: {
-          'X-API-KEY': serperApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!serperResponse.ok) {
-        const errText = await serperResponse.text();
-        console.error('[web-search-profitability] Serper API error:', serperResponse.status, errText);
-        throw new Error(`Serper API error: ${serperResponse.status}`);
-      }
-
-      const data = await serperResponse.json();
-
-      // Normalize Serper response to our expected structure
-      searchResults = {
-        organic_results: (data.organic || []).map((o: any) => ({
-          title: o.title,
-          link: o.link,
-          snippet: o.snippet,
-        })),
-        ads: data.ads || [],
-        shopping_results: data.shopping || [],
-        inline_shopping: data.inlineShopping || [],
-        related_searches: (data.relatedSearches || []).map((q: any) =>
-          typeof q === 'string' ? { query: q } : { query: q?.query || '' }
-        ),
-        related_questions: (data.peopleAlsoAsk || []).map((p: any) => ({
-          question: p?.question || (typeof p === 'string' ? p : ''),
-        })),
       };
     }
 
@@ -341,7 +412,111 @@ serve(async (req) => {
             temperature: 0.3,
             max_tokens: 400
           })
+});
+
+// Helper function to parse Google search results for profitability analysis
+function parseGoogleSearchResultsForProfitability(html: string): any {
+  const results = {
+    organic_results: [],
+    ads: [],
+    related_searches: [],
+    related_questions: [],
+    shopping_results: [],
+    inline_shopping: []
+  };
+
+  try {
+    // Extract organic results with enhanced parsing
+    const organicMatches = html.matchAll(/<a[^>]*href="([^"]*)"[^>]*>(?:<h3[^>]*>)?([^<]*)(?:<\/h3>)?/gi);
+    let position = 1;
+    
+    for (const match of organicMatches) {
+      const url = match[1];
+      const title = match[2];
+      
+      // Skip internal Google URLs and ensure we have valid data
+      if (url && !url.includes('google.com') && !url.includes('search?') && title && title.length > 10) {
+        // Clean the URL
+        let cleanUrl = url;
+        if (url.startsWith('/url?q=')) {
+          cleanUrl = decodeURIComponent(url.split('/url?q=')[1].split('&')[0]);
+        }
+        
+        // Try to extract snippet
+        const snippetPattern = new RegExp(`${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^>]*>([^<]{50,400})`, 'i');
+        const snippetMatch = html.match(snippetPattern);
+        
+        results.organic_results.push({
+          title: title.replace(/&[^;]+;/g, '').trim(),
+          link: cleanUrl,
+          snippet: snippetMatch ? snippetMatch[1].replace(/&[^;]+;/g, '').trim() : '',
+          position: position++
         });
+      }
+    }
+
+    // Extract "People also ask" questions
+    const paaMatches = html.matchAll(/(?:People also ask|Related questions)[^<]*<[^>]*>([^<]*\?)/gi);
+    for (const match of paaMatches) {
+      const question = match[1];
+      if (question && question.length > 10) {
+        results.related_questions.push({ 
+          question: question.replace(/&[^;]+;/g, '').trim() 
+        });
+      }
+    }
+
+    // Alternative PAA extraction
+    const questionMatches = html.matchAll(/role="heading"[^>]*>([^<]*\?)/gi);
+    for (const match of questionMatches) {
+      const question = match[1];
+      if (question && !results.related_questions.some(q => q.question === question)) {
+        results.related_questions.push({ 
+          question: question.replace(/&[^;]+;/g, '').trim() 
+        });
+      }
+    }
+
+    // Extract related searches
+    const relatedSection = html.match(/Related searches[^<]*<[^>]*>([\s\S]*?)(?:<\/div>|<footer)/i);
+    if (relatedSection) {
+      const relatedMatches = relatedSection[1].matchAll(/>([^<]{3,100})</g);
+      for (const match of relatedMatches) {
+        const query = match[1];
+        if (query && !query.includes('>') && !query.includes('<')) {
+          results.related_searches.push({ 
+            query: query.replace(/&[^;]+;/g, '').trim() 
+          });
+        }
+      }
+    }
+
+    // Count ads and shopping results
+    const adMarkers = (html.match(/\bAd\b|\bSponsored\b|\bAds\b/gi) || []).length;
+    const shoppingMatches = (html.match(/Shopping results|Product listing/gi) || []).length;
+    
+    // Create placeholder ad entries based on count
+    for (let i = 0; i < Math.min(adMarkers, 5); i++) {
+      results.ads.push({ 
+        title: `Ad ${i + 1}`,
+        description: 'Sponsored result',
+        position: i + 1 
+      });
+    }
+    
+    // Add shopping results if found
+    if (shoppingMatches > 0) {
+      for (let i = 0; i < Math.min(shoppingMatches * 3, 6); i++) {
+        results.shopping_results.push({ position: i + 1 });
+      }
+    }
+
+  } catch (error) {
+    console.error('[web-search-profitability] Error parsing HTML:', error);
+  }
+
+  return results;
+}
 
         if (groqResponse.ok) {
           const groqData = await groqResponse.json();
