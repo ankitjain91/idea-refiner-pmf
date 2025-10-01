@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_DASHBOARD_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,15 +87,15 @@ serve(async (req) => {
 
     const selectedPrompt = prompts[analysisType as string] || prompts.market;
 
-    // Make API call to OpenAI
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Make API call to Lovable AI
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Use gpt-4o-mini for dashboard insights (cost-efficient)
+        model: 'google/gemini-2.5-flash', // Use Gemini Flash for dashboard insights (free until Oct 6)
         messages: [
           { 
             role: 'system', 
@@ -111,13 +111,12 @@ serve(async (req) => {
             content: selectedPrompt
           }
         ],
-        temperature: 0.7,
         max_tokens: 1500
       }),
     });
 
     const data = await response.json();
-    console.log('[DASHBOARD-REALTIME] OpenAI response:', data);
+    console.log('[DASHBOARD-REALTIME] Lovable AI response:', data);
 
     let insights: any = {};
     let sources: string[] = [];

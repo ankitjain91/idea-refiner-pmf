@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_DASHBOARD_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,14 +19,14 @@ serve(async (req) => {
     console.log('Analyzing financials for:', idea);
     
     // Analyze financial metrics using AI
-    const financialAnalysis = await fetch('https://api.openai.com/v1/chat/completions', {
+    const financialAnalysis = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -77,7 +77,6 @@ serve(async (req) => {
             content: `Analyze financials for: "${idea}". Business model: ${businessModel || 'SaaS'}. Target market: ${targetMarket || 'B2B'}.`
           }
         ],
-        temperature: 0.7,
         max_tokens: 2000
       }),
     });

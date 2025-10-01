@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_DASHBOARD_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,14 +19,14 @@ serve(async (req) => {
     console.log('Generating execution insights for:', idea);
     
     // Generate execution roadmap using AI
-    const executionAnalysis = await fetch('https://api.openai.com/v1/chat/completions', {
+    const executionAnalysis = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -107,7 +107,6 @@ serve(async (req) => {
             content: `Generate execution insights for: "${idea}". Current stage: ${stage || 'idea'}. Available resources: ${resources || 'limited'}.`
           }
         ],
-        temperature: 0.7,
         max_tokens: 2500
       }),
     });
@@ -115,8 +114,8 @@ serve(async (req) => {
     const executionData = await executionAnalysis.json();
     
     if (!executionData.choices || !executionData.choices[0] || !executionData.choices[0].message) {
-      console.error('Invalid OpenAI response:', executionData);
-      throw new Error('Invalid response from OpenAI');
+      console.error('Invalid Lovable AI response:', executionData);
+      throw new Error('Invalid response from Lovable AI');
     }
     
     const execution = JSON.parse(executionData.choices[0].message.content);
