@@ -178,6 +178,68 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         await Promise.all(tilePromises);
         
+        // Ensure PMF score exists; if missing or zero, compute via edge function using available tiles
+        if (!tiles.pmf_score || !(Number(tiles.pmf_score.metrics?.score) > 0)) {
+          try {
+            const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
+            const chatHistory = JSON.parse(localStorage.getItem('ideaChatMessages') || '[]');
+            const userAnswers = JSON.parse(localStorage.getItem('userAnswers') || '{}');
+            
+            const marketMetrics: any = tiles.market_size?.metrics || tiles.market_size?.json || {};
+            const competitionMetrics: any = tiles.competition?.metrics || tiles.competition?.json || {};
+            const sentimentMetrics: any = tiles.sentiment?.metrics || tiles.sentiment?.json || {};
+            
+            // Normalize market data
+            const TAM = marketMetrics.TAM || marketMetrics.tam || '$10B';
+            const growth_rate = marketMetrics.growth_rate || marketMetrics.growth || '15%';
+            
+            // Normalize competition data
+            const compLevel = (competitionMetrics.level || competitionMetrics.competition || '').toString().toLowerCase();
+            const compScore = Number(competitionMetrics.score) || undefined;
+            const competitionData = {
+              level: compLevel || 'moderate',
+              score: typeof compScore === 'number' && compScore > 0 ? compScore : 5
+            };
+            
+            // Normalize sentiment data
+            let sentScore = 0.5; // 0-1
+            if (typeof sentimentMetrics.positive === 'string' && sentimentMetrics.positive.includes('%')) {
+              const val = parseFloat(sentimentMetrics.positive.replace(/[^\d.]/g, ''));
+              sentScore = isNaN(val) ? 0.5 : Math.min(Math.max(val / 100, 0), 1);
+            } else if (typeof sentimentMetrics.score === 'number') {
+              sentScore = Math.min(Math.max(sentimentMetrics.score, 0), 1);
+            } else if (typeof sentimentMetrics.positive === 'number') {
+              sentScore = Math.min(Math.max(sentimentMetrics.positive, 0), 1);
+            }
+            
+            const { data: pmfResp, error: pmfErr } = await supabase.functions.invoke('calculate-smoothbrains-score', {
+              body: {
+                idea: input.idea,
+                wrinklePoints,
+                marketData: { TAM, growth_rate },
+                competitionData,
+                sentimentData: { score: sentScore, sentiment: Math.round(sentScore * 100) },
+                chatHistory,
+                userAnswers
+              }
+            });
+            
+            if (!pmfErr && pmfResp?.success) {
+              tiles.pmf_score = {
+                metrics: { score: pmfResp.score, category: pmfResp.category },
+                explanation: pmfResp.explanation,
+                citations: [],
+                charts: [],
+                json: { breakdown: pmfResp.breakdown, factors: pmfResp.factors },
+                confidence: 0.8,
+                dataQuality: 'high'
+              };
+            }
+          } catch (e) {
+            console.error('[OptimizedDataHub] PMF computation fallback failed:', e);
+          }
+        }
+        
         // Add PMF category calculation if we have PMF score
         if (tiles.pmf_score) {
           const score = tiles.pmf_score.metrics?.score || 0;
@@ -190,7 +252,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
               category: insights.category,
               trend: insights.trend
             },
-            explanation: insights.recommendation
+            explanation: tiles.pmf_score.explanation || insights.recommendation
           };
         }
         
