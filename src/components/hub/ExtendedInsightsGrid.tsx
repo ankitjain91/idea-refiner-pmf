@@ -28,7 +28,10 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
   const [tileData, setTileData] = useState<Record<string, TileData | null>>({});
   const [tileLoading, setTileLoading] = useState<Record<string, boolean>>({});
   const { currentSession } = useSession();
-  const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea');
+  const currentIdea = localStorage.getItem('dashboardIdea') || 
+                     currentSession?.data?.currentIdea || 
+                     localStorage.getItem('currentIdea') || 
+                     localStorage.getItem('userIdea') || '';
 
   // Load tile data on first expansion
   const loadTileData = useCallback(async (tileId: string) => {

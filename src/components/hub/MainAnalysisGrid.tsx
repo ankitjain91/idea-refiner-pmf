@@ -27,7 +27,10 @@ interface MainAnalysisGridProps {
 
 export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridProps) {
   const { currentSession } = useSession();
-  const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
+  const currentIdea = localStorage.getItem('dashboardIdea') || 
+                     currentSession?.data?.currentIdea || 
+                     localStorage.getItem('currentIdea') || 
+                     localStorage.getItem('userIdea') || '';
   
   // State to manage tile data loading
   const [tileData, setTileData] = useState<Record<string, TileData | null>>({});

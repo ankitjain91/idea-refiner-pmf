@@ -199,6 +199,8 @@ export class DataHubOrchestrator {
    * PHASE 1: Build fetch plan with deduplication
    */
   buildFetchPlan(input: DataHubInput, keywords: string[]): FetchPlanItem[] {
+    // Store the input for later use in synthesis
+    this.input = input;
     const plan: FetchPlanItem[] = [];
     const seen = new Set<string>();
     
