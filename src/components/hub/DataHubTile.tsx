@@ -164,7 +164,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         onHoverEnd={() => setIsHovered(false)}
         className={className}
       >
-        <Card className={cn("transition-all duration-300 hover:shadow-lg h-full", className)}>
+        <Card className={cn("transition-all duration-300 hover:shadow-lg", isCollapsed ? "h-auto" : "h-full", className)}>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-2">
               <CardTitle className="flex items-center gap-2 min-w-0">
@@ -221,6 +221,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
               >
                 <CardContent>
                   <div className="space-y-4">
