@@ -36,20 +36,18 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       reach: "2.3M",
       trending: "+23%",
       nps: 67,
-      csat: 4.2,
-      responseRate: 89,
-      viralityScore: 8.5
+      csat: 4.2
     },
-    primaryInsight: "Overall sentiment is 82% positive with exceptionally high engagement in tech-savvy demographics",
     explanation: "Users express strong enthusiasm for AI-powered productivity solutions, with particular interest in workflow automation and time-saving features. The sentiment has improved 23% over the past month.",
     confidence: 85,
-    dataQuality: "high",
-    keyMetrics: [
-      { label: "Positive", value: "82%", trend: "up", change: "+5%" },
-      { label: "Neutral", value: "15%", trend: null, change: "0%" },
-      { label: "Negative", value: "3%", trend: "down", change: "-2%" },
-      { label: "Engagement", value: "4.2K", trend: "up", change: "+23%" }
+    dataQuality: "high" as const,
+    citations: [
+      { url: "reddit.com", title: "Reddit Discussion", source: "Reddit", relevance: 0.95 },
+      { url: "twitter.com", title: "Twitter Analysis", source: "Twitter", relevance: 0.92 }
     ],
+    charts: [],
+    json: {},
+    primaryInsight: "Overall sentiment is 82% positive with exceptionally high engagement in tech-savvy demographics",
     regionalBreakdown: [
       { 
         region: "North America", 
@@ -128,9 +126,7 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       { theme: "Automation", mentions: 1234, sentiment: "Very Positive", growth: "+45%", reach: "892K" },
       { theme: "Time Saving", mentions: 987, sentiment: "Positive", growth: "+32%", reach: "654K" },
       { theme: "Integration", mentions: 654, sentiment: "Positive", growth: "+28%", reach: "432K" },
-      { theme: "Pricing", mentions: 432, sentiment: "Mixed", growth: "+12%", reach: "298K" },
-      { theme: "Learning Curve", mentions: 321, sentiment: "Neutral", growth: "+8%", reach: "187K" },
-      { theme: "Customer Support", mentions: 298, sentiment: "Positive", growth: "+22%", reach: "156K" }
+      { theme: "Pricing", mentions: 432, sentiment: "Mixed", growth: "+12%", reach: "298K" }
     ],
     platforms: {
       reddit: { 
@@ -199,13 +195,6 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       disgust: 1
     },
     temporalAnalysis: {
-      hourly: [
-        { hour: 0, sentiment: 78, volume: 23 },
-        { hour: 6, sentiment: 80, volume: 45 },
-        { hour: 12, sentiment: 85, volume: 89 },
-        { hour: 18, sentiment: 82, volume: 67 },
-        { hour: 23, sentiment: 79, volume: 34 }
-      ],
       daily: [
         { day: "Mon", sentiment: 80, volume: 234 },
         { day: "Tue", sentiment: 82, volume: 267 },
@@ -221,12 +210,6 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
         { month: "Sep", sentiment: 82, volume: 6789 }
       ]
     },
-    competitorComparison: [
-      { competitor: "Your Product", sentiment: 82, mentions: 4200, growth: "+23%" },
-      { competitor: "Competitor A", sentiment: 74, mentions: 3200, growth: "+12%" },
-      { competitor: "Competitor B", sentiment: 68, mentions: 2800, growth: "+8%" },
-      { competitor: "Competitor C", sentiment: 71, mentions: 1900, growth: "+15%" }
-    ],
     influencerMentions: [
       { 
         name: "TechGuru", 
@@ -245,54 +228,6 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
         engagement: 45600,
         reach: 1230000,
         impact: "Very High"
-      },
-      { 
-        name: "StartupSteve", 
-        platform: "LinkedIn",
-        followers: 123000,
-        sentiment: "Positive",
-        engagement: 8900,
-        reach: 234000,
-        impact: "Medium"
-      }
-    ],
-    keywordClouds: {
-      positive: ["innovative", "time-saving", "intuitive", "powerful", "game-changer", "efficient", "seamless", "revolutionary"],
-      negative: ["expensive", "complex", "buggy", "slow", "limited"],
-      neutral: ["interesting", "potential", "learning", "testing", "considering"]
-    },
-    customerSegments: [
-      { 
-        segment: "Enterprise", 
-        sentiment: 78, 
-        volume: 1234,
-        topConcern: "Integration",
-        satisfaction: 4.1,
-        churnRisk: "Low"
-      },
-      { 
-        segment: "SMB", 
-        sentiment: 85, 
-        volume: 2345,
-        topConcern: "Pricing",
-        satisfaction: 4.3,
-        churnRisk: "Medium"
-      },
-      { 
-        segment: "Startup", 
-        sentiment: 88, 
-        volume: 1567,
-        topConcern: "Features",
-        satisfaction: 4.5,
-        churnRisk: "Low"
-      },
-      { 
-        segment: "Individual", 
-        sentiment: 82, 
-        volume: 890,
-        topConcern: "Ease of use",
-        satisfaction: 4.2,
-        churnRisk: "Medium"
       }
     ],
     predictiveTrends: {
@@ -301,33 +236,7 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       next90Days: { sentiment: 88, confidence: 0.65 },
       drivers: ["Product updates", "Marketing campaign", "Industry trends"],
       risks: ["Competitor launch", "Price sensitivity", "Feature gaps"]
-    },
-    actionableInsights: [
-      {
-        insight: "Focus on enterprise integration features",
-        impact: "High",
-        urgency: "Medium",
-        estimatedROI: "+15%"
-      },
-      {
-        insight: "Address pricing concerns for SMB segment",
-        impact: "Medium",
-        urgency: "High",
-        estimatedROI: "+8%"
-      },
-      {
-        insight: "Leverage positive YouTube sentiment",
-        impact: "Medium",
-        urgency: "Low",
-        estimatedROI: "+12%"
-      }
-    ],
-    citations: [
-      { url: "reddit.com", title: "Reddit Discussion", source: "Reddit", relevance: 0.95 },
-      { url: "twitter.com", title: "Twitter Analysis", source: "Twitter", relevance: 0.92 }
-    ],
-    charts: [],
-    json: {}
+    }
   };
   
   const mockMarketTrendsData: any = {
@@ -339,16 +248,16 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       velocity: "Accelerating",
       maturity: "Early Growth"
     },
-    primaryInsight: "Market growing at 28% CAGR with accelerating enterprise adoption",
     explanation: "AI productivity tools are experiencing rapid growth driven by remote work trends and digital transformation initiatives.",
     confidence: 90,
-    dataQuality: "high",
-    keyMetrics: [
-      { label: "Growth Rate", value: "28%", trend: "up" },
-      { label: "Market Cap", value: "$4.5B", trend: "up" },
-      { label: "YoY Change", value: "+45%", trend: "up" },
-      { label: "Adoption", value: "67%", trend: "up" }
+    dataQuality: "high" as const,
+    citations: [
+      { url: "gartner.com", title: "Gartner Report", source: "Gartner", relevance: 0.98 },
+      { url: "forrester.com", title: "Forrester Trends", source: "Forrester", relevance: 0.96 }
     ],
+    charts: [],
+    json: {},
+    primaryInsight: "Market growing at 28% CAGR with accelerating enterprise adoption",
     regionalGrowth: [
       { region: "North America", growth: 26, marketShare: 38, trend: "Stable" },
       { region: "Europe", growth: 24, marketShare: 28, trend: "Growing" },
@@ -365,13 +274,7 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       "AI technology maturity",
       "Cost reduction pressures",
       "Digital transformation initiatives"
-    ],
-    citations: [
-      { url: "gartner.com", title: "Gartner Report", source: "Gartner", relevance: 0.98 },
-      { url: "forrester.com", title: "Forrester Trends", source: "Forrester", relevance: 0.96 }
-    ],
-    charts: [],
-    json: {}
+    ]
   };
   
   const mockGoogleTrendsData: any = {
@@ -383,46 +286,32 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       avgInterest: 78,
       breakoutTerms: 5
     },
-    primaryInsight: "Search interest up 150% over past 12 months",
     explanation: "Significant spike in searches for 'AI productivity tools' and related terms, indicating growing consumer awareness and demand.",
     confidence: 95,
-    dataQuality: "high",
-    keyMetrics: [
-      { label: "Interest", value: "87/100", trend: "up" },
-      { label: "Peak", value: "Last week", trend: null },
-      { label: "Growth", value: "+150%", trend: "up" },
-      { label: "Queries", value: "2.3M/mo", trend: "up" }
+    dataQuality: "high" as const,
+    citations: [
+      { url: "trends.google.com", title: "Google Trends", source: "Google", relevance: 1.0 }
     ],
+    charts: [],
+    json: {},
+    primaryInsight: "Search interest up 150% over past 12 months",
     regionalInterest: [
       { region: "United States", interest: 89, queries: "892K/mo" },
       { region: "United Kingdom", interest: 82, queries: "234K/mo" },
       { region: "Canada", interest: 85, queries: "156K/mo" },
-      { region: "Germany", interest: 78, queries: "189K/mo" },
-      { region: "Australia", interest: 81, queries: "98K/mo" }
+      { region: "Germany", interest: 78, queries: "189K/mo" }
     ],
     relatedQueries: [
       { query: "best AI productivity tools", volume: 45600, growth: "+280%" },
       { query: "AI workflow automation", volume: 34200, growth: "+195%" },
-      { query: "ChatGPT for productivity", volume: 28900, growth: "+450%" },
-      { query: "AI task management", volume: 19800, growth: "+167%" }
+      { query: "ChatGPT for productivity", volume: 28900, growth: "+450%" }
     ],
     breakoutTerms: [
       "AI assistant apps",
       "Automated workflow tools",
       "Smart productivity software",
-      "AI project management",
-      "Intelligent task automation"
-    ],
-    seasonality: {
-      peak: "January",
-      low: "August",
-      trend: "Year-round interest with Q1 spike"
-    },
-    citations: [
-      { url: "trends.google.com", title: "Google Trends", source: "Google", relevance: 1.0 }
-    ],
-    charts: [],
-    json: {}
+      "AI project management"
+    ]
   };
   
   const mockNewsData: any = {
@@ -434,48 +323,36 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       virality: 4.2,
       shareOfVoice: 34
     },
-    primaryInsight: "42 major announcements in the past month, dominated by funding news",
     explanation: "Media coverage is overwhelmingly positive with focus on innovation, funding rounds, and successful implementations.",
     confidence: 88,
-    dataQuality: "high",
-    keyMetrics: [
-      { label: "Articles", value: "342", trend: "up" },
-      { label: "Reach", value: "12.5M", trend: "up" },
-      { label: "Sentiment", value: "78% Positive", trend: null },
-      { label: "Mentions", value: "1.2K/day", trend: "up" }
-    ],
-    topPublications: [
-      { publication: "TechCrunch", articles: 45, reach: "2.3M", sentiment: "Positive" },
-      { publication: "Forbes", articles: 38, reach: "3.1M", sentiment: "Positive" },
-      { publication: "Wired", articles: 29, reach: "1.8M", sentiment: "Neutral" },
-      { publication: "VentureBeat", articles: 24, reach: "1.2M", sentiment: "Positive" },
-      { publication: "The Verge", articles: 21, reach: "1.6M", sentiment: "Positive" }
-    ],
-    topics: [
-      { topic: "Funding Rounds", count: 89, sentiment: 92 },
-      { topic: "Product Launches", count: 67, sentiment: 85 },
-      { topic: "Partnerships", count: 54, sentiment: 78 },
-      { topic: "Market Analysis", count: 42, sentiment: 72 },
-      { topic: "Case Studies", count: 38, sentiment: 88 }
-    ],
-    keyEvents: [
-      { date: "2025-09-28", event: "Major Series B funding of $50M", impact: "High" },
-      { date: "2025-09-22", event: "Partnership with Microsoft announced", impact: "Very High" },
-      { date: "2025-09-15", event: "New AI feature launch", impact: "Medium" },
-      { date: "2025-09-10", event: "Industry report published", impact: "Medium" }
-    ],
-    geographicCoverage: [
-      { region: "North America", coverage: 45, sentiment: 82 },
-      { region: "Europe", coverage: 28, sentiment: 76 },
-      { region: "Asia", coverage: 18, sentiment: 79 },
-      { region: "Rest of World", coverage: 9, sentiment: 74 }
-    ],
+    dataQuality: "high" as const,
     citations: [
       { url: "techcrunch.com", title: "TechCrunch", source: "TechCrunch", relevance: 0.94 },
       { url: "forbes.com", title: "Forbes", source: "Forbes", relevance: 0.91 }
     ],
     charts: [],
-    json: {}
+    json: {},
+    primaryInsight: "42 major announcements in the past month, dominated by funding news",
+    topPublications: [
+      { publication: "TechCrunch", articles: 45, reach: "2.3M", sentiment: "Positive" },
+      { publication: "Forbes", articles: 38, reach: "3.1M", sentiment: "Positive" },
+      { publication: "Wired", articles: 29, reach: "1.8M", sentiment: "Neutral" }
+    ],
+    topics: [
+      { topic: "Funding Rounds", count: 89, sentiment: 92 },
+      { topic: "Product Launches", count: 67, sentiment: 85 },
+      { topic: "Partnerships", count: 54, sentiment: 78 }
+    ],
+    keyEvents: [
+      { date: "2025-09-28", event: "Major Series B funding of $50M", impact: "High" },
+      { date: "2025-09-22", event: "Partnership with Microsoft announced", impact: "Very High" },
+      { date: "2025-09-15", event: "New AI feature launch", impact: "Medium" }
+    ],
+    geographicCoverage: [
+      { region: "North America", coverage: 45, sentiment: 82 },
+      { region: "Europe", coverage: 28, sentiment: 76 },
+      { region: "Asia", coverage: 18, sentiment: 79 }
+    ]
   };
   
   const mainTiles = [
