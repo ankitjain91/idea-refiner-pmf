@@ -5,9 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Globe, TrendingUp, DollarSign, Target, MapPin, BarChart3,
-  ExternalLink, Info, RefreshCw, Zap, Building, Users
+  ExternalLink, Info, RefreshCw, Zap, Building, Users, Brain, 
+  Sparkles, MessageSquare, TrendingDown, Lightbulb
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SimpleSessionContext';
@@ -85,6 +89,11 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
   const [loading, setLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'overview' | 'regional' | 'projections'>('overview');
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [analysisType, setAnalysisType] = useState('deep-insights');
+  const [customPrompt, setCustomPrompt] = useState('');
   const { currentSession } = useSession();
   
   const currentIdea = idea || currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || 'AI-powered productivity app';
@@ -125,6 +134,63 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
       toast.error('Market analysis failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runAIAnalysis = async () => {
+    if (!currentIdea || !marketData) {
+      toast.error('Market data required for AI analysis');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      console.log('Starting AI analysis:', analysisType);
+      
+      const { data, error } = await supabase.functions.invoke('ai-market-analysis', {
+        body: {
+          idea: currentIdea,
+          analysisType,
+          marketData,
+          customPrompt: analysisType === 'custom' ? customPrompt : undefined
+        }
+      });
+
+      if (error) {
+        console.error('AI analysis error:', error);
+        if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+          toast.error('AI analysis rate limit reached. Please try again in a moment.');
+        } else if (error.message?.includes('credits') || error.message?.includes('402')) {
+          toast.error('AI credits exhausted. Please add credits to your Lovable workspace.');
+        } else {
+          toast.error('AI analysis failed. Please try again.');
+        }
+        return;
+      }
+
+      if (data?.success && data?.analysis) {
+        setAiAnalysis(data.analysis);
+        console.log('AI analysis completed successfully');
+        toast.success('AI analysis completed!');
+      } else {
+        throw new Error('Invalid AI response structure');
+      }
+    } catch (error) {
+      console.error('AI analysis failed:', error);
+      toast.error('AI analysis failed. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const getAnalysisTypeIcon = (type: string) => {
+    switch (type) {
+      case 'deep-insights': return <Brain className="h-4 w-4" />;
+      case 'competitive-landscape': return <Target className="h-4 w-4" />;
+      case 'growth-strategy': return <TrendingUp className="h-4 w-4" />;
+      case 'investment-analysis': return <DollarSign className="h-4 w-4" />;
+      case 'custom': return <MessageSquare className="h-4 w-4" />;
+      default: return <Sparkles className="h-4 w-4" />;
     }
   };
 
@@ -244,6 +310,121 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
             <Badge variant="outline" className={getConfidenceColor(marketData.confidence)}>
               {marketData.confidence} Confidence
             </Badge>
+            <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  AI Analysis
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-purple-500" />
+                    AI Market Analysis
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col space-y-4 overflow-hidden">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium mb-2 block">Analysis Type</label>
+                      <Select value={analysisType} onValueChange={setAnalysisType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="deep-insights">
+                            <div className="flex items-center gap-2">
+                              <Brain className="h-4 w-4" />
+                              Deep Market Insights
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="competitive-landscape">
+                            <div className="flex items-center gap-2">
+                              <Target className="h-4 w-4" />
+                              Competitive Landscape
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="growth-strategy">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4" />
+                              Growth Strategy
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="investment-analysis">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-4 w-4" />
+                              Investment Analysis
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="custom">
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="h-4 w-4" />
+                              Custom Analysis
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button 
+                        onClick={runAIAnalysis} 
+                        disabled={aiLoading || (analysisType === 'custom' && !customPrompt.trim())}
+                        className="gap-2"
+                      >
+                        {aiLoading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            {getAnalysisTypeIcon(analysisType)}
+                            Analyze
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {analysisType === 'custom' && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Custom Analysis Request</label>
+                      <Textarea
+                        placeholder="What specific aspect of the market would you like me to analyze? Be specific about what insights you're looking for..."
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  )}
+                  
+                  {aiAnalysis && (
+                    <div className="flex-1 overflow-hidden">
+                      <label className="text-sm font-medium mb-2 block">AI Analysis Results</label>
+                      <ScrollArea className="h-[400px] border rounded-lg p-4">
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          {aiAnalysis.split('\n').map((line, index) => (
+                            <p key={index} className="mb-2 last:mb-0">
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
+                  
+                  {!aiAnalysis && !aiLoading && (
+                    <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
+                      <div>
+                        <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Select an analysis type and click "Analyze" to get AI-powered insights about your market opportunity.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button variant="ghost" size="sm" onClick={fetchMarketData}>
               <RefreshCw className="h-4 w-4" />
             </Button>
