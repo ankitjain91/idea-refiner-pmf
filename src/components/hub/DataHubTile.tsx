@@ -172,24 +172,24 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
                 {title}
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Badge 
                   variant="outline" 
-                  className={cn("text-xs", qualityColor)}
+                  className={cn("text-xs whitespace-nowrap", qualityColor)}
                 >
                   {data?.confidence || 'Medium'} Confidence
                 </Badge>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="gap-2"
+                  className="gap-1 px-2 py-1 h-auto whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowAIChat(true);
                   }}
                 >
-                  <Sparkles className="h-4 w-4" />
-                  AI Analysis
+                  <Sparkles className="h-3 w-3" />
+                  <span className="text-xs">AI Analysis</span>
                 </Button>
               </div>
             </div>
