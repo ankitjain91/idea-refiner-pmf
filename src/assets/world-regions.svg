@@ -1,0 +1,25 @@
+<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- North America -->
+  <path d="M 150 150 Q 180 140 200 145 L 230 140 L 250 145 L 270 150 L 290 155 L 300 160 L 280 170 L 260 175 L 240 170 L 220 165 L 200 160 L 180 155 L 160 150 Z" 
+        fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- South America -->
+  <path d="M 250 280 L 255 270 L 260 260 L 265 250 L 270 245 L 275 250 L 280 260 L 285 270 L 290 280 L 285 290 L 280 300 L 275 310 L 270 320 L 265 315 L 260 305 L 255 295 L 250 285 Z" 
+        fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- Europe -->
+  <path d="M 450 140 L 460 135 L 470 130 L 480 135 L 490 140 L 500 145 L 510 150 L 505 155 L 495 160 L 485 155 L 475 150 L 465 145 L 455 140 Z" 
+        fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- Africa -->
+  <path d="M 470 220 L 475 210 L 480 200 L 485 195 L 490 200 L 495 210 L 500 220 L 505 230 L 500 240 L 495 250 L 490 260 L 485 270 L 480 275 L 475 270 L 470 260 L 465 250 L 460 240 L 465 230 L 470 220 Z" 
+        fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- Asia -->
+  <path d="M 550 150 L 580 145 L 610 140 L 640 145 L 670 150 L 700 155 L 730 160 L 750 165 L 740 170 L 720 175 L 700 170 L 680 165 L 660 160 L 640 155 L 620 150 L 600 155 L 580 160 L 560 155 L 550 150 Z" 
+        fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- Australia/Oceania -->
+  <path d="M 700 320 L 720 315 L 740 310 L 760 315 L 780 320 L 775 325 L 755 330 L 735 325 L 715 320 L 700 320 Z" 
+        fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.5"/>
+</svg>
