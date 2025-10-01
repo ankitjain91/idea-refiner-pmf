@@ -15,6 +15,7 @@ import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
 import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
+import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
 
 export default function EnterpriseHub() {
@@ -124,6 +125,15 @@ export default function EnterpriseHub() {
                   Mock Data
                 </Label>
               </div>
+              
+              {/* Cache Clear Button */}
+              <CacheClearButton 
+                variant="outline"
+                size="sm"
+                onCacheCleared={() => {
+                  console.log("Cache cleared, refreshing data...");
+                }}
+              />
               
               {lastFetchTime && (
                 <span className="text-xs text-muted-foreground">
