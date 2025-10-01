@@ -10,7 +10,7 @@ import {
   FileText, Sparkles, Activity, BarChart3,
   Brain, Zap, Target, Shield, ChevronDown, ChevronUp
 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -53,6 +53,14 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
     };
     return styles[tileType] || styles.default;
   };
+  
+  // Auto-expand when data becomes available
+  React.useEffect(() => {
+    if (data && isCollapsed && !hasBeenExpanded) {
+      setIsCollapsed(false);
+      setHasBeenExpanded(true);
+    }
+  }, [data]);
   
   // Get accent icon based on tile type
   const getAccentIcon = () => {

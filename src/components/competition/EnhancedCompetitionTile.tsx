@@ -162,6 +162,8 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
     };
     
     setData(mockData);
+    // Auto-expand tile when data is fetched
+    setIsCollapsed(false);
     setLoading(false);
   };
 

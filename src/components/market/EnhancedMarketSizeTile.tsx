@@ -108,6 +108,8 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
       };
       
       setMarketData(mockData);
+      // Auto-expand tile when data is fetched
+      setIsCollapsed(false);
       console.log('Market data loaded:', mockData);
     } catch (error) {
       console.error('Market analysis failed:', error);
