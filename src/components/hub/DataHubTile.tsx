@@ -195,6 +195,15 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
           
           <CardContent>
             <div className="space-y-4">
+              {/* Display primary insight if available */}
+              {(data as any)?.primaryInsight && (
+                <div className="p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                  <p className="text-sm font-medium leading-relaxed">
+                    {(data as any).primaryInsight}
+                  </p>
+                </div>
+              )}
+              
               {/* Display metrics from data.metrics object */}
               {data?.metrics && Object.keys(data.metrics).length > 0 && (
                 <div className="grid grid-cols-2 gap-3">
@@ -205,12 +214,218 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                           {key.replace(/_/g, ' ')}
                         </div>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-bold">{String(value)}</span>
+                          <span className="text-lg font-bold">{
+                            typeof value === 'number' && key.includes('Rate') ? `${value}%` :
+                            typeof value === 'number' && (key.includes('Cap') || key.includes('reach')) ? 
+                              `$${(value / 1000000000).toFixed(1)}B` :
+                            typeof value === 'number' && value > 1000000 ? 
+                              `${(value / 1000000).toFixed(1)}M` :
+                            typeof value === 'number' && value > 1000 ? 
+                              `${(value / 1000).toFixed(1)}K` :
+                            String(value)
+                          }</span>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
+              )}
+              
+              {/* Display regional breakdown if available */}
+              {(data as any)?.regionalBreakdown && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Regional Breakdown</div>
+                    <div className="space-y-2">
+                      {(data as any).regionalBreakdown.slice(0, 3).map((region: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className="font-medium">{region.region}</span>
+                          <div className="flex items-center gap-2">
+                            {region.positive && (
+                              <Badge variant="outline" className="text-xs">
+                                {region.positive}% positive
+                              </Badge>
+                            )}
+                            {region.growth && (
+                              <Badge variant="outline" className="text-xs">
+                                {region.growth}% growth
+                              </Badge>
+                            )}
+                            {region.interest && (
+                              <Badge variant="outline" className="text-xs">
+                                {region.interest}/100
+                              </Badge>
+                            )}
+                            {region.coverage && (
+                              <Badge variant="outline" className="text-xs">
+                                {region.coverage}% coverage
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display regional growth for market trends */}
+              {(data as any)?.regionalGrowth && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Regional Growth</div>
+                    <div className="space-y-2">
+                      {(data as any).regionalGrowth.slice(0, 3).map((region: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className="font-medium">{region.region}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {region.growth}% CAGR
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {region.marketShare}% share
+                            </Badge>
+                            <span className={cn(
+                              "text-xs font-medium",
+                              region.trend === "Accelerating" ? "text-green-500" :
+                              region.trend === "Growing" ? "text-blue-500" :
+                              region.trend === "Stable" ? "text-yellow-500" :
+                              "text-muted-foreground"
+                            )}>
+                              {region.trend}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display regional interest for Google Trends */}
+              {(data as any)?.regionalInterest && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Regional Interest</div>
+                    <div className="space-y-2">
+                      {(data as any).regionalInterest.slice(0, 3).map((region: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className="font-medium">{region.region}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {region.interest}/100
+                            </Badge>
+                            <span className="text-muted-foreground">{region.queries}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display top themes for sentiment */}
+              {(data as any)?.topThemes && (
+                <Card className="border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Top Themes</div>
+                    <div className="space-y-2">
+                      {(data as any).topThemes.slice(0, 3).map((theme: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="text-xs font-medium">{theme.theme}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{theme.mentions} mentions</span>
+                            <Badge variant="outline" className={cn(
+                              "text-xs",
+                              theme.sentiment === "Very Positive" ? "text-green-500" :
+                              theme.sentiment === "Positive" ? "text-blue-500" :
+                              "text-yellow-500"
+                            )}>
+                              {theme.sentiment}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display segments for market trends */}
+              {(data as any)?.segments && (
+                <Card className="border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Market Segments</div>
+                    <div className="space-y-2">
+                      {(data as any).segments.map((segment: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="text-xs font-medium">{segment.segment}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold">{segment.size}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {segment.growth}% growth
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {segment.adoption}% adoption
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display related queries for Google Trends */}
+              {(data as any)?.relatedQueries && (
+                <Card className="border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Trending Searches</div>
+                    <div className="space-y-2">
+                      {(data as any).relatedQueries.slice(0, 3).map((query: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="text-xs">{query.query}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{(query.volume / 1000).toFixed(1)}K/mo</span>
+                            <Badge variant="outline" className="text-xs text-green-500">
+                              {query.growth}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display top publications for news */}
+              {(data as any)?.topPublications && (
+                <Card className="border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Top Publications</div>
+                    <div className="space-y-2">
+                      {(data as any).topPublications.slice(0, 3).map((pub: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="text-xs font-medium">{pub.publication}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{pub.articles} articles</span>
+                            <Badge variant="outline" className="text-xs">
+                              {pub.reach} reach
+                            </Badge>
+                            <Badge variant="outline" className={cn(
+                              "text-xs",
+                              pub.sentiment === "Positive" ? "text-green-500" :
+                              pub.sentiment === "Neutral" ? "text-yellow-500" :
+                              "text-red-500"
+                            )}>
+                              {pub.sentiment}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
               
               {/* Display explanation */}
@@ -224,11 +439,128 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
               )}
               
+              {/* Display key drivers for market trends */}
+              {(data as any)?.drivers && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Key Market Drivers</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(data as any).drivers.map((driver: string, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <ChevronRight className="h-3 w-3 text-primary" />
+                          <span className="text-xs">{driver}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display breakout terms for Google Trends */}
+              {(data as any)?.breakoutTerms && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Breakout Terms</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(data as any).breakoutTerms.map((term: string, idx: number) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                          {term}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display key events for news */}
+              {(data as any)?.keyEvents && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Recent Key Events</div>
+                    <div className="space-y-2">
+                      {(data as any).keyEvents.slice(0, 3).map((event: any, idx: number) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <div className="mt-0.5">
+                            <div className={cn(
+                              "h-2 w-2 rounded-full",
+                              event.impact === "Very High" ? "bg-red-500" :
+                              event.impact === "High" ? "bg-orange-500" :
+                              event.impact === "Medium" ? "bg-yellow-500" :
+                              "bg-green-500"
+                            )} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium">{event.event}</p>
+                            <p className="text-xs text-muted-foreground">{event.date}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display platforms for sentiment */}
+              {(data as any)?.platforms && (
+                <Card className="border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Platform Sentiment</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries((data as any).platforms).map(([platform, data]: [string, any], idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="text-xs font-medium capitalize">{platform}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={cn(
+                              "text-xs",
+                              data.sentiment > 85 ? "text-green-500" :
+                              data.sentiment > 70 ? "text-blue-500" :
+                              "text-yellow-500"
+                            )}>
+                              {data.sentiment}%
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{data.posts}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display topics for news */}
+              {(data as any)?.topics && (
+                <Card className="border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Coverage Topics</div>
+                    <div className="space-y-2">
+                      {(data as any).topics.slice(0, 3).map((topic: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="text-xs font-medium">{topic.topic}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{topic.count} articles</span>
+                            <div className="flex items-center gap-1">
+                              <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-primary rounded-full"
+                                  style={{ width: `${topic.sentiment}%` }}
+                                />
+                              </div>
+                              <span className="text-xs">{topic.sentiment}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
               {/* Display confidence as percentage */}
               {data?.confidence && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Confidence</span>
+                    <span>Analysis Confidence</span>
                     <span className="font-medium">{Math.round(data.confidence * 100)}%</span>
                   </div>
                   <Progress 
@@ -240,9 +572,23 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               
               {/* Citations */}
               {data?.citations && data.citations.length > 0 && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <FileText className="h-3 w-3" />
-                  <span>{data.citations.length} sources analyzed</span>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3 w-3" />
+                    <span>{data.citations.length} sources analyzed</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDetails(true);
+                    }}
+                  >
+                    View All
+                    <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
                 </div>
               )}
             </div>
