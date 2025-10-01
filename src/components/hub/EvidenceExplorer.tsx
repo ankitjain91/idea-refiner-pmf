@@ -54,12 +54,17 @@ export function EvidenceExplorer({
   // Filter evidence based on search and filters
   const filteredEvidence = useMemo(() => {
     return safeEvidenceStore.filter(citation => {
+      const title = (citation.title || "").toLowerCase();
+      const snippet = (citation.snippet || "").toLowerCase();
+      const source = (citation.source || "").toLowerCase();
+      const query = searchQuery.toLowerCase();
+
       const matchesSearch = !searchQuery || 
-        citation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        citation.snippet?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        citation.source.toLowerCase().includes(searchQuery.toLowerCase());
+        title.includes(query) ||
+        snippet.includes(query) ||
+        source.includes(query);
       
-      const matchesProvider = !selectedProvider || citation.source === selectedProvider;
+      const matchesProvider = !selectedProvider || source === selectedProvider.toLowerCase();
       
       return matchesSearch && matchesProvider;
     });
@@ -71,7 +76,7 @@ export function EvidenceExplorer({
   const totalDeduped = safeProviderLog.reduce((sum, p) => sum + (p.dedupeCount || 0), 0);
   
   // Get unique providers
-  const providers = Array.from(new Set(safeProviderLog.map(p => p.provider)));
+  const providers = Array.from(new Set(safeProviderLog.map(p => p.provider || 'unknown'))).filter(Boolean) as string[];
   
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -164,9 +169,9 @@ export function EvidenceExplorer({
                             {citation.source}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
-                            {Math.round(citation.confidence * 100)}% confidence
+                            {Math.round(((citation.confidence ?? 0) * 100))}% confidence
                           </Badge>
-                          {citation.tileReferences.map(tile => (
+                          {(citation.tileReferences ?? []).map((tile) => (
                             <Badge key={tile} variant="secondary" className="text-xs">
                               {tile}
                             </Badge>
