@@ -92,10 +92,34 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     };
   };
   
-  const fetchMarketData = async () => {
+  const fetchMarketData = async (forceRefresh = false) => {
     if (!currentIdea) {
       toast.error('Please provide an idea to analyze');
       return;
+    }
+
+    // Check cache first unless force refresh
+    if (!forceRefresh) {
+      const cacheKey = `market_size_${currentIdea}`;
+      const cachedData = localStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        try {
+          const parsed = JSON.parse(cachedData);
+          // Check if cache is less than 1 hour old
+          const cacheAge = Date.now() - parsed.timestamp;
+          const oneHour = 60 * 60 * 1000;
+          
+          if (cacheAge < oneHour) {
+            console.log('Using cached market data:', parsed.data);
+            setMarketData(normalizeMarketData(parsed.data));
+            setIsCollapsed(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing cached data:', e);
+        }
+      }
     }
 
     setLoading(true);
@@ -116,10 +140,20 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
       const extractedData = extractEdgeFunctionData({ data, error }, 'market_size');
       
       if (extractedData) {
-        setMarketData(normalizeMarketData(extractedData));
+        const normalizedData = normalizeMarketData(extractedData);
+        setMarketData(normalizedData);
         // Auto-expand tile when data is fetched
         setIsCollapsed(false);
-        console.log('Market data loaded:', extractedData);
+        
+        // Cache the data with timestamp
+        const cacheKey = `market_size_${currentIdea}`;
+        localStorage.setItem(cacheKey, JSON.stringify({
+          data: extractedData,
+          timestamp: Date.now(),
+          idea: currentIdea
+        }));
+        
+        console.log('Market data loaded and cached:', extractedData);
       } else {
         // Fallback to mock data if no data returned
         const mockData: MarketSizeData = {
@@ -262,7 +296,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <Button onClick={fetchMarketData} disabled={!currentIdea} size="sm" variant="outline">
+            <Button onClick={() => fetchMarketData()} disabled={!currentIdea} size="sm" variant="outline">
               <Activity className="h-3 w-3 mr-1" />
               Fetch Data
             </Button>
@@ -325,7 +359,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
                   <Sparkles className="h-4 w-4" />
                   AI Analysis
                 </Button>
-                <Button variant="ghost" size="sm" onClick={fetchMarketData}>
+                <Button variant="ghost" size="sm" onClick={() => fetchMarketData(true)}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </>
