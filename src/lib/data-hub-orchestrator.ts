@@ -318,23 +318,33 @@ export class DataHubOrchestrator {
     // Get user answers
     const userAnswers = JSON.parse(localStorage.getItem('userAnswers') || '{}');
     
-    // Prepare market data
+    // Prepare market data - extract from available indices
+    const marketSize = this.dataHub.MARKET_INDEX.find(d => 
+      d.key?.toLowerCase().includes('tam') || 
+      d.key?.toLowerCase().includes('market_size')
+    )?.value || '$10B';
+    
+    const growthRate = this.dataHub.MARKET_INDEX.find(d => 
+      d.key?.toLowerCase().includes('growth') || 
+      d.key?.toLowerCase().includes('cagr')
+    )?.value || '15%';
+    
     const marketData = {
-      TAM: this.dataHub.MARKET_INDEX.find(d => d.key?.includes('tam'))?.value || '$0B',
-      growth_rate: this.dataHub.MARKET_INDEX.find(d => d.key?.includes('growth'))?.value || '10%'
+      TAM: marketSize,
+      growth_rate: growthRate
     };
     
     // Prepare competition data
     const competitionScore = this.calculateCompetitionScore();
     const competitionData = {
       level: competitionScore < 30 ? 'high' : competitionScore < 70 ? 'moderate' : 'low',
-      score: (100 - competitionScore) / 10 // Convert to 1-10 scale
+      score: Math.max(1, Math.min(10, (100 - competitionScore) / 10)) // Convert to 1-10 scale
     };
     
     // Prepare sentiment data
     const sentimentScore = this.calculateSentimentScore();
     const sentimentData = {
-      score: sentimentScore / 100, // Convert to 0-1 scale
+      score: Math.max(0, Math.min(1, sentimentScore / 100)), // Convert to 0-1 scale with bounds
       sentiment: sentimentScore
     };
     
