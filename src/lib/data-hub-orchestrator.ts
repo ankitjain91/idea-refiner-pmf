@@ -319,20 +319,50 @@ export class DataHubOrchestrator {
     const userAnswers = JSON.parse(localStorage.getItem('userAnswers') || '{}');
     
     // Prepare market data - extract from available indices
-    const marketSize = this.dataHub.MARKET_INDEX.find(d => 
+    // First check MARKET_INDEX for explicit market data
+    let marketSize = this.dataHub.MARKET_INDEX.find(d => 
       d.key?.toLowerCase().includes('tam') || 
       d.key?.toLowerCase().includes('market_size')
-    )?.value || '$10B';
+    )?.value;
     
-    const growthRate = this.dataHub.MARKET_INDEX.find(d => 
+    let growthRate = this.dataHub.MARKET_INDEX.find(d => 
       d.key?.toLowerCase().includes('growth') || 
       d.key?.toLowerCase().includes('cagr')
-    )?.value || '15%';
+    )?.value;
+    
+    // If not found in MARKET_INDEX, try to extract from SEARCH_INDEX or NEWS_INDEX
+    if (!marketSize && this.dataHub.SEARCH_INDEX.length > 0) {
+      // Try to find market size mentions in search results
+      const marketMention = this.dataHub.SEARCH_INDEX.find(item => 
+        item.snippet?.toLowerCase().includes('billion') || 
+        item.snippet?.toLowerCase().includes('market size')
+      );
+      if (marketMention?.snippet) {
+        const match = marketMention.snippet.match(/\$?(\d+(?:\.\d+)?)\s*[BbTt]illion/);
+        if (match) {
+          marketSize = `$${match[1]}B`;
+        }
+      }
+    }
+    
+    // Default values if still not found
+    marketSize = marketSize || '$10B';
+    growthRate = growthRate || '15%';
     
     const marketData = {
       TAM: marketSize,
       growth_rate: growthRate
     };
+    
+    console.log('[PMF Score] Market data:', marketData);
+    console.log('[PMF Score] Available MARKET_INDEX:', this.dataHub.MARKET_INDEX);
+    console.log('[PMF Score] Available indices counts:', {
+      SEARCH: this.dataHub.SEARCH_INDEX.length,
+      NEWS: this.dataHub.NEWS_INDEX.length,
+      COMPETITOR: this.dataHub.COMPETITOR_INDEX.length,
+      MARKET: this.dataHub.MARKET_INDEX.length,
+      SOCIAL: this.dataHub.SOCIAL_INDEX.length
+    });
     
     // Prepare competition data
     const competitionScore = this.calculateCompetitionScore();
@@ -341,12 +371,16 @@ export class DataHubOrchestrator {
       score: Math.max(1, Math.min(10, (100 - competitionScore) / 10)) // Convert to 1-10 scale
     };
     
+    console.log('[PMF Score] Competition data:', competitionData, 'raw score:', competitionScore);
+    
     // Prepare sentiment data
     const sentimentScore = this.calculateSentimentScore();
     const sentimentData = {
       score: Math.max(0, Math.min(1, sentimentScore / 100)), // Convert to 0-1 scale with bounds
       sentiment: sentimentScore
     };
+    
+    console.log('[PMF Score] Sentiment data:', sentimentData, 'raw score:', sentimentScore);
     
     // Calculate other scores
     const demandScore = this.calculateDemandScore();
@@ -762,9 +796,84 @@ export class DataHubOrchestrator {
   // Helper methods
   private calculateSentimentScore(): number {
     const allSentiments = [...this.dataHub.REVIEWS_INDEX, ...this.dataHub.SOCIAL_INDEX];
-    const positive = allSentiments.filter(s => s.sentiment === 'positive').length;
-    const total = allSentiments.length;
-    return total > 0 ? Math.round((positive / total) * 100) : 50;
+    
+    // If we have sentiment data, use it
+    if (allSentiments.length > 0) {
+      const positive = allSentiments.filter(s => s.sentiment === 'positive').length;
+      const total = allSentiments.length;
+      return Math.round((positive / total) * 100);
+    }
+    
+    // Fallback: analyze text content from various sources
+    const socialItems = this.dataHub.SOCIAL_INDEX || [];
+    const newsItems = this.dataHub.NEWS_INDEX || [];
+    const searchItems = this.dataHub.SEARCH_INDEX || [];
+    
+    let positiveCount = 0;
+    let negativeCount = 0;
+    let neutralCount = 0;
+    
+    // Analyze text from search items
+    searchItems.forEach(item => {
+      const fullText = `${item.title || ''} ${item.snippet || ''}`.toLowerCase();
+      
+      const positiveKeywords = ['positive', 'great', 'excellent', 'love', 'amazing', 'good', 'best', 'perfect', 'success', 'innovative'];
+      const negativeKeywords = ['negative', 'bad', 'poor', 'hate', 'terrible', 'worst', 'awful', 'fail', 'problem', 'issue'];
+      
+      const hasPositive = positiveKeywords.some(keyword => fullText.includes(keyword));
+      const hasNegative = negativeKeywords.some(keyword => fullText.includes(keyword));
+      
+      if (hasPositive && !hasNegative) {
+        positiveCount++;
+      } else if (hasNegative && !hasPositive) {
+        negativeCount++;
+      } else {
+        neutralCount++;
+      }
+    });
+    
+    // Analyze text from news items
+    newsItems.forEach(item => {
+      const fullText = `${item.title || ''} ${item.snippet || ''}`.toLowerCase();
+      
+      const positiveKeywords = ['positive', 'great', 'excellent', 'love', 'amazing', 'good', 'best', 'perfect', 'success', 'innovative'];
+      const negativeKeywords = ['negative', 'bad', 'poor', 'hate', 'terrible', 'worst', 'awful', 'fail', 'problem', 'issue'];
+      
+      const hasPositive = positiveKeywords.some(keyword => fullText.includes(keyword));
+      const hasNegative = negativeKeywords.some(keyword => fullText.includes(keyword));
+      
+      if (hasPositive && !hasNegative) {
+        positiveCount++;
+      } else if (hasNegative && !hasPositive) {
+        negativeCount++;
+      } else {
+        neutralCount++;
+      }
+    });
+    
+    // Analyze text from social items
+    socialItems.forEach(item => {
+      const fullText = `${item.author || ''} ${item.content || ''}`.toLowerCase();
+      
+      const positiveKeywords = ['positive', 'great', 'excellent', 'love', 'amazing', 'good', 'best', 'perfect', 'success', 'innovative'];
+      const negativeKeywords = ['negative', 'bad', 'poor', 'hate', 'terrible', 'worst', 'awful', 'fail', 'problem', 'issue'];
+      
+      const hasPositive = positiveKeywords.some(keyword => fullText.includes(keyword));
+      const hasNegative = negativeKeywords.some(keyword => fullText.includes(keyword));
+      
+      if (hasPositive && !hasNegative) {
+        positiveCount++;
+      } else if (hasNegative && !hasPositive) {
+        negativeCount++;
+      } else {
+        neutralCount++;
+      }
+    });
+    
+    const total = positiveCount + negativeCount + neutralCount;
+    if (total === 0) return 65; // Default to slightly positive if no data
+    
+    return Math.round((positiveCount / total) * 100);
   }
 
   private calculateCompetitionScore(): number {

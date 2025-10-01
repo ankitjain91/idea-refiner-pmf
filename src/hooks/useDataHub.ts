@@ -369,25 +369,66 @@ export function useDataHub(input: DataHubInput) {
           throw error;
         }
         
-        const fetchTime = new Date().toISOString();
-        
-        setState({
-          indices: data?.indices || null,
-          tiles: data?.tiles || {},
-          loading: false,
-          error: null,
-          summary: data?.summary || null,
-          lastFetchTime: fetchTime
-        });
-        
-        hasFetchedRef.current = true;
-        
-        // Cache the real data
-        const cacheKey = `datahub_real_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
-        localStorage.setItem(cacheKey, JSON.stringify({
-          ...data,
-          fetchedAt: fetchTime
-        }));
+        // Initialize orchestrator with the indices from edge function
+        if (data?.indices && orchestratorRef.current) {
+          orchestratorRef.current.setIndices(data.indices);
+          
+          // Synthesize tiles from the raw indices
+          const tilesToSynthesize = [
+            'pmf_score',
+            'market_size', 
+            'competition',
+            'sentiment',
+            'market_trends',
+            'google_trends',
+            'web_search',
+            'reddit_sentiment',
+            'twitter_buzz',
+            'growth_potential',
+            'market_readiness',
+            'competitive_advantage',
+            'risk_assessment',
+            'news_analysis'
+          ];
+          
+          const synthesizedTiles: Record<string, TileData> = {};
+          
+          // Synthesize each tile type
+          for (const tileType of tilesToSynthesize) {
+            try {
+              const tileData = await orchestratorRef.current.synthesizeTileData(tileType);
+              if (tileData) {
+                synthesizedTiles[tileType] = tileData;
+              }
+            } catch (err) {
+              console.error(`Failed to synthesize ${tileType}:`, err);
+            }
+          }
+          
+          const fetchTime = new Date().toISOString();
+          
+          setState({
+            indices: data.indices,
+            tiles: synthesizedTiles,
+            loading: false,
+            error: null,
+            summary: orchestratorRef.current.getHubSummary(),
+            lastFetchTime: fetchTime
+          });
+          
+          hasFetchedRef.current = true;
+          
+          // Cache the synthesized data
+          const cacheKey = `datahub_real_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
+          localStorage.setItem(cacheKey, JSON.stringify({
+            indices: data.indices,
+            tiles: synthesizedTiles,
+            summary: orchestratorRef.current.getHubSummary(),
+            fetchedAt: fetchTime
+          }));
+        } else {
+          throw new Error('No indices data received from edge function');
+        }
         
         toast({
           title: "Real Data Loaded",

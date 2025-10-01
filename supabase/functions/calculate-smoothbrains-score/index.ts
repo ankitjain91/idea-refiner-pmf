@@ -184,6 +184,14 @@ serve(async (req) => {
     } = await req.json();
 
     console.log('[SmoothBrains] Calculating strict score for:', idea?.substring(0, 100));
+    console.log('[SmoothBrains] Input data:', {
+      wrinklePoints,
+      marketData,
+      competitionData,
+      sentimentData,
+      chatHistoryLength: chatHistory?.length || 0,
+      userAnswersKeys: Object.keys(userAnswers || {})
+    });
 
     // Extract factors from provided data
     const factors: ScoreFactors = {
