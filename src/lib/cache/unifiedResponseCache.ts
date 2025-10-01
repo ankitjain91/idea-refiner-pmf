@@ -212,6 +212,32 @@ export class UnifiedResponseCache {
     this.memoryCache.clear();
   }
   
+  async clearForIdea(idea: string): Promise<void> {
+    // Clear all cache entries for a specific idea
+    const responses = await this.db.getResponsesByIdea(idea);
+    
+    // Since we don't have a direct delete method, we'll clear all and re-store the ones we want to keep
+    const allResponses = await this.db.getAllResponses();
+    const toKeep = allResponses.filter(r => r.idea !== idea);
+    
+    // Clear all
+    await this.db.clearAllResponses();
+    
+    // Re-store the ones we want to keep
+    for (const response of toKeep) {
+      await this.db.storeResponse(response);
+    }
+    
+    // Clear from memory cache
+    Array.from(this.memoryCache.entries()).forEach(([id, response]) => {
+      if (response.idea === idea) {
+        this.memoryCache.delete(id);
+      }
+    });
+    
+    console.log(`Cleared all cache entries for idea: ${idea}`);
+  }
+  
   private generateId(idea: string, source: string, endpoint: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);

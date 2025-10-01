@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { OptimizedDashboardService } from '@/services/optimizedDashboardService';
 import { UnifiedResponseCache } from '@/lib/cache/unifiedResponseCache';
 import { DataHubInput, DataHubIndices, TileData } from '@/lib/data-hub-orchestrator';
+import { getPMFInsights } from '@/lib/pmf-category';
 
 interface DataHubState {
   indices: DataHubIndices | null;
@@ -136,9 +137,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         const tiles: Record<string, TileData> = {};
         
-        // Clear expired cache entries
+        // Clear cache if force refresh to ensure real API calls
         if (forceRefresh) {
-          await cache.current.clearExpired();
+          console.log('🔄 Force refresh: Clearing cache for idea:', input.idea);
+          await cache.current.clearForIdea(input.idea);
         }
         
         // Fetch all tile data in parallel using the optimized service
@@ -175,6 +177,22 @@ export function useOptimizedDataHub(input: DataHubInput) {
         });
         
         await Promise.all(tilePromises);
+        
+        // Add PMF category calculation if we have PMF score
+        if (tiles.pmf_score) {
+          const score = tiles.pmf_score.metrics?.score || 0;
+          const insights = getPMFInsights(score, tiles.pmf_score.metrics);
+          
+          tiles.pmf_score = {
+            ...tiles.pmf_score,
+            metrics: {
+              ...tiles.pmf_score.metrics,
+              category: insights.category,
+              trend: insights.trend
+            },
+            explanation: insights.recommendation
+          };
+        }
         
         // Generate summary based on collected data
         const summary = generateSummaryFromTiles(tiles);
@@ -266,11 +284,9 @@ export function useOptimizedDataHub(input: DataHubInput) {
   
   const refresh = useCallback(async () => {
     hasFetchedRef.current = false;
-    // Clear cache for this idea
-    const responses = await cache.current.getResponsesForIdea(input.idea);
-    // Mark as expired instead of deleting
-    for (const response of responses) {
-      response.expiresAt = Date.now() - 1;
+    // Clear relevant cache entries to force real API calls
+    if (input.idea) {
+      await cache.current.clearForIdea(input.idea);
     }
     return fetchDataHub(true);
   }, [fetchDataHub, input.idea]);
