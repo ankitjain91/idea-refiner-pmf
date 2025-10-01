@@ -1,13 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { EnhancedTileDialog } from "./EnhancedTileDialog";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  ChevronRight, ExternalLink, Info, TrendingUp, TrendingDown, 
-  Minus, AlertCircle, CheckCircle, XCircle, BarChart3, 
-  FileText, Calculator, Lightbulb, Target
+  ChevronRight, TrendingUp, TrendingDown, 
+  Minus, AlertCircle, CheckCircle, XCircle,
+  FileText
 } from "lucide-react";
 import { useState } from "react";
 import { TileData } from "@/lib/data-hub-orchestrator";
@@ -149,156 +148,15 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         </CardContent>
       </Card>
       
-      {/* Details Dialog */}
-      <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {icon}
-              {title}
-            </DialogTitle>
-            <DialogDescription>
-              Complete analysis with transparent calculations and evidence
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs defaultValue="metrics" className="mt-4">
-            <TabsList className="grid grid-cols-5 w-full">
-              <TabsTrigger value="metrics">
-                <BarChart3 className="h-4 w-4 mr-1" />
-                Metrics
-              </TabsTrigger>
-              <TabsTrigger value="explanation">
-                <Calculator className="h-4 w-4 mr-1" />
-                Calculation
-              </TabsTrigger>
-              <TabsTrigger value="evidence">
-                <FileText className="h-4 w-4 mr-1" />
-                Evidence
-              </TabsTrigger>
-              <TabsTrigger value="insights">
-                <Lightbulb className="h-4 w-4 mr-1" />
-                Insights
-              </TabsTrigger>
-              <TabsTrigger value="raw">
-                <Target className="h-4 w-4 mr-1" />
-                Raw Data
-              </TabsTrigger>
-            </TabsList>
-            
-            <div className="overflow-y-auto max-h-[50vh] mt-4">
-              <TabsContent value="metrics" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {data?.metrics && Object.entries(data.metrics).map(([key, value]) => (
-                    <div key={key} className="bg-muted/50 rounded-lg p-3">
-                      <div className="text-xs text-muted-foreground capitalize mb-1">
-                        {key.replace(/_/g, ' ')}
-                      </div>
-                      <div className="text-lg font-semibold">
-                        {formatMetricValue(value)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Charts */}
-                {data?.charts && data.charts.length > 0 && (
-                  <div className="border rounded-lg p-4 bg-background/50">
-                    <h4 className="text-sm font-medium mb-3">Visualizations</h4>
-                    {/* Chart rendering would go here */}
-                    <div className="text-xs text-muted-foreground">
-                      {data.charts.length} chart(s) available
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="explanation" className="space-y-4">
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <Calculator className="h-4 w-4" />
-                    How This Was Calculated
-                  </h4>
-                  <p className="text-sm leading-relaxed">
-                    {data?.explanation}
-                  </p>
-                </div>
-                
-                <div className="bg-primary/5 rounded-lg p-4">
-                  <h4 className="font-medium mb-2">Data Quality Assessment</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Quality Level</span>
-                      <Badge className={qualityColor}>
-                        {data?.dataQuality}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Confidence Score</span>
-                      <div className="flex items-center gap-2">
-                        <Progress value={data?.confidence || 0} className="w-20" />
-                        <span className="text-sm font-medium">{data?.confidence}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="evidence" className="space-y-3">
-                {data?.citations && data.citations.length > 0 ? (
-                  data.citations.map((citation, idx) => (
-                    <div key={idx} className="border rounded-lg p-3 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h5 className="font-medium text-sm mb-1">{citation.title}</h5>
-                          <p className="text-xs text-muted-foreground mb-2">{citation.source}</p>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              Relevance: {Math.round(citation.relevance * 100)}%
-                            </Badge>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(citation.url, '_blank');
-                          }}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No citations available
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="insights" className="space-y-4">
-                <div className="prose prose-sm dark:prose-invert">
-                  {/* Additional insights would be extracted from the data */}
-                  <h4>Key Takeaways</h4>
-                  <ul>
-                    <li>Data collected from {data?.citations?.length || 0} verified sources</li>
-                    <li>Confidence level: {data?.confidence}% based on data completeness</li>
-                    <li>Quality assessment: {data?.dataQuality}</li>
-                  </ul>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="raw">
-                <pre className="bg-muted/30 rounded-lg p-4 text-xs overflow-x-auto">
-                  {JSON.stringify(data?.json || data, null, 2)}
-                </pre>
-              </TabsContent>
-            </div>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
+      {/* Enhanced Details Dialog */}
+      <EnhancedTileDialog
+        open={showDetails}
+        onOpenChange={setShowDetails}
+        title={title}
+        tileType={tileType}
+        data={data}
+        icon={icon}
+      />
     </>
   );
 }
