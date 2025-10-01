@@ -55,13 +55,23 @@ interface EnhancedMarketSizeTileProps {
 export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh }: EnhancedMarketSizeTileProps) {
   // Ensure market data has all required properties
   const normalizeMarketData = (data: any): MarketSizeData => {
+    // Convert numeric confidence to string if needed
+    let confidenceStr = 'Low';
+    if (typeof data?.confidence === 'number') {
+      if (data.confidence >= 0.7) confidenceStr = 'High';
+      else if (data.confidence >= 0.4) confidenceStr = 'Medium';
+      else confidenceStr = 'Low';
+    } else if (typeof data?.confidence === 'string') {
+      confidenceStr = data.confidence;
+    }
+    
     return {
       TAM: data?.TAM || '$0B',
       SAM: data?.SAM || '$0M',
       SOM: data?.SOM || '$0M',
       growth_rate: data?.growth_rate || '0%',
       regions: data?.regions || [],
-      confidence: data?.confidence || 'Low',
+      confidence: confidenceStr,
       explanation: data?.explanation || 'Market analysis data unavailable',
       citations: data?.citations || [],
       charts: data?.charts || []
@@ -176,10 +186,20 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
     return parseFloat(value.replace(/[^\d.]/g, '')) || 0;
   };
 
-  const getConfidenceColor = (confidence: string) => {
-    switch (confidence.toLowerCase()) {
+  const getConfidenceColor = (confidence: string | number) => {
+    // Handle numeric confidence values
+    if (typeof confidence === 'number') {
+      if (confidence >= 0.7) return 'text-emerald-500';
+      if (confidence >= 0.4) return 'text-amber-500';
+      return 'text-orange-500';
+    }
+    
+    // Handle string confidence values
+    const confStr = String(confidence).toLowerCase();
+    switch (confStr) {
       case 'high': return 'text-emerald-500';
-      case 'moderate': return 'text-amber-500';
+      case 'moderate': 
+      case 'medium': return 'text-amber-500';
       case 'low': return 'text-orange-500';
       default: return 'text-muted-foreground';
     }
