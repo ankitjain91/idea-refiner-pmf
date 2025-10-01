@@ -19,6 +19,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  suggestions?: string[];
 }
 
 interface CompetitionChatDialogProps {
@@ -60,6 +61,7 @@ export function CompetitionChatDialog({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [responseSuggestions, setResponseSuggestions] = useState<string[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -112,10 +114,12 @@ export function CompetitionChatDialog({
       const assistantMessage: Message = {
         role: 'assistant',
         content: data.response || 'I apologize, but I couldn\'t generate a response. Please try again.',
-        timestamp: new Date()
+        timestamp: new Date(),
+        suggestions: data.suggestions || []
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      setResponseSuggestions(data.suggestions || []);
     } catch (error: any) {
       console.error('Chat error:', error);
       
@@ -195,41 +199,69 @@ export function CompetitionChatDialog({
           <ScrollArea ref={scrollAreaRef} className="flex-1 px-6 py-4">
             <div className="space-y-4">
               {messages.map((message, idx) => (
-                <div
-                  key={idx}
-                  className={`flex gap-3 ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Brain className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
+                <div key={idx} className="space-y-3">
                   <div
-                    className={`max-w-[75%] rounded-lg px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                    className={`flex gap-3 ${
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    {message.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                    {message.role === 'assistant' && (
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Brain className="h-4 w-4 text-primary" />
                       </div>
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     )}
-                    <p className="text-xs opacity-70 mt-2">
-                      {message.timestamp.toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </p>
+                    <div
+                      className={`max-w-[75%] rounded-lg px-4 py-3 ${
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      }`}
+                    >
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      )}
+                      <p className="text-xs opacity-70 mt-2">
+                        {message.timestamp.toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </p>
+                    </div>
+                    {message.role === 'user' && (
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                        <MessageSquare className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                    )}
                   </div>
-                  {message.role === 'user' && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                      <MessageSquare className="h-4 w-4 text-primary-foreground" />
+                  
+                  {/* Response Suggestions */}
+                  {message.role === 'assistant' && 
+                   message.suggestions && 
+                   message.suggestions.length > 0 && 
+                   idx === messages.length - 1 && 
+                   !loading && (
+                    <div className="ml-11 space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        Suggested follow-ups:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {message.suggestions.map((suggestion, sIdx) => (
+                          <Button
+                            key={sIdx}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-auto py-1.5 px-3 hover:bg-accent/10 hover:border-accent"
+                            onClick={() => sendMessage(suggestion)}
+                          >
+                            {suggestion}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

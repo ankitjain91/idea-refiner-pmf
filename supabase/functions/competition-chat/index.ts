@@ -134,8 +134,66 @@ Keep responses concise but insightful. Use markdown formatting for better readab
 
     console.log('Competition chat response generated successfully');
 
+    // Generate response suggestions
+    const suggestionsPrompt = `Based on this competitive analysis conversation about "${idea}" and the latest response, suggest 3 brief, specific follow-up questions the user might want to ask next. Focus on actionable competitive insights.`;
+    
+    const suggestionsResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'Generate exactly 3 follow-up questions for competitive analysis discussions. Return ONLY a JSON array of strings like: ["Question 1?", "Question 2?", "Question 3?"]' 
+          },
+          { 
+            role: 'user', 
+            content: `Context: ${contextSummary}\n\nLatest Q: ${message}\nLatest A: ${aiResponse}\n\n${suggestionsPrompt}` 
+          }
+        ],
+        max_tokens: 200,
+        temperature: 0.8,
+      }),
+    });
+
+    let suggestions = [];
+    try {
+      if (suggestionsResponse.ok) {
+        const suggestionsData = await suggestionsResponse.json();
+        const suggestionsText = suggestionsData.choices?.[0]?.message?.content;
+        if (suggestionsText) {
+          // Extract JSON array from the response
+          const jsonMatch = suggestionsText.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(parsed)) {
+              suggestions = parsed.slice(0, 3).filter(s => typeof s === 'string' && s.length > 0);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Could not parse suggestions:', e);
+    }
+
+    // Fallback suggestions if generation failed
+    if (suggestions.length === 0) {
+      suggestions = [
+        "What market gaps can our competitors not address?",
+        "How should we price our solution compared to competitors?",
+        "Which competitor weaknesses should we target first?"
+      ];
+    }
+
     return new Response(
-      JSON.stringify({ response: aiResponse }),
+      JSON.stringify({ 
+        response: aiResponse,
+        suggestions 
+      }),
       { 
         headers: { 
           ...corsHeaders, 
