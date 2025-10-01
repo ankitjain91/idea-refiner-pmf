@@ -29,6 +29,7 @@ export interface DataHubIndices {
   REVIEWS_INDEX: ReviewData[];
   SOCIAL_INDEX: SocialData[];
   PRICE_INDEX: PriceData[];
+  MARKET_INDEX: any[]; // Added for market data
   TRENDS_METRICS: TrendsData;
   EVIDENCE_STORE: Evidence[];
   PROVIDER_LOG: ProviderLogEntry[];
@@ -150,6 +151,7 @@ export class DataHubOrchestrator {
     REVIEWS_INDEX: [],
     SOCIAL_INDEX: [],
     PRICE_INDEX: [],
+    MARKET_INDEX: [],
     TRENDS_METRICS: {} as TrendsData,
     EVIDENCE_STORE: [],
     PROVIDER_LOG: []
@@ -157,6 +159,7 @@ export class DataHubOrchestrator {
 
   private fetchPlan: FetchPlanItem[] = [];
   private dedupeMap = new Map<string, string>();
+  private input: DataHubInput = { idea: '' };
 
   // Allow injecting indices from edge function response
   public setIndices(indices: DataHubIndices) {
@@ -260,7 +263,7 @@ export class DataHubOrchestrator {
   /**
    * PHASE 3: Synthesize tile data from hub
    */
-  synthesizeTileData(tileType: string): TileData {
+  async synthesizeTileData(tileType: string): Promise<TileData> {
     const baseData: TileData = {
       metrics: {},
       explanation: '',
@@ -333,6 +336,10 @@ export class DataHubOrchestrator {
       sentiment: sentimentScore
     };
     
+    // Calculate other scores
+    const demandScore = this.calculateDemandScore();
+    const trendsScore = this.calculateTrendsScore();
+    
     try {
       // Call the strict SmoothBrains score calculation edge function
       const { supabase } = await import('@/integrations/supabase/client');
@@ -357,14 +364,54 @@ export class DataHubOrchestrator {
             category: data.category,
             sentiment: sentimentScore,
             competition: competitionScore,
-            demand: this.calculateDemandScore(),
-            trends: this.calculateTrendsScore(),
+            demand: demandScore,
+            trends: trendsScore,
             breakdown: data.breakdown
           },
           explanation: data.explanation,
           citations: this.getTopCitations('pmf', 3),
           charts: [
             {
+              type: 'bar',
+              series: [
+                { name: 'Components', data: [sentimentScore, competitionScore, demandScore, trendsScore] }
+              ],
+              labels: ['Sentiment', 'Competition', 'Demand', 'Trends']
+            }
+          ],
+          json: { 
+            smoothBrainsScore: data.score, 
+            components: { sentimentScore, competitionScore, demandScore, trendsScore } 
+          },
+          confidence: this.calculateConfidence(['sentiment', 'competition', 'demand', 'trends']),
+          dataQuality: this.assessDataQuality()
+        };
+      }
+    } catch (error) {
+      console.error('Error calculating SmoothBrains score:', error);
+    }
+    
+    // Fallback calculation if edge function fails
+    const pmfScore = Math.min(90, Math.round(
+      (sentimentScore * 0.3) +
+      (competitionScore * 0.2) +
+      (demandScore * 0.25) +
+      (trendsScore * 0.25)
+    ));
+    
+    return {
+      metrics: {
+        score: pmfScore,
+        category: pmfScore > 80 ? 'Strong' : pmfScore > 60 ? 'Moderate' : pmfScore > 40 ? 'Weak' : 'Poor',
+        sentiment: sentimentScore,
+        competition: competitionScore,
+        demand: demandScore,
+        trends: trendsScore
+      },
+      explanation: 'Product-market fit score calculated from market signals',
+      citations: this.getTopCitations('pmf', 3),
+      charts: [
+        {
           type: 'bar',
           series: [
             { name: 'Components', data: [sentimentScore, competitionScore, demandScore, trendsScore] }
@@ -372,7 +419,10 @@ export class DataHubOrchestrator {
           labels: ['Sentiment', 'Competition', 'Demand', 'Trends']
         }
       ],
-      json: { pmfScore, components: { sentimentScore, competitionScore, demandScore, trendsScore } },
+      json: { 
+        smoothBrainsScore: pmfScore, 
+        components: { sentimentScore, competitionScore, demandScore, trendsScore } 
+      },
       confidence: this.calculateConfidence(['sentiment', 'competition', 'demand', 'trends']),
       dataQuality: this.assessDataQuality()
     };

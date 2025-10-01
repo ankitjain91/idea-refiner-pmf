@@ -305,6 +305,7 @@ export function useDataHub(input: DataHubInput) {
         REVIEWS_INDEX: [],
         SOCIAL_INDEX: [],
         PRICE_INDEX: [],
+        MARKET_INDEX: [],
         TRENDS_METRICS: {
           keyword: "startup idea analysis",
           interestOverTime: [

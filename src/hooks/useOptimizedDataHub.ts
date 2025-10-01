@@ -342,6 +342,7 @@ function generateMockIndices(): DataHubIndices {
     REVIEWS_INDEX: [],
     SOCIAL_INDEX: [],
     PRICE_INDEX: [],
+    MARKET_INDEX: [],
     TRENDS_METRICS: {
       keyword: "startup idea analysis",
       interestOverTime: [
@@ -406,6 +407,7 @@ function generateIndicesFromResponses(responses: any[]): DataHubIndices {
     REVIEWS_INDEX: [],
     SOCIAL_INDEX: responses.filter(r => ['reddit', 'twitter'].includes(r.source)).slice(0, 10),
     PRICE_INDEX: [],
+    MARKET_INDEX: [],
     TRENDS_METRICS: {
       keyword: "",
       interestOverTime: [],
