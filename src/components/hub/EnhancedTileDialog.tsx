@@ -9,7 +9,7 @@ import {
   BarChart3, TrendingUp, TrendingDown, AlertCircle, 
   CheckCircle, XCircle, ExternalLink, Sparkles, Target,
   Users, DollarSign, Activity, Brain, Lightbulb, Shield,
-  Zap, Clock, Globe, MessageSquare, Star
+  Zap, Clock, Globe, MessageSquare, Star, Loader2
 } from "lucide-react";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,9 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   AreaChart, Area
 } from "recharts";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/contexts/SimpleSessionContext";
 
 interface EnhancedTileDialogProps {
   open: boolean;
@@ -27,6 +30,30 @@ interface EnhancedTileDialogProps {
   tileType: string;
   data: TileData | null;
   icon?: React.ReactNode;
+}
+
+interface GroqAnalysis {
+  keyInsights: Array<{
+    type: 'opportunity' | 'risk' | 'strength' | 'weakness';
+    title: string;
+    description: string;
+    impact: 'high' | 'medium' | 'low';
+    confidence: number;
+  }>;
+  strategicRecommendations: string[];
+  marketInterpretation: string;
+  competitivePosition: string;
+  criticalSuccessFactors: string[];
+  nextSteps: Array<{
+    action: string;
+    priority: 'high' | 'medium' | 'low';
+    timeline: 'immediate' | 'short-term' | 'long-term';
+  }>;
+  pmfSignals: {
+    positive: string[];
+    negative: string[];
+    overallAssessment: string;
+  };
 }
 
 const CHART_COLORS = [
@@ -46,6 +73,41 @@ export function EnhancedTileDialog({
   data,
   icon 
 }: EnhancedTileDialogProps) {
+  const [analysis, setAnalysis] = useState<GroqAnalysis | null>(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const { currentSession } = useSession();
+  const ideaContext = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
+  
+  useEffect(() => {
+    if (open && data && !analysis && !loadingAnalysis) {
+      fetchGroqAnalysis();
+    }
+  }, [open, data]);
+
+  const fetchGroqAnalysis = async () => {
+    if (!data || !ideaContext) return;
+    
+    setLoadingAnalysis(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('analyze-tile-insight', {
+        body: { 
+          tileType,
+          tileData: data,
+          ideaContext 
+        }
+      });
+
+      if (error) throw error;
+      if (result?.success && result.analysis) {
+        setAnalysis(result.analysis);
+      }
+    } catch (error) {
+      console.error('Failed to fetch Groq analysis:', error);
+    } finally {
+      setLoadingAnalysis(false);
+    }
+  };
+
   if (!data) return null;
 
   const getInsightIcon = (type: string) => {
@@ -56,6 +118,8 @@ export function EnhancedTileDialog({
       success: CheckCircle,
       opportunity: Sparkles,
       risk: Shield,
+      strength: Zap,
+      weakness: AlertCircle,
       speed: Zap,
       users: Users,
       money: DollarSign,
@@ -64,62 +128,22 @@ export function EnhancedTileDialog({
     return icons[type] || Lightbulb;
   };
 
-  const generateInsights = () => {
-    const insights = [];
-    
-    // Generate insights based on metrics
-    if (data.metrics?.score !== undefined) {
-      const score = data.metrics.score;
-      insights.push({
-        type: score > 70 ? 'success' : score < 40 ? 'warning' : 'info',
-        icon: score > 70 ? 'success' : score < 40 ? 'warning' : 'activity',
-        title: `${score > 70 ? 'Strong' : score < 40 ? 'Weak' : 'Moderate'} Performance`,
-        description: `Current score of ${score}/100 indicates ${
-          score > 70 ? 'excellent market fit potential' : 
-          score < 40 ? 'significant improvement needed' : 
-          'room for optimization'
-        }`
-      });
+  const getImpactColor = (impact: string) => {
+    switch (impact) {
+      case 'high': return 'text-red-600 bg-red-50 border-red-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'low': return 'text-green-600 bg-green-50 border-green-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
+  };
 
-    if (data.metrics?.tam) {
-      const tam = data.metrics.tam;
-      insights.push({
-        type: 'opportunity',
-        icon: 'money',
-        title: 'Market Opportunity',
-        description: `Total addressable market of $${(tam / 1000000000).toFixed(1)}B presents ${
-          tam > 10000000000 ? 'massive' : tam > 1000000000 ? 'significant' : 'moderate'
-        } growth potential`
-      });
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'border-red-500 bg-red-50';
+      case 'medium': return 'border-yellow-500 bg-yellow-50';
+      case 'low': return 'border-blue-500 bg-blue-50';
+      default: return 'border-gray-500 bg-gray-50';
     }
-
-    if (data.metrics?.velocity) {
-      insights.push({
-        type: 'info',
-        icon: 'speed',
-        title: 'Market Velocity',
-        description: `${data.metrics.velocity.toFixed(2)} news articles per day shows ${
-          data.metrics.velocity > 1 ? 'high market activity' : 'steady market interest'
-        }`
-      });
-    }
-
-    if (data.metrics?.competitors) {
-      const count = data.metrics.total || data.metrics.competitors;
-      insights.push({
-        type: count > 10 ? 'warning' : 'info',
-        icon: 'users',
-        title: 'Competitive Landscape',
-        description: `${count} competitors identified. ${
-          count > 10 ? 'Highly competitive market requires strong differentiation' :
-          count > 5 ? 'Moderate competition allows for positioning opportunities' :
-          'Low competition suggests early market opportunity'
-        }`
-      });
-    }
-
-    return insights;
   };
 
   const renderChart = () => {
@@ -241,11 +265,9 @@ export function EnhancedTileDialog({
     }
   };
 
-  const insights = generateInsights();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-2xl">
             {icon}
@@ -273,10 +295,14 @@ export function EnhancedTileDialog({
         </DialogHeader>
         
         <Tabs defaultValue="overview" className="mt-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">
               <Brain className="h-4 w-4 mr-1" />
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="ai-analysis">
+              <Sparkles className="h-4 w-4 mr-1" />
+              AI Analysis
             </TabsTrigger>
             <TabsTrigger value="insights">
               <Lightbulb className="h-4 w-4 mr-1" />
@@ -323,30 +349,126 @@ export function EnhancedTileDialog({
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="ai-analysis" className="space-y-4">
+              {loadingAnalysis && (
+                <Card>
+                  <CardContent className="pt-6 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Analyzing data with AI...</span>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {analysis && (
+                <>
+                  {/* Market Interpretation */}
+                  <Card className="border-2 border-primary/20">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-primary" />
+                        What This Means For Your Idea
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm leading-relaxed">{analysis.marketInterpretation}</p>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="font-semibold mb-2">Competitive Position</h4>
+                        <p className="text-sm">{analysis.competitivePosition}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* PMF Signals */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Target className="h-5 w-5 text-primary" />
+                        Product-Market Fit Signals
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-green-600">Positive Signals</h4>
+                          {analysis.pmfSignals.positive.map((signal, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                              <p className="text-sm">{signal}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-red-600">Challenges</h4>
+                          {analysis.pmfSignals.negative.map((signal, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <XCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                              <p className="text-sm">{signal}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                        <p className="text-sm font-medium">{analysis.pmfSignals.overallAssessment}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Critical Success Factors */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Star className="h-5 w-5 text-primary" />
+                        Critical Success Factors
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {analysis.criticalSuccessFactors.map((factor, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                            <p className="text-sm">{factor}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </TabsContent>
             
             <TabsContent value="insights" className="space-y-4">
-              {insights.map((insight, i) => {
-                const Icon = getInsightIcon(insight.icon);
+              {analysis?.keyInsights.map((insight, i) => {
+                const Icon = getInsightIcon(insight.type);
                 return (
                   <Card key={i} className="hover:shadow-md transition-shadow">
                     <CardContent className="pt-6">
                       <div className="flex gap-4">
                         <div className={cn(
                           "p-3 rounded-lg",
-                          insight.type === 'success' && "bg-green-500/10",
-                          insight.type === 'warning' && "bg-yellow-500/10",
                           insight.type === 'opportunity' && "bg-blue-500/10",
-                          insight.type === 'info' && "bg-muted"
+                          insight.type === 'risk' && "bg-red-500/10",
+                          insight.type === 'strength' && "bg-green-500/10",
+                          insight.type === 'weakness' && "bg-yellow-500/10"
                         )}>
                           <Icon className={cn(
                             "h-5 w-5",
-                            insight.type === 'success' && "text-green-600",
-                            insight.type === 'warning' && "text-yellow-600",
-                            insight.type === 'opportunity' && "text-blue-600"
+                            insight.type === 'opportunity' && "text-blue-600",
+                            insight.type === 'risk' && "text-red-600",
+                            insight.type === 'strength' && "text-green-600",
+                            insight.type === 'weakness' && "text-yellow-600"
                           )} />
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-semibold mb-1">{insight.title}</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold">{insight.title}</h4>
+                            <Badge className={cn("text-xs", getImpactColor(insight.impact))}>
+                              {insight.impact} impact
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {insight.confidence}% confidence
+                            </Badge>
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             {insight.description}
                           </p>
@@ -357,23 +479,25 @@ export function EnhancedTileDialog({
                 );
               })}
               
-              {/* AI-Generated Strategic Recommendations */}
-              <Card className="border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    Strategic Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {generateRecommendations(data, tileType).map((rec, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
-                      <p className="text-sm">{rec}</p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {/* Strategic Recommendations */}
+              {analysis && (
+                <Card className="border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      Strategic Recommendations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {analysis.strategicRecommendations.map((rec, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                        <p className="text-sm">{rec}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
             
             <TabsContent value="metrics" className="space-y-4">
@@ -419,16 +543,18 @@ export function EnhancedTileDialog({
                             {Math.round(citation.relevance * 100)}% relevant
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {citation.url}
+                        <p className="text-xs text-muted-foreground line-clamp-3">
+                          {(citation as any).snippet || ''}
                         </p>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => window.open(citation.url, '_blank')}
+                        asChild
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <a href={citation.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
                       </Button>
                     </div>
                   </CardContent>
@@ -437,34 +563,25 @@ export function EnhancedTileDialog({
             </TabsContent>
             
             <TabsContent value="actions" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Recommended Next Steps</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {generateActionItems(data, tileType).map((action, i) => (
-                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="mt-0.5">
-                        <Target className="h-4 w-4 text-primary" />
-                      </div>
+              {analysis?.nextSteps.map((step, i) => (
+                <Card key={i} className={cn("hover:shadow-md transition-all", getPriorityColor(step.priority))}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{action.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {action.description}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
+                        <h4 className="font-medium mb-2">{step.action}</h4>
+                        <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">
-                            {action.priority}
+                            {step.priority} priority
                           </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {action.effort}
+                          <Badge variant="secondary" className="text-xs">
+                            {step.timeline}
                           </Badge>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ))}
             </TabsContent>
           </ScrollArea>
         </Tabs>
@@ -523,61 +640,4 @@ function formatMetricValue(value: any): string {
     return value.toFixed(1);
   }
   return String(value);
-}
-
-function generateRecommendations(data: TileData, tileType: string): string[] {
-  const recommendations = [];
-  
-  if (data.metrics?.score !== undefined) {
-    const score = data.metrics.score;
-    if (score < 40) {
-      recommendations.push("Consider pivoting your value proposition to better align with market needs");
-      recommendations.push("Conduct user interviews to identify unmet pain points");
-    } else if (score < 70) {
-      recommendations.push("Focus on differentiating features to stand out from competitors");
-      recommendations.push("Optimize pricing strategy based on market analysis");
-    } else {
-      recommendations.push("Accelerate go-to-market strategy to capture market opportunity");
-      recommendations.push("Consider raising capital to scale faster than competitors");
-    }
-  }
-  
-  if (data.metrics?.competitors > 5) {
-    recommendations.push("Develop a unique positioning strategy to differentiate from competitors");
-  }
-  
-  if (data.metrics?.velocity > 1) {
-    recommendations.push("Capitalize on high market momentum with aggressive marketing");
-  }
-  
-  return recommendations;
-}
-
-function generateActionItems(data: TileData, tileType: string): any[] {
-  return [
-    {
-      title: "Validate with target customers",
-      description: "Run surveys or interviews with 20-30 potential users",
-      priority: "High",
-      effort: "Low"
-    },
-    {
-      title: "Build MVP",
-      description: "Create a minimal version to test core value proposition",
-      priority: "High",
-      effort: "Medium"
-    },
-    {
-      title: "Analyze competitor strategies",
-      description: "Deep dive into top 3 competitors' pricing and features",
-      priority: "Medium",
-      effort: "Low"
-    },
-    {
-      title: "Develop go-to-market strategy",
-      description: "Create launch plan with marketing channels and budget",
-      priority: "Medium",
-      effort: "High"
-    }
-  ];
 }

@@ -326,6 +326,9 @@ verify_jwt = false
 [functions.data-hub-orchestrator]
 verify_jwt = false
 
+[functions.analyze-tile-insight]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
