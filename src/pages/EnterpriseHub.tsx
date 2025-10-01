@@ -273,7 +273,11 @@ export default function EnterpriseHub() {
     'market_size',
     'growth_projections',
     'user_engagement',
-    'launch_timeline'
+    'launch_timeline',
+    'twitter_buzz',
+    'amazon_reviews',
+    'youtube_analytics',
+    'news_analysis'
   ];
 
   // Use the batched data fetching hook
@@ -611,31 +615,45 @@ export default function EnterpriseHub() {
           <div className={activeTab === 'overview' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
-                <MarketTrendsCard 
-                  filters={filters} 
-                  batchedData={batchedData['market_trends']?.data}
+                <EnrichedDataTile
+                  title="Market Trends"
+                  icon={TrendingUp}
+                  tileType="market_trends"
+                  data={batchedData['market_trends']?.data}
+                  isLoading={batchLoading && !batchedData['market_trends']}
+                  error={batchedData['market_trends']?.error}
+                  onRefresh={() => refreshTile('market_trends')}
                 />
               </div>
-              <GoogleTrendsCard 
-                filters={filters}
-                batchedData={batchedData['google_trends']?.data}
+              <EnrichedDataTile
+                title="Google Trends"
+                icon={Globe}
+                tileType="google_trends"
+                data={batchedData['google_trends']?.data}
+                isLoading={batchLoading && !batchedData['google_trends']}
+                error={batchedData['google_trends']?.error}
+                onRefresh={() => refreshTile('google_trends')}
               />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <WebSearchDataTile 
-                idea={currentIdea}
-                industry={filters.industry}
-                geography={filters.geography}
-                timeWindow={filters.time_window}
-                batchedData={batchedData['web_search']?.data}
+              <EnrichedDataTile
+                title="Web Search Insights"
+                icon={Globe2}
+                tileType="web_search"
+                data={batchedData['web_search']?.data}
+                isLoading={batchLoading && !batchedData['web_search']}
+                error={batchedData['web_search']?.error}
+                onRefresh={() => refreshTile('web_search')}
               />
-              <RedditSentimentTile 
-                idea={currentIdea}
-                industry={filters.industry}
-                geography={filters.geography}
-                timeWindow={filters.time_window}
-                batchedData={batchedData['reddit_sentiment']?.data}
+              <EnrichedDataTile
+                title="Reddit Sentiment"
+                icon={MessageSquare}
+                tileType="reddit_sentiment"
+                data={batchedData['reddit_sentiment']?.data}
+                isLoading={batchLoading && !batchedData['reddit_sentiment']}
+                error={batchedData['reddit_sentiment']?.error}
+                onRefresh={() => refreshTile('reddit_sentiment')}
               />
             </div>
           </div>
@@ -643,32 +661,32 @@ export default function EnterpriseHub() {
           {/* Market Tab */}
           <div className={activeTab === 'market' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Market Size Analysis"
                 icon={BarChart3}
                 tileType="market_size"
-                filters={filters}
-                description="TAM, SAM, SOM breakdown"
-                currentIdea={currentIdea}
-                batchedData={batchedData['market_size']?.data}
+                data={batchedData['market_size']?.data}
+                isLoading={batchLoading && !batchedData['market_size']}
+                error={batchedData['market_size']?.error}
+                onRefresh={() => refreshTile('market_size')}
               />
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Growth Projections"
                 icon={Rocket}
                 tileType="growth_projections"
-                filters={filters}
-                description="5-year forecasts"
-                currentIdea={currentIdea}
-                batchedData={batchedData['growth_projections']?.data}
+                data={batchedData['growth_projections']?.data}
+                isLoading={batchLoading && !batchedData['growth_projections']}
+                error={batchedData['growth_projections']?.error}
+                onRefresh={() => refreshTile('growth_projections')}
               />
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Launch Timeline"
                 icon={Calendar}
                 tileType="launch_timeline"
-                filters={filters}
-                description="Strategic milestones"
-                currentIdea={currentIdea}
-                batchedData={batchedData['launch_timeline']?.data}
+                data={batchedData['launch_timeline']?.data}
+                isLoading={batchLoading && !batchedData['launch_timeline']}
+                error={batchedData['launch_timeline']?.error}
+                onRefresh={() => refreshTile('launch_timeline')}
               />
             </div>
           </div>
@@ -676,41 +694,43 @@ export default function EnterpriseHub() {
           {/* Competitive Tab */}
           <div className={activeTab === 'competitive' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Competitor Analysis"
                 icon={Building2}
                 tileType="competitor_analysis"
-                filters={filters}
-                description="Competitive landscape"
-                currentIdea={currentIdea}
-                batchedData={batchedData['competitor_analysis']?.data}
+                data={batchedData['competitor_analysis']?.data}
+                isLoading={batchLoading && !batchedData['competitor_analysis']}
+                error={batchedData['competitor_analysis']?.error}
+                onRefresh={() => refreshTile('competitor_analysis')}
               />
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Pricing Strategy"
                 icon={DollarSign}
                 tileType="pricing_strategy"
-                filters={filters}
-                description="Optimal pricing models"
-                currentIdea={currentIdea}
-                batchedData={batchedData['pricing_strategy']?.data}
+                data={batchedData['pricing_strategy']?.data}
+                isLoading={batchLoading && !batchedData['pricing_strategy']}
+                error={batchedData['pricing_strategy']?.error}
+                onRefresh={() => refreshTile('pricing_strategy')}
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Twitter/X Buzz"
                 icon={Twitter}
                 tileType="twitter_buzz"
-                filters={filters}
-                description="Social media sentiment"
-                currentIdea={currentIdea}
+                data={batchedData['twitter_buzz']?.data}
+                isLoading={batchLoading && !batchedData['twitter_buzz']}
+                error={batchedData['twitter_buzz']?.error}
+                onRefresh={() => refreshTile('twitter_buzz')}
               />
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Amazon Reviews"
                 icon={ShoppingBag}
                 tileType="amazon_reviews"
-                filters={filters}
-                description="Product review analysis"
-                currentIdea={currentIdea}
+                data={batchedData['amazon_reviews']?.data}
+                isLoading={batchLoading && !batchedData['amazon_reviews']}
+                error={batchedData['amazon_reviews']?.error}
+                onRefresh={() => refreshTile('amazon_reviews')}
               />
             </div>
           </div>
@@ -718,39 +738,43 @@ export default function EnterpriseHub() {
           {/* Audience Tab */}
           <div className={activeTab === 'audience' ? 'space-y-4' : 'hidden'}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="Target Audience"
                 icon={Target}
                 tileType="target_audience"
-                filters={filters}
-                description="Demographics & personas"
-                currentIdea={currentIdea}
+                data={batchedData['target_audience']?.data}
+                isLoading={batchLoading && !batchedData['target_audience']}
+                error={batchedData['target_audience']?.error}
+                onRefresh={() => refreshTile('target_audience')}
               />
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="User Engagement"
                 icon={Users}
                 tileType="user_engagement"
-                filters={filters}
-                description="Engagement metrics"
-                currentIdea={currentIdea}
+                data={batchedData['user_engagement']?.data}
+                isLoading={batchLoading && !batchedData['user_engagement']}
+                error={batchedData['user_engagement']?.error}
+                onRefresh={() => refreshTile('user_engagement')}
               />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="YouTube Analytics"
                 icon={Youtube}
                 tileType="youtube_analytics"
-                filters={filters}
-                description="Video content trends"
-                currentIdea={currentIdea}
+                data={batchedData['youtube_analytics']?.data}
+                isLoading={batchLoading && !batchedData['youtube_analytics']}
+                error={batchedData['youtube_analytics']?.error}
+                onRefresh={() => refreshTile('youtube_analytics')}
               />
-              <StandardizedMarketTile
+              <EnrichedDataTile
                 title="News Analysis"
                 icon={Newspaper}
                 tileType="news_analysis"
-                filters={filters}
-                description="Media coverage"
-                currentIdea={currentIdea}
+                data={batchedData['news_analysis']?.data}
+                isLoading={batchLoading && !batchedData['news_analysis']}
+                error={batchedData['news_analysis']?.error}
+                onRefresh={() => refreshTile('news_analysis')}
               />
             </div>
           </div>
