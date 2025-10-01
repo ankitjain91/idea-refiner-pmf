@@ -167,50 +167,81 @@ export function MarketTrendsCard({ filters, className, batchedData }: MarketTren
         }
       }
       
-      // Fetch fresh data if cache is stale or missing
+      // Fetch fresh data using hub-batch-data endpoint
       const startTime = Date.now();
-      const { data, error } = await supabase.functions.invoke('market-trends', {
-        body: { 
-          idea,
-          keywords: idea.split(' ').filter(w => w.length > 2),
-          fetch_continents: mode === 'global'
-        }
-      });
-      
-      // Track API call
-      const duration = Date.now() - startTime;
-      apiCallAnalyzer.trackCall('market-trends', !error, duration);
-      
-      if (error) throw error;
-      
-      // Store in localStorage with timestamp
-      if (data) {
-        localStorage.setItem(cacheKeyStorage, JSON.stringify({
-          data,
-          timestamp: Date.now()
-        }));
+      try {
+        const { data, error } = await supabase.functions.invoke('hub-batch-data', {
+          body: { 
+            tiles: ['market_trends'],
+            filters: {
+              idea_keywords: idea.split(' ').filter(w => w.length > 2),
+              time_window: '12months',
+              geo: mode === 'global' ? 'global' : 'us'
+            }
+          }
+        });
         
-        // Save to database if user is authenticated
-        if (user?.id) {
-          try {
-            await dashboardDataService.saveData(
-              {
-                userId: user.id,
-                ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
-                tileType: 'market_trends',
-                sessionId: currentSession?.id
-              },
-              data,
-              10080 // 7 days in minutes (7 * 24 * 60)
-            );
-            console.log('[MarketTrendsCard] Saved to database');
-          } catch (saveError) {
-            console.warn('[MarketTrendsCard] Database save failed:', saveError);
+        // Track API call
+        const duration = Date.now() - startTime;
+        apiCallAnalyzer.trackCall('hub-batch-data', !error, duration);
+        
+        if (error) throw error;
+        
+        // Extract market trends data from batch response
+        const marketTrendsData = data?.market_trends?.data || {
+          trends: [],
+          insights: ['Market data is being analyzed'],
+          sentiment: 'neutral',
+          metrics: [
+            { name: 'Search Volume', value: 'Loading...', confidence: 0 },
+            { name: 'Growth Rate', value: 'Loading...', confidence: 0 },
+            { name: 'Trend Direction', value: 'flat', confidence: 0 }
+          ]
+        };
+        
+        // Store in localStorage with timestamp
+        if (marketTrendsData) {
+          localStorage.setItem(cacheKeyStorage, JSON.stringify({
+            data: marketTrendsData,
+            timestamp: Date.now()
+          }));
+          
+          // Save to database if user is authenticated
+          if (user?.id) {
+            try {
+              await dashboardDataService.saveData(
+                {
+                  userId: user.id,
+                  ideaText: currentIdea || localStorage.getItem('pmfCurrentIdea') || '',
+                  tileType: 'market_trends',
+                  sessionId: currentSession?.id
+                },
+                marketTrendsData,
+                10080 // 7 days in minutes (7 * 24 * 60)
+              );
+              console.log('[MarketTrendsCard] Saved to database');
+            } catch (saveError) {
+              console.warn('[MarketTrendsCard] Database save failed:', saveError);
+            }
           }
         }
+        
+        return marketTrendsData;
+      } catch (fetchError) {
+        console.error('[MarketTrendsCard] Fetch error:', fetchError);
+        // Return fallback data structure
+        return {
+          trends: [],
+          insights: ['Unable to fetch market data at this time'],
+          sentiment: 'neutral',
+          metrics: [
+            { name: 'Search Volume', value: 'N/A', confidence: 0 },
+            { name: 'Growth Rate', value: 'N/A', confidence: 0 },
+            { name: 'Trend Direction', value: 'flat', confidence: 0 }
+          ],
+          error: true
+        };
       }
-      
-      return data;
     },
     {
       revalidateOnFocus: false,
@@ -241,7 +272,28 @@ export function MarketTrendsCard({ filters, className, batchedData }: MarketTren
       const cacheKeyStorage = `market-trends-cache:${ideaText}:${viewMode}`;
       localStorage.removeItem(cacheKeyStorage);
       
-      // Force a fresh fetch by passing revalidate option
+      // Force a fresh fetch using hub-batch-data
+      const { data: freshData, error } = await supabase.functions.invoke('hub-batch-data', {
+        body: { 
+          tiles: ['market_trends'],
+          filters: {
+            idea_keywords: ideaText.split(' ').filter(w => w.length > 2),
+            time_window: '12months',
+            geo: viewMode === 'global' ? 'global' : 'us'
+          }
+        }
+      });
+      
+      if (!error && freshData?.market_trends?.data) {
+        // Update cache and trigger re-render
+        await mutate(freshData.market_trends.data, false);
+      } else {
+        // If error, just revalidate from cache
+        await mutate(undefined, { revalidate: true });
+      }
+    } catch (error) {
+      console.error('[MarketTrendsCard] Refresh error:', error);
+      // Fallback to cache revalidation
       await mutate(undefined, { revalidate: true });
     } finally {
       setIsRefreshing(false);
