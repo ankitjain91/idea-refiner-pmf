@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
-import { SpaceshipWorldMap } from "@/components/hub/SpaceshipWorldMap";
+import { ProfessionalWorldMap } from "@/components/hub/ProfessionalWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
 import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
@@ -156,7 +156,7 @@ export default function EnterpriseHub() {
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
         {viewMode === "deep" && (
           <div className="space-y-6">
-            <SpaceshipWorldMap 
+            <ProfessionalWorldMap 
               marketData={tiles.market_size}
               loading={loading}
             />
