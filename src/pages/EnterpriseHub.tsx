@@ -28,7 +28,6 @@ export default function EnterpriseHub() {
   const [sessionName, setSessionName] = useState("");
   const [viewMode, setViewMode] = useState<"executive" | "deep">("executive");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
-  const [hasInitializedData, setHasInitializedData] = useState(false);
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
@@ -83,15 +82,8 @@ export default function EnterpriseHub() {
   // Custom refresh that also updates the idea from session
   const handleRefresh = useCallback(async () => {
     updateIdeaFromSession();
-    setHasInitializedData(true);
     await refresh();
   }, [updateIdeaFromSession, refresh]);
-  
-  // Handler for "Get My Score" button
-  const handleGetScore = useCallback(() => {
-    setHasInitializedData(true);
-    refresh();
-  }, [refresh]);
 
   // No idea state
   if (!currentIdea) {
@@ -237,13 +229,12 @@ export default function EnterpriseHub() {
       <div className="container mx-auto px-4 py-6 space-y-8">
         {/* 1. HERO SECTION */}
         <HeroSection 
-          pmfScore={hasInitializedData ? tiles.pmf_score : null}
-          loading={hasInitializedData && loading}
-          onGetScore={handleGetScore}
+          pmfScore={tiles.pmf_score}
+          loading={loading}
         />
 
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
-        {viewMode === "deep" && hasInitializedData && (
+        {viewMode === "deep" && (
           <div className="space-y-6">
             <ProfessionalWorldMap 
               marketData={tiles.market_size}
@@ -253,23 +244,21 @@ export default function EnterpriseHub() {
         )}
 
         {/* 3. MAIN ANALYSIS GRID */}
-        {hasInitializedData && (
-          <MainAnalysisGrid
-            tiles={{
-              market_size: tiles.market_size,
-              competition: tiles.competition,
-              sentiment: tiles.sentiment,
-              market_trends: tiles.market_trends,
-              google_trends: tiles.google_trends,
-              news_analysis: tiles.news_analysis
-            }}
-            loading={loading}
-            viewMode={viewMode}
-          />
-        )}
+        <MainAnalysisGrid
+          tiles={{
+            market_size: tiles.market_size,
+            competition: tiles.competition,
+            sentiment: tiles.sentiment,
+            market_trends: tiles.market_trends,
+            google_trends: tiles.google_trends,
+            news_analysis: tiles.news_analysis
+          }}
+          loading={loading}
+          viewMode={viewMode}
+        />
 
         {/* 4. EXTENDED INSIGHTS GRID - Only in Deep Dive */}
-        {viewMode === "deep" && hasInitializedData && (
+        {viewMode === "deep" && (
           <ExtendedInsightsGrid
             tiles={{
               web_search: tiles.web_search,
@@ -284,17 +273,15 @@ export default function EnterpriseHub() {
         )}
 
         {/* 5. QUICK STATS STRIP - Always visible */}
-        {hasInitializedData && (
-          <QuickStatsStrip
-            tiles={{
-              growth_potential: tiles.growth_potential,
-              market_readiness: tiles.market_readiness,
-              competitive_advantage: tiles.competitive_advantage,
-              risk_assessment: tiles.risk_assessment
-            }}
-            loading={loading}
-          />
-        )}
+        <QuickStatsStrip
+          tiles={{
+            growth_potential: tiles.growth_potential,
+            market_readiness: tiles.market_readiness,
+            competitive_advantage: tiles.competitive_advantage,
+            risk_assessment: tiles.risk_assessment
+          }}
+          loading={loading}
+        />
       </div>
 
       {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}
