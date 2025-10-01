@@ -1,6 +1,7 @@
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
+import { EnhancedCompetitionTile } from "@/components/competition/EnhancedCompetitionTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { 
   TrendingUp, Users, MessageSquare, Activity, 
@@ -81,11 +82,19 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
         {displayTiles.map((tile) => {
           console.log('MainAnalysisGrid tile:', tile.id, { title: tile.title, icon: tile.icon, data: tile.data });
           
-          // Use enhanced market size tile for market_size
+          // Use enhanced tiles for market_size and competition
           if (tile.id === "market_size") {
             return (
               <div key={tile.id} className={tile.span}>
                 <EnhancedMarketSizeTile idea={currentIdea} />
+              </div>
+            );
+          }
+          
+          if (tile.id === "competition") {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <EnhancedCompetitionTile idea={currentIdea} />
               </div>
             );
           }
