@@ -134,7 +134,6 @@ export default function EnterpriseHub() {
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
         {viewMode === "deep" && (
           <div className="space-y-6">
-            <EnhancedMarketSizeTile idea={currentIdea} />
             <GlobalMarketMap 
               marketData={tiles.market_size}
               loading={loading}

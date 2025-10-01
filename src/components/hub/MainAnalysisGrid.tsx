@@ -1,5 +1,7 @@
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
+import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
+import { useSession } from "@/contexts/SimpleSessionContext";
 import { 
   TrendingUp, Users, MessageSquare, Activity, 
   Search, Newspaper, DollarSign, Building2
@@ -19,6 +21,8 @@ interface MainAnalysisGridProps {
 }
 
 export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridProps) {
+  const { currentSession } = useSession();
+  const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
   const mainTiles = [
     { 
       id: "market_size", 
@@ -76,6 +80,16 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {displayTiles.map((tile) => {
           console.log('MainAnalysisGrid tile:', tile.id, { title: tile.title, icon: tile.icon, data: tile.data });
+          
+          // Use enhanced market size tile for market_size
+          if (tile.id === "market_size") {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <EnhancedMarketSizeTile idea={currentIdea} />
+              </div>
+            );
+          }
+          
           return (
             <div key={tile.id} className={tile.span}>
               <DataHubTile
