@@ -30,6 +30,7 @@ export default function EnterpriseHub() {
   const [viewMode, setViewMode] = useState<"executive" | "deep">("executive");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [hasExistingAnalysis, setHasExistingAnalysis] = useState(false);
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
@@ -86,18 +87,51 @@ export default function EnterpriseHub() {
 
   const { indices, tiles, loading, error, refresh, lastFetchTime } = dataHub;
   
+  // Check if we have existing analysis data
+  useEffect(() => {
+    const checkExistingData = () => {
+      // Check if we have any tile data already
+      const hasTileData = tiles && (
+        tiles.pmf_score || 
+        tiles.market_size || 
+        tiles.competition || 
+        tiles.sentiment
+      );
+      
+      // Check localStorage for previous analysis
+      const previousAnalysis = localStorage.getItem('dashboardAnalyzed');
+      const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
+      
+      // If we have tile data or previous analysis with the same idea, skip the intro
+      if (hasTileData || (previousAnalysis === currentIdea && wrinklePoints > 0)) {
+        setHasLoadedData(true);
+        setHasExistingAnalysis(true);
+      }
+    };
+    
+    checkExistingData();
+  }, [tiles, currentIdea]);
+  
   // Custom refresh that also updates the idea from session
   const handleRefresh = useCallback(async () => {
     updateIdeaFromSession();
     setHasLoadedData(true);
+    // Store that this idea has been analyzed
+    if (currentIdea) {
+      localStorage.setItem('dashboardAnalyzed', currentIdea);
+    }
     await refresh();
-  }, [updateIdeaFromSession, refresh]);
+  }, [updateIdeaFromSession, refresh, currentIdea]);
 
   // Handle Get Score button click
   const handleGetScore = useCallback(() => {
     setHasLoadedData(true);
+    // Store that this idea has been analyzed
+    if (currentIdea) {
+      localStorage.setItem('dashboardAnalyzed', currentIdea);
+    }
     refresh();
-  }, [refresh]);
+  }, [refresh, currentIdea]);
 
   // No idea state
   if (!currentIdea) {
@@ -278,10 +312,10 @@ export default function EnterpriseHub() {
       <div className="container mx-auto px-4 py-6 space-y-8">
         {/* 1. HERO SECTION */}
         <HeroSection 
-          pmfScore={hasLoadedData ? tiles.pmf_score : null}
-          loading={hasLoadedData && loading}
+          pmfScore={tiles.pmf_score}
+          loading={loading}
           onGetScore={handleGetScore}
-          hasData={hasLoadedData}
+          hasData={hasLoadedData || hasExistingAnalysis || !!tiles.pmf_score}
         />
 
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}

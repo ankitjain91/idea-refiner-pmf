@@ -42,8 +42,11 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
     return <Minus className="h-4 w-4" />;
   };
 
-  // Initial state - before data is loaded
-  if (!hasData && !loading) {
+  // Check if score already exists to skip initial screen
+  const hasExistingScore = pmfScore?.metrics?.score && pmfScore.metrics.score > 0;
+  
+  // Initial state - before data is loaded and no existing score
+  if (!hasData && !loading && !hasExistingScore) {
     return (
       <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="relative p-8 md:p-12">
