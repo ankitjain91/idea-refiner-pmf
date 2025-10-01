@@ -75,7 +75,22 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     ];
     return messages[Math.floor(Math.random() * messages.length)];
   };
-
+  
+  // Ensure market data has all required properties
+  const normalizeMarketData = (data: any): MarketSizeData => {
+    return {
+      TAM: data?.TAM || '$0B',
+      SAM: data?.SAM || '$0M',
+      SOM: data?.SOM || '$0M',
+      growth_rate: data?.growth_rate || '0%',
+      regions: data?.regions || [],
+      confidence: data?.confidence || 'Low',
+      explanation: data?.explanation || 'Market analysis data unavailable',
+      citations: data?.citations || [],
+      charts: data?.charts || []
+    };
+  };
+  
   const fetchMarketData = async () => {
     if (!currentIdea) {
       toast.error('Please provide an idea to analyze');
@@ -97,7 +112,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
       if (error) throw error;
 
       if (data) {
-        setMarketData(data);
+        setMarketData(normalizeMarketData(data));
         // Auto-expand tile when data is fetched
         setIsCollapsed(false);
         console.log('Market data loaded:', data);
@@ -263,7 +278,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     { name: 'SOM', value: somValue, color: 'hsl(var(--chart-3))', label: marketData.SOM }
   ];
 
-  const regionData = marketData.regions.map((region, index) => ({
+  const regionData = (marketData.regions || []).map((region, index) => ({
     ...region,
     tamValue: parseValue(region.TAM),
     samValue: parseValue(region.SAM),
@@ -589,7 +604,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
         </Tabs>
 
         {/* Sources */}
-        {marketData.citations.length > 0 && (
+        {marketData.citations && marketData.citations.length > 0 && (
           <Card className="mt-4 border-muted">
             <CardContent className="pt-4">
               <h4 className="font-semibold mb-3 flex items-center gap-2">
