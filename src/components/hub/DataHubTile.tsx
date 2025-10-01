@@ -269,7 +269,9 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                {data?.explanation}
+                {typeof data?.explanation === 'string' 
+                  ? data.explanation 
+                  : (data as any)?.explanation?.summary || (data as any)?.explanation?.meaning || ''}
               </motion.p>
               
               {/* Action hint */}

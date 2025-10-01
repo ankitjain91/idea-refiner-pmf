@@ -487,7 +487,12 @@ function formatPrimaryValue(metrics: any, tileType: string): string {
   };
   
   const key = primaryKeys[tileType];
-  const value = metrics[key];
+  let value = metrics[key];
+  
+  // Handle object metrics like { name, value }
+  if (value && typeof value === 'object' && 'value' in value) {
+    value = (value as any).value;
+  }
   
   if (typeof value === 'number') {
     if (tileType === 'market_size' && value > 1000000) {
@@ -503,6 +508,13 @@ function formatPrimaryValue(metrics: any, tileType: string): string {
 }
 
 function formatMetricValue(value: any): string {
+  if (value && typeof value === 'object') {
+    if ('value' in value && typeof (value as any).value === 'number') {
+      return formatMetricValue((value as any).value);
+    }
+    // Fallback to JSON string for complex objects
+    try { return JSON.stringify(value); } catch { return String(value); }
+  }
   if (typeof value === 'number') {
     if (value >= 1000000000) return `$${(value / 1000000000).toFixed(1)}B`;
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
