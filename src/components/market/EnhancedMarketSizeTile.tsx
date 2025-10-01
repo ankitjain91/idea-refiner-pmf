@@ -175,7 +175,8 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
   // useEffect removed to enable lazy loading
 
 
-  const parseValue = (value: string): number => {
+  const parseValue = (value: string | undefined): number => {
+    if (!value) return 0;
     return parseFloat(value.replace(/[^\d.]/g, '')) || 0;
   };
 
@@ -267,12 +268,12 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     tamValue: parseValue(region.TAM),
     samValue: parseValue(region.SAM),
     somValue: parseValue(region.SOM),
-    growthValue: parseFloat(region.growth.replace(/[^\d.]/g, '')),
+    growthValue: parseFloat((region.growth || '0').replace(/[^\d.]/g, '')),
     color: getRegionColor(index)
   }));
 
   // Growth projection data
-  const growthRate = parseFloat(marketData.growth_rate.replace(/[^\d.]/g, '')) || 12;
+  const growthRate = parseFloat((marketData.growth_rate || '0').replace(/[^\d.]/g, '')) || 12;
   const projectionData = Array.from({ length: 6 }, (_, i) => ({
     year: 2025 + i,
     tam: tamValue * Math.pow(1 + growthRate/100, i),
