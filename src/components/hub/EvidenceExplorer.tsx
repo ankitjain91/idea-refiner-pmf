@@ -61,10 +61,10 @@ export function EvidenceExplorer({
     });
   }, [evidenceStore, searchQuery, selectedProvider]);
   
-  // Calculate totals
-  const totalRequests = providerLog.reduce((sum, p) => sum + p.requestCount, 0);
-  const totalCost = providerLog.reduce((sum, p) => sum + p.estimatedCost, 0);
-  const totalDeduped = providerLog.reduce((sum, p) => sum + p.dedupeCount, 0);
+  // Calculate totals with null checks
+  const totalRequests = providerLog.reduce((sum, p) => sum + (p.requestCount || 0), 0);
+  const totalCost = providerLog.reduce((sum, p) => sum + (p.estimatedCost || 0), 0);
+  const totalDeduped = providerLog.reduce((sum, p) => sum + (p.dedupeCount || 0), 0);
   
   // Get unique providers
   const providers = Array.from(new Set(providerLog.map(p => p.provider)));
@@ -238,7 +238,9 @@ export function EvidenceExplorer({
                       </div>
                       <div>
                         <span className="text-muted-foreground">Cost:</span>
-                        <span className="ml-1 font-medium">${entry.estimatedCost.toFixed(4)}</span>
+                        <span className="ml-1 font-medium">
+                          ${entry.estimatedCost ? entry.estimatedCost.toFixed(4) : '0.0000'}
+                        </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Time:</span>
