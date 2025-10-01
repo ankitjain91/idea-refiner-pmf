@@ -7,6 +7,7 @@ import { OptimizedDashboardService } from '@/services/optimizedDashboardService'
 import { UnifiedResponseCache } from '@/lib/cache/unifiedResponseCache';
 import { DataHubInput, DataHubIndices, TileData } from '@/lib/data-hub-orchestrator';
 import { getPMFInsights } from '@/lib/pmf-category';
+import { RealTimeMarketService } from '@/services/realTimeMarketService';
 
 interface DataHubState {
   indices: DataHubIndices | null;
@@ -145,6 +146,51 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         // Fetch all tile data in parallel using the optimized service
         const tilePromises = tileTypes.map(async (tileType) => {
+          // Special handling for market_size - use real-time service
+          if (tileType === 'market_size') {
+            const marketService = RealTimeMarketService.getInstance();
+            const marketData = await marketService.fetchMarketSize(input.idea, forceRefresh);
+            
+            if (marketData) {
+              cacheStatsTracker.misses++;
+              cacheStatsTracker.apiCalls += 5; // Market analysis makes multiple API calls
+              
+              // Convert to TileData format
+              const tileData: TileData = {
+                metrics: {
+                  TAM: marketData.TAM,
+                  SAM: marketData.SAM,
+                  SOM: marketData.SOM,
+                  growth: marketData.growth_rate,
+                  confidence: marketData.confidence
+                },
+                explanation: marketData.explanation,
+                citations: marketData.citations,
+                charts: marketData.charts,
+                json: {
+                  regions: marketData.regions,
+                  TAM: marketData.TAM,
+                  SAM: marketData.SAM,
+                  SOM: marketData.SOM,
+                  growth_rate: marketData.growth_rate
+                },
+                confidence: marketData.confidence === 'High' ? 0.9 : 
+                            marketData.confidence === 'Moderate' ? 0.7 : 0.5,
+                dataQuality: marketData.confidence === 'High' ? 'high' : 
+                             marketData.confidence === 'Moderate' ? 'medium' : 'low'
+              };
+              
+              tiles[tileType] = tileData;
+              console.log('[OptimizedDataHub] Real-time market data loaded:', {
+                TAM: marketData.TAM,
+                SAM: marketData.SAM,
+                SOM: marketData.SOM
+              });
+            }
+            return;
+          }
+          
+          // Use optimized service for other tiles
           const optimizedData = await optimizedService.current.getDataForTile(tileType, input.idea);
           
           if (optimizedData) {

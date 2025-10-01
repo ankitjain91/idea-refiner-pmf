@@ -183,16 +183,29 @@ serve(async (req) => {
 
       if (groqResponse.ok) {
         const groqData = await groqResponse.json();
-        const content = groqData.choices[0]?.message?.content;
+        let content = groqData.choices[0]?.message?.content || '';
+        
+        // Clean up the response - remove markdown code blocks if present
+        if (content.includes('```json')) {
+          content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+        } else if (content.includes('```')) {
+          content = content.replace(/```\s*/g, '');
+        }
+        
+        // Trim whitespace
+        content = content.trim();
         
         try {
           analysisResult = JSON.parse(content);
+          console.log('Successfully parsed Groq market analysis');
         } catch (parseError) {
           console.error('Failed to parse Groq response:', parseError);
+          console.log('Raw content:', content.substring(0, 500));
           // Fallback to calculation
           analysisResult = calculateMarketSize(marketDataPoints);
         }
       } else {
+        console.error('Groq API returned error:', groqResponse.status);
         analysisResult = calculateMarketSize(marketDataPoints);
       }
     } else {
