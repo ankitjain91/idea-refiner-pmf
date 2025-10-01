@@ -65,23 +65,60 @@ serve(async (req) => {
       
       searchQueries = [queryA, queryB];
       
-      // Execute searches in parallel (try Serper first, fallback to Tavily)
+      // Execute searches in parallel (try Brave first, then Serper, fallback to Tavily)
       const searchPromises = searchQueries.map(async (query) => {
+        // Try Brave Search first
         try {
-          // Try Serper first
-          const serperResponse = await fetch(`${SUPABASE_URL}/functions/v1/serper-search`, {
+          const BRAVE_API_KEY = Deno.env.get('BRAVE_SEARCH_API_KEY');
+          if (BRAVE_API_KEY) {
+            const braveUrl = new URL('https://api.search.brave.com/res/v1/web/search');
+            braveUrl.searchParams.append('q', query);
+            braveUrl.searchParams.append('count', '10');
+            braveUrl.searchParams.append('country', geo);
+            
+            const braveResponse = await fetch(braveUrl.toString(), {
+              method: 'GET',
+              headers: {
+                'X-Subscription-Token': BRAVE_API_KEY,
+                'Accept': 'application/json'
+              }
+            });
+            
+            if (braveResponse.ok) {
+              const braveData = await braveResponse.json();
+              // Transform Brave data to match expected format
+              const transformedData = {
+                organic: braveData.web?.results?.map((item: any) => ({
+                  title: item.title,
+                  link: item.url,
+                  snippet: item.description,
+                  position: item.position
+                })) || []
+              };
+              totalCost += 0.0001; // Brave Search cost estimate
+              console.log('Using Brave Search for query');
+              return transformedData;
+            }
+          }
+        } catch (err) {
+          console.error('Brave search failed:', err);
+        }
+        
+        // Fallback to Serper
+        try {
+          const serperResponse = await fetch(`${SUPABASE_URL}/functions/v1/serper-batch-search`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ query, num: 10, geo })
+            body: JSON.stringify({ idea: query, searchTypes: ['general'] })
           });
           
           if (serperResponse.ok) {
             const data = await serperResponse.json();
             totalCost += 0.0003; // $0.30 per 1000 queries
-            return data;
+            return data.results?.general || data;
           }
         } catch (err) {
           console.error('Serper search failed:', err);
@@ -89,19 +126,34 @@ serve(async (req) => {
         
         // Fallback to Tavily
         try {
-          const tavilyResponse = await fetch(`${SUPABASE_URL}/functions/v1/tavily-search`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ query, max_results: 10 })
-          });
-          
-          if (tavilyResponse.ok) {
-            const data = await tavilyResponse.json();
-            totalCost += 0.008; // $0.008 per credit
-            return data;
+          const TAVILY_API_KEY = Deno.env.get('TAVILY_API_KEY');
+          if (TAVILY_API_KEY) {
+            const tavilyResponse = await fetch('https://api.tavily.com/search', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                api_key: TAVILY_API_KEY,
+                query, 
+                max_results: 10 
+              })
+            });
+            
+            if (tavilyResponse.ok) {
+              const tavilyData = await tavilyResponse.json();
+              // Transform Tavily data to match expected format
+              const transformedData = {
+                organic: tavilyData.results?.map((item: any) => ({
+                  title: item.title,
+                  link: item.url,
+                  snippet: item.content,
+                  position: item.position
+                })) || []
+              };
+              totalCost += 0.008; // $0.008 per credit
+              return transformedData;
+            }
           }
         } catch (err) {
           console.error('Tavily search failed:', err);
@@ -243,24 +295,64 @@ serve(async (req) => {
       // On-click deepening - single targeted search
       const detailQuery = `${idea} ${tileType.replace('-', ' ')} detailed analysis ${geo}`;
       
-      // Execute targeted search
+      // Execute targeted search (try Brave first, then Serper)
       let searchResult = null;
+      
+      // Try Brave Search first
       try {
-        const serperResponse = await fetch(`${SUPABASE_URL}/functions/v1/serper-search`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: detailQuery, num: 5, geo })
-        });
-        
-        if (serperResponse.ok) {
-          searchResult = await serperResponse.json();
-          totalCost += 0.0003;
+        const BRAVE_API_KEY = Deno.env.get('BRAVE_SEARCH_API_KEY');
+        if (BRAVE_API_KEY) {
+          const braveUrl = new URL('https://api.search.brave.com/res/v1/web/search');
+          braveUrl.searchParams.append('q', detailQuery);
+          braveUrl.searchParams.append('count', '5');
+          braveUrl.searchParams.append('country', geo);
+          
+          const braveResponse = await fetch(braveUrl.toString(), {
+            method: 'GET',
+            headers: {
+              'X-Subscription-Token': BRAVE_API_KEY,
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (braveResponse.ok) {
+            const braveData = await braveResponse.json();
+            searchResult = {
+              organic: braveData.web?.results?.map((item: any) => ({
+                title: item.title,
+                link: item.url,
+                snippet: item.description,
+                position: item.position
+              })) || []
+            };
+            totalCost += 0.0001;
+            console.log('Using Brave Search for detail query');
+          }
         }
       } catch (err) {
-        console.error('Detail search failed:', err);
+        console.error('Brave detail search failed:', err);
+      }
+      
+      // Fallback to Serper if Brave failed
+      if (!searchResult) {
+        try {
+          const serperResponse = await fetch(`${SUPABASE_URL}/functions/v1/serper-batch-search`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ idea: detailQuery, searchTypes: ['general'] })
+          });
+          
+          if (serperResponse.ok) {
+            const data = await serperResponse.json();
+            searchResult = data.results?.general || data;
+            totalCost += 0.0003;
+          }
+        } catch (err) {
+          console.error('Serper detail search failed:', err);
+        }
       }
       
       // Fetch one key URL
