@@ -30,42 +30,42 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       title: "Market Size", 
       icon: DollarSign,
       data: tiles.market_size,
-      span: "col-span-1 lg:col-span-2"
+      span: "col-span-full"
     },
     { 
       id: "competition", 
       title: "Competition", 
       icon: Building2,
       data: tiles.competition,
-      span: "col-span-1"
+      span: "col-span-full"
     },
     { 
       id: "sentiment", 
       title: "Sentiment", 
       icon: MessageSquare,
       data: tiles.sentiment,
-      span: "col-span-1"
+      span: "col-span-full"
     },
     { 
       id: "market_trends", 
       title: "Market Trends", 
       icon: TrendingUp,
       data: tiles.market_trends,
-      span: "col-span-1 lg:col-span-2"
+      span: "col-span-full"
     },
     { 
       id: "google_trends", 
       title: "Google Trends", 
       icon: Search,
       data: tiles.google_trends,
-      span: "col-span-1"
+      span: "col-span-full"
     },
     { 
       id: "news_analysis", 
       title: "News Analysis", 
       icon: Newspaper,
       data: tiles.news_analysis,
-      span: "col-span-1"
+      span: "col-span-full"
     }
   ];
 
@@ -78,7 +78,7 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
         <Activity className="h-5 w-5 text-primary" />
         Main Analysis
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-6">
         {displayTiles.map((tile) => {
           console.log('MainAnalysisGrid tile:', tile.id, { title: tile.title, icon: tile.icon, data: tile.data });
           
