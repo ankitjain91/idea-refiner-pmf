@@ -21,6 +21,7 @@ import {
   AreaChart, Area
 } from 'recharts';
 import { TileAIChat } from '@/components/hub/TileAIChat';
+import { formatMoney, formatPercent, sanitizeChartData } from '@/utils/dataFormatting';
 
 interface MarketSizeData {
   TAM: string;
@@ -61,20 +62,7 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
       };
     }
     
-    const formatMoney = (val: any): string => {
-      if (typeof val === 'number') {
-        if (val >= 1e12) return `$${(val / 1e12).toFixed(1)}T`;
-        if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
-        if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
-        if (val >= 1e3) return `$${(val / 1e3).toFixed(0)}K`;
-        return `$${val.toFixed(0)}`;
-      }
-      return String(val || '');
-    };
-    const formatPercent = (val: any): string => {
-      if (typeof val === 'number') return `${val}%`;
-      return String(val || '0%');
-    };
+    // Remove local format functions - use utility functions instead
     
     // Accept TileData shape: prefer data.metrics or data.json if present
     const src = data?.TAM || data?.SAM || data?.SOM
@@ -101,6 +89,9 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
     const somVal = src?.SOM ?? src?.som;
     const growthVal = src?.growth_rate ?? src?.growthRate ?? src?.growth;
     
+    // Sanitize chart data to prevent exponential values
+    const sanitizedCharts = sanitizeChartData(data?.charts || []);
+    
     return {
       TAM: formatMoney(tamVal) || '$0B',
       SAM: formatMoney(samVal) || '$0M',
@@ -110,7 +101,7 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
       confidence: confidenceStr,
       explanation: data?.explanation || 'Market analysis data',
       citations: data?.citations || [],
-      charts: data?.charts || []
+      charts: sanitizedCharts
     };
   };
 

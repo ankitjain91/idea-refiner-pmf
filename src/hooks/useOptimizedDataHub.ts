@@ -8,6 +8,7 @@ import { UnifiedResponseCache } from '@/lib/cache/unifiedResponseCache';
 import { DataHubInput, DataHubIndices, TileData } from '@/lib/data-hub-orchestrator';
 import { getPMFInsights } from '@/lib/pmf-category';
 import { RealTimeMarketService } from '@/services/realTimeMarketService';
+import { formatMoney, formatPercent, sanitizeTileData } from '@/utils/dataFormatting';
 
 interface DataHubState {
   indices: DataHubIndices | null;
@@ -481,7 +482,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
             return isNaN(n) ? 0 : n;
           };
           
-          const tileData: TileData = {
+          const tileData: TileData = sanitizeTileData({
             metrics: {
               tam: toNumber(marketData.TAM),
               sam: toNumber(marketData.SAM),
@@ -503,7 +504,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
                         marketData.confidence === 'Moderate' ? 0.7 : 0.5,
             dataQuality: marketData.confidence === 'High' ? 'high' : 
                          marketData.confidence === 'Moderate' ? 'medium' : 'low'
-          };
+          });
           
           setState(prev => ({
             ...prev,
@@ -521,7 +522,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
       const tileData = await optimizedService.current.getDataForTile(tileType, input.idea);
       
       if (tileData) {
-        const convertedTileData: TileData = {
+        const convertedTileData: TileData = sanitizeTileData({
           metrics: tileData.metrics || {},
           explanation: tileData.notes || '',
           citations: (tileData.citations || []).map(c => 
@@ -533,7 +534,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
           json: { ...tileData.metrics },
           dataQuality: (tileData.metrics && Object.keys(tileData.metrics).length > 3) ? 'high' : 'medium',
           confidence: tileData.confidence || 0.7
-        };
+        });
         
         setState(prev => ({
           ...prev,

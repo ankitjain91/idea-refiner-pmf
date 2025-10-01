@@ -49,13 +49,21 @@ serve(async (req) => {
       Available Data:
       ${JSON.stringify(combinedData, null, 2)}
       
+      CRITICAL FORMATTING RULES:
+      1. All monetary values must be human-readable (e.g., "$10.5B", "$500M", "$25K")
+      2. All percentages must be realistic and formatted (e.g., "15%", "8.5%")
+      3. Growth rates should be annual and reasonable (1-100% range typically)
+      4. Never use scientific notation or excessive decimal places
+      5. Round all numbers to at most 2 decimal places
+      6. For projections, use reasonable yearly growth (not exponential)
+      
       Return a JSON object with the extracted information. Include a confidence score (0-1) for each extracted point.
       Focus on finding ANY relevant data, even if it's mentioned indirectly.
       
       Format:
       {
         "extraction": {
-          // extracted data matching requirements
+          // extracted data matching requirements with human-readable formatting
         },
         "confidence": 0.7,
         "sources_used": ["source1", "source2"]

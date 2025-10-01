@@ -1,6 +1,7 @@
 import { UnifiedResponseCache } from '@/lib/cache/unifiedResponseCache';
 import { GroqQueryService, TILE_REQUIREMENTS } from './groqQueryService';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeTileData } from '@/utils/dataFormatting';
 
 export interface OptimizedTileData {
   metrics: any[];
@@ -225,14 +226,17 @@ export class OptimizedDashboardService {
       };
     }
     
+    // Sanitize the data to ensure human-readable values
+    const sanitizedData = sanitizeTileData(data);
+    
     // Format based on common tile data structure
     const formatted: OptimizedTileData = {
-      metrics: data.metrics || [],
-      items: data.items || [],
-      insights: data.insights || data,
-      citations: data.citations || [],
-      assumptions: data.assumptions || [],
-      notes: data.notes || '',
+      metrics: sanitizedData.metrics || [],
+      items: sanitizedData.items || [],
+      insights: sanitizedData.insights || sanitizedData,
+      citations: sanitizedData.citations || [],
+      assumptions: sanitizedData.assumptions || [],
+      notes: sanitizedData.notes || '',
       updatedAt: new Date().toISOString(),
       fromCache: meta.fromCache,
       confidence: meta.confidence
