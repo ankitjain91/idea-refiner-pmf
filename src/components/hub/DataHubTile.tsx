@@ -162,7 +162,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         transition={{ duration: 0.3 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
-        className={className}
+        className={cn(className, isCollapsed && "h-auto min-h-0")}
       >
         <Card className={cn("transition-all duration-300 hover:shadow-lg", className)}>
           <CardHeader className={cn("pb-3", isCollapsed && "border-b-0")}>
