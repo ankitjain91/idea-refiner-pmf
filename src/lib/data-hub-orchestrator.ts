@@ -158,6 +158,11 @@ export class DataHubOrchestrator {
   private fetchPlan: FetchPlanItem[] = [];
   private dedupeMap = new Map<string, string>();
 
+  // Allow injecting indices from edge function response
+  public setIndices(indices: DataHubIndices) {
+    this.dataHub = indices;
+  }
+
   /**
    * PHASE 0: Normalize input
    */

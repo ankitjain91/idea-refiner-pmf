@@ -59,9 +59,10 @@ export function useDataHub(input: DataHubInput) {
         try {
           const cachedData = JSON.parse(cached);
           const cacheAge = Date.now() - new Date(cachedData.fetchedAt).getTime();
+          const hasEssentialTiles = cachedData?.tiles && Object.keys(cachedData.tiles).length > 0 && cachedData.tiles.pmf_score;
           
-          // Use cache if less than 5 minutes old
-          if (cacheAge < 5 * 60 * 1000) {
+          // Use cache if less than 5 minutes old and essential tiles exist
+          if (cacheAge < 5 * 60 * 1000 && hasEssentialTiles) {
             console.log('✅ Using cached DATA_HUB (age:', Math.round(cacheAge / 1000), 'seconds)');
             setState(prev => ({
               ...prev,
@@ -70,6 +71,8 @@ export function useDataHub(input: DataHubInput) {
             }));
             hasFetchedRef.current = true;
             return;
+          } else {
+            console.log('⚠️ Ignoring stale or incomplete cache, refetching');
           }
         } catch (e) {
           console.error('Cache parse error:', e);
@@ -120,11 +123,12 @@ export function useDataHub(input: DataHubInput) {
       
       // Set the indices in orchestrator (from edge function response)
       if (hubData.indices) {
-        // The orchestrator would need a method to set indices
-        // For now, we'll pass them through
+        orchestrator.setIndices(hubData.indices);
         for (const tileType of tileTypes) {
           synthesizedTiles[tileType] = orchestrator.synthesizeTileData(tileType);
         }
+        // Provide additional tile aliases expected by the UI
+        synthesizedTiles['news_analysis'] = orchestrator.synthesizeTileData('market_trends');
       }
       
       const summary = orchestrator.getHubSummary();
@@ -176,7 +180,8 @@ export function useDataHub(input: DataHubInput) {
   useEffect(() => {
     if (input.idea && !hasFetchedRef.current) {
       console.log('🚀 Initial DATA_HUB fetch for:', input.idea.substring(0, 50));
-      fetchDataHub();
+      // Force refresh if no cached essential tiles
+      fetchDataHub(false);
     }
   }, [input.idea]);
   

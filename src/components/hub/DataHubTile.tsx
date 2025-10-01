@@ -313,6 +313,7 @@ function getPrimaryMetric(tileType: string, data: TileData | null) {
     competition: 'total',
     sentiment: 'score',
     market_trends: 'velocity',
+    news_analysis: 'recentArticles',
     google_trends: 'currentInterest',
     growth_potential: 'score',
     market_readiness: 'score',
