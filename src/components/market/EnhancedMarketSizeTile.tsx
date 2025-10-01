@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Globe, TrendingUp, DollarSign, Target, MapPin, BarChart3,
   ExternalLink, Info, RefreshCw, Zap, Building, Users, Brain, 
-  Sparkles, MessageSquare, TrendingDown, Lightbulb, ChevronDown, ChevronUp
+  Sparkles, MessageSquare, TrendingDown, Lightbulb, ChevronDown, ChevronUp, Activity
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SimpleSessionContext';
@@ -200,8 +200,8 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <Button onClick={fetchMarketData} disabled={!currentIdea}>
-              <Zap className="h-4 w-4 mr-2" />
+            <Button onClick={fetchMarketData} disabled={!currentIdea} size="sm" variant="outline">
+              <Activity className="h-3 w-3 mr-1" />
               Fetch Data
             </Button>
           </div>
