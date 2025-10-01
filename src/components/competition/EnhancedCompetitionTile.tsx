@@ -649,164 +649,198 @@ Your startup would enter a moderately concentrated market with clear opportuniti
         </div>
       </CardHeader>
 
-      <CardContent>
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full">
+      <CardContent className="p-4">
+        <Tabs defaultValue="overview" className="h-full">
+          <TabsList className="grid grid-cols-4 w-full mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="competitors">Competitors</TabsTrigger>
             <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
             <TabsTrigger value="strategy">Strategy</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Market Concentration</p>
+          <TabsContent value="overview" className="mt-4 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Market Concentration</p>
                 <p className="text-lg font-semibold">{data.marketConcentration}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Entry Barriers</p>
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Entry Barriers</p>
                 <p className="text-lg font-semibold">{data.entryBarriers}</p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Competitive Landscape</p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-2xl font-bold">{data.competitiveLandscape.directCompetitors}</p>
-                  <p className="text-xs text-muted-foreground">Direct Competitors</p>
+            <div>
+              <p className="text-sm font-medium mb-3">Competitive Landscape</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-accent">{data.competitiveLandscape.directCompetitors}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Direct Competitors</p>
                 </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-2xl font-bold">{data.competitiveLandscape.indirectCompetitors}</p>
-                  <p className="text-xs text-muted-foreground">Indirect</p>
+                <div className="bg-muted/50 border border-border/50 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold">{data.competitiveLandscape.indirectCompetitors}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Indirect</p>
                 </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-2xl font-bold">{data.competitiveLandscape.substitutes}</p>
-                  <p className="text-xs text-muted-foreground">Substitutes</p>
+                <div className="bg-muted/50 border border-border/50 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold">{data.competitiveLandscape.substitutes}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Substitutes</p>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Market Share Distribution</p>
-              <div className="space-y-2">
+            <div>
+              <p className="text-sm font-medium mb-3">Market Share Distribution</p>
+              <div className="space-y-3 bg-muted/20 rounded-lg p-4">
                 {data.competitors.slice(0, 3).map((comp, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <span className="text-sm w-32 truncate">{comp.name}</span>
-                    <Progress value={parseInt(comp.marketShare)} className="flex-1" />
-                    <span className="text-sm font-medium w-12 text-right">{comp.marketShare}</span>
+                  <div key={idx} className="flex items-center gap-3">
+                    <span className="text-sm font-medium w-36 truncate">{comp.name}</span>
+                    <Progress value={parseInt(comp.marketShare)} className="flex-1 h-2" />
+                    <span className="text-sm font-semibold w-12 text-right">{comp.marketShare}</span>
                   </div>
                 ))}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm w-32">Others</span>
-                  <Progress value={13} className="flex-1" />
-                  <span className="text-sm font-medium w-12 text-right">13%</span>
+                <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+                  <span className="text-sm font-medium w-36">Others</span>
+                  <Progress value={13} className="flex-1 h-2" />
+                  <span className="text-sm font-semibold w-12 text-right">13%</span>
                 </div>
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="competitors" className="space-y-3">
-            {data.competitors.map((comp, idx) => (
-              <div 
-                key={idx} 
-                className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 cursor-pointer transition-colors"
-                onClick={() => setSelectedCompetitor(comp)}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{comp.name}</p>
-                      <Badge variant="outline" className={getStrengthColor(comp.strength)}>
-                        {comp.strength}
+          <TabsContent value="competitors" className="mt-4">
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-3">
+                {data.competitors.map((comp, idx) => (
+                  <div 
+                    key={idx} 
+                    className="border border-border/50 rounded-lg p-4 hover:bg-accent/5 hover:border-accent/30 cursor-pointer transition-all duration-200"
+                    onClick={() => setSelectedCompetitor(comp)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-base">{comp.name}</p>
+                          <Badge 
+                            variant="outline" 
+                            className={`${getStrengthColor(comp.strength)} border-current`}
+                          >
+                            {comp.strength.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Founded {comp.founded} • {comp.funding}
+                        </p>
+                      </div>
+                      <div className="text-right ml-4">
+                        <p className="text-2xl font-bold text-primary">{comp.marketShare}</p>
+                        <p className="text-xs text-muted-foreground">market share</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="bg-green-500/5 rounded-md p-2">
+                        <p className="font-medium text-green-600 dark:text-green-400 text-xs mb-1">Strengths:</p>
+                        <p className="text-sm line-clamp-2">{comp.strengths.join(', ')}</p>
+                      </div>
+                      <div className="bg-red-500/5 rounded-md p-2">
+                        <p className="font-medium text-red-600 dark:text-red-400 text-xs mb-1">Weaknesses:</p>
+                        <p className="text-sm line-clamp-2">{comp.weaknesses.join(', ')}</p>
+                      </div>
+                    </div>
+
+                    {comp.url && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-3 h-7 text-xs gap-1.5 w-full justify-center" 
+                        asChild
+                      >
+                        <a 
+                          href={comp.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View Website <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="opportunities" className="mt-4">
+            <div className="space-y-6">
+              <div>
+                <p className="text-sm font-medium mb-3">Market Opportunities</p>
+                <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                  <div className="space-y-3">
+                    {data.analysis.opportunities.map((opp, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <ChevronRight className="h-4 w-4 text-accent" />
+                        </div>
+                        <p className="text-sm flex-1">{opp}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-3">Differentiation Vectors</p>
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <div className="flex flex-wrap gap-2">
+                    {data.differentiationOpportunities.map((diff, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary"
+                        className="px-3 py-1.5"
+                      >
+                        {diff}
                       </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Founded {comp.founded} • {comp.funding}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">{comp.marketShare}</p>
-                    <p className="text-xs text-muted-foreground">market share</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <p className="font-medium text-green-600 dark:text-green-400">Strengths:</p>
-                    <p className="text-muted-foreground">{comp.strengths[0]}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-red-600 dark:text-red-400">Weaknesses:</p>
-                    <p className="text-muted-foreground">{comp.weaknesses[0]}</p>
-                  </div>
-                </div>
-
-                {comp.url && (
-                  <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" asChild>
-                    <a href={comp.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                      View Website <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </Button>
-                )}
-              </div>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="opportunities" className="space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium mb-2">Market Opportunities</p>
-                <div className="space-y-2">
-                  {data.analysis.opportunities.map((opp, idx) => (
-                    <div key={idx} className="flex items-start gap-2">
-                      <ChevronRight className="h-4 w-4 text-primary mt-0.5" />
-                      <p className="text-sm">{opp}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium mb-2">Differentiation Vectors</p>
-                <div className="flex flex-wrap gap-2">
-                  {data.differentiationOpportunities.map((diff, idx) => (
-                    <Badge key={idx} variant="secondary">
-                      {diff}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="strategy" className="space-y-4">
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-              <div className="flex items-start gap-2">
-                <Lightbulb className="h-5 w-5 text-primary mt-0.5" />
-                <div className="space-y-2">
-                  <p className="font-medium">Strategic Recommendations</p>
-                  <div className="space-y-1">
-                    {data.analysis.recommendations.map((rec, idx) => (
-                      <p key={idx} className="text-sm text-muted-foreground">
-                        {idx + 1}. {rec}
-                      </p>
                     ))}
                   </div>
                 </div>
               </div>
             </div>
+          </TabsContent>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="justify-start gap-2">
-                <Target className="h-4 w-4" />
-                View Positioning Map
-              </Button>
-              <Button variant="outline" className="justify-start gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Growth Projections
-              </Button>
+          <TabsContent value="strategy" className="mt-4">
+            <div className="space-y-6">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-5">
+                <div className="flex items-start gap-3">
+                  <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold mb-3">Strategic Recommendations</p>
+                    <div className="space-y-2">
+                      {data.analysis.recommendations.map((rec, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="text-sm font-medium text-primary min-w-[20px]">
+                            {idx + 1}.
+                          </span>
+                          <p className="text-sm text-muted-foreground flex-1">
+                            {rec}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button variant="outline" className="justify-start gap-2 h-auto py-3">
+                  <Target className="h-4 w-4" />
+                  <span>View Positioning Map</span>
+                </Button>
+                <Button variant="outline" className="justify-start gap-2 h-auto py-3">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Growth Projections</span>
+                </Button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
