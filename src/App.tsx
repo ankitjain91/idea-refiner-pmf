@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/EnhancedAuthContext";
 import { SessionProvider } from "@/contexts/SimpleSessionContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AlertProvider } from "@/contexts/AlertContext";
+import { DataModeProvider } from "@/contexts/DataModeContext";
 import GlobalAlertCenter from "@/components/feedback/GlobalAlertCenter";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -97,26 +98,28 @@ const App = () => {
             <SessionProvider>
               <SidebarProvider>
                 <TooltipProvider>
-                  <ThemeProvider>
-                    <div className="app-root-shell">
-                      {/* Ambient decorative layers */}
-                      <div className="app-gradient-orbs" aria-hidden="true" />
-                      <div className="app-bg-animated" aria-hidden="true" />
-                      <div className="app-noise-layer" aria-hidden="true" />
-                      <a href="#main" className="sr-only focus:not-sr-only focus-ring-custom absolute left-2 top-2 z-50 bg-background/80 backdrop-fade px-3 py-1 rounded-md text-sm">Skip to content</a>
-                      {/* Legacy toasters (will be phased out) */}
-                      <Toaster />
-                      <Sonner />
-                      {/* New global alert center */}
-                      <GlobalAlertCenter position="top" />
-                      <AuthGate>
-                        <IdeasInitializer>
-                          <RouteTransitionWrapper />
-                        </IdeasInitializer>
-                      </AuthGate>
-                      <StatusAnnouncer message={undefined} />
-                      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-                    </div>
+              <ThemeProvider>
+                    <DataModeProvider>
+                      <div className="app-root-shell">
+                        {/* Ambient decorative layers */}
+                        <div className="app-gradient-orbs" aria-hidden="true" />
+                        <div className="app-bg-animated" aria-hidden="true" />
+                        <div className="app-noise-layer" aria-hidden="true" />
+                        <a href="#main" className="sr-only focus:not-sr-only focus-ring-custom absolute left-2 top-2 z-50 bg-background/80 backdrop-fade px-3 py-1 rounded-md text-sm">Skip to content</a>
+                        {/* Legacy toasters (will be phased out) */}
+                        <Toaster />
+                        <Sonner />
+                        {/* New global alert center */}
+                        <GlobalAlertCenter position="top" />
+                        <AuthGate>
+                          <IdeasInitializer>
+                            <RouteTransitionWrapper />
+                          </IdeasInitializer>
+                        </AuthGate>
+                        <StatusAnnouncer message={undefined} />
+                        <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+                      </div>
+                    </DataModeProvider>
                   </ThemeProvider>
                 </TooltipProvider>
               </SidebarProvider>

@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import { useDataHub } from "@/hooks/useDataHub";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
+import { useDataMode } from "@/contexts/DataModeContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Brain, RefreshCw, LayoutGrid, Eye } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { WorldMapVisualization } from "@/components/hub/WorldMapVisualization";
@@ -17,6 +20,7 @@ import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTi
 export default function EnterpriseHub() {
   const { user } = useAuth();
   const { currentSession } = useSession();
+  const { useMockData, setUseMockData } = useDataMode();
   const [currentIdea, setCurrentIdea] = useState("");
   const [viewMode, setViewMode] = useState<"executive" | "deep">("executive");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
@@ -102,7 +106,25 @@ export default function EnterpriseHub() {
               </Button>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
+              {/* Data Mode Toggle */}
+              <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-muted/50 border border-border/50">
+                <Database className={cn("h-4 w-4", !useMockData && "text-primary")} />
+                <Label htmlFor="data-mode" className="text-xs font-medium cursor-pointer">
+                  Real Data
+                </Label>
+                <Switch
+                  id="data-mode"
+                  checked={!useMockData}
+                  onCheckedChange={(checked) => setUseMockData(!checked)}
+                  className="scale-90"
+                />
+                <Sparkles className={cn("h-4 w-4", useMockData && "text-primary")} />
+                <Label htmlFor="data-mode" className="text-xs font-medium cursor-pointer">
+                  Mock Data
+                </Label>
+              </div>
+              
               {lastFetchTime && (
                 <span className="text-xs text-muted-foreground">
                   Last updated: {new Date(lastFetchTime).toLocaleTimeString()}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useDataMode } from '@/contexts/DataModeContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   DataHubOrchestrator, 
@@ -29,6 +30,7 @@ export function useDataHub(input: DataHubInput) {
   });
   
   const { user } = useAuth();
+  const { useMockData } = useDataMode();
   const { toast } = useToast();
   const orchestratorRef = useRef<DataHubOrchestrator | null>(null);
   const hasFetchedRef = useRef(false);
@@ -46,11 +48,14 @@ export function useDataHub(input: DataHubInput) {
     
     setState(prev => ({ ...prev, loading: true, error: null }));
     
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     try {
-      console.log('📊 Loading mock DATA_HUB data for:', input.idea);
+      // Check if we should use mock data or real data
+      if (useMockData) {
+        // Use mock data
+        console.log('📊 Loading MOCK DATA_HUB data for:', input.idea);
+        
+        // Simulate loading delay for mock data
+        await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Generate comprehensive mock tiles
       const mockTileBase = {
@@ -340,8 +345,58 @@ export function useDataHub(input: DataHubInput) {
         duration: 3000
       });
       
+      } else {
+        // Use real data from Supabase edge functions
+        console.log('📊 Loading REAL DATA from APIs for:', input.idea);
+        
+        const { data, error } = await supabase.functions.invoke('data-hub-orchestrator', {
+          body: {
+            idea: input.idea,
+            userId: user?.id,
+            sessionId: Date.now().toString(),
+            filters: {
+              targetMarkets: input.targetMarkets,
+              audienceProfiles: input.audienceProfiles,
+              geos: input.geos,
+              timeHorizon: input.timeHorizon,
+              competitorHints: input.competitorHints
+            }
+          }
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        const fetchTime = new Date().toISOString();
+        
+        setState({
+          indices: data?.indices || null,
+          tiles: data?.tiles || {},
+          loading: false,
+          error: null,
+          summary: data?.summary || null,
+          lastFetchTime: fetchTime
+        });
+        
+        hasFetchedRef.current = true;
+        
+        // Cache the real data
+        const cacheKey = `datahub_real_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
+        localStorage.setItem(cacheKey, JSON.stringify({
+          ...data,
+          fetchedAt: fetchTime
+        }));
+        
+        toast({
+          title: "Real Data Loaded",
+          description: "Dashboard populated with live API data",
+          duration: 3000
+        });
+      }
+      
     } catch (error) {
-      console.error('Mock data error:', error);
+      console.error('Data fetch error:', error);
       setState(prev => ({
         ...prev,
         loading: false,
@@ -355,7 +410,7 @@ export function useDataHub(input: DataHubInput) {
         duration: 4000
       });
     }
-  }, [input, toast]);
+  }, [input, toast, useMockData, user?.id]);
   
   // Auto-fetch on mount
   useEffect(() => {
@@ -368,10 +423,12 @@ export function useDataHub(input: DataHubInput) {
   
   const refresh = useCallback(() => {
     hasFetchedRef.current = false;
-    const cacheKey = `datahub_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
+    const cacheKey = useMockData 
+      ? `datahub_mock_${btoa(input.idea).substring(0, 20)}`
+      : `datahub_real_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
     localStorage.removeItem(cacheKey);
     return fetchDataHub(true);
-  }, [fetchDataHub, user?.id, input.idea]);
+  }, [fetchDataHub, user?.id, input.idea, useMockData]);
   
   const getTileData = useCallback((tileType: string): TileData | null => {
     return state.tiles[tileType] || null;
