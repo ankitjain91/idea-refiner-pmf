@@ -113,10 +113,22 @@ serve(async (req) => {
         content = content.replace(/```\s*/g, '');
       }
       
+      // Fix escaped quotes in nested JSON strings
+      content = content.replace(/\\\\\\"/g, '"');
+      
       // Trim whitespace
       content = content.trim();
       
       extracted = JSON.parse(content);
+      
+      // If extraction contains nested extraction field, unwrap it
+      if (extracted.extraction) {
+        extracted = {
+          ...extracted.extraction,
+          confidence: extracted.confidence || 0.7,
+          sources_used: extracted.sources_used || []
+        };
+      }
     } catch (e) {
       console.log('Failed to parse as JSON, using raw content');
       extracted = { raw: result.choices[0].message.content };
