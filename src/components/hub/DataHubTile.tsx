@@ -162,10 +162,10 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         transition={{ duration: 0.3 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
-        className={cn(className, isCollapsed && "h-auto min-h-0")}
+        className={isCollapsed ? "w-full h-auto min-h-0" : className}
       >
-        <Card className={cn("transition-all duration-300 hover:shadow-lg", className)}>
-          <CardHeader className={cn("pb-3", isCollapsed && "border-b-0")}>
+        <Card className={cn("transition-all duration-300 hover:shadow-lg", isCollapsed && "h-auto min-h-0")}> 
+          <CardHeader className={cn(isCollapsed ? "py-2 border-b-0" : "py-3")}>
             <div className="flex items-start justify-between gap-2">
               <CardTitle className="flex items-center gap-2 min-w-0">
                 <div className={cn("p-2 rounded-lg bg-gradient-to-br border flex-shrink-0", tileStyle)}>

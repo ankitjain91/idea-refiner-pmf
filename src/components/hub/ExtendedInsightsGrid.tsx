@@ -308,7 +308,7 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
         <TrendingUp className="h-5 w-5 text-primary" />
         Extended Insights
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-fr">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {extendedTiles.map((tile) => (
           <div 
             key={tile.id} 
