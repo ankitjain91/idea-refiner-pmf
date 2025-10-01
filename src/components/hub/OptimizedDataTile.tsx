@@ -10,6 +10,7 @@ import {
   ChevronRight, RefreshCw, Database, DollarSign, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CacheIndicator } from '@/components/hub/CacheIndicator';
 
 interface OptimizedDataTileProps {
   title: string;

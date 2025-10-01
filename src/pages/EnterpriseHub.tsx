@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useDataHub } from "@/hooks/useDataHub";
+import { useDataHubWrapper } from "@/hooks/useDataHubWrapper";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { useDataMode } from "@/contexts/DataModeContext";
@@ -36,7 +36,7 @@ export default function EnterpriseHub() {
   }, [currentSession]);
 
   // Use the data hub hook
-  const dataHub = useDataHub({
+  const dataHub = useDataHubWrapper({
     idea: currentIdea,
     targetMarkets: ["US", "EU", "APAC"],
     audienceProfiles: ["early_adopters", "enterprise"],

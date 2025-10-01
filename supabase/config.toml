@@ -341,6 +341,9 @@ verify_jwt = false
 [functions.tile-ai-chat]
 verify_jwt = false
 
+[functions.groq-data-extraction]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
