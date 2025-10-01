@@ -56,104 +56,116 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
   const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [hasBeenExpanded, setHasBeenExpanded] = useState(false);
   const { toast } = useToast();
+  
+  // Handle expand/collapse with lazy loading
+  const handleToggleCollapse = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    
+    // If expanding for the first time, trigger data load
+    if (!newCollapsed && !hasBeenExpanded && !data) {
+      setHasBeenExpanded(true);
+      loadMockData();
+    }
+  };
 
-  // Load mock data on mount
-  useEffect(() => {
-    const loadMockData = async () => {
-      setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mockData: CompetitionData = {
-        competitors: [
-          {
-            name: "TechCorp Solutions",
-            marketShare: "32%",
-            strength: "strong",
-            strengths: ["Brand recognition", "Enterprise clients", "Global presence"],
-            weaknesses: ["High pricing", "Slow innovation", "Complex UI"],
-            funding: "$450M Series E",
-            founded: "2015",
-            url: "https://techcorp.example"
-          },
-          {
-            name: "InnovateLabs",
-            marketShare: "18%",
-            strength: "moderate",
-            strengths: ["Fast innovation", "Modern tech stack", "Good UX"],
-            weaknesses: ["Limited scale", "Small team", "Few enterprise features"],
-            funding: "$85M Series C",
-            founded: "2018",
-            url: "https://innovatelabs.example"
-          },
-          {
-            name: "QuickStart AI",
-            marketShare: "15%",
-            strength: "moderate",
-            strengths: ["AI-first approach", "Competitive pricing", "Easy onboarding"],
-            weaknesses: ["Limited features", "New to market", "Small customer base"],
-            funding: "$35M Series B",
-            founded: "2020",
-            url: "https://quickstart.example"
-          },
-          {
-            name: "Legacy Systems Inc",
-            marketShare: "22%",
-            strength: "weak",
-            strengths: ["Established customer base", "Industry experience", "Reliable"],
-            weaknesses: ["Outdated technology", "Poor mobile experience", "High churn"],
-            funding: "$200M (2010)",
-            founded: "2005"
-          },
-          {
-            name: "Nimble Startup",
-            marketShare: "8%",
-            strength: "weak",
-            strengths: ["Agile development", "Niche focus", "Responsive support"],
-            weaknesses: ["Limited resources", "Unproven model", "Geographic limitations"],
-            funding: "$5M Seed",
-            founded: "2022"
-          }
-        ],
-        marketConcentration: "Moderate (HHI: 2,150)",
-        entryBarriers: "Medium - Requires technical expertise and initial capital",
-        differentiationOpportunities: [
-          "AI-powered automation features",
-          "Superior user experience design",
-          "Vertical market specialization",
-          "Competitive pricing models",
-          "Better integration ecosystem"
-        ],
-        competitiveLandscape: {
-          directCompetitors: 12,
-          indirectCompetitors: 25,
-          substitutes: 8
+  
+  // Load mock data function
+  const loadMockData = async () => {
+    setLoading(true);
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const mockData: CompetitionData = {
+      competitors: [
+        {
+          name: "TechCorp Solutions",
+          marketShare: "32%",
+          strength: "strong",
+          strengths: ["Brand recognition", "Enterprise clients", "Global presence"],
+          weaknesses: ["High pricing", "Slow innovation", "Complex UI"],
+          funding: "$450M Series E",
+          founded: "2015",
+          url: "https://techcorp.example"
         },
-        analysis: {
-          threat: "medium",
-          opportunities: [
-            "Market fragmentation allows new entrants",
-            "Customer dissatisfaction with legacy providers",
-            "Growing demand exceeds current supply",
-            "Technology shifts creating new niches"
-          ],
-          recommendations: [
-            "Focus on underserved SMB segment",
-            "Differentiate through superior UX",
-            "Build strategic partnerships early",
-            "Leverage AI for competitive advantage"
-          ]
+        {
+          name: "InnovateLabs",
+          marketShare: "18%",
+          strength: "moderate",
+          strengths: ["Fast innovation", "Modern tech stack", "Good UX"],
+          weaknesses: ["Limited scale", "Small team", "Few enterprise features"],
+          funding: "$85M Series C",
+          founded: "2018",
+          url: "https://innovatelabs.example"
+        },
+        {
+          name: "QuickStart AI",
+          marketShare: "15%",
+          strength: "moderate",
+          strengths: ["AI-first approach", "Competitive pricing", "Easy onboarding"],
+          weaknesses: ["Limited features", "New to market", "Small customer base"],
+          funding: "$35M Series B",
+          founded: "2020",
+          url: "https://quickstart.example"
+        },
+        {
+          name: "Legacy Systems Inc",
+          marketShare: "22%",
+          strength: "weak",
+          strengths: ["Established customer base", "Industry experience", "Reliable"],
+          weaknesses: ["Outdated technology", "Poor mobile experience", "High churn"],
+          funding: "$200M (2010)",
+          founded: "2005"
+        },
+        {
+          name: "Nimble Startup",
+          marketShare: "8%",
+          strength: "weak",
+          strengths: ["Agile development", "Niche focus", "Responsive support"],
+          weaknesses: ["Limited resources", "Unproven model", "Geographic limitations"],
+          funding: "$5M Seed",
+          founded: "2022"
         }
-      };
-      
-      setData(mockData);
-      setLoading(false);
+      ],
+      marketConcentration: "Moderate (HHI: 2,150)",
+      entryBarriers: "Medium - Requires technical expertise and initial capital",
+      differentiationOpportunities: [
+        "AI-powered automation features",
+        "Superior user experience design",
+        "Vertical market specialization",
+        "Competitive pricing models",
+        "Better integration ecosystem"
+      ],
+      competitiveLandscape: {
+        directCompetitors: 12,
+        indirectCompetitors: 25,
+        substitutes: 8
+      },
+      analysis: {
+        threat: "medium",
+        opportunities: [
+          "Market fragmentation allows new entrants",
+          "Customer dissatisfaction with legacy providers",
+          "Growing demand exceeds current supply",
+          "Technology shifts creating new niches"
+        ],
+        recommendations: [
+          "Focus on underserved SMB segment",
+          "Differentiate through superior UX",
+          "Build strategic partnerships early",
+          "Leverage AI for competitive advantage"
+        ]
+      }
     };
     
-    loadMockData();
-  }, []);
+    setData(mockData);
+    setLoading(false);
+  };
+
+  // Remove auto-load on mount to enable lazy loading
 
 
   const getStrengthColor = (strength: string) => {
@@ -249,7 +261,7 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0"
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={handleToggleCollapse}
                 aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
               >
                 {isCollapsed ? (

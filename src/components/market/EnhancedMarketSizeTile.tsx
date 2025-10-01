@@ -50,48 +50,31 @@ interface EnhancedMarketSizeTileProps {
 }
 
 export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTileProps) {
-  const [marketData, setMarketData] = useState<MarketSizeData | null>({
-    TAM: '$2.5B',
-    SAM: '$850M',
-    SOM: '$125M',
-    growth_rate: '15.2%',
-    regions: [
-      { region: 'North America', TAM: '$1.2B', SAM: '$400M', SOM: '$125M', growth: '12%', confidence: 'High' },
-      { region: 'Europe', TAM: '$800M', SAM: '$270M', SOM: '$85M', growth: '18%', confidence: 'High' },
-      { region: 'Asia Pacific', TAM: '$500M', SAM: '$180M', SOM: '$45M', growth: '22%', confidence: 'Medium' }
-    ],
-    confidence: 'High',
-    explanation: 'Market analysis shows strong growth potential with increasing demand for AI-powered solutions. The total addressable market is expanding rapidly due to digital transformation initiatives.',
-    citations: [
-      { url: 'https://mckinsey.com', title: 'McKinsey Global Institute Report 2024', snippet: 'AI market growth analysis and projections' },
-      { url: 'https://gartner.com', title: 'Gartner Technology Trends Analysis', snippet: 'Enterprise technology adoption patterns' },
-      { url: 'https://idc.com', title: 'IDC Market Forecast 2024-2029', snippet: 'Market size and growth predictions' }
-    ],
-    charts: [
-      {
-        type: 'funnel',
-        series: [2500, 850, 125],
-        labels: ['TAM', 'SAM', 'SOM']
-      },
-      {
-        type: 'bar',
-        series: [
-          { name: 'TAM', data: [1200, 800, 500] },
-          { name: 'SAM', data: [400, 270, 180] },
-          { name: 'Growth %', data: [12, 18, 22] }
-        ],
-        labels: ['North America', 'Europe', 'Asia Pacific']
-      }
-    ]
-  });
+  const [marketData, setMarketData] = useState<MarketSizeData | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'overview' | 'regional' | 'projections'>('overview');
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [hasBeenExpanded, setHasBeenExpanded] = useState(false);
   const { currentSession } = useSession();
   
   const currentIdea = idea || currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || 'AI-powered productivity app';
+  
+  // Funny loading messages for market analysis
+  const getLoadingMessage = () => {
+    const messages = [
+      "Counting all the money... 💰",
+      "Calculating market billions... 📊",
+      "Analyzing TAM, SAM, and SOM... 🎯",
+      "Consulting market gurus... 🧙‍♂️",
+      "Measuring opportunity size... 📏",
+      "Finding your goldmine... ⛏️",
+      "Evaluating market potential... 🚀",
+      "Crunching big numbers... 🧮"
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
 
   const fetchMarketData = async () => {
     if (!currentIdea) {
@@ -101,29 +84,31 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
 
     setLoading(true);
     try {
-      console.log('Fetching market size data for:', currentIdea);
+      // Simulate fetching with mock data
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const { data, error } = await supabase.functions.invoke('market-size-analysis', {
-        body: {
-          idea: currentIdea,
-          geo_scope: ['North America', 'Europe', 'Asia Pacific'],
-          audience_profiles: ['B2B', 'B2C', 'Enterprise'],
-          competitors: []
-        }
-      });
-
-      if (error) {
-        console.error('Market analysis error:', error);
-        toast.error('Failed to fetch market data');
-        return;
-      }
-
-      if (data?.success && data?.market_size) {
-        setMarketData(data.market_size);
-        console.log('Market data loaded:', data.market_size);
-      } else {
-        throw new Error('Invalid response structure');
-      }
+      const mockData: MarketSizeData = {
+        TAM: '$2.5B',
+        SAM: '$850M',
+        SOM: '$125M',
+        growth_rate: '15.2%',
+        regions: [
+          { region: 'North America', TAM: '$1.2B', SAM: '$400M', SOM: '$125M', growth: '12%', confidence: 'High' },
+          { region: 'Europe', TAM: '$800M', SAM: '$270M', SOM: '$85M', growth: '18%', confidence: 'High' },
+          { region: 'Asia Pacific', TAM: '$500M', SAM: '$180M', SOM: '$45M', growth: '22%', confidence: 'Medium' }
+        ],
+        confidence: 'High',
+        explanation: 'Market analysis shows strong growth potential with increasing demand for AI-powered solutions. The total addressable market is expanding rapidly due to digital transformation initiatives.',
+        citations: [
+          { url: 'https://mckinsey.com', title: 'McKinsey Global Institute Report 2024', snippet: 'AI market growth analysis and projections' },
+          { url: 'https://gartner.com', title: 'Gartner Technology Trends Analysis', snippet: 'Enterprise technology adoption patterns' },
+          { url: 'https://idc.com', title: 'IDC Market Forecast 2024-2029', snippet: 'Market size and growth predictions' }
+        ],
+        charts: []
+      };
+      
+      setMarketData(mockData);
+      console.log('Market data loaded:', mockData);
     } catch (error) {
       console.error('Market analysis failed:', error);
       toast.error('Market analysis failed');
@@ -132,13 +117,21 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     }
   };
 
-  // Removed old AI analysis functions as we're using TileAIChat component now
-
-  useEffect(() => {
-    if (currentIdea && !marketData) {
+  // Handle expand/collapse with lazy loading
+  const handleToggleCollapse = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    
+    // If expanding for the first time, trigger data load
+    if (!newCollapsed && !hasBeenExpanded && !marketData) {
+      setHasBeenExpanded(true);
       fetchMarketData();
     }
-  }, [currentIdea]);
+  };
+
+  // Removed auto-fetch on mount
+  // useEffect removed to enable lazy loading
+
 
   const parseValue = (value: string): number => {
     return parseFloat(value.replace(/[^\d.]/g, '')) || 0;
@@ -168,16 +161,27 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     return (
       <Card className={cn("animate-pulse", className)}>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-            <CardTitle>Analyzing Market Size...</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+              <CardTitle>Market Size Analysis</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleToggleCollapse}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="h-4 bg-muted rounded animate-pulse" />
-            <div className="h-32 bg-muted rounded animate-pulse" />
-            <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+          <div className="flex flex-col items-center justify-center py-8">
+            <Globe className="h-8 w-8 mb-3 text-primary animate-bounce" />
+            <p className="text-sm font-medium text-center animate-pulse">
+              {getLoadingMessage()}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -270,7 +274,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={handleToggleCollapse}
               aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
             >
               {isCollapsed ? (

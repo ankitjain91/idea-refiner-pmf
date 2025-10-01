@@ -32,6 +32,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
   const [showAIChat, setShowAIChat] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [hasBeenExpanded, setHasBeenExpanded] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(false);
   const { currentSession } = useSession();
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
   const icon = Icon ? <Icon className="h-5 w-5" /> : null;
@@ -112,7 +114,97 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
     );
   }
   
-  if (loading) {
+  // Funny loading messages based on tile type
+  const getLoadingMessage = () => {
+    const messages: Record<string, string[]> = {
+      sentiment: [
+        "Reading the room vibes... 🎭",
+        "Analyzing internet feelings... 💭",
+        "Checking if people are happy... 😊",
+        "Measuring digital emotions... 🌈"
+      ],
+      market_trends: [
+        "Crystal ball warming up... 🔮",
+        "Time traveling to the future... ⏰",
+        "Consulting the trend wizards... 🧙‍♂️",
+        "Reading market tea leaves... 🍵"
+      ],
+      google_trends: [
+        "Googling your success... 🔍",
+        "Asking Google nicely... 🙏",
+        "Mining search gold... ⛏️",
+        "Tracking what's hot... 🔥"
+      ],
+      news_analysis: [
+        "Speed reading the news... 📰",
+        "Checking what journalists think... ✍️",
+        "Scanning headlines worldwide... 🌍",
+        "Getting the latest scoop... 🍦"
+      ],
+      web_search: [
+        "Crawling the web (like a spider)... 🕷️",
+        "Searching every corner of internet... 🌐",
+        "Unleashing search bots... 🤖",
+        "Diving deep into the web... 🏊‍♂️"
+      ],
+      reddit_sentiment: [
+        "Browsing Reddit (for research!)... 👀",
+        "Checking what Redditors think... 💬",
+        "Reading all the comments... 📝",
+        "Upvoting good vibes... ⬆️"
+      ],
+      twitter_buzz: [
+        "Scrolling through tweets... 🐦",
+        "Measuring the Twitter storm... 🌪️",
+        "Counting retweets and likes... ❤️",
+        "Checking what's trending... 📈"
+      ],
+      amazon_reviews: [
+        "Reading ALL the reviews... ⭐",
+        "Checking star ratings... ✨",
+        "Analyzing customer opinions... 🛒",
+        "Window shopping for insights... 🛍️"
+      ],
+      youtube_analytics: [
+        "Watching videos at 2x speed... ▶️",
+        "Counting views and likes... 👍",
+        "Analyzing video comments... 💬",
+        "Checking subscriber counts... 🔔"
+      ],
+      risk_assessment: [
+        "Calculating danger levels... ⚠️",
+        "Running safety checks... 🛡️",
+        "Assessing potential pitfalls... 🕳️",
+        "Evaluating risk factors... 📊"
+      ],
+      default: [
+        "Crunching the numbers... 🧮",
+        "Gathering insights... 💡",
+        "Processing data magic... ✨",
+        "Loading awesomeness... 🚀"
+      ]
+    };
+    
+    const messageList = messages[tileType] || messages.default;
+    return messageList[Math.floor(Math.random() * messageList.length)];
+  };
+
+  // Handle expand/collapse with lazy loading
+  const handleToggleCollapse = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    
+    // If expanding for the first time and we have onRefresh, trigger data load
+    if (!newCollapsed && !hasBeenExpanded && onRefresh && !data) {
+      setHasBeenExpanded(true);
+      setIsFirstLoad(true);
+      onRefresh();
+      // Clear first load flag after a delay
+      setTimeout(() => setIsFirstLoad(false), 3000);
+    }
+  };
+
+  if (loading && isFirstLoad) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -136,10 +228,11 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
             </div>
           </CardHeader>
           <CardContent className="relative">
-            <div className="space-y-3">
-              <div className="h-8 bg-muted/50 animate-pulse rounded-lg" />
-              <div className="h-4 bg-muted/30 animate-pulse rounded w-3/4" />
-              <div className="h-3 bg-muted/20 animate-pulse rounded w-1/2" />
+            <div className="flex flex-col items-center justify-center py-8">
+              <Activity className="h-8 w-8 mb-3 text-primary animate-spin" />
+              <p className="text-sm font-medium text-center animate-pulse">
+                {getLoadingMessage()}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -201,7 +294,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
-                  onClick={() => setIsCollapsed(!isCollapsed)}
+                  onClick={handleToggleCollapse}
                   aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
                 >
                   {isCollapsed ? (
