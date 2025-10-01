@@ -62,6 +62,8 @@ serve(async (req) => {
       }
     `;
     
+    console.log('Making Groq API request for tile:', tileType);
+    
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -69,7 +71,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mixtral-8x7b-32768',
+        model: 'llama3-8b-8192', // Updated to a valid Groq model
         messages: [
           {
             role: 'system',
@@ -78,17 +80,27 @@ serve(async (req) => {
           { role: 'user', content: prompt }
         ],
         temperature: 0.1,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
+        max_tokens: 2000
+        // Removed response_format as it may not be supported
       }),
     });
     
     if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Groq API error response:', errorText);
+      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
     
     const result = await response.json();
-    const extracted = JSON.parse(result.choices[0].message.content);
+    
+    // Try to parse the response content as JSON
+    let extracted;
+    try {
+      extracted = JSON.parse(result.choices[0].message.content);
+    } catch (e) {
+      console.log('Failed to parse as JSON, using raw content');
+      extracted = { raw: result.choices[0].message.content };
+    }
     
     return new Response(
       JSON.stringify({
@@ -97,7 +109,6 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-    
   } catch (error) {
     console.error('Error in groq-data-extraction:', error);
     

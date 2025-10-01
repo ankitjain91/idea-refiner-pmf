@@ -61,8 +61,8 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
   const [error, setError] = useState<string | null>(null);
   const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [hasBeenExpanded, setHasBeenExpanded] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(!initialData);
+  const [hasBeenExpanded, setHasBeenExpanded] = useState(!!initialData);
   const { toast } = useToast();
   
   // Get the actual idea to use
@@ -71,6 +71,39 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
     localStorage.getItem('currentIdea') || 
     localStorage.getItem('userIdea') || 
     '';
+    
+  // Process initial data when it arrives
+  React.useEffect(() => {
+    if (initialData) {
+      console.log('[EnhancedCompetitionTile] Received initialData:', initialData);
+      // Convert the tile data to competition data format
+      if (initialData.metrics?.competitors || initialData.json?.competitors) {
+        const competitorsData = initialData.metrics?.competitors || initialData.json?.competitors || [];
+        setData({
+          competitors: competitorsData,
+          marketConcentration: initialData.metrics?.marketConcentration || 'Medium',
+          entryBarriers: initialData.metrics?.entryBarriers || 'Moderate',
+          differentiationOpportunities: initialData.metrics?.opportunities || [],
+          competitiveLandscape: initialData.metrics?.landscape || {
+            directCompetitors: 3,
+            indirectCompetitors: 5,
+            substitutes: 2
+          },
+          analysis: initialData.metrics?.analysis || {
+            threat: 'medium',
+            opportunities: [],
+            recommendations: []
+          }
+        });
+        setIsCollapsed(false);
+        setHasBeenExpanded(true);
+      } else {
+        // Fallback to mock data if structure doesn't match
+        loadMockData();
+      }
+    }
+  }, [initialData]);
+  
   // Handle expand/collapse with lazy loading
   const handleToggleCollapse = () => {
     const newCollapsed = !isCollapsed;
