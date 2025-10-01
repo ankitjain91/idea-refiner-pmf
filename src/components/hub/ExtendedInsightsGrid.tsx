@@ -23,14 +23,14 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
   // Rich mock data for Extended Insights tiles
   const mockWebSearchData: TileData = {
     metrics: {
-      search_visibility: { value: "87%", confidence: 0.92, trend: "up" },
-      monthly_searches: { value: "45K", confidence: 0.88, trend: "up" },
-      difficulty_score: { value: "3.2/10", confidence: 0.95, trend: "stable" },
-      domain_authority: { value: "72", confidence: 0.90, trend: "up" },
-      top_keyword: { value: "ai productivity tools", volume: "12K/mo", difficulty: 42 },
-      avg_cpc: { value: "$3.20", confidence: 0.85 },
-      featured_snippets: { value: "28%", opportunity: true },
-      competitor_count: { value: "15", confidence: 0.87 }
+      search_visibility: "87%",
+      monthly_searches: "45K",
+      difficulty_score: "3.2/10",
+      domain_authority: "72",
+      top_keyword_volume: "12K/mo",
+      avg_cpc: "$3.20",
+      featured_snippets: "28%",
+      competitor_count: "15"
     },
     explanation: "High search demand with moderate competition. Strong opportunity for organic growth with 87% search visibility and growing monthly searches.",
     citations: [
@@ -61,14 +61,14 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
 
   const mockRedditData: TileData = {
     metrics: {
-      positive_sentiment: { value: "78%", confidence: 0.89, trend: "up" },
-      active_discussions: { value: "3.2K", confidence: 0.94, trend: "up" },
-      engaged_users: { value: "45K", confidence: 0.87, trend: "stable" },
-      virality_score: { value: "8.5/10", confidence: 0.85, trend: "up" },
-      top_subreddit: { name: "r/productivity", members: "2.3M", relevance: "92%" },
-      avg_upvotes: { value: "450", confidence: 0.88 },
-      comment_ratio: { value: "12:1", confidence: 0.86 },
-      influencer_mentions: { value: "234", confidence: 0.83 }
+      positive_sentiment: "78%",
+      active_discussions: "3.2K",
+      engaged_users: "45K",
+      virality_score: "8.5/10",
+      top_subreddit: "r/productivity",
+      avg_upvotes: "450",
+      comment_ratio: "12:1",
+      influencer_mentions: "234"
     },
     explanation: "Strong Reddit presence with 78% positive sentiment across 3.2K active discussions. High engagement in productivity and startup communities.",
     citations: [
@@ -99,14 +99,14 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
 
   const mockTwitterData: TileData = {
     metrics: {
-      monthly_impressions: { value: "125K", confidence: 0.91, trend: "up" },
-      influencer_mentions: { value: "3.5K", confidence: 0.88, trend: "up" },
-      engagement_rate: { value: "82%", confidence: 0.86, trend: "stable" },
-      trending_score: { value: "45/100", confidence: 0.83, trend: "up" },
-      top_hashtag: { tag: "#AIProductivity", reach: "45K", engagement: "7.2%" },
-      retweet_ratio: { value: "3.4:1", confidence: 0.85 },
-      verified_accounts: { value: "128", confidence: 0.87 },
-      viral_tweets: { value: "12", confidence: 0.84 }
+      monthly_impressions: "125K",
+      influencer_mentions: "3.5K",
+      engagement_rate: "82%",
+      trending_score: "45/100",
+      top_hashtag: "#AIProductivity",
+      retweet_ratio: "3.4:1",
+      verified_accounts: "128",
+      viral_tweets: "12"
     },
     explanation: "Strong Twitter/X presence with 125K monthly impressions and 82% engagement rate. High influencer interest with 3.5K mentions from accounts with 10K+ followers.",
     citations: [
@@ -137,14 +137,14 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
 
   const mockAmazonData: TileData = {
     metrics: {
-      avg_rating: { value: "4.3★", confidence: 0.93, trend: "stable" },
-      total_reviews: { value: "12.5K", confidence: 0.95, trend: "up" },
-      price_sweet_spot: { value: "$89", confidence: 0.92, trend: "stable" },
-      feature_gap: { value: "73%", confidence: 0.88, trend: "up" },
-      top_competitor: { name: "ProductA Pro", rating: 4.2, reviews: 3200, price: "$79" },
-      return_rate: { value: "8%", confidence: 0.86 },
-      purchase_intent: { value: "High", confidence: 0.84 },
-      market_rank: { value: "#12", confidence: 0.90 }
+      avg_rating: "4.3★",
+      total_reviews: "12.5K",
+      price_sweet_spot: "$89",
+      feature_gap: "73%",
+      top_competitor: "ProductA Pro",
+      return_rate: "8%",
+      purchase_intent: "High",
+      market_rank: "#12"
     },
     explanation: "Clear market opportunity with 73% feature gap in current Amazon offerings. Average competitor rating of 4.3 with 12.5K total reviews shows proven demand.",
     citations: [
@@ -175,14 +175,14 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
 
   const mockYouTubeData: TileData = {
     metrics: {
-      category_views: { value: "2.3M/mo", confidence: 0.89, trend: "up" },
-      active_channels: { value: "450", confidence: 0.92, trend: "up" },
-      avg_watch_time: { value: "12:30", confidence: 0.87, trend: "stable" },
-      channel_subscribers: { value: "68K avg", confidence: 0.90, trend: "up" },
-      top_video: { title: "AI Tools Review 2024", views: "450K", likes: "12K" },
-      engagement_rate: { value: "6.8%", confidence: 0.86 },
-      comment_sentiment: { value: "Positive", confidence: 0.84 },
-      tutorial_demand: { value: "High", confidence: 0.88 }
+      category_views: "2.3M/mo",
+      active_channels: "450",
+      avg_watch_time: "12:30",
+      channel_subscribers: "68K avg",
+      top_video_views: "450K",
+      engagement_rate: "6.8%",
+      comment_sentiment: "Positive",
+      tutorial_demand: "High"
     },
     explanation: "Growing YouTube presence with 2.3M monthly views in category. High engagement with 12:30 average watch time indicates strong content interest.",
     citations: [
@@ -213,14 +213,14 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
 
   const mockRiskData: TileData = {
     metrics: {
-      overall_risk: { value: "Low", confidence: 0.91, color: "green" },
-      competition_risk: { value: "3/10", confidence: 0.88, trend: "stable" },
-      tech_risk: { value: "2/10", confidence: 0.93, trend: "down" },
-      market_risk: { value: "4/10", confidence: 0.86, trend: "stable" },
-      regulatory_risk: { value: "Low", confidence: 0.89 },
-      execution_risk: { value: "Medium", confidence: 0.85 },
-      timing_score: { value: "Optimal", confidence: 0.87 },
-      success_probability: { value: "72%", confidence: 0.84 }
+      overall_risk: "Low",
+      competition_risk: "3/10",
+      tech_risk: "2/10",
+      market_risk: "4/10",
+      regulatory_risk: "Low",
+      execution_risk: "Medium",
+      timing_score: "Optimal",
+      success_probability: "72%"
     },
     explanation: "Low to moderate risk profile with favorable market conditions. Competition risk manageable at 3/10. Strong timing with optimal market entry window.",
     citations: [
