@@ -16,6 +16,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { CompetitionChatDialog } from './CompetitionChatDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { extractEdgeFunctionData } from '@/utils/edgeFunctionUtils';
 
 interface Competitor {
   name: string;
@@ -59,6 +61,12 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
   const [hasBeenExpanded, setHasBeenExpanded] = useState(false);
   const { toast } = useToast();
   
+  // Get the actual idea to use
+  const currentIdea = idea || 
+    localStorage.getItem('dashboardIdea') || 
+    localStorage.getItem('currentIdea') || 
+    localStorage.getItem('userIdea') || 
+    '';
   // Handle expand/collapse with lazy loading
   const handleToggleCollapse = () => {
     const newCollapsed = !isCollapsed;
@@ -67,10 +75,55 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
     // If expanding for the first time, trigger data load
     if (!newCollapsed && !hasBeenExpanded && !data) {
       setHasBeenExpanded(true);
-      loadMockData();
+      loadCompetitionData();
     }
   };
 
+  // Fetch real competition data from edge function
+  const loadCompetitionData = async () => {
+    if (!currentIdea) {
+      console.log('[Competition] No idea available');
+      loadMockData();
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('[Competition] Fetching data for idea:', currentIdea.substring(0, 100));
+      
+      // Call the enhanced business analysis edge function
+      const { data, error } = await supabase.functions.invoke('enhanced-business-analysis', {
+        body: {
+          idea: currentIdea,
+          analysisType: 'competition'
+        }
+      });
+      
+      if (error) throw error;
+      
+      const extractedData = extractEdgeFunctionData(data);
+      console.log('[Competition] Received data:', extractedData);
+      
+      if (extractedData?.competitors) {
+        setData(extractedData);
+        toast({
+          title: "Competition Analysis Updated",
+          description: "Fresh competitive landscape data loaded",
+        });
+      } else {
+        // Fallback to mock data if no real data
+        await loadMockData();
+      }
+    } catch (err) {
+      console.error('[Competition] Error fetching data:', err);
+      setError('Failed to load competition data');
+      await loadMockData(); // Fallback to mock data
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Load mock data function
   const loadMockData = async () => {
@@ -167,8 +220,13 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
     setLoading(false);
   };
 
-  // Remove auto-load on mount to enable lazy loading
-
+  // Reload data when idea changes
+  useEffect(() => {
+    if (currentIdea && hasBeenExpanded) {
+      console.log('[Competition] Idea changed, reloading data');
+      loadCompetitionData();
+    }
+  }, [currentIdea]);
 
   const getStrengthColor = (strength: string) => {
     switch(strength) {
