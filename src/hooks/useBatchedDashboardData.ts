@@ -29,6 +29,9 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasInitializedRef = useRef(false);
   const lastIdeaRef = useRef<string>('');
+  
+  // BLOCKING EXTERNAL API CALLS - Set to false or remove this to re-enable API calls
+  const BLOCK_EXTERNAL_API_CALLS = true;
 
   const getCacheKey = useCallback(() => {
     if (!idea || !user?.id) return null;
@@ -40,6 +43,28 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
   const fetchBatchedData = useCallback(async (forceRefresh = false) => {
     const cacheKey = getCacheKey();
     if (!cacheKey || tileTypes.length === 0) return;
+    
+    // BLOCK EXTERNAL API CALLS - Return mock data
+    if (BLOCK_EXTERNAL_API_CALLS) {
+      console.log('🚫 External API calls are BLOCKED. Returning empty data.');
+      const blockedResponse: BatchedDataResponse = {};
+      tileTypes.forEach(tileType => {
+        blockedResponse[tileType] = {
+          data: null,
+          fromCache: false,
+          error: 'External API calls are currently blocked'
+        };
+      });
+      setData(blockedResponse);
+      setLoading(false);
+      toast({
+        title: "API Calls Blocked",
+        description: "External API calls are currently disabled. Data will not be fetched.",
+        variant: "default",
+        duration: 3000
+      });
+      return;
+    }
 
     // Check if there's already an active request for this exact cache key
     if (activeRequests.get(cacheKey) && !forceRefresh) {
@@ -282,6 +307,26 @@ export function useBatchedDashboardData(idea: string, tileTypes: string[]) {
   // Refresh a single tile only
   const refreshTile = useCallback(async (tileType: string) => {
     if (!tileType) return;
+    
+    // BLOCK EXTERNAL API CALLS - Return mock data for single tile
+    if (BLOCK_EXTERNAL_API_CALLS) {
+      console.log(`🚫 External API calls are BLOCKED. Cannot refresh tile: ${tileType}`);
+      setData(prev => ({
+        ...prev,
+        [tileType]: {
+          data: null,
+          fromCache: false,
+          error: 'External API calls are currently blocked'
+        }
+      }));
+      toast({
+        title: "API Calls Blocked",
+        description: `Cannot refresh ${tileType} - API calls are disabled.`,
+        variant: "default",
+        duration: 2000
+      });
+      return;
+    }
 
     // Clear local cache for this tile
     const ideaHash = idea ? btoa(idea).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20) : '';
