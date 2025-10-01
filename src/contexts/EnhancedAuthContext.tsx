@@ -270,28 +270,76 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initialize = async () => {
       try {
         // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
+        // Check for session errors (expired, invalid, etc.)
+        if (error) {
+          console.error('Session error:', error);
+          setLoading(false);
+          setInitialized(true);
+          // Navigate to login with auth modal
+          navigate('/', { state: { from: location, openAuthModal: true } });
+          return;
+        }
+        
         if (initialSession) {
-          setSession(initialSession);
-          setUser(initialSession.user);
-          
-          // Schedule token refresh in background
-          scheduleTokenRefresh(initialSession);
-          
-          // Validate token in background without blocking
+          // Validate the session is not expired
           const expiresAt = initialSession.expires_at;
           if (expiresAt) {
             const now = Math.floor(Date.now() / 1000);
             const expiryTime = typeof expiresAt === 'string' ? parseInt(expiresAt) : expiresAt;
             
-            // If token is expired or expiring very soon (within 30 seconds), refresh in background
-            if (now >= expiryTime || now >= (expiryTime - 30)) {
-              // Don't await - let it happen in background
-              refreshSession();
+            // If token is already expired, clear session and redirect
+            if (now >= expiryTime) {
+              console.log('Session expired, redirecting to login');
+              setSession(null);
+              setUser(null);
+              setUserProfile(null);
+              setLoading(false);
+              setInitialized(true);
+              
+              // Clear auth snapshot
+              try { localStorage.removeItem(AUTH_SNAPSHOT_KEY); } catch {}
+              
+              addAlert({
+                variant: 'warning',
+                title: 'Session expired',
+                message: 'Your session has expired. Please sign in again.',
+                scope: 'auth',
+                autoDismissMs: 8000,
+              });
+              
+              navigate('/', { state: { from: location, openAuthModal: true } });
+              return;
             }
+            
+            // If token is expiring very soon (within 30 seconds), refresh immediately
+            if (now >= (expiryTime - 30)) {
+              console.log('Token expiring soon, refreshing immediately');
+              const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+              if (refreshError || !refreshedSession) {
+                console.error('Failed to refresh expiring session:', refreshError);
+                setLoading(false);
+                setInitialized(true);
+                navigate('/', { state: { from: location, openAuthModal: true } });
+                return;
+              }
+              // Use the refreshed session
+              setSession(refreshedSession);
+              setUser(refreshedSession.user);
+              scheduleTokenRefresh(refreshedSession);
+            } else {
+              // Session is valid
+              setSession(initialSession);
+              setUser(initialSession.user);
+              scheduleTokenRefresh(initialSession);
+            }
+          } else {
+            // No expiry time, treat as valid
+            setSession(initialSession);
+            setUser(initialSession.user);
           }
           
           // Fetch profile
@@ -304,11 +352,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setTimeout(() => {
             if (mounted) syncUserRole();
           }, 1000);
+          
           // Role sync interval (5 min)
           roleSyncIntervalRef.current = setInterval(() => {
             syncUserRole();
           }, 5 * 60 * 1000);
+          
+          // Session validation interval (check every 30 seconds)
+          const sessionCheckInterval = setInterval(async () => {
+            const { data: { session: currentSession }, error: checkError } = await supabase.auth.getSession();
+            if (checkError || !currentSession) {
+              console.log('Session check failed, logging out');
+              clearInterval(sessionCheckInterval);
+              await signOut();
+            }
+          }, 30000);
+          
+          // Store interval reference for cleanup
+          (window as any).__sessionCheckInterval = sessionCheckInterval;
         }
+        
         // Mark auth initialized after getSession completes to avoid race conditions
         if (mounted) {
           setLoading(false);
@@ -341,10 +404,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           roleSyncIntervalRef.current = null;
         }
         
+        // Clear session check interval
+        if ((window as any).__sessionCheckInterval) {
+          clearInterval((window as any).__sessionCheckInterval);
+          (window as any).__sessionCheckInterval = null;
+        }
+        
+        // Handle different auth events
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+          setSession(null);
+          setUser(null);
+          setUserProfile(null);
+          
+          // Clear auth snapshot
+          try { localStorage.removeItem(AUTH_SNAPSHOT_KEY); } catch {}
+          
+          // Navigate to login
+          navigate('/', { state: { from: location, openAuthModal: true } });
+        }
+        
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
         if (newSession?.user) {
+          // Check if session is expired
+          const expiresAt = newSession.expires_at;
+          if (expiresAt) {
+            const now = Math.floor(Date.now() / 1000);
+            const expiryTime = typeof expiresAt === 'string' ? parseInt(expiresAt) : expiresAt;
+            
+            if (now >= expiryTime) {
+              console.log('Session expired in auth state change');
+              setSession(null);
+              setUser(null);
+              setUserProfile(null);
+              
+              addAlert({
+                variant: 'warning',
+                title: 'Session expired',
+                message: 'Your session has expired. Please sign in again.',
+                scope: 'auth',
+                autoDismissMs: 8000,
+              });
+              
+              navigate('/', { state: { from: location, openAuthModal: true } });
+              return;
+            }
+          }
+          
           // Defer profile fetch and role sync to avoid async work inside callback
           setTimeout(async () => {
             const profile = await fetchUserProfile(newSession.user!.id);
@@ -356,6 +466,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           roleSyncIntervalRef.current = setInterval(() => {
             syncUserRole();
           }, 5 * 60 * 1000);
+          
+          // Restart session check interval
+          const sessionCheckInterval = setInterval(async () => {
+            const { data: { session: currentSession }, error: checkError } = await supabase.auth.getSession();
+            if (checkError || !currentSession) {
+              console.log('Session check failed in interval, logging out');
+              clearInterval(sessionCheckInterval);
+              await signOut();
+            }
+          }, 30000);
+          (window as any).__sessionCheckInterval = sessionCheckInterval;
           
           // Handle sign in redirect
           if (event === 'SIGNED_IN') {
@@ -393,6 +514,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
       if (tokenRefreshTimeoutRef.current) clearTimeout(tokenRefreshTimeoutRef.current);
       if (roleSyncIntervalRef.current) clearInterval(roleSyncIntervalRef.current);
+      // Clear session check interval
+      if ((window as any).__sessionCheckInterval) {
+        clearInterval((window as any).__sessionCheckInterval);
+        (window as any).__sessionCheckInterval = null;
+      }
     };
   }, []); // Remove dependencies to prevent re-initialization
 

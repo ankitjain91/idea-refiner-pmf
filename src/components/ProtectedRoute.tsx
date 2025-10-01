@@ -1,7 +1,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,6 +12,39 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) => {
   const { user, session, loading, initialized } = useAuth();
   const location = useLocation();
+
+  // Check session validity on every route change
+  useEffect(() => {
+    if (!requireAuth) return;
+    
+    const checkSession = async () => {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+      
+      // If there's an error or no session, redirect to login
+      if (error || !currentSession) {
+        console.log("Session check failed in ProtectedRoute:", error);
+        // The auth context will handle the redirect
+        return;
+      }
+      
+      // Check if session is expired
+      if (currentSession.expires_at) {
+        const now = Math.floor(Date.now() / 1000);
+        const expiryTime = typeof currentSession.expires_at === 'string' 
+          ? parseInt(currentSession.expires_at) 
+          : currentSession.expires_at;
+        
+        if (now >= expiryTime) {
+          console.log("Session expired in ProtectedRoute");
+          // The auth context will handle the redirect
+          return;
+        }
+      }
+    };
+    
+    // Check session on mount and when location changes
+    checkSession();
+  }, [location.pathname, requireAuth]);
 
   // Don't show loading state if we have cached auth data
   if (!initialized && loading) {
