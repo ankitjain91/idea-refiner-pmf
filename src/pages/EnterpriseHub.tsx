@@ -34,63 +34,68 @@ export default function EnterpriseHub() {
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
-    // First check if we have a session
-    if (currentSession) {
-      const { chatHistory, currentIdea: sessionIdea } = currentSession.data || {};
+    // Always check localStorage first for immediate availability
+    const storedIdea = 
+      localStorage.getItem("pmfCurrentIdea") ||
+      localStorage.getItem("dashboardIdea") || 
+      localStorage.getItem("currentIdea") || 
+      localStorage.getItem("userIdea") || 
+      "";
+    
+    console.log("[EnterpriseHub] Checking all localStorage keys:", {
+      pmfCurrentIdea: localStorage.getItem("pmfCurrentIdea")?.substring(0, 50),
+      dashboardIdea: localStorage.getItem("dashboardIdea")?.substring(0, 50),
+      currentIdea: localStorage.getItem("currentIdea")?.substring(0, 50),
+      userIdea: localStorage.getItem("userIdea")?.substring(0, 50)
+    });
+    
+    // If we have a stored idea, use it immediately
+    if (storedIdea) {
+      setCurrentIdea(storedIdea);
+      localStorage.setItem("dashboardIdea", storedIdea);
+      console.log("[EnterpriseHub] Using stored idea:", storedIdea.substring(0, 100));
       
-      // Try to get idea from session first
-      let ideaSummary = "";
-      let summary = "";
-      
-      if (chatHistory && chatHistory.length > 0) {
-        summary = createConversationSummary(chatHistory, sessionIdea);
-        ideaSummary = summary;
-      } else if (sessionIdea) {
-        ideaSummary = sessionIdea;
-        summary = sessionIdea;
-      }
-      
-      // If no idea in session, check localStorage as fallback
-      if (!ideaSummary) {
-        const storedIdea = 
-          localStorage.getItem("dashboardIdea") || 
-          localStorage.getItem("currentIdea") || 
-          localStorage.getItem("userIdea") || 
-          "";
+      // Now check if we have a session to enhance with chat history
+      if (currentSession) {
+        const { chatHistory, currentIdea: sessionIdea } = currentSession.data || {};
         
-        if (storedIdea) {
-          ideaSummary = storedIdea;
-          summary = storedIdea;
-          
-          // Update the session's data property with the localStorage idea for consistency
-          if (currentSession.data) {
-            currentSession.data.currentIdea = storedIdea;
-            // Save the updated session
-            saveCurrentSession();
-          }
-          console.log("[EnterpriseHub] Used localStorage fallback for idea:", storedIdea.substring(0, 100));
+        // Create conversation summary if we have chat history
+        if (chatHistory && chatHistory.length > 0) {
+          const summary = createConversationSummary(chatHistory, sessionIdea || storedIdea);
+          setConversationSummary(summary);
+        } else {
+          setConversationSummary(storedIdea);
+        }
+        
+        // Update session with the stored idea if it doesn't have one
+        if (!sessionIdea && currentSession.data) {
+          currentSession.data.currentIdea = storedIdea;
+          saveCurrentSession();
+        }
+        
+        setSessionName(currentSession.name || "Untitled Session");
+      } else {
+        // No session, just use the stored idea as summary
+        setConversationSummary(storedIdea);
+      }
+    } else if (currentSession?.data) {
+      // No stored idea, try to get from session
+      const { chatHistory, currentIdea: sessionIdea } = currentSession.data;
+      
+      if (sessionIdea || (chatHistory && chatHistory.length > 0)) {
+        const summary = chatHistory && chatHistory.length > 0 
+          ? createConversationSummary(chatHistory, sessionIdea)
+          : sessionIdea || "";
+        
+        if (summary) {
+          setCurrentIdea(summary);
+          setConversationSummary(summary);
+          localStorage.setItem("dashboardIdea", summary);
+          console.log("[EnterpriseHub] Got idea from session:", summary.substring(0, 100));
         }
       }
       
-      // Store the synthesized idea for dashboard use
-      if (ideaSummary) {
-        localStorage.setItem("dashboardIdea", ideaSummary);
-        setCurrentIdea(ideaSummary);
-        setConversationSummary(summary);
-        console.log("[EnterpriseHub] Updated idea:", ideaSummary.substring(0, 100));
-      }
-      
-      // Set session name
       setSessionName(currentSession.name || "Untitled Session");
-    } else {
-      // No session at all - fallback to stored ideas
-      const storedIdea = 
-        localStorage.getItem("dashboardIdea") || 
-        localStorage.getItem("currentIdea") || 
-        localStorage.getItem("userIdea") || 
-        "";
-      setCurrentIdea(storedIdea);
-      console.log("[EnterpriseHub] No session, using localStorage:", storedIdea.substring(0, 100));
     }
   }, [currentSession, saveCurrentSession]);
   
