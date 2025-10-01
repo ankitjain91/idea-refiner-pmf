@@ -212,19 +212,6 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Button>
               </div>
             </div>
-            {isCollapsed && primaryMetric && (
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-sm font-semibold">{primaryMetric.value}</span>
-                {primaryMetric.trend && (
-                  <Badge variant="outline" className="text-xs">
-                    {primaryMetric.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : 
-                     primaryMetric.trend === 'down' ? <TrendingDown className="h-3 w-3" /> : 
-                     <Minus className="h-3 w-3" />}
-                    <span className="ml-1">{primaryMetric.trendText}</span>
-                  </Badge>
-                )}
-              </div>
-            )}
           </CardHeader>
           
           <AnimatePresence>

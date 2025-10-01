@@ -238,8 +238,8 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
 
   return (
     <Card className={cn("transition-all duration-300 hover:shadow-lg", className)}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-green-500/20 border border-blue-500/30">
               <Globe className="h-5 w-5 text-blue-500" />
@@ -247,20 +247,37 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
             Market Size Analysis
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={getConfidenceColor(marketData.confidence)}>
-              {marketData.confidence} Confidence
-            </Badge>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-              onClick={() => setAiDialogOpen(true)}
+            {!isCollapsed && (
+              <>
+                <Badge variant="outline" className={getConfidenceColor(marketData.confidence)}>
+                  {marketData.confidence} Confidence
+                </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setAiDialogOpen(true)}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  AI Analysis
+                </Button>
+                <Button variant="ghost" size="sm" onClick={fetchMarketData}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
             >
-              <Sparkles className="h-4 w-4" />
-              AI Analysis
-            </Button>
-            <Button variant="ghost" size="sm" onClick={fetchMarketData}>
-              <RefreshCw className="h-4 w-4" />
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>

@@ -214,29 +214,48 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
   return (
     <>
       <Card className="h-full">
-        <CardHeader>
-          <div className="flex items-start justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-primary" />
                 Competition Analysis
               </CardTitle>
-              <CardDescription>
-                {data.competitors.length} competitors analyzed • {data.competitiveLandscape.directCompetitors} direct threats
-              </CardDescription>
+              {!isCollapsed && (
+                <CardDescription>
+                  {data.competitors.length} competitors analyzed • {data.competitiveLandscape.directCompetitors} direct threats
+                </CardDescription>
+              )}
             </div>
-            <div className="flex gap-2">
-              <Badge variant={getThreatBadgeVariant(data.analysis.threat)}>
-                {data.analysis.threat.toUpperCase()} THREAT
-              </Badge>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2"
-                onClick={() => setChatDialogOpen(true)}
+            <div className="flex items-center gap-2">
+              {!isCollapsed && (
+                <>
+                  <Badge variant={getThreatBadgeVariant(data.analysis.threat)}>
+                    {data.analysis.threat.toUpperCase()} THREAT
+                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => setChatDialogOpen(true)}
+                  >
+                    <Brain className="h-4 w-4" />
+                    AI Analysis
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
               >
-                <Brain className="h-4 w-4" />
-                AI Analysis
+                {isCollapsed ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
