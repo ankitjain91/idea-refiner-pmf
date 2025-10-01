@@ -28,6 +28,7 @@ export default function EnterpriseHub() {
   const [sessionName, setSessionName] = useState("");
   const [viewMode, setViewMode] = useState<"executive" | "deep">("executive");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
@@ -82,8 +83,15 @@ export default function EnterpriseHub() {
   // Custom refresh that also updates the idea from session
   const handleRefresh = useCallback(async () => {
     updateIdeaFromSession();
+    setHasLoadedData(true);
     await refresh();
   }, [updateIdeaFromSession, refresh]);
+
+  // Handle Get Score button click
+  const handleGetScore = useCallback(() => {
+    setHasLoadedData(true);
+    refresh();
+  }, [refresh]);
 
   // No idea state
   if (!currentIdea) {
@@ -229,8 +237,9 @@ export default function EnterpriseHub() {
       <div className="container mx-auto px-4 py-6 space-y-8">
         {/* 1. HERO SECTION */}
         <HeroSection 
-          pmfScore={tiles.pmf_score}
-          loading={loading}
+          pmfScore={hasLoadedData ? tiles.pmf_score : null}
+          loading={hasLoadedData && loading}
+          onGetScore={handleGetScore}
         />
 
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}

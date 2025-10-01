@@ -1,16 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TileData } from "@/lib/data-hub-orchestrator";
 
 interface HeroSectionProps {
   pmfScore?: TileData | null;
   loading?: boolean;
+  onGetScore?: () => void;
 }
 
-export function HeroSection({ pmfScore, loading }: HeroSectionProps) {
+export function HeroSection({ pmfScore, loading, onGetScore }: HeroSectionProps) {
   const score = pmfScore?.metrics?.score || 0;
   const category = pmfScore?.metrics?.category || "Calculating...";
   const insight = pmfScore?.explanation || "Analyzing market fit potential...";
@@ -67,12 +69,25 @@ export function HeroSection({ pmfScore, loading }: HeroSectionProps) {
                   />
                 </svg>
                 
-                {/* Score Text */}
+                {/* Score Text or Get Score Button */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={cn("text-5xl font-bold", getScoreColor(score))}>
-                    {loading ? "..." : score}
-                  </span>
-                  <span className="text-sm text-muted-foreground">PMF Score</span>
+                  {!pmfScore && !loading && onGetScore ? (
+                    <Button 
+                      onClick={onGetScore}
+                      size="lg"
+                      className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                    >
+                      <Sparkles className="h-5 w-5" />
+                      Get My Score
+                    </Button>
+                  ) : (
+                    <>
+                      <span className={cn("text-5xl font-bold", getScoreColor(score))}>
+                        {loading ? "..." : score}
+                      </span>
+                      <span className="text-sm text-muted-foreground">PMF Score</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
