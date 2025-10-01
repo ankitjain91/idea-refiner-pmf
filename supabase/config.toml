@@ -323,6 +323,9 @@ verify_jwt = false
 [functions.serper-batch-search]
 verify_jwt = false
 
+[functions.data-hub-orchestrator]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
