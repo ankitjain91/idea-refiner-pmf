@@ -34,36 +34,294 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       negative: 3,
       engagement: 4200,
       reach: "2.3M",
-      trending: "+23%"
+      trending: "+23%",
+      nps: 67,
+      csat: 4.2,
+      responseRate: 89,
+      viralityScore: 8.5
     },
-    primaryInsight: "Overall sentiment is 82% positive across social media and forums",
-    explanation: "Users express strong enthusiasm for AI-powered productivity solutions, with particular interest in workflow automation and time-saving features.",
+    primaryInsight: "Overall sentiment is 82% positive with exceptionally high engagement in tech-savvy demographics",
+    explanation: "Users express strong enthusiasm for AI-powered productivity solutions, with particular interest in workflow automation and time-saving features. The sentiment has improved 23% over the past month.",
     confidence: 85,
     dataQuality: "high",
     keyMetrics: [
-      { label: "Positive", value: "82%", trend: "up" },
-      { label: "Neutral", value: "15%", trend: null },
-      { label: "Negative", value: "3%", trend: "down" },
-      { label: "Engagement", value: "4.2K", trend: "up" }
+      { label: "Positive", value: "82%", trend: "up", change: "+5%" },
+      { label: "Neutral", value: "15%", trend: null, change: "0%" },
+      { label: "Negative", value: "3%", trend: "down", change: "-2%" },
+      { label: "Engagement", value: "4.2K", trend: "up", change: "+23%" }
     ],
     regionalBreakdown: [
-      { region: "North America", positive: 85, neutral: 12, negative: 3, volume: "45%" },
-      { region: "Europe", positive: 78, neutral: 18, negative: 4, volume: "30%" },
-      { region: "Asia Pacific", positive: 83, neutral: 14, negative: 3, volume: "20%" },
-      { region: "Latin America", positive: 80, neutral: 17, negative: 3, volume: "5%" }
+      { 
+        region: "North America", 
+        positive: 85, 
+        neutral: 12, 
+        negative: 3, 
+        volume: "45%",
+        engagement: 4800,
+        topSentiment: "Innovation",
+        growthRate: "+28%",
+        demographics: {
+          age18_24: 22,
+          age25_34: 38,
+          age35_44: 25,
+          age45_plus: 15,
+          techSavvy: 78,
+          earlyAdopters: 42
+        }
+      },
+      { 
+        region: "Europe", 
+        positive: 78, 
+        neutral: 18, 
+        negative: 4, 
+        volume: "30%",
+        engagement: 3200,
+        topSentiment: "Efficiency",
+        growthRate: "+18%",
+        demographics: {
+          age18_24: 18,
+          age25_34: 35,
+          age35_44: 28,
+          age45_plus: 19,
+          techSavvy: 72,
+          earlyAdopters: 38
+        }
+      },
+      { 
+        region: "Asia Pacific", 
+        positive: 83, 
+        neutral: 14, 
+        negative: 3, 
+        volume: "20%",
+        engagement: 5600,
+        topSentiment: "Automation",
+        growthRate: "+45%",
+        demographics: {
+          age18_24: 28,
+          age25_34: 42,
+          age35_44: 20,
+          age45_plus: 10,
+          techSavvy: 85,
+          earlyAdopters: 52
+        }
+      },
+      { 
+        region: "Latin America", 
+        positive: 80, 
+        neutral: 17, 
+        negative: 3, 
+        volume: "5%",
+        engagement: 2100,
+        topSentiment: "Cost-effective",
+        growthRate: "+35%",
+        demographics: {
+          age18_24: 32,
+          age25_34: 40,
+          age35_44: 18,
+          age45_plus: 10,
+          techSavvy: 68,
+          earlyAdopters: 35
+        }
+      }
     ],
     topThemes: [
-      { theme: "Automation", mentions: 1234, sentiment: "Very Positive" },
-      { theme: "Time Saving", mentions: 987, sentiment: "Positive" },
-      { theme: "Integration", mentions: 654, sentiment: "Positive" },
-      { theme: "Pricing", mentions: 432, sentiment: "Mixed" }
+      { theme: "Automation", mentions: 1234, sentiment: "Very Positive", growth: "+45%", reach: "892K" },
+      { theme: "Time Saving", mentions: 987, sentiment: "Positive", growth: "+32%", reach: "654K" },
+      { theme: "Integration", mentions: 654, sentiment: "Positive", growth: "+28%", reach: "432K" },
+      { theme: "Pricing", mentions: 432, sentiment: "Mixed", growth: "+12%", reach: "298K" },
+      { theme: "Learning Curve", mentions: 321, sentiment: "Neutral", growth: "+8%", reach: "187K" },
+      { theme: "Customer Support", mentions: 298, sentiment: "Positive", growth: "+22%", reach: "156K" }
     ],
     platforms: {
-      reddit: { sentiment: 88, posts: 234 },
-      twitter: { sentiment: 79, posts: 1892 },
-      linkedin: { sentiment: 91, posts: 567 },
-      facebook: { sentiment: 75, posts: 445 }
+      reddit: { 
+        sentiment: 88, 
+        posts: 234, 
+        engagement: 12500,
+        topSubreddits: ["r/productivity", "r/startups", "r/SaaS"],
+        avgUpvotes: 145,
+        comments: 3421,
+        shareOfVoice: 34
+      },
+      twitter: { 
+        sentiment: 79, 
+        posts: 1892,
+        engagement: 45600,
+        impressions: 2340000,
+        retweets: 8923,
+        likes: 34567,
+        influencerMentions: 23
+      },
+      linkedin: { 
+        sentiment: 91, 
+        posts: 567,
+        engagement: 23400,
+        shares: 4567,
+        comments: 2134,
+        professionalReach: 890000,
+        decisionMakers: 42
+      },
+      facebook: { 
+        sentiment: 75, 
+        posts: 445,
+        engagement: 8900,
+        shares: 2345,
+        reactions: 6789,
+        groupMentions: 34,
+        adSentiment: 68
+      },
+      youtube: {
+        sentiment: 84,
+        videos: 123,
+        views: 3456000,
+        likes: 234000,
+        comments: 45678,
+        avgWatchTime: "8:34",
+        creatorMentions: 56
+      },
+      productHunt: {
+        sentiment: 92,
+        reviews: 89,
+        upvotes: 2345,
+        avgRating: 4.7,
+        hunterComments: 234,
+        featured: true,
+        rank: 3
+      }
     },
+    emotionalBreakdown: {
+      joy: 34,
+      trust: 28,
+      anticipation: 22,
+      surprise: 8,
+      fear: 4,
+      sadness: 2,
+      anger: 1,
+      disgust: 1
+    },
+    temporalAnalysis: {
+      hourly: [
+        { hour: 0, sentiment: 78, volume: 23 },
+        { hour: 6, sentiment: 80, volume: 45 },
+        { hour: 12, sentiment: 85, volume: 89 },
+        { hour: 18, sentiment: 82, volume: 67 },
+        { hour: 23, sentiment: 79, volume: 34 }
+      ],
+      daily: [
+        { day: "Mon", sentiment: 80, volume: 234 },
+        { day: "Tue", sentiment: 82, volume: 267 },
+        { day: "Wed", sentiment: 83, volume: 289 },
+        { day: "Thu", sentiment: 85, volume: 312 },
+        { day: "Fri", sentiment: 84, volume: 298 },
+        { day: "Sat", sentiment: 78, volume: 187 },
+        { day: "Sun", sentiment: 76, volume: 156 }
+      ],
+      monthly: [
+        { month: "Jul", sentiment: 72, volume: 3421 },
+        { month: "Aug", sentiment: 75, volume: 4532 },
+        { month: "Sep", sentiment: 82, volume: 6789 }
+      ]
+    },
+    competitorComparison: [
+      { competitor: "Your Product", sentiment: 82, mentions: 4200, growth: "+23%" },
+      { competitor: "Competitor A", sentiment: 74, mentions: 3200, growth: "+12%" },
+      { competitor: "Competitor B", sentiment: 68, mentions: 2800, growth: "+8%" },
+      { competitor: "Competitor C", sentiment: 71, mentions: 1900, growth: "+15%" }
+    ],
+    influencerMentions: [
+      { 
+        name: "TechGuru", 
+        platform: "Twitter", 
+        followers: 234000,
+        sentiment: "Very Positive",
+        engagement: 12300,
+        reach: 456000,
+        impact: "High"
+      },
+      { 
+        name: "ProductivityPro", 
+        platform: "YouTube",
+        followers: 890000,
+        sentiment: "Positive",
+        engagement: 45600,
+        reach: 1230000,
+        impact: "Very High"
+      },
+      { 
+        name: "StartupSteve", 
+        platform: "LinkedIn",
+        followers: 123000,
+        sentiment: "Positive",
+        engagement: 8900,
+        reach: 234000,
+        impact: "Medium"
+      }
+    ],
+    keywordClouds: {
+      positive: ["innovative", "time-saving", "intuitive", "powerful", "game-changer", "efficient", "seamless", "revolutionary"],
+      negative: ["expensive", "complex", "buggy", "slow", "limited"],
+      neutral: ["interesting", "potential", "learning", "testing", "considering"]
+    },
+    customerSegments: [
+      { 
+        segment: "Enterprise", 
+        sentiment: 78, 
+        volume: 1234,
+        topConcern: "Integration",
+        satisfaction: 4.1,
+        churnRisk: "Low"
+      },
+      { 
+        segment: "SMB", 
+        sentiment: 85, 
+        volume: 2345,
+        topConcern: "Pricing",
+        satisfaction: 4.3,
+        churnRisk: "Medium"
+      },
+      { 
+        segment: "Startup", 
+        sentiment: 88, 
+        volume: 1567,
+        topConcern: "Features",
+        satisfaction: 4.5,
+        churnRisk: "Low"
+      },
+      { 
+        segment: "Individual", 
+        sentiment: 82, 
+        volume: 890,
+        topConcern: "Ease of use",
+        satisfaction: 4.2,
+        churnRisk: "Medium"
+      }
+    ],
+    predictiveTrends: {
+      next7Days: { sentiment: 84, confidence: 0.85 },
+      next30Days: { sentiment: 86, confidence: 0.72 },
+      next90Days: { sentiment: 88, confidence: 0.65 },
+      drivers: ["Product updates", "Marketing campaign", "Industry trends"],
+      risks: ["Competitor launch", "Price sensitivity", "Feature gaps"]
+    },
+    actionableInsights: [
+      {
+        insight: "Focus on enterprise integration features",
+        impact: "High",
+        urgency: "Medium",
+        estimatedROI: "+15%"
+      },
+      {
+        insight: "Address pricing concerns for SMB segment",
+        impact: "Medium",
+        urgency: "High",
+        estimatedROI: "+8%"
+      },
+      {
+        insight: "Leverage positive YouTube sentiment",
+        impact: "Medium",
+        urgency: "Low",
+        estimatedROI: "+12%"
+      }
+    ],
     citations: [
       { url: "reddit.com", title: "Reddit Discussion", source: "Reddit", relevance: 0.95 },
       { url: "twitter.com", title: "Twitter Analysis", source: "Twitter", relevance: 0.92 }

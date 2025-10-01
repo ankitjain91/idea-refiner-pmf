@@ -233,37 +233,94 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
               )}
               
-              {/* Display regional breakdown if available - only in expanded mode */}
+              {/* Display regional breakdown if available - Enhanced for sentiment - only in expanded mode */}
               {(data as any)?.regionalBreakdown && expanded && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
-                    <div className="text-xs text-muted-foreground mb-3">Regional Breakdown</div>
-                    <div className="space-y-2">
-                      {(data as any).regionalBreakdown.slice(0, 3).map((region: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between text-xs">
-                          <span className="font-medium">{region.region}</span>
-                          <div className="flex items-center gap-2">
-                            {region.positive && (
-                              <Badge variant="outline" className="text-xs">
-                                {region.positive}% positive
-                              </Badge>
-                            )}
-                            {region.growth && (
-                              <Badge variant="outline" className="text-xs">
-                                {region.growth}% growth
-                              </Badge>
-                            )}
-                            {region.interest && (
-                              <Badge variant="outline" className="text-xs">
-                                {region.interest}/100
-                              </Badge>
-                            )}
-                            {region.coverage && (
-                              <Badge variant="outline" className="text-xs">
-                                {region.coverage}% coverage
-                              </Badge>
-                            )}
+                    <div className="text-xs text-muted-foreground mb-3">Regional Analysis</div>
+                    <div className="space-y-3">
+                      {(data as any).regionalBreakdown.map((region: any, idx: number) => (
+                        <div key={idx} className="space-y-2 p-2 rounded-lg bg-muted/20">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">{region.region}</span>
+                            <div className="flex items-center gap-2">
+                              {region.growthRate && (
+                                <Badge variant="default" className="text-xs">
+                                  {region.growthRate}
+                                </Badge>
+                              )}
+                              {region.volume && (
+                                <Badge variant="outline" className="text-xs">
+                                  {region.volume} volume
+                                </Badge>
+                              )}
+                              {region.coverage && (
+                                <Badge variant="outline" className="text-xs">
+                                  {region.coverage}% coverage
+                                </Badge>
+                              )}
+                            </div>
                           </div>
+                          
+                          {/* Sentiment breakdown */}
+                          {region.positive && (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full flex">
+                                  <div 
+                                    className="bg-success" 
+                                    style={{ width: `${region.positive}%` }}
+                                  />
+                                  <div 
+                                    className="bg-muted-foreground/30" 
+                                    style={{ width: `${region.neutral}%` }}
+                                  />
+                                  <div 
+                                    className="bg-destructive" 
+                                    style={{ width: `${region.negative}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {region.positive}% positive
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Demographics if available */}
+                          {region.demographics && (
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Tech-savvy: </span>
+                                <span className="font-medium">{region.demographics.techSavvy}%</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Early adopters: </span>
+                                <span className="font-medium">{region.demographics.earlyAdopters}%</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">25-34 age: </span>
+                                <span className="font-medium">{region.demographics.age25_34}%</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Engagement metrics */}
+                          {region.engagement && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Engagement: </span>
+                              <span className="font-medium">{region.engagement.toLocaleString()}</span>
+                            </div>
+                          )}
+                          
+                          {region.topSentiment && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Top theme: </span>
+                              <Badge variant="secondary" className="text-xs">
+                                {region.topSentiment}
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -503,28 +560,230 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display platforms for sentiment */}
-              {(data as any)?.platforms && (
+              {/* Display platforms for sentiment - Enhanced version */}
+              {(data as any)?.platforms && expanded && (
                 <Card className="border-primary/20">
                   <CardContent className="pt-4">
-                    <div className="text-xs text-muted-foreground mb-3">Platform Sentiment</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries((data as any).platforms).map(([platform, data]: [string, any], idx) => (
-                        <div key={idx} className="flex items-center justify-between">
-                          <span className="text-xs font-medium capitalize">{platform}</span>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={cn(
-                              "text-xs",
-                              data.sentiment > 85 ? "text-green-500" :
-                              data.sentiment > 70 ? "text-blue-500" :
-                              "text-yellow-500"
-                            )}>
-                              {data.sentiment}%
+                    <div className="text-xs text-muted-foreground mb-3">Platform Analytics</div>
+                    <div className="space-y-3">
+                      {Object.entries((data as any).platforms).slice(0, 6).map(([platform, data]: [string, any], idx) => (
+                        <div key={idx} className="space-y-2 p-2 rounded-lg bg-muted/10">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium capitalize">{platform}</span>
+                            <Badge variant={data.sentiment > 85 ? "default" : "outline"} className="text-xs">
+                              {data.sentiment}% positive
                             </Badge>
-                            <span className="text-xs text-muted-foreground">{data.posts}</span>
+                          </div>
+                          
+                          {/* Engagement metrics */}
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            {data.posts && (
+                              <div>
+                                <span className="text-muted-foreground">Posts: </span>
+                                <span className="font-medium">{data.posts.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {data.engagement && (
+                              <div>
+                                <span className="text-muted-foreground">Engagement: </span>
+                                <span className="font-medium">{data.engagement.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {data.impressions && (
+                              <div>
+                                <span className="text-muted-foreground">Impressions: </span>
+                                <span className="font-medium">{(data.impressions / 1000000).toFixed(1)}M</span>
+                              </div>
+                            )}
+                            {data.views && (
+                              <div>
+                                <span className="text-muted-foreground">Views: </span>
+                                <span className="font-medium">{(data.views / 1000000).toFixed(1)}M</span>
+                              </div>
+                            )}
+                            {data.avgRating && (
+                              <div>
+                                <span className="text-muted-foreground">Rating: </span>
+                                <span className="font-medium">⭐ {data.avgRating}</span>
+                              </div>
+                            )}
+                            {data.influencerMentions && (
+                              <div>
+                                <span className="text-muted-foreground">Influencers: </span>
+                                <span className="font-medium">{data.influencerMentions}</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Platform-specific highlights */}
+                          {data.topSubreddits && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Top communities: </span>
+                              {data.topSubreddits.map((sub: string, i: number) => (
+                                <Badge key={i} variant="outline" className="text-xs mr-1">
+                                  {sub}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {data.avgWatchTime && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">Avg watch time: </span>
+                              <span className="font-medium">{data.avgWatchTime}</span>
+                            </div>
+                          )}
+                          {data.featured && (
+                            <Badge variant="default" className="text-xs w-fit">
+                              Featured #{data.rank}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display additional sentiment insights */}
+              {(data as any)?.emotionalBreakdown && expanded && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Emotional Analysis</div>
+                    <div className="space-y-2">
+                      {Object.entries((data as any).emotionalBreakdown).slice(0, 4).map(([emotion, value]: [string, any]) => (
+                        <div key={emotion} className="flex items-center justify-between">
+                          <span className="text-xs capitalize">{emotion}</span>
+                          <div className="flex items-center gap-2 flex-1 max-w-[200px] ml-4">
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className={cn(
+                                  "h-full rounded-full",
+                                  emotion === "joy" || emotion === "trust" ? "bg-success" :
+                                  emotion === "anticipation" ? "bg-primary" :
+                                  emotion === "surprise" ? "bg-accent" :
+                                  "bg-muted-foreground/30"
+                                )}
+                                style={{ width: `${value}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium">{value}%</span>
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display temporal analysis */}
+              {(data as any)?.temporalAnalysis && expanded && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Temporal Patterns</div>
+                    
+                    {/* Daily pattern */}
+                    {(data as any).temporalAnalysis.daily && (
+                      <div className="mb-3">
+                        <div className="text-xs text-muted-foreground mb-2">Weekly Pattern</div>
+                        <div className="flex items-end gap-1 h-12">
+                          {(data as any).temporalAnalysis.daily.map((day: any) => (
+                            <div key={day.day} className="flex-1 flex flex-col items-center">
+                              <div 
+                                className="w-full bg-primary/80 rounded-t"
+                                style={{ height: `${(day.sentiment / 100) * 48}px` }}
+                              />
+                              <span className="text-[10px] mt-1">{day.day.slice(0, 1)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Monthly trend */}
+                    {(data as any).temporalAnalysis.monthly && (
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-2">3-Month Trend</div>
+                        <div className="space-y-1">
+                          {(data as any).temporalAnalysis.monthly.map((month: any) => (
+                            <div key={month.month} className="flex items-center gap-2">
+                              <span className="text-xs w-8">{month.month}</span>
+                              <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+                                  style={{ width: `${month.sentiment}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium">{month.sentiment}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display influencer mentions */}
+              {(data as any)?.influencerMentions && expanded && (
+                <Card className="border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Influencer Impact</div>
+                    <div className="space-y-2">
+                      {(data as any).influencerMentions.map((influencer: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/10">
+                          <div>
+                            <p className="text-sm font-medium">{influencer.name}</p>
+                            <p className="text-xs text-muted-foreground">{influencer.platform} • {(influencer.followers / 1000).toFixed(0)}K followers</p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={influencer.impact === "Very High" ? "default" : "outline"} className="text-xs">
+                              {influencer.impact} impact
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-1">{(influencer.reach / 1000).toFixed(0)}K reach</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Display predictive trends */}
+              {(data as any)?.predictiveTrends && expanded && (
+                <Card className="border-accent/20">
+                  <CardContent className="pt-4">
+                    <div className="text-xs text-muted-foreground mb-3">Predictive Analysis</div>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center p-2 rounded-lg bg-muted/20">
+                          <p className="text-xs text-muted-foreground">7 Days</p>
+                          <p className="text-lg font-bold text-primary">{(data as any).predictiveTrends.next7Days.sentiment}%</p>
+                          <p className="text-xs text-muted-foreground">{Math.round((data as any).predictiveTrends.next7Days.confidence * 100)}% conf</p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-muted/20">
+                          <p className="text-xs text-muted-foreground">30 Days</p>
+                          <p className="text-lg font-bold text-primary">{(data as any).predictiveTrends.next30Days.sentiment}%</p>
+                          <p className="text-xs text-muted-foreground">{Math.round((data as any).predictiveTrends.next30Days.confidence * 100)}% conf</p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-muted/20">
+                          <p className="text-xs text-muted-foreground">90 Days</p>
+                          <p className="text-lg font-bold text-primary">{(data as any).predictiveTrends.next90Days.sentiment}%</p>
+                          <p className="text-xs text-muted-foreground">{Math.round((data as any).predictiveTrends.next90Days.confidence * 100)}% conf</p>
+                        </div>
+                      </div>
+                      
+                      {(data as any).predictiveTrends.drivers && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Growth Drivers</p>
+                          <div className="flex flex-wrap gap-1">
+                            {(data as any).predictiveTrends.drivers.map((driver: string, idx: number) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {driver}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
