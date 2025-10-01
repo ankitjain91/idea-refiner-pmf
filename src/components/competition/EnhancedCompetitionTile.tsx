@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { Building2, TrendingUp, Users, Shield, Brain, ChevronRight, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Lightbulb, Target, Sparkles, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -213,8 +214,8 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
 
   return (
     <>
-      <Card className="h-full">
-        <CardHeader className="pb-3">
+      <Card className="h-full transition-all duration-300 hover:shadow-lg">
+        <CardHeader className={cn("pb-3", isCollapsed && "border-b-0")}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <CardTitle className="flex items-center gap-2">

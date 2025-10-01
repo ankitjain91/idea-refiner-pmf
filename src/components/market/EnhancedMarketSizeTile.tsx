@@ -238,7 +238,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
 
   return (
     <Card className={cn("transition-all duration-300 hover:shadow-lg", className)}>
-      <CardHeader className="pb-3">
+      <CardHeader className={cn("pb-3", isCollapsed && "border-b-0")}>
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-green-500/20 border border-blue-500/30">
