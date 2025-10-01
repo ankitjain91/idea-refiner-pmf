@@ -239,15 +239,13 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
   return (
     <Card className="relative border-primary/30 bg-gradient-to-br from-background via-background/95 to-primary/5 overflow-hidden">
       {/* Holographic overlay effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5 pointer-events-none animate-pulse" />
       
       <CardHeader className="relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-xl animate-pulse" />
               <div className="relative p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30">
-                <Globe2 className="h-6 w-6 text-primary animate-spin-slow" />
+                <Globe2 className="h-6 w-6 text-primary" />
               </div>
             </div>
             <div>
@@ -255,7 +253,7 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                 GLOBAL MARKET INTELLIGENCE SYSTEM
               </CardTitle>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs border-green-500/50 text-green-500 animate-pulse">
+                <Badge variant="outline" className="text-xs border-green-500/50 text-green-500">
                   <Radio className="h-3 w-3 mr-1" />
                   LIVE
                 </Badge>
@@ -340,7 +338,6 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                     stroke="url(#holographic-gradient)"
                     strokeWidth="0.5"
                     opacity="0.3"
-                    className="animate-pulse"
                   />
                 ))
               )}
@@ -371,7 +368,7 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                 
                 return (
                   <g key={region.name}>
-                    {/* Outer pulsing ring */}
+                    {/* Outer ring */}
                     <circle
                       cx={region.coordinates[0]}
                       cy={-region.coordinates[1]}
@@ -380,7 +377,6 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                       stroke={getRegionColor(region)}
                       strokeWidth="1"
                       opacity="0.3"
-                      className="animate-ping"
                     />
                     
                     {/* Main marker */}
@@ -404,7 +400,6 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                       cy={-region.coordinates[1]}
                       r="2"
                       fill="#ffffff"
-                      className="animate-pulse"
                     />
                     
                     {/* Region label */}
@@ -492,7 +487,6 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
           {/* Futuristic summary statistics */}
           <div className="grid grid-cols-3 gap-4">
             <Card className="relative border-primary/30 bg-gradient-to-br from-primary/10 to-transparent overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent animate-pulse" />
               <CardContent className="relative pt-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -501,15 +495,13 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                     <p className="text-[10px] font-mono text-primary/60 mt-1">MARKET POTENTIAL</p>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl animate-pulse" />
-                    <TrendingUp className="relative h-8 w-8 text-primary" />
+                    <TrendingUp className="relative h-8 w-8 text-primary/30" />
                   </div>
                 </div>
               </CardContent>
             </Card>
             
             <Card className="relative border-accent/30 bg-gradient-to-br from-accent/10 to-transparent overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent animate-pulse" />
               <CardContent className="relative pt-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -518,15 +510,13 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                     <p className="text-[10px] font-mono text-accent/60 mt-1">REACHABLE MARKET</p>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-0 bg-accent/20 blur-xl animate-pulse" />
-                    <Users className="relative h-8 w-8 text-accent" />
+                    <Users className="relative h-8 w-8 text-accent/30" />
                   </div>
                 </div>
               </CardContent>
             </Card>
             
             <Card className="relative border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-transparent animate-pulse" />
               <CardContent className="relative pt-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -535,8 +525,7 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                     <p className="text-[10px] font-mono text-green-500/60 mt-1">YEAR 1 TARGET</p>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-0 bg-green-500/20 blur-xl animate-pulse" />
-                    <DollarSign className="relative h-8 w-8 text-green-500" />
+                    <DollarSign className="relative h-8 w-8 text-green-500/30" />
                   </div>
                 </div>
               </CardContent>
