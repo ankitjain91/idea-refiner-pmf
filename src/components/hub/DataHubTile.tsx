@@ -8,7 +8,7 @@ import {
   ChevronRight, TrendingUp, TrendingDown, 
   Minus, AlertCircle, CheckCircle, XCircle,
   FileText, Sparkles, Activity, BarChart3,
-  Brain, Zap, Target, Shield, ChevronDown, ChevronUp
+  Brain, Zap, Target, Shield, ChevronDown, ChevronUp, RefreshCw
 } from "lucide-react";
 import React, { useState } from "react";
 import { TileData } from "@/lib/data-hub-orchestrator";
@@ -281,6 +281,20 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                       <Activity className="h-3 w-3" />
                       {data?.confidence ? `${Math.round(data.confidence * 100)}%` : '50%'}
                     </Badge>
+                    {onRefresh && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRefresh();
+                        }}
+                        disabled={loading}
+                        className="h-7 px-2"
+                      >
+                        <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm"

@@ -52,9 +52,10 @@ interface CompetitionData {
 interface EnhancedCompetitionTileProps {
   idea?: string;
   initialData?: TileData | null;
+  onRefresh?: () => void;
 }
 
-export function EnhancedCompetitionTile({ idea, initialData }: EnhancedCompetitionTileProps) {
+export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: EnhancedCompetitionTileProps) {
   const [data, setData] = useState<CompetitionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +79,11 @@ export function EnhancedCompetitionTile({ idea, initialData }: EnhancedCompetiti
     // If expanding for the first time, trigger data load
     if (!newCollapsed && !hasBeenExpanded && !data) {
       setHasBeenExpanded(true);
-      loadCompetitionData();
+      if (onRefresh) {
+        onRefresh();
+      } else {
+        loadCompetitionData();
+      }
     }
   };
 

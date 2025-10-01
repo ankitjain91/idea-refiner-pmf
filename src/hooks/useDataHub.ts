@@ -435,10 +435,16 @@ export function useDataHub(input: DataHubInput) {
     return state.tiles[tileType] || null;
   }, [state.tiles]);
   
+  const refreshTile = useCallback(async (tileType: string) => {
+    // For non-optimized version, just refresh everything
+    return refresh();
+  }, [refresh]);
+  
   return {
     ...state,
     fetchDataHub,
     refresh,
+    refreshTile,
     getTileData
   };
 }

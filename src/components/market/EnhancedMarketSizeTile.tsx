@@ -48,16 +48,33 @@ interface MarketSizeData {
 interface EnhancedMarketSizeTileProps {
   idea?: string;
   className?: string;
+  initialData?: any;
+  onRefresh?: () => void;
 }
 
-export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTileProps) {
-  const [marketData, setMarketData] = useState<MarketSizeData | null>(null);
+export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh }: EnhancedMarketSizeTileProps) {
+  // Ensure market data has all required properties
+  const normalizeMarketData = (data: any): MarketSizeData => {
+    return {
+      TAM: data?.TAM || '$0B',
+      SAM: data?.SAM || '$0M',
+      SOM: data?.SOM || '$0M',
+      growth_rate: data?.growth_rate || '0%',
+      regions: data?.regions || [],
+      confidence: data?.confidence || 'Low',
+      explanation: data?.explanation || 'Market analysis data unavailable',
+      citations: data?.citations || [],
+      charts: data?.charts || []
+    };
+  };
+
+  const [marketData, setMarketData] = useState<MarketSizeData | null>(initialData ? normalizeMarketData(initialData) : null);
   const [loading, setLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'overview' | 'regional' | 'projections'>('overview');
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [hasBeenExpanded, setHasBeenExpanded] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(!initialData);
+  const [hasBeenExpanded, setHasBeenExpanded] = useState(!!initialData);
   const { currentSession } = useSession();
   
   const currentIdea = idea || currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || 'AI-powered productivity app';
@@ -77,138 +94,53 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     return messages[Math.floor(Math.random() * messages.length)];
   };
   
-  // Ensure market data has all required properties
-  const normalizeMarketData = (data: any): MarketSizeData => {
-    return {
-      TAM: data?.TAM || '$0B',
-      SAM: data?.SAM || '$0M',
-      SOM: data?.SOM || '$0M',
-      growth_rate: data?.growth_rate || '0%',
-      regions: data?.regions || [],
-      confidence: data?.confidence || 'Low',
-      explanation: data?.explanation || 'Market analysis data unavailable',
-      citations: data?.citations || [],
-      charts: data?.charts || []
-    };
-  };
-  
   const fetchMarketData = async (forceRefresh = false) => {
-    if (!currentIdea) {
-      toast.error('Please provide an idea to analyze');
+    // If we have onRefresh callback, use it instead of direct fetching
+    if (onRefresh && forceRefresh) {
+      console.log('[EnhancedMarketSizeTile] Using pipeline refresh');
+      onRefresh();
       return;
     }
 
-    // Check cache first unless force refresh
-    if (!forceRefresh) {
-      const cacheKey = `market_size_${currentIdea}`;
-      const cachedData = localStorage.getItem(cacheKey);
-      
-      if (cachedData) {
-        try {
-          const parsed = JSON.parse(cachedData);
-          // Check if cache is less than 1 hour old
-          const cacheAge = Date.now() - parsed.timestamp;
-          const oneHour = 60 * 60 * 1000;
-          
-          if (cacheAge < oneHour) {
-            console.log('Using cached market data:', parsed.data);
-            setMarketData(normalizeMarketData(parsed.data));
-            setIsCollapsed(false);
-            return;
+    // Only fetch directly if no onRefresh callback provided (backward compatibility)
+    if (!onRefresh) {
+      console.log('[EnhancedMarketSizeTile] No onRefresh callback, fetching directly');
+      if (!currentIdea) {
+        toast.error('Please provide an idea to analyze');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Call the real market-size-analysis edge function
+        const { data, error } = await supabase.functions.invoke('market-size-analysis', {
+          body: { 
+            idea: currentIdea,
+            geo_scope: ['global'], // Edge function expects an array
+            audience_profiles: [],
+            competitors: []
           }
-        } catch (e) {
-          console.error('Error parsing cached data:', e);
+        });
+
+        if (error) throw error;
+
+        // Extract data using the utility function
+        const extractedData = extractEdgeFunctionData({ data, error }, 'market_size');
+        
+        if (extractedData) {
+          const normalizedData = normalizeMarketData(extractedData);
+          setMarketData(normalizedData);
+          // Auto-expand tile when data is fetched
+          setIsCollapsed(false);
+          
+          console.log('Market data loaded:', extractedData);
         }
+      } catch (error) {
+        console.error('Market analysis failed:', error);
+        toast.error('Market analysis failed');
+      } finally {
+        setLoading(false);
       }
-    }
-
-    setLoading(true);
-    try {
-      // Call the real market-size-analysis edge function
-      const { data, error } = await supabase.functions.invoke('market-size-analysis', {
-        body: { 
-          idea: currentIdea,
-          geo_scope: ['global'], // Edge function expects an array
-          audience_profiles: [],
-          competitors: []
-        }
-      });
-
-      if (error) throw error;
-
-      // Extract data using the utility function
-      const extractedData = extractEdgeFunctionData({ data, error }, 'market_size');
-      
-      if (extractedData) {
-        const normalizedData = normalizeMarketData(extractedData);
-        setMarketData(normalizedData);
-        // Auto-expand tile when data is fetched
-        setIsCollapsed(false);
-        
-        // Cache the data with timestamp
-        const cacheKey = `market_size_${currentIdea}`;
-        localStorage.setItem(cacheKey, JSON.stringify({
-          data: extractedData,
-          timestamp: Date.now(),
-          idea: currentIdea
-        }));
-        
-        console.log('Market data loaded and cached:', extractedData);
-      } else {
-        // Fallback to mock data if no data returned
-        const mockData: MarketSizeData = {
-          TAM: '$2.5B',
-          SAM: '$850M',
-          SOM: '$125M',
-          growth_rate: '15.2%',
-          regions: [
-            { region: 'North America', TAM: '$1.2B', SAM: '$400M', SOM: '$125M', growth: '12%', confidence: 'High' },
-            { region: 'Europe', TAM: '$800M', SAM: '$270M', SOM: '$85M', growth: '18%', confidence: 'High' },
-            { region: 'Asia Pacific', TAM: '$500M', SAM: '$180M', SOM: '$45M', growth: '22%', confidence: 'Medium' }
-          ],
-          confidence: 'High',
-          explanation: 'Market analysis shows strong growth potential with increasing demand for AI-powered solutions. The total addressable market is expanding rapidly due to digital transformation initiatives.',
-          citations: [
-            { url: 'https://mckinsey.com', title: 'McKinsey Global Institute Report 2024', snippet: 'AI market growth analysis and projections' },
-            { url: 'https://gartner.com', title: 'Gartner Technology Trends Analysis', snippet: 'Enterprise technology adoption patterns' },
-            { url: 'https://idc.com', title: 'IDC Market Forecast 2024-2029', snippet: 'Market size and growth predictions' }
-          ],
-          charts: []
-        };
-        
-        setMarketData(mockData);
-        setIsCollapsed(false);
-        console.log('Using fallback market data:', mockData);
-      }
-    } catch (error) {
-      console.error('Market analysis failed:', error);
-      toast.error('Market analysis failed - using fallback data');
-      
-      // Fallback to mock data on error
-      const mockData: MarketSizeData = {
-        TAM: '$2.5B',
-        SAM: '$850M',
-        SOM: '$125M',
-        growth_rate: '15.2%',
-        regions: [
-          { region: 'North America', TAM: '$1.2B', SAM: '$400M', SOM: '$125M', growth: '12%', confidence: 'High' },
-          { region: 'Europe', TAM: '$800M', SAM: '$270M', SOM: '$85M', growth: '18%', confidence: 'High' },
-          { region: 'Asia Pacific', TAM: '$500M', SAM: '$180M', SOM: '$45M', growth: '22%', confidence: 'Medium' }
-        ],
-        confidence: 'High',
-        explanation: 'Market analysis shows strong growth potential with increasing demand for AI-powered solutions. The total addressable market is expanding rapidly due to digital transformation initiatives.',
-        citations: [
-          { url: 'https://mckinsey.com', title: 'McKinsey Global Institute Report 2024', snippet: 'AI market growth analysis and projections' },
-          { url: 'https://gartner.com', title: 'Gartner Technology Trends Analysis', snippet: 'Enterprise technology adoption patterns' },
-          { url: 'https://idc.com', title: 'IDC Market Forecast 2024-2029', snippet: 'Market size and growth predictions' }
-        ],
-        charts: []
-      };
-      
-      setMarketData(mockData);
-      setIsCollapsed(false);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -217,15 +149,26 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
     const newCollapsed = !isCollapsed;
     setIsCollapsed(newCollapsed);
     
-    // If expanding for the first time, trigger data load
+    // If expanding for the first time and no data, trigger pipeline load
     if (!newCollapsed && !hasBeenExpanded && !marketData) {
       setHasBeenExpanded(true);
-      fetchMarketData();
+      if (onRefresh) {
+        onRefresh();
+      } else {
+        fetchMarketData();
+      }
     }
   };
 
-  // Removed auto-fetch on mount
-  // useEffect removed to enable lazy loading
+  // Update marketData when initialData changes
+  React.useEffect(() => {
+    if (initialData) {
+      console.log('[EnhancedMarketSizeTile] Received initialData:', initialData);
+      setMarketData(normalizeMarketData(initialData));
+      setIsCollapsed(false);
+      setHasBeenExpanded(true);
+    }
+  }, [initialData]);
 
 
   const parseValue = (value: string | undefined): number => {

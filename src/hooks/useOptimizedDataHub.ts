@@ -291,6 +291,78 @@ export function useOptimizedDataHub(input: DataHubInput) {
     return fetchDataHub(true);
   }, [fetchDataHub, input.idea]);
   
+  const refreshTile = useCallback(async (tileType: string) => {
+    if (!input.idea) return;
+    
+    console.log(`[OptimizedDataHub] Refreshing tile: ${tileType}`);
+    setState(prev => ({
+      ...prev,
+      loading: true
+    }));
+    
+    try {
+      // Clear cache for this specific tile type
+      const cachedResponses = await cache.current.getResponsesForIdea(input.idea);
+      const tileCacheKeys = cachedResponses.filter(r => 
+        (r.metadata as any)?.tileType === tileType || 
+        r.source === tileType
+      ).map(r => r.id);
+      
+      // For now, clear all cache for the idea (can optimize later)
+      await cache.current.clearForIdea(input.idea);
+      
+      // Fetch fresh data for this tile through the optimized pipeline
+      const tileData = await optimizedService.current.getDataForTile(tileType, input.idea);
+      
+      if (tileData) {
+        // Convert OptimizedTileData to TileData format
+        const convertedTileData: TileData = {
+          metrics: tileData.metrics || {},
+          explanation: tileData.notes || '',
+          citations: (tileData.citations || []).map(c => 
+            typeof c === 'string' 
+              ? { url: '', title: c, source: '', relevance: 0.5 }
+              : c
+          ),
+          charts: [],
+          json: { ...tileData.metrics },
+          dataQuality: (tileData.metrics && Object.keys(tileData.metrics).length > 3) ? 'high' : 'medium',
+          confidence: tileData.confidence || 0.7
+        };
+        
+        setState(prev => ({
+          ...prev,
+          tiles: {
+            ...prev.tiles,
+            [tileType]: convertedTileData
+          },
+          loading: false,
+          lastFetchTime: new Date().toISOString()
+        }));
+        
+        toast({
+          title: "✅ Tile refreshed",
+          description: `${tileType.replace(/_/g, ' ')} data updated`,
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error(`[OptimizedDataHub] Error refreshing tile ${tileType}:`, error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: `Failed to refresh ${tileType}`
+      }));
+      
+      toast({
+        title: "❌ Refresh failed",
+        description: `Could not refresh ${tileType.replace(/_/g, ' ')} data`,
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  }, [input.idea, toast]);
+  
   const getTileData = useCallback((tileType: string): TileData | null => {
     return state.tiles[tileType] || null;
   }, [state.tiles]);
@@ -303,6 +375,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
     ...state,
     fetchDataHub,
     refresh,
+    refreshTile,
     getTileData,
     getCacheStats
   };

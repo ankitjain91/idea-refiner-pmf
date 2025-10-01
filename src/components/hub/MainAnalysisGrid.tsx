@@ -23,9 +23,10 @@ interface MainAnalysisGridProps {
   };
   loading?: boolean;
   viewMode: "executive" | "deep";
+  onRefreshTile?: (tileType: string) => void | Promise<void>;
 }
 
-export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridProps) {
+export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTile }: MainAnalysisGridProps) {
   const { currentSession } = useSession();
   const currentIdea = localStorage.getItem('dashboardIdea') || 
                      currentSession?.data?.currentIdea || 
@@ -205,7 +206,11 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
           if (tile.id === "market_size") {
             return (
               <div key={tile.id} className={tile.span}>
-                <EnhancedMarketSizeTile idea={currentIdea} />
+                <EnhancedMarketSizeTile 
+                  idea={currentIdea} 
+                  initialData={tiles.market_size || null}
+                  onRefresh={() => onRefreshTile?.('market_size')}
+                />
               </div>
             );
           }
@@ -213,7 +218,11 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
           if (tile.id === "competition") {
             return (
               <div key={tile.id} className={tile.span}>
-                <EnhancedCompetitionTile idea={currentIdea} initialData={tiles.competition || null} />
+                <EnhancedCompetitionTile 
+                  idea={currentIdea} 
+                  initialData={tiles.competition || null}
+                  onRefresh={() => onRefreshTile?.('competition')}
+                />
               </div>
             );
           }
@@ -233,7 +242,7 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
                 Icon={tile.icon}
                 data={tile.data}
                 loading={tileLoading[tile.id] || loading}
-                onRefresh={() => loadTileData(tile.id)}
+                onRefresh={() => onRefreshTile?.(tile.id) || loadTileData(tile.id)}
                 expanded={viewMode === "deep"}
                 tileType={tile.id}
                 className={cn(

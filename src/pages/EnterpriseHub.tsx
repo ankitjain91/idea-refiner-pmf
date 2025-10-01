@@ -85,7 +85,7 @@ export default function EnterpriseHub() {
     competitorHints: []
   });
 
-  const { indices, tiles, loading, error, refresh, lastFetchTime } = dataHub;
+  const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime } = dataHub;
   
   // Check if we have existing analysis data
   useEffect(() => {
@@ -341,6 +341,7 @@ export default function EnterpriseHub() {
             }}
             loading={loading}
             viewMode={viewMode}
+            onRefreshTile={refreshTile}
           />
         )}
 
