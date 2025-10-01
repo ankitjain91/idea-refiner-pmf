@@ -47,9 +47,13 @@ export function EvidenceExplorer({
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
+  // Ensure arrays are not undefined
+  const safeEvidenceStore = evidenceStore || [];
+  const safeProviderLog = providerLog || [];
+  
   // Filter evidence based on search and filters
   const filteredEvidence = useMemo(() => {
-    return evidenceStore.filter(citation => {
+    return safeEvidenceStore.filter(citation => {
       const matchesSearch = !searchQuery || 
         citation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         citation.snippet?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -59,15 +63,15 @@ export function EvidenceExplorer({
       
       return matchesSearch && matchesProvider;
     });
-  }, [evidenceStore, searchQuery, selectedProvider]);
+  }, [safeEvidenceStore, searchQuery, selectedProvider]);
   
   // Calculate totals with null checks
-  const totalRequests = providerLog.reduce((sum, p) => sum + (p.requestCount || 0), 0);
-  const totalCost = providerLog.reduce((sum, p) => sum + (p.estimatedCost || 0), 0);
-  const totalDeduped = providerLog.reduce((sum, p) => sum + (p.dedupeCount || 0), 0);
+  const totalRequests = safeProviderLog.reduce((sum, p) => sum + (p.requestCount || 0), 0);
+  const totalCost = safeProviderLog.reduce((sum, p) => sum + (p.estimatedCost || 0), 0);
+  const totalDeduped = safeProviderLog.reduce((sum, p) => sum + (p.dedupeCount || 0), 0);
   
   // Get unique providers
-  const providers = Array.from(new Set(providerLog.map(p => p.provider)));
+  const providers = Array.from(new Set(safeProviderLog.map(p => p.provider)));
   
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -85,7 +89,7 @@ export function EvidenceExplorer({
         <Tabs defaultValue="evidence" className="mt-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="evidence">
-              Evidence ({evidenceStore.length})
+              Evidence ({safeEvidenceStore.length})
             </TabsTrigger>
             <TabsTrigger value="providers">
               Providers ({providers.length})
@@ -216,7 +220,7 @@ export function EvidenceExplorer({
             {/* Provider Details */}
             <ScrollArea className="h-[calc(100vh-350px)]">
               <div className="space-y-3">
-                {providerLog.map((entry, i) => (
+                {safeProviderLog.map((entry, i) => (
                   <div key={i} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium capitalize">{entry.provider}</h4>
