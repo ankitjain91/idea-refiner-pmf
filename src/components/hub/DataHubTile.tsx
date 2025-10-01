@@ -86,9 +86,6 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
                 <CardTitle className="text-base font-semibold">{title}</CardTitle>
               </div>
-              <Badge variant="outline" className="text-xs backdrop-blur">
-                No Data
-              </Badge>
             </div>
           </CardHeader>
           <CardContent className="relative">
