@@ -355,6 +355,11 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
     ]
   };
   
+  const sentimentData = tiles.sentiment ? { ...mockSentimentData, ...tiles.sentiment } : mockSentimentData;
+  const marketTrendsData = tiles.market_trends ? { ...mockMarketTrendsData, ...tiles.market_trends } : mockMarketTrendsData;
+  const googleTrendsData = tiles.google_trends ? { ...mockGoogleTrendsData, ...tiles.google_trends } : mockGoogleTrendsData;
+  const newsData = tiles.news_analysis ? { ...mockNewsData, ...tiles.news_analysis } : mockNewsData;
+  
   const mainTiles = [
     { 
       id: "market_size", 
@@ -374,28 +379,28 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       id: "sentiment", 
       title: "Sentiment", 
       icon: MessageSquare,
-      data: tiles.sentiment || mockSentimentData,
+      data: sentimentData,
       span: "col-span-full"
     },
     { 
       id: "market_trends", 
       title: "Market Trends", 
       icon: TrendingUp,
-      data: tiles.market_trends || mockMarketTrendsData,
+      data: marketTrendsData,
       span: "col-span-full"
     },
     { 
       id: "google_trends", 
       title: "Google Trends", 
       icon: Search,
-      data: tiles.google_trends || mockGoogleTrendsData,
+      data: googleTrendsData,
       span: "col-span-full"
     },
     { 
       id: "news_analysis", 
       title: "News Analysis", 
       icon: Newspaper,
-      data: tiles.news_analysis || mockNewsData,
+      data: newsData,
       span: "col-span-full"
     }
   ];
