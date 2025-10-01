@@ -8,12 +8,12 @@ import {
   ChevronRight, TrendingUp, TrendingDown, 
   Minus, AlertCircle, CheckCircle, XCircle,
   FileText, Sparkles, Activity, BarChart3,
-  Brain, Zap, Target, Shield
+  Brain, Zap, Target, Shield, ChevronDown, ChevronUp
 } from "lucide-react";
 import { useState } from "react";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/contexts/SimpleSessionContext";
 
 interface DataHubTileProps {
@@ -31,6 +31,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
   const [showDetails, setShowDetails] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const { currentSession } = useSession();
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
   const icon = Icon ? <Icon className="h-5 w-5" /> : null;
@@ -172,32 +173,70 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
                 <span className="truncate">{title}</span>
               </CardTitle>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Badge 
-                  variant="outline" 
-                  className={cn("text-xs whitespace-nowrap hidden lg:flex", qualityColor)}
-                >
-                  {data?.confidence ? `${Math.round(data.confidence * 100)}%` : '50%'} Confidence
-                </Badge>
-                <Button 
-                  variant="outline" 
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {!isCollapsed && (
+                  <>
+                    <Badge 
+                      variant="outline" 
+                      className={cn("text-xs whitespace-nowrap hidden lg:flex", qualityColor)}
+                    >
+                      {data?.confidence ? `${Math.round(data.confidence * 100)}%` : '50%'} Confidence
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAIChat(true);
+                      }}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">AI Analysis</span>
+                      <span className="sm:hidden">AI</span>
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="ghost"
                   size="sm"
-                  className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowAIChat(true);
-                  }}
+                  className="h-8 w-8 p-0"
+                  onClick={() => setIsCollapsed(!isCollapsed)}
+                  aria-label={isCollapsed ? "Expand tile" : "Collapse tile"}
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">AI Analysis</span>
-                  <span className="sm:hidden">AI</span>
+                  {isCollapsed ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronUp className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>
+            {isCollapsed && primaryMetric && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-lg font-semibold">{primaryMetric.value}</span>
+                {primaryMetric.trend && (
+                  <Badge variant="outline" className="text-xs">
+                    {primaryMetric.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : 
+                     primaryMetric.trend === 'down' ? <TrendingDown className="h-3 w-3" /> : 
+                     <Minus className="h-3 w-3" />}
+                    <span className="ml-1">{primaryMetric.trendText}</span>
+                  </Badge>
+                )}
+              </div>
+            )}
           </CardHeader>
           
-          <CardContent>
-            <div className="space-y-4">
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <CardContent>
+                  <div className="space-y-4">
               {/* Display primary insight if available - only in expanded mode */}
               {(data as any)?.primaryInsight && expanded && (
                 <div className="p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
@@ -880,7 +919,10 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
               )}
             </div>
-          </CardContent>
+                  </CardContent>
+                </motion.div>
+              )}
+            </AnimatePresence>
         </Card>
       </motion.div>
       
