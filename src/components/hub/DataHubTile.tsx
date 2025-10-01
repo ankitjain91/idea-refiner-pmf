@@ -165,31 +165,32 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
       >
         <Card className={cn("transition-all duration-300 hover:shadow-lg h-full", className)}>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <div className={cn("p-2 rounded-lg bg-gradient-to-br border", tileStyle)}>
+            <div className="flex items-start justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 min-w-0">
+                <div className={cn("p-2 rounded-lg bg-gradient-to-br border flex-shrink-0", tileStyle)}>
                   {icon}
                 </div>
-                {title}
+                <span className="truncate">{title}</span>
               </CardTitle>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Badge 
                   variant="outline" 
-                  className={cn("text-xs whitespace-nowrap", qualityColor)}
+                  className={cn("text-xs whitespace-nowrap hidden lg:flex", qualityColor)}
                 >
                   {data?.confidence || 'Medium'} Confidence
                 </Badge>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="gap-1 px-2 py-1 h-auto whitespace-nowrap"
+                  className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowAIChat(true);
                   }}
                 >
-                  <Sparkles className="h-3 w-3" />
-                  <span className="text-xs">AI Analysis</span>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">AI Analysis</span>
+                  <span className="sm:hidden">AI</span>
                 </Button>
               </div>
             </div>

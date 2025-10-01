@@ -263,42 +263,42 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
       title: "Web Search", 
       icon: Search,
       data: webSearchData,
-      span: "col-span-full md:col-span-2 lg:col-span-2"
+      span: "col-span-full lg:col-span-2"
     },
     { 
       id: "reddit_sentiment", 
       title: "Reddit Sentiment", 
       icon: MessageSquare,
       data: redditData,
-      span: "col-span-full md:col-span-1"
+      span: "col-span-full md:col-span-2 lg:col-span-2"
     },
     { 
       id: "twitter_buzz", 
       title: "Twitter/X Buzz", 
       icon: Twitter,
       data: twitterData,
-      span: "col-span-full md:col-span-1"
+      span: "col-span-full md:col-span-2 lg:col-span-2"
     },
     { 
       id: "amazon_reviews", 
       title: "Amazon Reviews", 
       icon: ShoppingBag,
       data: amazonData,
-      span: "col-span-full md:col-span-1"
+      span: "col-span-full md:col-span-2 lg:col-span-2"
     },
     { 
       id: "youtube_analytics", 
       title: "YouTube Analytics", 
       icon: Youtube,
       data: youtubeData,
-      span: "col-span-full md:col-span-1"
+      span: "col-span-full md:col-span-2 lg:col-span-2"
     },
     { 
       id: "risk_assessment", 
       title: "Risk Assessment", 
       icon: AlertTriangle,
       data: riskData,
-      span: "col-span-full md:col-span-2 lg:col-span-2"
+      span: "col-span-full lg:col-span-2"
     }
   ];
 
