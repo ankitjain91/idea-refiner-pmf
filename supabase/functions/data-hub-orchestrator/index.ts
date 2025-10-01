@@ -264,6 +264,9 @@ async function executeTavilyQuery(item: FetchPlanItem, indices: any) {
   }
   
   try {
+    // Truncate query to 400 characters if too long
+    const truncatedQuery = item.query.length > 400 ? item.query.substring(0, 397) + '...' : item.query;
+    
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: {
@@ -271,7 +274,7 @@ async function executeTavilyQuery(item: FetchPlanItem, indices: any) {
       },
       body: JSON.stringify({
         api_key: TAVILY_API_KEY,
-        query: item.query,
+        query: truncatedQuery,
         search_depth: 'basic',
         max_results: 10,
         include_raw_content: false
@@ -315,9 +318,12 @@ async function executeBraveQuery(item: FetchPlanItem, indices: any) {
   
   try {
     // Add delay for rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(item.query)}&count=10`, {
+    // Truncate query if too long for Brave
+    const truncatedQuery = item.query.length > 200 ? item.query.substring(0, 197) + '...' : item.query;
+    
+    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(truncatedQuery)}&count=10`, {
       headers: {
         'X-Subscription-Token': BRAVE_SEARCH_API_KEY,
         'Accept': 'application/json'
@@ -428,8 +434,8 @@ async function executeSerpApiQuery(item: FetchPlanItem, indices: any) {
   }
   
   try {
-    // Add delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Add longer delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(item.query)}&api_key=${SERPAPI_KEY}&num=10`);
     
