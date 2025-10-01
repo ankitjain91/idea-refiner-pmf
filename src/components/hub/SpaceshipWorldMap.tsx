@@ -196,44 +196,21 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     
-    let animationId: number;
-    let time = 0;
-    
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw scanning line
-      ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
-      ctx.lineWidth = 2;
+    // Draw static grid
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < canvas.width; i += 30) {
       ctx.beginPath();
-      const y = (time % canvas.height);
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, canvas.height);
       ctx.stroke();
-      
-      // Draw grid
-      ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < canvas.width; i += 30) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, canvas.height);
-        ctx.stroke();
-      }
-      for (let i = 0; i < canvas.height; i += 30) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(canvas.width, i);
-        ctx.stroke();
-      }
-      
-      time += 2;
-      animationId = requestAnimationFrame(animate);
-    };
-    
-    animate();
-    
-    return () => cancelAnimationFrame(animationId);
+    }
+    for (let i = 0; i < canvas.height; i += 30) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(canvas.width, i);
+      ctx.stroke();
+    }
   }, []);
 
   return (
@@ -249,15 +226,15 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
               </div>
             </div>
             <div>
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                GLOBAL MARKET INTELLIGENCE SYSTEM
+              <CardTitle className="text-xl font-semibold">
+                Global Market Intelligence
               </CardTitle>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs border-green-500/50 text-green-500">
+                <Badge variant="outline" className="text-xs">
                   <Radio className="h-3 w-3 mr-1" />
-                  LIVE
+                  Live Data
                 </Badge>
-                <Badge variant="outline" className="text-xs border-cyan-500/50 text-cyan-500">
+                <Badge variant="outline" className="text-xs">
                   <Activity className="h-3 w-3 mr-1" />
                   {systemStatus}
                 </Badge>
@@ -406,9 +383,8 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                     <text 
                       x={region.coordinates[0]} 
                       y={-region.coordinates[1] + size + 20} 
-                      className="fill-primary text-[10px] font-mono uppercase tracking-wider"
+                      className="fill-foreground text-xs font-medium"
                       textAnchor="middle"
-                      style={{ textShadow: '0 0 10px rgba(0, 255, 255, 0.5)' }}
                     >
                       {region.name}
                     </text>
@@ -423,60 +399,60 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg" />
                 <div className="relative space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-mono text-lg font-bold text-primary">{hoveredRegion.name}</h3>
-                    <Badge variant="outline" className="text-xs border-green-500/50 text-green-500">
+                    <h3 className="font-semibold text-lg">{hoveredRegion.name}</h3>
+                    <Badge variant="outline" className="text-xs">
                       <Zap className="h-3 w-3 mr-1" />
-                      ACTIVE
+                      Active
                     </Badge>
                   </div>
                   
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="p-2 rounded bg-primary/10 border border-primary/20">
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase">TAM</p>
-                      <p className="text-sm font-bold text-primary">{formatCurrency(hoveredRegion.tam)}</p>
+                    <div className="p-2 rounded bg-muted/50 border border-border">
+                      <p className="text-xs text-muted-foreground">TAM</p>
+                      <p className="text-sm font-semibold">{formatCurrency(hoveredRegion.tam)}</p>
                     </div>
-                    <div className="p-2 rounded bg-accent/10 border border-accent/20">
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase">SAM</p>
-                      <p className="text-sm font-bold text-accent">{formatCurrency(hoveredRegion.sam)}</p>
+                    <div className="p-2 rounded bg-muted/50 border border-border">
+                      <p className="text-xs text-muted-foreground">SAM</p>
+                      <p className="text-sm font-semibold">{formatCurrency(hoveredRegion.sam)}</p>
                     </div>
-                    <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase">SOM</p>
-                      <p className="text-sm font-bold text-green-500">{formatCurrency(hoveredRegion.som)}</p>
+                    <div className="p-2 rounded bg-muted/50 border border-border">
+                      <p className="text-xs text-muted-foreground">SOM</p>
+                      <p className="text-sm font-semibold">{formatCurrency(hoveredRegion.som)}</p>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-mono text-muted-foreground">GROWTH RATE</span>
+                      <span className="text-xs text-muted-foreground">Growth Rate</span>
                       <div className="flex items-center gap-2">
                         <Progress value={hoveredRegion.cagr * 4} className="w-20 h-1.5" />
-                        <span className="text-xs font-bold text-primary">{hoveredRegion.cagr}%</span>
+                        <span className="text-xs font-semibold">{hoveredRegion.cagr}%</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-mono text-muted-foreground">PENETRATION</span>
+                      <span className="text-xs text-muted-foreground">Penetration</span>
                       <div className="flex items-center gap-2">
                         <Progress value={hoveredRegion.marketPenetration * 100} className="w-20 h-1.5" />
-                        <span className="text-xs font-bold text-accent">{Math.round(hoveredRegion.marketPenetration * 100)}%</span>
+                        <span className="text-xs font-semibold">{Math.round(hoveredRegion.marketPenetration * 100)}%</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-mono text-muted-foreground">CONFIDENCE</span>
+                      <span className="text-xs text-muted-foreground">Confidence</span>
                       <div className="flex items-center gap-2">
                         <Progress value={hoveredRegion.confidence * 100} className="w-20 h-1.5" />
-                        <span className="text-xs font-bold text-green-500">{Math.round(hoveredRegion.confidence * 100)}%</span>
+                        <span className="text-xs font-semibold">{Math.round(hoveredRegion.confidence * 100)}%</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                    <div className="p-2 rounded bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10">
-                      <p className="text-muted-foreground uppercase mb-1">Population</p>
-                      <p className="font-bold">{formatNumber(hoveredRegion.demographics.population)}</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded bg-muted/30 border border-border/50">
+                      <p className="text-muted-foreground mb-1">Population</p>
+                      <p className="font-semibold">{formatNumber(hoveredRegion.demographics.population)}</p>
                     </div>
-                    <div className="p-2 rounded bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10">
-                      <p className="text-muted-foreground uppercase mb-1">Internet</p>
-                      <p className="font-bold">{Math.round(hoveredRegion.demographics.internetPenetration * 100)}%</p>
+                    <div className="p-2 rounded bg-muted/30 border border-border/50">
+                      <p className="text-muted-foreground mb-1">Internet</p>
+                      <p className="font-semibold">{Math.round(hoveredRegion.demographics.internetPenetration * 100)}%</p>
                     </div>
                   </div>
                 </div>
@@ -490,9 +466,9 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
               <CardContent className="relative pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Total TAM</p>
-                    <p className="text-2xl font-bold font-mono text-primary">{formatCurrency(totalTAM)}</p>
-                    <p className="text-[10px] font-mono text-primary/60 mt-1">MARKET POTENTIAL</p>
+                    <p className="text-xs text-muted-foreground">Total TAM</p>
+                    <p className="text-2xl font-bold">{formatCurrency(totalTAM)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Market Potential</p>
                   </div>
                   <div className="relative">
                     <TrendingUp className="relative h-8 w-8 text-primary/30" />
@@ -505,9 +481,9 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
               <CardContent className="relative pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Addressable</p>
-                    <p className="text-2xl font-bold font-mono text-accent">{formatCurrency(totalSAM)}</p>
-                    <p className="text-[10px] font-mono text-accent/60 mt-1">REACHABLE MARKET</p>
+                    <p className="text-xs text-muted-foreground">Addressable (SAM)</p>
+                    <p className="text-2xl font-bold">{formatCurrency(totalSAM)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Reachable Market</p>
                   </div>
                   <div className="relative">
                     <Users className="relative h-8 w-8 text-accent/30" />
@@ -520,9 +496,9 @@ export function SpaceshipWorldMap({ marketData, loading }: SpaceshipWorldMapProp
               <CardContent className="relative pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Obtainable</p>
-                    <p className="text-2xl font-bold font-mono text-green-500">{formatCurrency(totalSOM)}</p>
-                    <p className="text-[10px] font-mono text-green-500/60 mt-1">YEAR 1 TARGET</p>
+                    <p className="text-xs text-muted-foreground">Obtainable (SOM)</p>
+                    <p className="text-2xl font-bold">{formatCurrency(totalSOM)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Year 1 Target</p>
                   </div>
                   <div className="relative">
                     <DollarSign className="relative h-8 w-8 text-green-500/30" />
