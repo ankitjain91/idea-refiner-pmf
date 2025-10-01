@@ -168,8 +168,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
                 return num;
               };
               const toPercent = (val: string): number => {
-                const n = parseFloat(String(val).replace(/[^\d.]/g, ''));
-                return isNaN(n) ? 0 : n;
+                if (!val) return 0;
+                const match = String(val).match(/(\d+\.?\d*)/);
+                const n = match ? parseFloat(match[1]) : 0;
+                return Math.min(n, 100);
               };
               
               const tamNum = toNumber(marketData.TAM);
@@ -178,7 +180,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
               const growthPct = toPercent(marketData.growth_rate);
               
               // Convert to TileData format with numeric metrics
-              const tileData: TileData = {
+              const tileData: TileData = sanitizeTileData({
                 metrics: {
                   tam: tamNum,
                   sam: samNum,
@@ -200,7 +202,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
                             marketData.confidence === 'Moderate' ? 0.7 : 0.5,
                 dataQuality: marketData.confidence === 'High' ? 'high' : 
                              marketData.confidence === 'Moderate' ? 'medium' : 'low'
-              };
+              });
               
               tiles[tileType] = tileData;
               console.log('[OptimizedDataHub] Real-time market data loaded:', {
