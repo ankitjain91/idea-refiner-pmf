@@ -478,8 +478,12 @@ export function useOptimizedDataHub(input: DataHubInput) {
             return num;
           };
           const toPercent = (val: string): number => {
-            const n = parseFloat(String(val).replace(/[^\d.]/g, ''));
-            return isNaN(n) ? 0 : n;
+            if (!val) return 0;
+            // Extract first number before % or space
+            const match = String(val).match(/(\d+\.?\d*)/);
+            const n = match ? parseFloat(match[1]) : 0;
+            // Cap at reasonable growth rate (max 100% annual)
+            return Math.min(n, 100);
           };
           
           const tileData: TileData = sanitizeTileData({

@@ -46,15 +46,15 @@ export function formatPercent(value: number | string | undefined): string {
   
   let num: number;
   if (typeof value === 'string') {
-    const cleaned = value.replace(/[^0-9.-]/g, '');
-    num = parseFloat(cleaned);
-    if (isNaN(num)) return '0%';
+    // Extract first number from string (handles "12% CAGR" etc)
+    const match = value.match(/(\d+\.?\d*)/);
+    num = match ? parseFloat(match[1]) : 0;
   } else {
     num = value;
   }
   
   // Cap at reasonable ranges
-  if (num > 1000) num = 100;
+  if (num > 100) num = 100;
   if (num < -100) num = -100;
   
   return `${num.toFixed(1)}%`;
