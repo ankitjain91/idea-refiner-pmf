@@ -155,14 +155,34 @@ export function useOptimizedDataHub(input: DataHubInput) {
               cacheStatsTracker.misses++;
               cacheStatsTracker.apiCalls += 5; // Market analysis makes multiple API calls
               
-              // Convert to TileData format
+              // Parse monetary strings to numbers in dollars
+              const toNumber = (val: string): number => {
+                if (!val) return 0;
+                const num = parseFloat(String(val).replace(/[^\d.]/g, '')) || 0;
+                const upper = String(val).toUpperCase();
+                if (upper.includes('T')) return num * 1e12;
+                if (upper.includes('B')) return num * 1e9;
+                if (upper.includes('M')) return num * 1e6;
+                if (upper.includes('K')) return num * 1e3;
+                return num;
+              };
+              const toPercent = (val: string): number => {
+                const n = parseFloat(String(val).replace(/[^\d.]/g, ''));
+                return isNaN(n) ? 0 : n;
+              };
+              
+              const tamNum = toNumber(marketData.TAM);
+              const samNum = toNumber(marketData.SAM);
+              const somNum = toNumber(marketData.SOM);
+              const growthPct = toPercent(marketData.growth_rate);
+              
+              // Convert to TileData format with numeric metrics
               const tileData: TileData = {
                 metrics: {
-                  TAM: marketData.TAM,
-                  SAM: marketData.SAM,
-                  SOM: marketData.SOM,
-                  growth: marketData.growth_rate,
-                  confidence: marketData.confidence
+                  tam: tamNum,
+                  sam: samNum,
+                  som: somNum,
+                  growthRate: growthPct,
                 },
                 explanation: marketData.explanation,
                 citations: marketData.citations,
@@ -172,7 +192,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
                   TAM: marketData.TAM,
                   SAM: marketData.SAM,
                   SOM: marketData.SOM,
-                  growth_rate: marketData.growth_rate
+                  growth_rate: marketData.growth_rate,
+                  confidence: marketData.confidence
                 },
                 confidence: marketData.confidence === 'High' ? 0.9 : 
                             marketData.confidence === 'Moderate' ? 0.7 : 0.5,

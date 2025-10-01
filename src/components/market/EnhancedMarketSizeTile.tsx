@@ -55,24 +55,40 @@ interface EnhancedMarketSizeTileProps {
 export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh }: EnhancedMarketSizeTileProps) {
   // Ensure market data has all required properties
   const normalizeMarketData = (data: any): MarketSizeData => {
+    if (!data) {
+      return {
+        TAM: '$0B', SAM: '$0M', SOM: '$0M', growth_rate: '0%', regions: [], confidence: 'Low', explanation: 'Market analysis data unavailable', citations: [], charts: []
+      };
+    }
+    
+    // Accept TileData shape: prefer data.metrics or data.json if present
+    const src = data?.TAM || data?.SAM || data?.SOM
+      ? data
+      : (data?.metrics?.TAM || data?.metrics?.SAM || data?.metrics?.SOM) 
+        ? data.metrics 
+        : (data?.json?.TAM || data?.json?.regions) 
+          ? data.json 
+          : data;
+    
     // Convert numeric confidence to string if needed
     let confidenceStr = 'Low';
-    if (typeof data?.confidence === 'number') {
-      if (data.confidence >= 0.7) confidenceStr = 'High';
-      else if (data.confidence >= 0.4) confidenceStr = 'Medium';
+    const rawConfidence = data?.confidence ?? src?.confidence;
+    if (typeof rawConfidence === 'number') {
+      if (rawConfidence >= 0.7) confidenceStr = 'High';
+      else if (rawConfidence >= 0.4) confidenceStr = 'Medium';
       else confidenceStr = 'Low';
-    } else if (typeof data?.confidence === 'string') {
-      confidenceStr = data.confidence;
+    } else if (typeof rawConfidence === 'string') {
+      confidenceStr = rawConfidence;
     }
     
     return {
-      TAM: data?.TAM || '$0B',
-      SAM: data?.SAM || '$0M',
-      SOM: data?.SOM || '$0M',
-      growth_rate: data?.growth_rate || '0%',
-      regions: data?.regions || [],
+      TAM: src?.TAM || src?.tam || '$0B',
+      SAM: src?.SAM || src?.sam || '$0M',
+      SOM: src?.SOM || src?.som || '$0M',
+      growth_rate: src?.growth_rate || src?.growth || '0%',
+      regions: src?.regions || [],
       confidence: confidenceStr,
-      explanation: data?.explanation || 'Market analysis data unavailable',
+      explanation: data?.explanation || 'Market analysis data',
       citations: data?.citations || [],
       charts: data?.charts || []
     };
