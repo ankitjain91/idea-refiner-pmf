@@ -152,6 +152,15 @@ async function executeQuery(item: FetchPlanItem, indices: any) {
   console.log(`Executing query: ${item.source} - ${item.purpose}`);
   
   try {
+    // Enhance query with Groq for better contextual results
+    if (GROQ_API_KEY && item.source !== 'groq') {
+      const enhancedQuery = await enhanceQueryWithGroq(item.query, item.purpose);
+      if (enhancedQuery) {
+        console.log(`✨ Query enhanced: "${item.query.substring(0, 50)}..." -> "${enhancedQuery.substring(0, 50)}..."`);
+        item.query = enhancedQuery;
+      }
+    }
+    
     switch (item.source) {
       case 'serper':
         return await executeSerperQuery(item, indices);
@@ -572,28 +581,122 @@ async function executeScraperApiQuery(item: FetchPlanItem, indices: any) {
     return;
   }
   
-  // ScraperAPI for JS-heavy pages
-  const response = await fetch(`http://api.scraperapi.com?api_key=${SCRAPERAPI_API_KEY}&url=${encodeURIComponent(item.query)}&render=true`);
-  
-  if (!response.ok) {
-    throw new Error(`ScraperAPI error: ${response.status}`);
-  }
-  
-  const html = await response.text();
-  
-  // Extract structured data from HTML
-  if (item.purpose.includes('pricing')) {
-    const prices = extractPricesFromHTML(html);
-    prices.forEach((price: any) => {
-      indices.PRICE_INDEX.push({
-        product: item.query,
-        price: price.amount,
-        currency: price.currency || 'USD',
-        source: 'scraperapi',
-        date: new Date().toISOString(),
-        priceType: price.type || 'retail'
+  try {
+    // Use ScraperAPI for deeper content extraction
+    const targetUrl = item.query.startsWith('http') ? item.query : `https://www.google.com/search?q=${encodeURIComponent(item.query)}`;
+    const response = await fetch(`http://api.scraperapi.com?api_key=${SCRAPERAPI_API_KEY}&url=${encodeURIComponent(targetUrl)}&render=true`);
+    
+    if (!response.ok) {
+      console.error(`ScraperAPI error: ${response.status}`);
+      return;
+    }
+    
+    const html = await response.text();
+    
+    // Extract structured data from HTML
+    const textContent = html.replace(/<[^>]*>/g, ' ').substring(0, 5000);
+    
+    // Enhanced extraction for different purposes
+    if (item.purpose.includes('pricing') || item.purpose.includes('price')) {
+      const prices = extractPricesFromHTML(html);
+      prices.forEach((price: any) => {
+        indices.PRICE_INDEX.push({
+          product: item.query,
+          price: price.amount,
+          currency: price.currency || 'USD',
+          source: 'scraperapi',
+          date: new Date().toISOString(),
+          priceType: price.type || 'retail'
+        });
       });
+    }
+    
+    // Extract competitors mentioned
+    if (item.purpose.includes('competitor') || item.purpose.includes('alternative')) {
+      const competitorPatterns = /(?:alternative|competitor|versus|vs\.?|compared to|better than)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi;
+      const matches = [...textContent.matchAll(competitorPatterns)];
+      matches.forEach(match => {
+        if (match[1]) {
+          indices.COMPETITOR_INDEX.push({
+            name: match[1],
+            url: targetUrl,
+            pricing: null,
+            features: [],
+            claims: [textContent.substring(match.index - 50, match.index + 150)],
+            traction: null,
+            marketShare: null,
+            lastUpdated: new Date().toISOString()
+          });
+        }
+      });
+    }
+    
+    // Add to search index
+    indices.SEARCH_INDEX.push({
+      url: targetUrl,
+      title: `Scraped: ${item.purpose}`,
+      snippet: textContent.substring(0, 500),
+      source: 'scraperapi',
+      fetchedAt: new Date().toISOString(),
+      relevanceScore: 0.85
     });
+    
+    // Add to evidence store
+    indices.EVIDENCE_STORE.push({
+      id: `scraper_${indices.EVIDENCE_STORE.length}`,
+      url: targetUrl,
+      title: `Deep analysis: ${item.purpose}`,
+      source: 'scraperapi',
+      snippet: textContent.substring(0, 300),
+      confidence: 0.9,
+      tileReferences: [item.purpose.split('_')[0]]
+    });
+  } catch (error) {
+    console.error(`ScraperAPI query failed: ${error.message}`);
+  }
+}
+
+// Add Groq query enhancement function
+async function enhanceQueryWithGroq(query: string, purpose: string): Promise<string | null> {
+  if (!GROQ_API_KEY) return null;
+  
+  try {
+    const systemPrompt = `You are a search query optimizer. Transform the startup idea into a highly targeted search query for the purpose: ${purpose}. 
+    Focus on: ${purpose.includes('market') ? 'market size, TAM, growth rate' : 
+               purpose.includes('competitor') ? 'direct competitors, alternatives, versus comparisons' :
+               purpose.includes('pricing') ? 'pricing models, subscription costs, free tiers' :
+               purpose.includes('sentiment') ? 'user reviews, complaints, testimonials' :
+               'relevant industry insights'}
+    Return ONLY the optimized search query (max 100 chars), no explanation.`;
+    
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'mixtral-8x7b-32768',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Idea: ${query}\nPurpose: ${purpose}` }
+        ],
+        temperature: 0.3,
+        max_tokens: 50
+      })
+    });
+    
+    if (!response.ok) {
+      console.warn('Groq enhancement failed, using original query');
+      return null;
+    }
+    
+    const data = await response.json();
+    const enhancedQuery = data.choices?.[0]?.message?.content?.trim();
+    return enhancedQuery || null;
+  } catch (error) {
+    console.warn('Groq enhancement error:', error);
+    return null;
   }
 }
 
@@ -620,8 +723,6 @@ function extractCompetitorName(title: string, snippet: string): string | null {
   }
   
   return capitalizedWords[0] || `Competitor ${Math.floor(Math.random() * 100)}`;
-  const capitalizedWords = words.filter(w => w[0] === w[0].toUpperCase() && w.length > 2);
-  return capitalizedWords[0] || null;
 }
 
 function analyzeSentiment(text: string): 'positive' | 'neutral' | 'negative' {

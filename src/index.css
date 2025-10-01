@@ -590,4 +590,17 @@ All colors MUST be HSL.
     @apply bg-muted/20 backdrop-blur-md border border-border/40 hover:bg-muted/30 hover:border-border/50 transition-all;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(15, 15, 15, 0.1));
   }
+  
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
 }

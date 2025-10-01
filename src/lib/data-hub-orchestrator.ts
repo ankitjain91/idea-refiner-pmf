@@ -220,6 +220,11 @@ export class DataHubOrchestrator {
     addQuery('serper', 'competitor_search', `${input.idea} competitors alternatives`, 1);
     addQuery('serper', 'pricing_search', `${input.idea} pricing cost`, 2);
     
+    // Enhanced scraper queries for deep analysis
+    addQuery('scraperapi', 'competitor_deep', `${input.idea} vs alternatives comparison`, 1);
+    addQuery('scraperapi', 'pricing_deep', `${input.idea} pricing plans features`, 2);
+    addQuery('scraperapi', 'market_analysis', `${input.idea} market analysis report`, 2);
+    
     // News search (Brave for diversity)
     addQuery('brave', 'news_recent', `${input.idea} news latest`, 1);
     addQuery('brave', 'news_trends', `${input.idea} trends 2024 2025`, 2);
@@ -235,8 +240,8 @@ export class DataHubOrchestrator {
       });
     }
     
-    // Market sizing queries
-    keywords.slice(0, 5).forEach(keyword => {
+    // Market sizing queries (reduced to avoid rate limits)
+    keywords.slice(0, 2).forEach(keyword => {
       addQuery('serpapi', 'market_size', `${keyword} market size TAM`, 3);
     });
     
