@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Brain, RefreshCw, LayoutGrid, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
-import { GlobalMarketMap } from "@/components/hub/GlobalMarketMap";
+import { WorldMapVisualization } from "@/components/hub/WorldMapVisualization";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
 import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
@@ -134,7 +134,7 @@ export default function EnterpriseHub() {
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
         {viewMode === "deep" && (
           <div className="space-y-6">
-            <GlobalMarketMap 
+            <WorldMapVisualization 
               marketData={tiles.market_size}
               loading={loading}
             />
