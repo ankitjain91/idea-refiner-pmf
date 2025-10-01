@@ -104,11 +104,11 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   size="sm" 
                   onClick={() => {
                     setIsFirstLoad(true);
-                    onRefresh();
+                    if (onRefresh) onRefresh();
                   }}
-                  className="backdrop-blur"
+                  className="backdrop-blur hover:bg-primary/10 transition-all duration-200"
                 >
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Activity className="h-3 w-3 mr-1.5 animate-pulse" />
                   Fetch Data
                 </Button>
               )}
@@ -260,9 +260,9 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         transition={{ duration: 0.3 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
-        className={isCollapsed ? "w-full h-auto min-h-0" : className}
+        className={cn(isCollapsed ? "w-full h-auto min-h-0" : className)}
       >
-        <Card className={cn("transition-all duration-300 hover:shadow-lg", isCollapsed && "h-auto min-h-0")}> 
+        <Card className={cn("transition-all duration-300 hover:shadow-xl border-border/50 bg-card/50 backdrop-blur-sm", isCollapsed && "h-auto min-h-0")}>
           <CardHeader className={cn(isCollapsed ? "py-2 border-b-0" : "py-3")}>
             <div className="flex items-start justify-between gap-2">
               <CardTitle className="flex items-center gap-2 min-w-0">
@@ -276,9 +276,10 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   <>
                     <Badge 
                       variant="outline" 
-                      className={cn("text-xs whitespace-nowrap hidden lg:flex", qualityColor)}
+                      className={cn("text-xs whitespace-nowrap hidden lg:flex items-center gap-1 transition-colors", qualityColor)}
                     >
-                      {data?.confidence ? `${Math.round(data.confidence * 100)}%` : '50%'} Confidence
+                      <Activity className="h-3 w-3" />
+                      {data?.confidence ? `${Math.round(data.confidence * 100)}%` : '50%'}
                     </Badge>
                     <Button 
                       variant="outline" 
@@ -336,28 +337,31 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               {data?.metrics && Object.keys(data.metrics).length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {Object.entries(data.metrics).slice(0, 6).map(([key, value], index) => (
-                    <Card key={key} className="border-primary/10 bg-gradient-to-br from-background to-muted/20 hover:shadow-md transition-all overflow-hidden">
+                    <Card key={key} className="border-primary/10 bg-gradient-to-br from-background/50 to-muted/20 hover:shadow-md transition-all duration-200 overflow-hidden group hover:border-primary/30">
                       <CardContent className="p-3">
-                        <div className="text-xs text-muted-foreground mb-1 truncate" title={key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}>
+                        <div className="text-xs text-muted-foreground mb-1 truncate transition-colors group-hover:text-foreground" title={key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}>
                           {key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span className={cn(
-                            "font-bold truncate",
+                            "font-bold truncate transition-all duration-200 group-hover:text-primary",
                             index < 2 ? "text-lg" : "text-base"
                           )}>{
-                            typeof value === 'number' && (key.includes('Rate') || key.includes('positive') || key.includes('negative') || key.includes('neutral')) ? `${value}%` :
+                            typeof value === 'number' && (key.includes('Rate') || key.includes('positive') || key.includes('negative') || key.includes('neutral') || key.includes('Score') || key.includes('velocity')) ? 
+                              `${Math.round(value)}%` :
                             typeof value === 'number' && (key.includes('Cap') || key.includes('reach')) ? 
                               value > 1000000000 ? `$${(value / 1000000000).toFixed(1)}B` :
-                              `$${(value / 1000000).toFixed(1)}M` :
+                              value > 1000000 ? `$${(value / 1000000).toFixed(1)}M` :
+                              `$${(value / 1000).toFixed(0)}K` :
                             typeof value === 'number' && value > 1000000 ? 
                               `${(value / 1000000).toFixed(1)}M` :
                             typeof value === 'number' && value > 1000 ? 
                               `${(value / 1000).toFixed(1)}K` :
+                            typeof value === 'number' ? value.toFixed(0) :
                             String(value).length > 15 ? String(value).substring(0, 12) + '...' : String(value)
                           }</span>
-                          {key.includes('trending') && value.toString().includes('+') && (
-                            <TrendingUp className="h-3 w-3 text-success flex-shrink-0" />
+                          {(key.includes('trending') || key.includes('growth') || key.includes('yearOverYear')) && typeof value === 'number' && value > 0 && (
+                            <TrendingUp className="h-3 w-3 text-success flex-shrink-0 animate-pulse" />
                           )}
                         </div>
                       </CardContent>
@@ -1042,10 +1046,10 @@ function getPrimaryMetric(tileType: string, data: TileData | null) {
     pmf_score: { key: 'score', unit: '/100' },
     market_size: { key: 'tam', unit: '' },
     competition: { key: 'total', unit: ' competitors' },
-    sentiment: { key: 'score', unit: '% positive' },
-    market_trends: { key: 'velocity', unit: ' trend' },
-    news_analysis: { key: 'recentArticles', unit: ' articles' },
-    google_trends: { key: 'currentInterest', unit: '% interest' },
+    sentiment: { key: 'positiveRate', unit: '% positive' },
+    market_trends: { key: 'trendScore', unit: '% strength' },
+    news_analysis: { key: 'articles', unit: ' articles' },
+    google_trends: { key: 'currentInterest', unit: '/100' },
     growth_potential: { key: 'score', unit: '/100' },
     market_readiness: { key: 'score', unit: '/100' },
     competitive_advantage: { key: 'score', unit: '/100' },

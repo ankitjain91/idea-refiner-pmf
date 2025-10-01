@@ -74,8 +74,9 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
               marketCap: 4500000000,
               yearOverYear: 45,
               adoption: 67,
-              velocity: "Accelerating",
-              maturity: "Early Growth"
+              velocity: 85,  // Changed to number to fix console warning
+              maturity: 65,   // Changed to number
+              trendScore: 82  // Added trend score
             },
             explanation: "AI productivity tools are experiencing rapid growth driven by remote work trends and digital transformation initiatives.",
             confidence: 90,
