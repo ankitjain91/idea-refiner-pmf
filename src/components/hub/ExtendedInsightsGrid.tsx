@@ -1,6 +1,9 @@
 import { useState, useCallback } from "react";
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
+import { dashboardDataService } from '@/services/dashboardDataService';
+import { toast } from 'sonner';
+import { useSession } from "@/contexts/SimpleSessionContext";
 import { 
   Search, MessageSquare, Twitter, ShoppingBag, 
   Youtube, AlertTriangle, TrendingUp, Globe, Users,
@@ -24,6 +27,8 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
   // State for lazy-loaded tile data
   const [tileData, setTileData] = useState<Record<string, TileData | null>>({});
   const [tileLoading, setTileLoading] = useState<Record<string, boolean>>({});
+  const { currentSession } = useSession();
+  const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea');
 
   // Load tile data on first expansion
   const loadTileData = useCallback(async (tileId: string) => {
@@ -31,35 +36,51 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
     
     setTileLoading(prev => ({ ...prev, [tileId]: true }));
     
-    // Simulate API call with a delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Set the mock data based on tile ID
-    let mockData: TileData | null = null;
-    switch(tileId) {
-      case 'web_search':
-        mockData = mockWebSearchData;
-        break;
-      case 'reddit_sentiment':
-        mockData = mockRedditData;
-        break;
-      case 'twitter_buzz':
-        mockData = mockTwitterData;
-        break;
-      case 'amazon_reviews':
-        mockData = mockAmazonData;
-        break;
-      case 'youtube_analytics':
-        mockData = mockYouTubeData;
-        break;
-      case 'risk_assessment':
-        mockData = mockRiskData;
-        break;
+    try {
+      // Fetch real data from the dashboard service
+      const data = await dashboardDataService.fetchTileData({
+        idea: currentIdea || 'AI-powered productivity app',
+        tileType: tileId
+      });
+      
+      if (data) {
+        setTileData(prev => ({ ...prev, [tileId]: data }));
+        toast.success(`${tileId.replace(/_/g, ' ')} data loaded`);
+      }
+    } catch (error) {
+      console.error(`Error loading ${tileId} data:`, error);
+      toast.error(`Failed to load ${tileId.replace(/_/g, ' ')} data`);
+      
+      // Set the mock data as fallback
+      let mockData: TileData | null = null;
+      switch(tileId) {
+        case 'web_search':
+          mockData = mockWebSearchData;
+          break;
+        case 'reddit_sentiment':
+          mockData = mockRedditData;
+          break;
+        case 'twitter_buzz':
+          mockData = mockTwitterData;
+          break;
+        case 'amazon_reviews':
+          mockData = mockAmazonData;
+          break;
+        case 'youtube_analytics':
+          mockData = mockYouTubeData;
+          break;
+        case 'risk_assessment':
+          mockData = mockRiskData;
+          break;
+      }
+      
+      if (mockData) {
+        setTileData(prev => ({ ...prev, [tileId]: mockData }));
+      }
+    } finally {
+      setTileLoading(prev => ({ ...prev, [tileId]: false }));
     }
-    
-    setTileData(prev => ({ ...prev, [tileId]: mockData }));
-    setTileLoading(prev => ({ ...prev, [tileId]: false }));
-  }, [tileData]);
+  }, [tileData, currentIdea]);
   // Rich mock data for Extended Insights tiles
   const mockWebSearchData: TileData = {
     metrics: {

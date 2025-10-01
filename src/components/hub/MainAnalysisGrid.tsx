@@ -5,6 +5,8 @@ import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTi
 import { EnhancedCompetitionTile } from "@/components/competition/EnhancedCompetitionTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
+import { dashboardDataService } from '@/services/dashboardDataService';
+import { toast } from 'sonner';
 import { 
   TrendingUp, Users, MessageSquare, Activity, 
   Search, Newspaper, DollarSign, Building2
