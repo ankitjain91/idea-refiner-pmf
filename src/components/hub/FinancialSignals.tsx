@@ -7,6 +7,7 @@ import { DollarSign, TrendingUp, Award, Target } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { AlertCircle } from "lucide-react";
+import { extractEdgeFunctionData } from "@/utils/edgeFunctionUtils";
 
 interface FinancialSignalsProps {
   idea: string;
@@ -29,8 +30,10 @@ export function FinancialSignals({ idea }: FinancialSignalsProps) {
         body: { idea }
       });
 
-      if (data && !error) {
-        setFinancials(data.financials);
+      // Extract data using the utility function
+      const extractedData = extractEdgeFunctionData({ data, error }, 'financials');
+      if (extractedData) {
+        setFinancials(extractedData);
       }
     } catch (error) {
       console.error('Error fetching financial data:', error);

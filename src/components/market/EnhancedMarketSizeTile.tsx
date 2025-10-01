@@ -13,6 +13,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { toast } from 'sonner';
+import { extractEdgeFunctionData } from '@/utils/edgeFunctionUtils';
 import { cn } from '@/lib/utils';
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, 
@@ -111,17 +112,14 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
 
       if (error) throw error;
 
-      if (data && data.market_size) {
-        // Extract market_size from the response structure
-        setMarketData(normalizeMarketData(data.market_size));
+      // Extract data using the utility function
+      const extractedData = extractEdgeFunctionData({ data, error }, 'market_size');
+      
+      if (extractedData) {
+        setMarketData(normalizeMarketData(extractedData));
         // Auto-expand tile when data is fetched
         setIsCollapsed(false);
-        console.log('Market data loaded:', data.market_size);
-      } else if (data) {
-        // Try using data directly if market_size is not nested
-        setMarketData(normalizeMarketData(data));
-        setIsCollapsed(false);
-        console.log('Market data loaded:', data);
+        console.log('Market data loaded:', extractedData);
       } else {
         // Fallback to mock data if no data returned
         const mockData: MarketSizeData = {

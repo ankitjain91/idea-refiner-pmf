@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { extractEdgeFunctionData } from "@/utils/edgeFunctionUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,8 +31,10 @@ export function EngagementSignals({ idea }: EngagementSignalsProps) {
         body: { idea }
       });
 
-      if (data && !error) {
-        setSentiment(data.sentiment);
+      // Extract data using the utility function
+      const extractedData = extractEdgeFunctionData({ data, error }, 'sentiment');
+      if (extractedData) {
+        setSentiment(extractedData);
       }
     } catch (error) {
       console.error('Error fetching sentiment data:', error);

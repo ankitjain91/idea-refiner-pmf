@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { extractEdgeFunctionData } from "@/utils/edgeFunctionUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +30,10 @@ export function ExecutionInsights({ idea }: ExecutionInsightsProps) {
         body: { idea }
       });
 
-      if (data && !error) {
-        setExecution(data.execution);
+      // Extract data using the utility function
+      const extractedData = extractEdgeFunctionData({ data, error }, 'execution');
+      if (extractedData) {
+        setExecution(extractedData);
       }
     } catch (error) {
       console.error('Error fetching execution data:', error);
