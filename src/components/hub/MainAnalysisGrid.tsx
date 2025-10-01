@@ -74,17 +74,21 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
         Main Analysis
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {displayTiles.map((tile) => (
-          <div key={tile.id} className={tile.span}>
-            <DataHubTile
-              title={tile.title}
-              Icon={tile.icon}
-              data={tile.data}
-              loading={loading}
-              expanded={viewMode === "deep"}
-            />
-          </div>
-        ))}
+        {displayTiles.map((tile) => {
+          console.log('MainAnalysisGrid tile:', tile.id, { title: tile.title, icon: tile.icon, data: tile.data });
+          return (
+            <div key={tile.id} className={tile.span}>
+              <DataHubTile
+                title={tile.title}
+                Icon={tile.icon}
+                data={tile.data}
+                loading={loading}
+                expanded={viewMode === "deep"}
+                tileType={tile.id}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

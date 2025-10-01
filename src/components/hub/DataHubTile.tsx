@@ -196,7 +196,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 <div>
                   <CardTitle className="text-base font-semibold">{title}</CardTitle>
                   <div className="flex items-center gap-1 mt-0.5">
-                    {accentIcon}
+                    {accentIcon || null}
                     <span className="text-xs text-muted-foreground">
                       {data?.citations?.length || 0} sources
                     </span>
@@ -251,7 +251,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               {tileType.includes('score') && primaryMetric && (
                 <div className="space-y-2">
                   <Progress 
-                    value={parseFloat(primaryMetric.value)} 
+                    value={typeof primaryMetric.value === 'string' ? parseFloat(primaryMetric.value.replace(/[^0-9.-]/g, '')) || 0 : 0} 
                     className="h-2 bg-muted/30"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
@@ -329,7 +329,19 @@ function getPrimaryMetric(tileType: string, data: TileData | null) {
   const metricConfig = metricMap[tileType];
   if (!metricConfig || !data.metrics[metricConfig.key]) return null;
   
-  const value = data.metrics[metricConfig.key];
+  let value = data.metrics[metricConfig.key];
+  
+  // Handle case where value might be an object with a value property
+  if (typeof value === 'object' && value !== null && 'value' in value) {
+    value = (value as any).value;
+  }
+  
+  // Ensure value is a number
+  if (typeof value !== 'number') {
+    console.warn('Metric value is not a number:', value, 'for tile:', tileType);
+    return null;
+  }
+  
   const formattedValue = formatMetricValue(value, tileType);
   
   // Determine trend
