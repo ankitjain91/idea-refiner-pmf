@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDataHubWrapper } from "@/hooks/useDataHubWrapper";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { ProfessionalWorldMap } from "@/components/hub/ProfessionalWorldMap";
@@ -16,27 +17,57 @@ import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
 import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
+import { createConversationSummary } from "@/utils/conversationUtils";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
 
 export default function EnterpriseHub() {
   const { user } = useAuth();
-  const { currentSession } = useSession();
+  const { currentSession, saveCurrentSession } = useSession();
   const { useMockData, setUseMockData } = useDataMode();
   const [currentIdea, setCurrentIdea] = useState("");
+  const [sessionName, setSessionName] = useState("");
   const [viewMode, setViewMode] = useState<"executive" | "deep">("executive");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   
-  // Extract idea from session or localStorage
-  useEffect(() => {
-    const storedIdea = 
-      localStorage.getItem("dashboardIdea") || 
-      localStorage.getItem("currentIdea") || 
-      currentSession?.data?.currentIdea || 
-      "";
-    setCurrentIdea(storedIdea);
+  // Update idea from current session
+  const updateIdeaFromSession = useCallback(() => {
+    if (currentSession?.data) {
+      const { chatHistory, currentIdea: sessionIdea } = currentSession.data;
+      
+      // Create a conversation summary from chat history
+      let ideaSummary = "";
+      if (chatHistory && chatHistory.length > 0) {
+        ideaSummary = createConversationSummary(chatHistory, sessionIdea);
+      } else if (sessionIdea) {
+        ideaSummary = sessionIdea;
+      }
+      
+      // Store the synthesized idea for dashboard use
+      if (ideaSummary) {
+        localStorage.setItem("dashboardIdea", ideaSummary);
+        setCurrentIdea(ideaSummary);
+        console.log("[EnterpriseHub] Updated idea from session:", ideaSummary.substring(0, 100));
+      }
+      
+      // Set session name
+      setSessionName(currentSession.name || "Untitled Session");
+    } else {
+      // Fallback to stored ideas if no session
+      const storedIdea = 
+        localStorage.getItem("dashboardIdea") || 
+        localStorage.getItem("currentIdea") || 
+        localStorage.getItem("userIdea") || 
+        "";
+      setCurrentIdea(storedIdea);
+    }
   }, [currentSession]);
+  
+  // Watch for session changes
+  useEffect(() => {
+    updateIdeaFromSession();
+  }, [updateIdeaFromSession]);
 
-  // Use the data hub hook
+  // Use the data hub hook with current idea
   const dataHub = useDataHubWrapper({
     idea: currentIdea,
     targetMarkets: ["US", "EU", "APAC"],
@@ -47,6 +78,12 @@ export default function EnterpriseHub() {
   });
 
   const { indices, tiles, loading, error, refresh, lastFetchTime } = dataHub;
+  
+  // Custom refresh that also updates the idea from session
+  const handleRefresh = useCallback(async () => {
+    updateIdeaFromSession();
+    await refresh();
+  }, [updateIdeaFromSession, refresh]);
 
   // No idea state
   if (!currentIdea) {
@@ -75,6 +112,39 @@ export default function EnterpriseHub() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Idea Display Section */}
+      <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border/50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <MessageSquare className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-sm font-semibold text-foreground">Current Analysis</h2>
+                {sessionName && (
+                  <Badge variant="secondary" className="text-xs">
+                    {sessionName}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {currentIdea || "No idea loaded - Start a conversation in Idea Chat"}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/ideachat'}
+              className="gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Go to Chat
+            </Button>
+          </div>
+        </div>
+      </div>
+      
       {/* Top Controls Bar */}
       <div className="sticky top-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border/50">
         <div className="container mx-auto px-4 py-3">
@@ -141,7 +211,7 @@ export default function EnterpriseHub() {
                 </span>
               )}
               <Button
-                onClick={refresh}
+                onClick={handleRefresh}
                 disabled={loading}
                 variant="outline"
                 size="sm"
