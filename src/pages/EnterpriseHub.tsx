@@ -1,390 +1,48 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Brain, TrendingUp, Globe2, Newspaper, MessageSquare, Youtube,
-  Twitter, ShoppingBag, Users, Target, DollarSign, Rocket,
-  BarChart3, AlertCircle, RefreshCw, Sparkles, Building2,
-  Calendar, Clock, Activity, Layers, Shield, Zap, RotateCw, Globe, ChevronDown, ChevronUp
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useDataHub } from "@/hooks/useDataHub";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
-
-import { StandardizedMarketTile } from "@/components/market/StandardizedMarketTile";
-import { MarketTrendsCard } from "@/components/hub/MarketTrendsCard";
-import { GoogleTrendsCard } from "@/components/hub/GoogleTrendsCard";
-import { WebSearchDataTile } from "@/components/hub/WebSearchDataTile";
-import { RedditSentimentTile } from "@/components/hub/RedditSentimentTile";
-import { OptimizedQuickStatsTile } from "@/components/hub/OptimizedQuickStatsTile";
-import { EnrichedDataTile } from "@/components/hub/EnrichedDataTile";
-import { QuickStatsTile } from "@/components/hub/QuickStatsTile";
-import { DashboardInitializer } from "@/components/dashboard/DashboardInitializer";
-import { AIHubDashboard } from "@/components/hub/AIHubDashboard";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Brain, RefreshCw, LayoutGrid, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-import { dashboardDataService } from '@/lib/dashboard-data-service';
-import { createConversationSummary } from '@/utils/conversationUtils';
-import { useBatchedDashboardData } from '@/hooks/useBatchedDashboardData';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { APIMetricsDashboard } from '@/components/dashboard/APIMetricsDashboard';
-import { apiCallAnalyzer } from '@/lib/api-call-analyzer';
+import { HeroSection } from "@/components/hub/HeroSection";
+import { GlobalMarketMap } from "@/components/hub/GlobalMarketMap";
+import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
+import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
+import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
+import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 
 export default function EnterpriseHub() {
-  const { currentSession, saveCurrentSession } = useSession();
   const { user } = useAuth();
-  const { subscription } = useSubscription();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [filters, setFilters] = useState({
-    idea_keywords: [],
-    industry: '',
-    geography: 'global',
-    time_window: 'last_12_months'
+  const { currentSession } = useSession();
+  const [currentIdea, setCurrentIdea] = useState("");
+  const [viewMode, setViewMode] = useState<"executive" | "deep">("executive");
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  
+  // Extract idea from session or localStorage
+  useEffect(() => {
+    const storedIdea = 
+      localStorage.getItem("dashboardIdea") || 
+      localStorage.getItem("currentIdea") || 
+      currentSession?.data?.currentIdea || 
+      "";
+    setCurrentIdea(storedIdea);
+  }, [currentSession]);
+
+  // Use the data hub hook
+  const dataHub = useDataHub({
+    idea: currentIdea,
+    targetMarkets: ["US", "EU", "APAC"],
+    audienceProfiles: ["early_adopters", "enterprise"],
+    geos: ["global"],
+    timeHorizon: "12_months",
+    competitorHints: []
   });
-  const [tilesKey, setTilesKey] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedContinent, setSelectedContinent] = useState('global');
-  const [showFullIdea, setShowFullIdea] = useState(false);
-  const [expandedIdea, setExpandedIdea] = useState(false);
-  
-  // Regenerate idea summary from conversation history if available
-  const [currentIdea, setCurrentIdea] = useState('');
-  const [oneLineSummary, setOneLineSummary] = useState('');
-  const [isRefreshingSummary, setIsRefreshingSummary] = useState(false);
-  
-  // Function to generate one-line summary from all conversations
-  const generateOneLineSummary = (messages: any[]) => {
-    if (!messages || messages.length === 0) return 'No conversation yet';
-    
-    // Extract key topics from all user messages
-    const userMessages = messages
-      .filter((m: any) => m.role === 'user')
-      .map((m: any) => m.content)
-      .join(' ');
-    
-    // Extract key topics from assistant responses
-    const assistantMessages = messages
-      .filter((m: any) => m.role === 'assistant')
-      .slice(-2) // Get last 2 assistant messages for context
-      .map((m: any) => m.content)
-      .join(' ');
-    
-    // Get the original idea if available
-    const originalIdea = localStorage.getItem('currentIdea') || localStorage.getItem('dashboardIdea') || '';
-    
-    // Simple extraction: Take the main topic from user messages and latest refinement
-    const words = [...userMessages.split(' '), ...assistantMessages.split(' ')];
-    const keyPhrases = [];
-    
-    // Look for key business terms
-    if (originalIdea) {
-      keyPhrases.push(originalIdea.substring(0, 50));
-    }
-    
-    // Create a concise summary
-    const summary = originalIdea 
-      ? `Exploring ${originalIdea.substring(0, 100).replace(/[.!?]$/, '')} through iterative refinement and validation`
-      : 'Developing and refining a startup idea through collaborative discussion';
-    
-    return summary;
-  };
-  
-  // Function to regenerate summary from conversation
-  const regenerateSummary = () => {
-    setIsRefreshingSummary(true);
-    
-    // Try to get conversation history and regenerate summary
-    const conversationHistory = localStorage.getItem('dashboardConversationHistory');
-    console.log('[Dashboard] Regenerating summary from conversation history');
-    
-    if (conversationHistory) {
-      try {
-        const messages = JSON.parse(conversationHistory);
-        const rawIdea = localStorage.getItem('currentIdea') || '';
-        console.log('[Dashboard] Processing', messages.length, 'messages');
-        
-        // Generate fresh summary
-        const freshSummary = createConversationSummary(messages, rawIdea);
-        console.log('[Dashboard] New summary generated:', freshSummary.substring(0, 200));
-        
-        setCurrentIdea(freshSummary);
-        
-        // Generate one-line summary
-        const oneLine = generateOneLineSummary(messages);
-        setOneLineSummary(oneLine);
-        
-        // Update localStorage with fresh summary
-        localStorage.setItem('dashboardIdea', freshSummary);
-        localStorage.setItem('oneLineSummary', oneLine);
-      } catch (err) {
-        console.error('[Dashboard] Failed to parse conversation history:', err);
-        // Fallback to stored idea
-        const fallbackIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
-        setCurrentIdea(fallbackIdea || currentSession?.data?.currentIdea || '');
-        setOneLineSummary(localStorage.getItem('oneLineSummary') || 'No conversation summary available');
-      }
-    } else {
-      // No conversation history, use stored idea
-      const storedIdea = localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || '';
-      console.log('[Dashboard] No conversation history, using stored idea');
-      setCurrentIdea(storedIdea || currentSession?.data?.currentIdea || '');
-      setOneLineSummary(localStorage.getItem('oneLineSummary') || 'No conversation summary available');
-    }
-    
-    setTimeout(() => setIsRefreshingSummary(false), 500);
-  };
-  
-  // Helper function to create 5-word summary
-  const createFiveWordSummary = (text: string): string => {
-    if (!text) return 'No idea yet';
-    const words = text.split(' ').filter(word => word.length > 0);
-    if (words.length <= 5) return text;
-    return words.slice(0, 5).join(' ') + '...';
-  };
-  
-  // Load summary on mount
-  useEffect(() => {
-    regenerateSummary();
-  }, [currentSession]);
-  const subscriptionTier = subscription.tier;
-  
-  // Load dashboard data from session on mount
-  useEffect(() => {
-    if (currentSession?.data?.dashboardData) {
-      const { dashboardData } = currentSession.data;
-      
-      // Restore dashboard state from session
-      if (dashboardData.currentTab) {
-        setActiveTab(dashboardData.currentTab);
-      }
-    }
-  }, [currentSession]);
-  
-  // Save dashboard state changes to session
-  useEffect(() => {
-    // Only save if we have a current session and it's been at least 2 seconds since last change
-    if (!currentSession || !currentIdea) return;
-    
-    const timeoutId = setTimeout(() => {
-      // Update localStorage with current dashboard state  
-      localStorage.setItem('currentTab', activeTab);
-      
-      // Trigger session save to persist dashboard data
-      saveCurrentSession();
-    }, 2000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [activeTab, currentSession, currentIdea, saveCurrentSession]);
 
-  // Update filters when idea changes
-  useEffect(() => {
-    if (currentIdea) {
-      const keywords = currentIdea.split(' ')
-        .filter(word => word.length > 3)
-        .slice(0, 5);
-      setFilters(prev => ({ ...prev, idea_keywords: keywords }));
-    }
-  }, [currentIdea]);
+  const { indices, tiles, loading, error, refresh, lastFetchTime } = dataHub;
 
-  // Listen for session reset events to clear dashboard data
-  useEffect(() => {
-    const handleSessionReset = () => {
-      // Clear all dashboard-related cached data
-      const keysToRemove = [
-        'dashboardValidation',
-        'dashboardAccessGrant',
-        'showAnalysisDashboard',
-        'currentTab',
-        'analysisResults',
-        'pmfScore',
-        'userRefinements',
-        'pmfFeatures',
-        'pmfTabHistory',
-        'market_size_value',
-        'competition_value',
-        'sentiment_value',
-        'smoothBrainsScore'
-      ];
-      
-      // Clear tile caches
-      const allKeys = Object.keys(localStorage);
-      allKeys.forEach(key => {
-        if (key.includes('tile_cache_') || 
-            key.includes('tile_last_refresh_') ||
-            key.includes('trends_cache_') ||
-            key.includes('market_data_') ||
-            key.includes('reddit_sentiment_') ||
-            key.includes('web_search_') ||
-            keysToRemove.includes(key)) {
-          try {
-            localStorage.removeItem(key);
-          } catch (err) {
-            console.warn(`Failed to clear ${key}:`, err);
-          }
-        }
-      });
-      
-      // Force reload the page to ensure clean state
-      window.location.reload();
-    };
-
-    const handleFullReset = () => {
-      // Same handling for full reset
-      handleSessionReset();
-    };
-
-    // Listen for both session reset events
-    window.addEventListener('session:reset', handleSessionReset);
-    window.addEventListener('session:fullReset', handleFullReset);
-    
-    return () => {
-      window.removeEventListener('session:reset', handleSessionReset);
-      window.removeEventListener('session:fullReset', handleFullReset);
-    };
-  }, []);
-
-  // Define all tile types we want to fetch
-  const allTileTypes = [
-    'quick_stats_pmf_score',
-    'quick_stats_market_size', 
-    'quick_stats_competition',
-    'quick_stats_sentiment',
-    'market_trends',
-    'google_trends',
-    'web_search',
-    'reddit_sentiment',
-    'competitor_analysis',
-    'target_audience',
-    'pricing_strategy',
-    'market_size',
-    'growth_projections',
-    'user_engagement',
-    'launch_timeline',
-    'twitter_buzz',
-    'amazon_reviews',
-    'youtube_analytics',
-    'news_analysis'
-  ];
-
-  // Use the batched data fetching hook
-  const { 
-    data: batchedData, 
-    loading: batchLoading, 
-    refresh: refreshBatchedData,
-    refreshTile
-  } = useBatchedDashboardData(currentIdea, currentIdea ? allTileTypes : []);
-
-  // Handle continent change
-  const handleContinentChange = (continent: string) => {
-    setSelectedContinent(continent);
-    setFilters(prev => ({ ...prev, geography: continent }));
-    
-    // Clear cached data for new region
-    const allKeys = Object.keys(localStorage);
-    allKeys.forEach(key => {
-      if (key.includes('tile_cache_') || 
-          key.includes('trends_cache_') ||
-          key.includes('web_search_')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Store the selected continent
-    localStorage.setItem('selectedContinent', continent);
-    
-    // Force refresh tiles
-    setTilesKey(prev => prev + 1);
-  };
-
-  // Global refresh function - clear ALL data and fetch fresh
-  const handleGlobalRefresh = async () => {
-    setIsRefreshing(true);
-    
-    try {
-      // 1. Clear ALL database cache
-      if (user?.id && currentIdea) {
-        console.log('Clearing all database cache...');
-        
-        // Delete all dashboard data for this user and idea using match
-        const { error: deleteError } = await supabase
-          .from('dashboard_data')
-          .delete()
-          .match({
-            user_id: user.id,
-            idea_text: currentIdea
-          });
-        
-        if (deleteError) {
-          console.error('Error clearing database cache:', deleteError);
-        }
-        
-        // Also clear using the service
-        await dashboardDataService.clearAllData(user.id, currentIdea, currentSession?.id);
-      }
-      
-      // 2. Clear ALL localStorage cache
-      console.log('Clearing all localStorage cache...');
-      const allKeys = Object.keys(localStorage);
-      allKeys.forEach(key => {
-        if (key.includes('tile_cache_') || 
-            key.includes('tile_last_refresh_') ||
-            key.includes('trends_cache_') ||
-            key.includes('market_data_') ||
-            key.includes('reddit_sentiment_') ||
-            key.includes('web_search_') ||
-            key.includes('quick_stats_') ||
-            key.includes('dashboard_') ||
-            key.includes('smoothBrainsScore') ||
-            key.includes('pmfScore') ||
-            key.includes('competition_value') ||
-            key.includes('sentiment_value') ||
-            key.includes('market_size_value')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // 3. Force refresh all tiles using the batched API
-      console.log('Fetching fresh data from APIs...');
-      await refreshBatchedData();
-      
-      // 4. Force component re-render
-      setTilesKey(prev => prev + 1);
-      
-      toast({
-        title: "Data refreshed",
-        description: "All dashboard data has been refreshed from the latest sources",
-        duration: 3000
-      });
-    } catch (error) {
-      console.error('Error during global refresh:', error);
-      toast({
-        title: "Refresh error",
-        description: "Some data couldn't be refreshed. Please try again.",
-        variant: "destructive",
-        duration: 4000
-      });
-    } finally {
-      // Reset refreshing state after a delay
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 1500);
-    }
-  };
-
+  // No idea state
   if (!currentIdea) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -409,412 +67,125 @@ export default function EnterpriseHub() {
     );
   }
 
-  const tiles = [
-    { id: 'newsAnalysis', title: 'News Analysis', icon: Newspaper, tileType: 'news_analysis', span: 'col-span-2' },
-    { id: 'youtube', title: 'YouTube Analytics', icon: Youtube, tileType: 'youtube_analytics', span: 'col-span-1' },
-    { id: 'twitter', title: 'Twitter/X Buzz', icon: Twitter, tileType: 'twitter_buzz', span: 'col-span-1' },
-    { id: 'amazon', title: 'Amazon Reviews', icon: ShoppingBag, tileType: 'amazon_reviews', span: 'col-span-1' },
-    { id: 'competitors', title: 'Competitor Analysis', icon: Building2, tileType: 'competitor_analysis', span: 'col-span-2' },
-    { id: 'targetAudience', title: 'Target Audience', icon: Target, tileType: 'target_audience', span: 'col-span-1' },
-    { id: 'pricing', title: 'Pricing Strategy', icon: DollarSign, tileType: 'pricing_strategy', span: 'col-span-1' },
-    { id: 'marketSize', title: 'Market Size', icon: BarChart3, tileType: 'market_size', span: 'col-span-1' },
-    { id: 'growth', title: 'Growth Projections', icon: Rocket, tileType: 'growth_projections', span: 'col-span-1' },
-    { id: 'engagement', title: 'User Engagement', icon: Users, tileType: 'user_engagement', span: 'col-span-1' },
-    { id: 'timeline', title: 'Launch Timeline', icon: Calendar, tileType: 'launch_timeline', span: 'col-span-1' },
-  ];
-
   return (
-    <div className="min-h-screen bg-background overflow-y-auto">
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Clean Header with One-Line Summary */}
-        <div className="flex items-center justify-between py-2">
-          <div className="flex-1 max-w-4xl">
-            <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
-            {oneLineSummary && (
-              <p className="text-sm text-muted-foreground mt-1 italic">
-                {oneLineSummary}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={handleGlobalRefresh}
-              disabled={isRefreshing}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-              Refresh All
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Globe className="h-4 w-4" />
-                  {selectedContinent === 'global' ? 'Global' :
-                   selectedContinent === 'north_america' ? 'North America' :
-                   selectedContinent === 'europe' ? 'Europe' :
-                   selectedContinent === 'asia' ? 'Asia' :
-                   selectedContinent === 'south_america' ? 'South America' :
-                   selectedContinent === 'africa' ? 'Africa' :
-                   selectedContinent === 'oceania' ? 'Oceania' : 'Global'}
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-background border-border">
-                <DropdownMenuLabel>Select Region</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => handleContinentChange('global')}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  <Globe className="mr-2 h-4 w-4" />
-                  Global
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleContinentChange('north_america')}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  North America
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleContinentChange('europe')}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  Europe
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleContinentChange('asia')}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  Asia
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleContinentChange('south_america')}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  South America
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleContinentChange('africa')}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  Africa
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleContinentChange('oceania')}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  Oceania
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Badge 
-              variant="secondary" 
-              className={cn(
-                "font-normal",
-                subscriptionTier === 'enterprise' 
-                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" 
-                  : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
-              )}
-            >
-              {subscriptionTier === 'enterprise' ? (
-                <>
-                  <Shield className="mr-1 h-3 w-3" />
-                  Enterprise
-                </>
-              ) : (
-                <>
-                  <Zap className="mr-1 h-3 w-3" />
-                  Pro
-                </>
-              )}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Key Metrics - Using Enriched Data Tiles */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" key={tilesKey}>
-          <EnrichedDataTile
-            title="SmoothBrains Score"
-            icon={Activity}
-            tileType="quick_stats_pmf_score"
-            data={batchedData['quick_stats_pmf_score']?.data}
-            isLoading={batchLoading && !batchedData['quick_stats_pmf_score']}
-            error={batchedData['quick_stats_pmf_score']?.error}
-            onRefresh={() => refreshTile('quick_stats_pmf_score')}
-          />
-          <EnrichedDataTile
-            title="Market Size"
-            icon={TrendingUp}
-            tileType="quick_stats_market_size"
-            data={batchedData['quick_stats_market_size']?.data}
-            isLoading={batchLoading && !batchedData['quick_stats_market_size']}
-            error={batchedData['quick_stats_market_size']?.error}
-            onRefresh={() => refreshTile('quick_stats_market_size')}
-          />
-          <EnrichedDataTile
-            title="Competition"
-            icon={Building2}
-            tileType="quick_stats_competition"
-            data={batchedData['quick_stats_competition']?.data}
-            isLoading={batchLoading && !batchedData['quick_stats_competition']}
-            error={batchedData['quick_stats_competition']?.error}
-            onRefresh={() => refreshTile('quick_stats_competition')}
-          />
-          <EnrichedDataTile
-            title="Sentiment"
-            icon={Sparkles}
-            tileType="quick_stats_sentiment"
-            data={batchedData['quick_stats_sentiment']?.data}
-            isLoading={batchLoading && !batchedData['quick_stats_sentiment']}
-            error={batchedData['quick_stats_sentiment']?.error}
-            onRefresh={() => refreshTile('quick_stats_sentiment')}
-          />
-        </div>
-
-        {/* Main Content - All tabs render immediately for instant loading */}
-        <div className="space-y-4">
-          <div className="bg-muted/30 border rounded-lg p-1 inline-flex">
-            {['overview', 'market', 'competitive', 'audience', 'ai-insights', 'developer'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "px-3 py-1.5 text-sm font-medium rounded transition-colors",
-                  activeTab === tab 
-                    ? "bg-background text-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+    <div className="min-h-screen bg-background">
+      {/* Top Controls Bar */}
+      <div className="sticky top-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border/50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setViewMode(viewMode === "executive" ? "deep" : "executive")}
+                variant="outline"
+                size="sm"
+                className="gap-2"
               >
-                {tab === 'overview' && 'Overview'}
-                {tab === 'market' && 'Market Analysis'}
-                {tab === 'competitive' && 'Competitive Intel'}
-                {tab === 'audience' && 'Audience Insights'}
-                {tab === 'ai-insights' && (
-                  <span className="flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    AI Intelligence
-                  </span>
+                {viewMode === "executive" ? (
+                  <>
+                    <LayoutGrid className="h-4 w-4" />
+                    Deep Dive
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Executive View
+                  </>
                 )}
-                {tab === 'developer' && (
-                  <span className="flex items-center gap-1">
-                    <Activity className="h-3 w-3" />
-                    API Metrics
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Overview Tab */}
-          <div className={activeTab === 'overview' ? 'space-y-4' : 'hidden'}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2">
-                <EnrichedDataTile
-                  title="Market Trends"
-                  icon={TrendingUp}
-                  tileType="market_trends"
-                  data={batchedData['market_trends']?.data}
-                  isLoading={batchLoading && !batchedData['market_trends']}
-                  error={batchedData['market_trends']?.error}
-                  onRefresh={() => refreshTile('market_trends')}
-                />
-              </div>
-              <EnrichedDataTile
-                title="Google Trends"
-                icon={Globe}
-                tileType="google_trends"
-                data={batchedData['google_trends']?.data}
-                isLoading={batchLoading && !batchedData['google_trends']}
-                error={batchedData['google_trends']?.error}
-                onRefresh={() => refreshTile('google_trends')}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnrichedDataTile
-                title="Web Search Insights"
-                icon={Globe2}
-                tileType="web_search"
-                data={batchedData['web_search']?.data}
-                isLoading={batchLoading && !batchedData['web_search']}
-                error={batchedData['web_search']?.error}
-                onRefresh={() => refreshTile('web_search')}
-              />
-              <EnrichedDataTile
-                title="Reddit Sentiment"
-                icon={MessageSquare}
-                tileType="reddit_sentiment"
-                data={batchedData['reddit_sentiment']?.data}
-                isLoading={batchLoading && !batchedData['reddit_sentiment']}
-                error={batchedData['reddit_sentiment']?.error}
-                onRefresh={() => refreshTile('reddit_sentiment')}
-              />
-            </div>
-          </div>
-
-          {/* Market Tab */}
-          <div className={activeTab === 'market' ? 'space-y-4' : 'hidden'}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <EnrichedDataTile
-                title="Market Size Analysis"
-                icon={BarChart3}
-                tileType="market_size"
-                data={batchedData['market_size']?.data}
-                isLoading={batchLoading && !batchedData['market_size']}
-                error={batchedData['market_size']?.error}
-                onRefresh={() => refreshTile('market_size')}
-              />
-              <EnrichedDataTile
-                title="Growth Projections"
-                icon={Rocket}
-                tileType="growth_projections"
-                data={batchedData['growth_projections']?.data}
-                isLoading={batchLoading && !batchedData['growth_projections']}
-                error={batchedData['growth_projections']?.error}
-                onRefresh={() => refreshTile('growth_projections')}
-              />
-              <EnrichedDataTile
-                title="Launch Timeline"
-                icon={Calendar}
-                tileType="launch_timeline"
-                data={batchedData['launch_timeline']?.data}
-                isLoading={batchLoading && !batchedData['launch_timeline']}
-                error={batchedData['launch_timeline']?.error}
-                onRefresh={() => refreshTile('launch_timeline')}
-              />
-            </div>
-          </div>
-
-          {/* Competitive Tab */}
-          <div className={activeTab === 'competitive' ? 'space-y-4' : 'hidden'}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnrichedDataTile
-                title="Competitor Analysis"
-                icon={Building2}
-                tileType="competitor_analysis"
-                data={batchedData['competitor_analysis']?.data}
-                isLoading={batchLoading && !batchedData['competitor_analysis']}
-                error={batchedData['competitor_analysis']?.error}
-                onRefresh={() => refreshTile('competitor_analysis')}
-              />
-              <EnrichedDataTile
-                title="Pricing Strategy"
-                icon={DollarSign}
-                tileType="pricing_strategy"
-                data={batchedData['pricing_strategy']?.data}
-                isLoading={batchLoading && !batchedData['pricing_strategy']}
-                error={batchedData['pricing_strategy']?.error}
-                onRefresh={() => refreshTile('pricing_strategy')}
-              />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnrichedDataTile
-                title="Twitter/X Buzz"
-                icon={Twitter}
-                tileType="twitter_buzz"
-                data={batchedData['twitter_buzz']?.data}
-                isLoading={batchLoading && !batchedData['twitter_buzz']}
-                error={batchedData['twitter_buzz']?.error}
-                onRefresh={() => refreshTile('twitter_buzz')}
-              />
-              <EnrichedDataTile
-                title="Amazon Reviews"
-                icon={ShoppingBag}
-                tileType="amazon_reviews"
-                data={batchedData['amazon_reviews']?.data}
-                isLoading={batchLoading && !batchedData['amazon_reviews']}
-                error={batchedData['amazon_reviews']?.error}
-                onRefresh={() => refreshTile('amazon_reviews')}
-              />
-            </div>
-          </div>
-
-          {/* Audience Tab */}
-          <div className={activeTab === 'audience' ? 'space-y-4' : 'hidden'}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnrichedDataTile
-                title="Target Audience"
-                icon={Target}
-                tileType="target_audience"
-                data={batchedData['target_audience']?.data}
-                isLoading={batchLoading && !batchedData['target_audience']}
-                error={batchedData['target_audience']?.error}
-                onRefresh={() => refreshTile('target_audience')}
-              />
-              <EnrichedDataTile
-                title="User Engagement"
-                icon={Users}
-                tileType="user_engagement"
-                data={batchedData['user_engagement']?.data}
-                isLoading={batchLoading && !batchedData['user_engagement']}
-                error={batchedData['user_engagement']?.error}
-                onRefresh={() => refreshTile('user_engagement')}
-              />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <EnrichedDataTile
-                title="YouTube Analytics"
-                icon={Youtube}
-                tileType="youtube_analytics"
-                data={batchedData['youtube_analytics']?.data}
-                isLoading={batchLoading && !batchedData['youtube_analytics']}
-                error={batchedData['youtube_analytics']?.error}
-                onRefresh={() => refreshTile('youtube_analytics')}
-              />
-              <EnrichedDataTile
-                title="News Analysis"
-                icon={Newspaper}
-                tileType="news_analysis"
-                data={batchedData['news_analysis']?.data}
-                isLoading={batchLoading && !batchedData['news_analysis']}
-                error={batchedData['news_analysis']?.error}
-                onRefresh={() => refreshTile('news_analysis')}
-              />
-            </div>
-          </div>
-
-          {/* AI Intelligence Tab */}
-          <div className={activeTab === 'ai-insights' ? 'block' : 'hidden'}>
-            <AIHubDashboard 
-              idea={currentIdea}
-              marketData={batchedData['quick_stats_market_size']?.data}
-              competitorData={batchedData['quick_stats_competition']?.data}
-              sessionData={[]}
-            />
-          </div>
-
-          {/* Developer Tab - API Metrics */}
-          <div className={activeTab === 'developer' ? 'space-y-4' : 'hidden'}>
-            <APIMetricsDashboard />
-          </div>
-        </div>
-
-        {/* Pro/Enterprise Notice */}
-        {subscriptionTier !== 'enterprise' && (
-          <Alert className="border-muted">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              Upgrade to Enterprise for unlimited data sources and advanced analytics.
-              <Button 
-                variant="link" 
-                className="h-auto p-0 ml-2"
-                onClick={() => window.location.href = '/pricing'}
-              >
-                View Plans →
               </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+              <Button
+                onClick={() => setEvidenceOpen(!evidenceOpen)}
+                variant="outline"
+                size="sm"
+              >
+                Evidence Explorer
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {lastFetchTime && (
+                <span className="text-xs text-muted-foreground">
+                  Last updated: {new Date(lastFetchTime).toLocaleTimeString()}
+                </span>
+              )}
+              <Button
+                onClick={refresh}
+                disabled={loading}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      {/* Dashboard Data Initializer */}
-      <DashboardInitializer />
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6 space-y-8">
+        {/* 1. HERO SECTION */}
+        <HeroSection 
+          pmfScore={tiles.pmf_score}
+          loading={loading}
+        />
+
+        {/* 2. GLOBAL MARKET MAP */}
+        {viewMode === "deep" && (
+          <GlobalMarketMap 
+            marketData={tiles.market_size}
+            loading={loading}
+          />
+        )}
+
+        {/* 3. MAIN ANALYSIS GRID */}
+        <MainAnalysisGrid
+          tiles={{
+            market_size: tiles.market_size,
+            competition: tiles.competition,
+            sentiment: tiles.sentiment,
+            market_trends: tiles.market_trends,
+            google_trends: tiles.google_trends,
+            news_analysis: tiles.news_analysis
+          }}
+          loading={loading}
+          viewMode={viewMode}
+        />
+
+        {/* 4. EXTENDED INSIGHTS GRID - Only in Deep Dive */}
+        {viewMode === "deep" && (
+          <ExtendedInsightsGrid
+            tiles={{
+              web_search: tiles.web_search,
+              reddit_sentiment: tiles.reddit_sentiment,
+              twitter_buzz: tiles.twitter_buzz,
+              amazon_reviews: tiles.amazon_reviews,
+              youtube_analytics: tiles.youtube_analytics,
+              risk_assessment: tiles.risk_assessment
+            }}
+            loading={loading}
+          />
+        )}
+
+        {/* 5. QUICK STATS STRIP - Always visible */}
+        <QuickStatsStrip
+          tiles={{
+            growth_potential: tiles.growth_potential,
+            market_readiness: tiles.market_readiness,
+            competitive_advantage: tiles.competitive_advantage,
+            risk_assessment: tiles.risk_assessment
+          }}
+          loading={loading}
+        />
+      </div>
+
+      {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}
+      <EvidenceExplorer
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+        evidenceStore={indices?.EVIDENCE_STORE || []}
+        providerLog={indices?.PROVIDER_LOG || []}
+      />
     </div>
   );
 }

@@ -15,15 +15,17 @@ import { cn } from "@/lib/utils";
 
 interface DataHubTileProps {
   title: string;
-  tileType: string;
-  data: TileData | null;
-  icon: React.ReactNode;
+  tileType?: string;
+  data?: TileData | null;
+  Icon?: React.ComponentType<{ className?: string }>;
   loading?: boolean;
   onRefresh?: () => void;
+  expanded?: boolean;
 }
 
-export function DataHubTile({ title, tileType, data, icon, loading, onRefresh }: DataHubTileProps) {
+export function DataHubTile({ title, tileType = "default", data, Icon, loading, onRefresh, expanded }: DataHubTileProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const icon = Icon ? <Icon className="h-4 w-4 text-muted-foreground" /> : null;
   
   if (!data && !loading) {
     return (
