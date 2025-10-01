@@ -239,8 +239,11 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            {error || 'No competition data available'}
+          <div className="flex items-center justify-center py-8">
+            <Button onClick={loadMockData} size="sm" variant="outline">
+              <Activity className="h-3 w-3 mr-1" />
+              Fetch Data
+            </Button>
           </div>
         </CardContent>
       </Card>

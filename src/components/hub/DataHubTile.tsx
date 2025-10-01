@@ -92,16 +92,16 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
             </div>
           </CardHeader>
           <CardContent className="relative">
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <AlertCircle className="h-8 w-8 mb-3 opacity-50" />
-              <p className="text-sm font-medium mb-1">Data not available</p>
-              <p className="text-xs opacity-70">Click to fetch data</p>
+            <div className="flex items-center justify-center py-8">
               {onRefresh && (
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={onRefresh}
-                  className="mt-3 backdrop-blur"
+                  onClick={() => {
+                    setIsFirstLoad(true);
+                    onRefresh();
+                  }}
+                  className="backdrop-blur"
                 >
                   <Sparkles className="h-3 w-3 mr-1" />
                   Fetch Data

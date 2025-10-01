@@ -199,13 +199,10 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground mb-4">
-              No market data available. Click to analyze your idea's market potential.
-            </p>
+          <div className="flex items-center justify-center py-8">
             <Button onClick={fetchMarketData} disabled={!currentIdea}>
               <Zap className="h-4 w-4 mr-2" />
-              Analyze Market Size
+              Fetch Data
             </Button>
           </div>
         </CardContent>
