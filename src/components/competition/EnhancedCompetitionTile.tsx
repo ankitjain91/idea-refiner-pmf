@@ -18,6 +18,8 @@ import { useToast } from '@/hooks/use-toast';
 import { CompetitionChatDialog } from './CompetitionChatDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { extractEdgeFunctionData } from '@/utils/edgeFunctionUtils';
+import { TileData } from '@/lib/data-hub-orchestrator';
+import { OptimizedDashboardService, OptimizedTileData } from '@/services/optimizedDashboardService';
 
 interface Competitor {
   name: string;
@@ -49,9 +51,10 @@ interface CompetitionData {
 
 interface EnhancedCompetitionTileProps {
   idea?: string;
+  initialData?: TileData | null;
 }
 
-export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) {
+export function EnhancedCompetitionTile({ idea, initialData }: EnhancedCompetitionTileProps) {
   const [data, setData] = useState<CompetitionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

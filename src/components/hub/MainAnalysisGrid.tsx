@@ -213,7 +213,7 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
           if (tile.id === "competition") {
             return (
               <div key={tile.id} className={tile.span}>
-                <EnhancedCompetitionTile idea={currentIdea} />
+                <EnhancedCompetitionTile idea={currentIdea} initialData={tiles.competition || null} />
               </div>
             );
           }
