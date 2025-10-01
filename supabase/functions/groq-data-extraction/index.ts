@@ -71,7 +71,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192', // Updated to a valid Groq model
+        model: 'llama-3.1-8b-instant', // Updated to a currently supported Groq model
         messages: [
           {
             role: 'system',
