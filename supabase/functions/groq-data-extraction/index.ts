@@ -96,7 +96,19 @@ serve(async (req) => {
     // Try to parse the response content as JSON
     let extracted;
     try {
-      extracted = JSON.parse(result.choices[0].message.content);
+      let content = result.choices[0].message.content;
+      
+      // Remove markdown code blocks if present
+      if (content.includes('```json')) {
+        content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      } else if (content.includes('```')) {
+        content = content.replace(/```\s*/g, '');
+      }
+      
+      // Trim whitespace
+      content = content.trim();
+      
+      extracted = JSON.parse(content);
     } catch (e) {
       console.log('Failed to parse as JSON, using raw content');
       extracted = { raw: result.choices[0].message.content };

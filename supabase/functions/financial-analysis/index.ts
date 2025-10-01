@@ -82,7 +82,21 @@ serve(async (req) => {
     });
 
     const financialData = await financialAnalysis.json();
-    const financials = JSON.parse(financialData.choices[0].message.content);
+    
+    // Parse response, handling markdown code blocks
+    let content = financialData.choices[0].message.content;
+    
+    // Remove markdown code blocks if present
+    if (content.includes('```json')) {
+      content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    } else if (content.includes('```')) {
+      content = content.replace(/```\s*/g, '');
+    }
+    
+    // Trim whitespace
+    content = content.trim();
+    
+    const financials = JSON.parse(content);
 
     return new Response(
       JSON.stringify({ 
