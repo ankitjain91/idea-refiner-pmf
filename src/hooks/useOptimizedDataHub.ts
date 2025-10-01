@@ -430,21 +430,70 @@ export function useOptimizedDataHub(input: DataHubInput) {
     }));
     
     try {
-      // Clear cache for this specific tile type
-      const cachedResponses = await cache.current.getResponsesForIdea(input.idea);
-      const tileCacheKeys = cachedResponses.filter(r => 
-        (r.metadata as any)?.tileType === tileType || 
-        r.source === tileType
-      ).map(r => r.id);
-      
-      // For now, clear all cache for the idea (can optimize later)
+      // Clear cache for this specific tile type (simplified: clear all for the idea)
       await cache.current.clearForIdea(input.idea);
       
-      // Fetch fresh data for this tile through the optimized pipeline
+      // Special handling for market_size to ensure real-time service is used
+      if (tileType === 'market_size') {
+        const marketService = RealTimeMarketService.getInstance();
+        const marketData = await marketService.fetchMarketSize(input.idea, true);
+        
+        if (marketData) {
+          const toNumber = (val: string): number => {
+            if (!val) return 0;
+            const num = parseFloat(String(val).replace(/[^\d.]/g, '')) || 0;
+            const upper = String(val).toUpperCase();
+            if (upper.includes('T')) return num * 1e12;
+            if (upper.includes('B')) return num * 1e9;
+            if (upper.includes('M')) return num * 1e6;
+            if (upper.includes('K')) return num * 1e3;
+            return num;
+          };
+          const toPercent = (val: string): number => {
+            const n = parseFloat(String(val).replace(/[^\d.]/g, ''));
+            return isNaN(n) ? 0 : n;
+          };
+          
+          const tileData: TileData = {
+            metrics: {
+              tam: toNumber(marketData.TAM),
+              sam: toNumber(marketData.SAM),
+              som: toNumber(marketData.SOM),
+              growthRate: toPercent(marketData.growth_rate),
+            },
+            explanation: marketData.explanation,
+            citations: marketData.citations,
+            charts: marketData.charts,
+            json: {
+              regions: marketData.regions,
+              TAM: marketData.TAM,
+              SAM: marketData.SAM,
+              SOM: marketData.SOM,
+              growth_rate: marketData.growth_rate,
+              confidence: marketData.confidence
+            },
+            confidence: marketData.confidence === 'High' ? 0.9 : 
+                        marketData.confidence === 'Moderate' ? 0.7 : 0.5,
+            dataQuality: marketData.confidence === 'High' ? 'high' : 
+                         marketData.confidence === 'Moderate' ? 'medium' : 'low'
+          };
+          
+          setState(prev => ({
+            ...prev,
+            tiles: { ...prev.tiles, [tileType]: tileData },
+            loading: false,
+            lastFetchTime: new Date().toISOString()
+          }));
+          
+          toast({ title: '✅ Tile refreshed', description: 'market size data updated', duration: 2000 });
+          return;
+        }
+      }
+      
+      // Default: use optimized pipeline
       const tileData = await optimizedService.current.getDataForTile(tileType, input.idea);
       
       if (tileData) {
-        // Convert OptimizedTileData to TileData format
         const convertedTileData: TileData = {
           metrics: tileData.metrics || {},
           explanation: tileData.notes || '',
@@ -461,19 +510,12 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         setState(prev => ({
           ...prev,
-          tiles: {
-            ...prev.tiles,
-            [tileType]: convertedTileData
-          },
+          tiles: { ...prev.tiles, [tileType]: convertedTileData },
           loading: false,
           lastFetchTime: new Date().toISOString()
         }));
         
-        toast({
-          title: "✅ Tile refreshed",
-          description: `${tileType.replace(/_/g, ' ')} data updated`,
-          duration: 2000,
-        });
+        toast({ title: '✅ Tile refreshed', description: `${tileType.replace(/_/g, ' ')} data updated`, duration: 2000 });
       }
     } catch (error) {
       console.error(`[OptimizedDataHub] Error refreshing tile ${tileType}:`, error);
@@ -483,12 +525,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
         error: `Failed to refresh ${tileType}`
       }));
       
-      toast({
-        title: "❌ Refresh failed",
-        description: `Could not refresh ${tileType.replace(/_/g, ' ')} data`,
-        variant: "destructive",
-        duration: 3000,
-      });
+      toast({ title: '❌ Refresh failed', description: `Could not refresh ${tileType.replace(/_/g, ' ')} data`, variant: 'destructive', duration: 3000 });
     }
   }, [input.idea, toast]);
   

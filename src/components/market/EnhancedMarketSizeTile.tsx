@@ -61,10 +61,25 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
       };
     }
     
+    const formatMoney = (val: any): string => {
+      if (typeof val === 'number') {
+        if (val >= 1e12) return `$${(val / 1e12).toFixed(1)}T`;
+        if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
+        if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+        if (val >= 1e3) return `$${(val / 1e3).toFixed(0)}K`;
+        return `$${val.toFixed(0)}`;
+      }
+      return String(val || '');
+    };
+    const formatPercent = (val: any): string => {
+      if (typeof val === 'number') return `${val}%`;
+      return String(val || '0%');
+    };
+    
     // Accept TileData shape: prefer data.metrics or data.json if present
     const src = data?.TAM || data?.SAM || data?.SOM
       ? data
-      : (data?.metrics?.TAM || data?.metrics?.SAM || data?.metrics?.SOM) 
+      : (data?.metrics?.TAM || data?.metrics?.SAM || data?.metrics?.SOM || data?.metrics?.tam) 
         ? data.metrics 
         : (data?.json?.TAM || data?.json?.regions) 
           ? data.json 
@@ -81,11 +96,16 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
       confidenceStr = rawConfidence;
     }
     
+    const tamVal = src?.TAM ?? src?.tam;
+    const samVal = src?.SAM ?? src?.sam;
+    const somVal = src?.SOM ?? src?.som;
+    const growthVal = src?.growth_rate ?? src?.growthRate ?? src?.growth;
+    
     return {
-      TAM: src?.TAM || src?.tam || '$0B',
-      SAM: src?.SAM || src?.sam || '$0M',
-      SOM: src?.SOM || src?.som || '$0M',
-      growth_rate: src?.growth_rate || src?.growth || '0%',
+      TAM: formatMoney(tamVal) || '$0B',
+      SAM: formatMoney(samVal) || '$0M',
+      SOM: formatMoney(somVal) || '$0M',
+      growth_rate: formatPercent(growthVal),
       regions: src?.regions || [],
       confidence: confidenceStr,
       explanation: data?.explanation || 'Market analysis data',
