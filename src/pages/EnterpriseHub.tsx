@@ -34,12 +34,14 @@ export default function EnterpriseHub() {
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
-    if (currentSession?.data) {
-      const { chatHistory, currentIdea: sessionIdea } = currentSession.data;
+    // First check if we have a session
+    if (currentSession) {
+      const { chatHistory, currentIdea: sessionIdea } = currentSession.data || {};
       
-      // Create a conversation summary from chat history
+      // Try to get idea from session first
       let ideaSummary = "";
       let summary = "";
+      
       if (chatHistory && chatHistory.length > 0) {
         summary = createConversationSummary(chatHistory, sessionIdea);
         ideaSummary = summary;
@@ -48,26 +50,49 @@ export default function EnterpriseHub() {
         summary = sessionIdea;
       }
       
+      // If no idea in session, check localStorage as fallback
+      if (!ideaSummary) {
+        const storedIdea = 
+          localStorage.getItem("dashboardIdea") || 
+          localStorage.getItem("currentIdea") || 
+          localStorage.getItem("userIdea") || 
+          "";
+        
+        if (storedIdea) {
+          ideaSummary = storedIdea;
+          summary = storedIdea;
+          
+          // Update the session's data property with the localStorage idea for consistency
+          if (currentSession.data) {
+            currentSession.data.currentIdea = storedIdea;
+            // Save the updated session
+            saveCurrentSession();
+          }
+          console.log("[EnterpriseHub] Used localStorage fallback for idea:", storedIdea.substring(0, 100));
+        }
+      }
+      
       // Store the synthesized idea for dashboard use
       if (ideaSummary) {
         localStorage.setItem("dashboardIdea", ideaSummary);
         setCurrentIdea(ideaSummary);
         setConversationSummary(summary);
-        console.log("[EnterpriseHub] Updated idea from session:", ideaSummary.substring(0, 100));
+        console.log("[EnterpriseHub] Updated idea:", ideaSummary.substring(0, 100));
       }
       
       // Set session name
       setSessionName(currentSession.name || "Untitled Session");
     } else {
-      // Fallback to stored ideas if no session
+      // No session at all - fallback to stored ideas
       const storedIdea = 
         localStorage.getItem("dashboardIdea") || 
         localStorage.getItem("currentIdea") || 
         localStorage.getItem("userIdea") || 
         "";
       setCurrentIdea(storedIdea);
+      console.log("[EnterpriseHub] No session, using localStorage:", storedIdea.substring(0, 100));
     }
-  }, [currentSession]);
+  }, [currentSession, saveCurrentSession]);
   
   // Watch for session changes
   useEffect(() => {
