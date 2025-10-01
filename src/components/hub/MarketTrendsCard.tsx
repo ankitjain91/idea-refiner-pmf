@@ -510,7 +510,7 @@ export function MarketTrendsCard({ filters, className, batchedData }: MarketTren
                 <Activity className="h-4 w-4 text-emerald-600" />
               </div>
               <div>
-                <CardTitle className="text-sm font-medium">Market Trends</CardTitle>
+                <CardTitle className="text-sm font-medium">Market Trends Analysis</CardTitle>
                 <p className="text-xs text-muted-foreground">Real-time analysis</p>
               </div>
             </div>
