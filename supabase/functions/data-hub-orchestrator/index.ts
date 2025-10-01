@@ -149,6 +149,8 @@ serve(async (req) => {
 });
 
 async function executeQuery(item: FetchPlanItem, indices: any) {
+  console.log(`Executing query: ${item.source} - ${item.purpose}`);
+  
   try {
     switch (item.source) {
       case 'serper':
@@ -169,7 +171,8 @@ async function executeQuery(item: FetchPlanItem, indices: any) {
         console.warn('Unknown source:', item.source);
     }
   } catch (error) {
-    console.error(`Query failed [${item.source}]:`, error);
+    console.error(`Query failed [${item.source}]:`, error.message);
+    // Log the error but don't throw - let other queries continue
     indices.PROVIDER_LOG.push({
       provider: item.source,
       error: error.message,
@@ -185,66 +188,72 @@ async function executeSerperQuery(item: FetchPlanItem, indices: any) {
     return;
   }
   
-  const response = await fetch('https://google.serper.dev/search', {
-    method: 'POST',
-    headers: {
-      'X-API-KEY': SERPER_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ q: item.query, num: 10 })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Serper API error: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  
-  // Process results based on purpose
-  if (item.purpose.includes('market') || item.purpose.includes('search')) {
-    data.organic?.forEach((result: any) => {
-      indices.SEARCH_INDEX.push({
-        url: result.link,
-        title: result.title,
-        snippet: result.snippet,
-        source: 'serper',
-        fetchedAt: new Date().toISOString(),
-        relevanceScore: result.position ? (11 - result.position) / 10 : 0.5
-      });
-      
-      // Add to evidence store
-      indices.EVIDENCE_STORE.push({
-        id: `serper_${indices.EVIDENCE_STORE.length}`,
-        url: result.link,
-        title: result.title,
-        source: 'serper',
-        snippet: result.snippet,
-        confidence: 0.8,
-        tileReferences: [item.purpose.split('_')[0]]
-      });
+  try {
+    const response = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': SERPER_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ q: item.query, num: 10 })
     });
-  }
-  
-  if (item.purpose.includes('competitor')) {
-    data.organic?.forEach((result: any) => {
-      if (result.title.toLowerCase().includes('vs') || 
-          result.title.toLowerCase().includes('alternative') ||
-          result.title.toLowerCase().includes('competitor')) {
-        // Extract competitor names from title/snippet
-        const competitorName = extractCompetitorName(result.title, result.snippet);
-        if (competitorName) {
-          indices.COMPETITOR_INDEX.push({
-            name: competitorName,
-            url: result.link,
-            pricing: null, // Would need deeper extraction
-            features: [],
-            claims: [result.snippet],
-            traction: null,
-            lastUpdated: new Date().toISOString()
-          });
+    
+    if (!response.ok) {
+      console.error(`Serper API error: ${response.status}`);
+      return; // Continue with other queries instead of throwing
+    }
+    
+    const data = await response.json();
+    
+    // Process results based on purpose
+    if (item.purpose.includes('market') || item.purpose.includes('search')) {
+      data.organic?.forEach((result: any) => {
+        indices.SEARCH_INDEX.push({
+          url: result.link,
+          title: result.title,
+          snippet: result.snippet,
+          source: 'serper',
+          fetchedAt: new Date().toISOString(),
+          relevanceScore: result.position ? (11 - result.position) / 10 : 0.5
+        });
+        
+        // Add to evidence store
+        indices.EVIDENCE_STORE.push({
+          id: `serper_${indices.EVIDENCE_STORE.length}`,
+          url: result.link,
+          title: result.title,
+          source: 'serper',
+          snippet: result.snippet,
+          confidence: 0.8,
+          tileReferences: [item.purpose.split('_')[0]]
+        });
+      });
+    }
+    
+    if (item.purpose.includes('competitor')) {
+      data.organic?.forEach((result: any) => {
+        if (result.title.toLowerCase().includes('vs') || 
+            result.title.toLowerCase().includes('alternative') ||
+            result.title.toLowerCase().includes('competitor')) {
+          // Extract competitor names from title/snippet
+          const competitorName = extractCompetitorName(result.title, result.snippet);
+          if (competitorName) {
+            indices.COMPETITOR_INDEX.push({
+              name: competitorName,
+              url: result.link,
+              pricing: null, // Would need deeper extraction
+              features: [],
+              claims: [result.snippet],
+              traction: null,
+              lastUpdated: new Date().toISOString()
+            });
+          }
         }
-      }
-    });
+      });
+    }
+  } catch (error) {
+    console.error(`Serper query failed: ${error.message}`);
+    // Don't throw, just log and continue
   }
 }
 
@@ -254,38 +263,47 @@ async function executeTavilyQuery(item: FetchPlanItem, indices: any) {
     return;
   }
   
-  const response = await fetch('https://api.tavily.com/search', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      api_key: TAVILY_API_KEY,
-      query: item.query,
-      search_depth: 'basic',
-      max_results: 10
-    })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Tavily API error: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  
-  // Process for social sentiment
-  if (item.purpose.includes('reddit') || item.purpose.includes('social')) {
-    data.results?.forEach((result: any) => {
-      const sentiment = analyzeSentiment(result.content);
-      indices.SOCIAL_INDEX.push({
-        platform: item.purpose.includes('reddit') ? 'reddit' : 'social',
-        content: result.content,
-        engagement: result.score || 0,
-        sentiment,
-        date: new Date().toISOString(),
-        url: result.url
-      });
+  try {
+    const response = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: TAVILY_API_KEY,
+        query: item.query,
+        search_depth: 'basic',
+        max_results: 10,
+        include_raw_content: false
+      })
     });
+    
+    if (!response.ok) {
+      console.error(`Tavily API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Tavily error details:', errorText);
+      return; // Continue with other queries
+    }
+    
+    const data = await response.json();
+    
+    // Process for social sentiment
+    if (item.purpose.includes('reddit') || item.purpose.includes('social')) {
+      data.results?.forEach((result: any) => {
+        const sentiment = analyzeSentiment(result.content || result.snippet || '');
+        indices.SOCIAL_INDEX.push({
+          platform: item.purpose.includes('reddit') ? 'reddit' : 'social',
+          content: result.content || result.snippet || result.title,
+          engagement: result.score || 0,
+          sentiment,
+          date: new Date().toISOString(),
+          url: result.url
+        });
+      });
+    }
+  } catch (error) {
+    console.error(`Tavily query failed: ${error.message}`);
+    // Don't throw, just log and continue
   }
 }
 
@@ -295,32 +313,56 @@ async function executeBraveQuery(item: FetchPlanItem, indices: any) {
     return;
   }
   
-  const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(item.query)}`, {
-    headers: {
-      'X-Subscription-Token': BRAVE_SEARCH_API_KEY,
-    }
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Brave API error: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  
-  // Process for news
-  if (item.purpose.includes('news')) {
-    data.news?.results?.forEach((article: any) => {
-      const tone = analyzeTone(article.description);
-      indices.NEWS_INDEX.push({
-        publisher: article.meta_url?.hostname || 'unknown',
-        title: article.title,
-        url: article.url,
-        publishedDate: article.age || new Date().toISOString(),
-        tone,
-        snippet: article.description,
-        relevanceScore: 0.7
-      });
+  try {
+    // Add delay for rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(item.query)}&count=10`, {
+      headers: {
+        'X-Subscription-Token': BRAVE_SEARCH_API_KEY,
+        'Accept': 'application/json'
+      }
     });
+    
+    if (!response.ok) {
+      console.error(`Brave API error: ${response.status}`);
+      return; // Continue with other queries
+    }
+    
+    const data = await response.json();
+    
+    // Process web results
+    if (data.web?.results) {
+      data.web.results.forEach((result: any) => {
+        indices.SEARCH_INDEX.push({
+          url: result.url,
+          title: result.title,
+          snippet: result.description,
+          source: 'brave',
+          fetchedAt: new Date().toISOString(),
+          relevanceScore: 0.7
+        });
+      });
+    }
+    
+    // Process for news
+    if (item.purpose.includes('news') && data.news?.results) {
+      data.news.results.forEach((article: any) => {
+        const tone = analyzeTone(article.description || '');
+        indices.NEWS_INDEX.push({
+          publisher: article.meta_url?.hostname || 'unknown',
+          title: article.title,
+          url: article.url,
+          publishedDate: article.age || new Date().toISOString(),
+          tone,
+          snippet: article.description,
+          relevanceScore: 0.7
+        });
+      });
+    }
+  } catch (error) {
+    console.error(`Brave query failed: ${error.message}`);
+    // Don't throw, just log and continue
   }
 }
 
@@ -385,28 +427,52 @@ async function executeSerpApiQuery(item: FetchPlanItem, indices: any) {
     return;
   }
   
-  const response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(item.query)}&api_key=${SERPAPI_KEY}`);
-  
-  if (!response.ok) {
-    throw new Error(`SerpAPI error: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  
-  // Process for market size
-  if (item.purpose.includes('market_size')) {
-    data.organic_results?.forEach((result: any) => {
-      if (result.snippet?.includes('billion') || result.snippet?.includes('million') || result.snippet?.includes('TAM')) {
-        indices.SEARCH_INDEX.push({
-          url: result.link,
-          title: result.title,
-          snippet: result.snippet,
-          source: 'serpapi',
-          fetchedAt: new Date().toISOString(),
-          relevanceScore: 0.9
-        });
+  try {
+    // Add delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    const response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(item.query)}&api_key=${SERPAPI_KEY}&num=10`);
+    
+    if (!response.ok) {
+      console.error(`SerpAPI error: ${response.status}`);
+      if (response.status === 429) {
+        console.warn('SerpAPI rate limit hit, skipping query');
       }
+      return; // Continue with other queries
+    }
+    
+    const data = await response.json();
+    
+    // Process for market size
+    if (item.purpose.includes('market_size')) {
+      data.organic_results?.forEach((result: any) => {
+        if (result.snippet?.includes('billion') || result.snippet?.includes('million') || result.snippet?.includes('TAM')) {
+          indices.SEARCH_INDEX.push({
+            url: result.link,
+            title: result.title,
+            snippet: result.snippet,
+            source: 'serpapi',
+            fetchedAt: new Date().toISOString(),
+            relevanceScore: 0.9
+          });
+        }
+      });
+    }
+    
+    // Process general search results
+    data.organic_results?.forEach((result: any) => {
+      indices.SEARCH_INDEX.push({
+        url: result.link,
+        title: result.title,
+        snippet: result.snippet,
+        source: 'serpapi',
+        fetchedAt: new Date().toISOString(),
+        relevanceScore: result.position ? (11 - result.position) / 10 : 0.5
+      });
     });
+  } catch (error) {
+    console.error(`SerpAPI query failed: ${error.message}`);
+    // Don't throw, just log and continue
   }
 }
 
