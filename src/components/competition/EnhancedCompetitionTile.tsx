@@ -55,7 +55,7 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
   const [error, setError] = useState<string | null>(null);
   const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const { toast } = useToast();
 
   // Load mock data on mount

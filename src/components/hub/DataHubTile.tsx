@@ -31,7 +31,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
   const [showDetails, setShowDetails] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const { currentSession } = useSession();
   const currentIdea = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
   const icon = Icon ? <Icon className="h-5 w-5" /> : null;

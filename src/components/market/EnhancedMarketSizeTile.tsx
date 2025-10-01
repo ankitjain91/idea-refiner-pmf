@@ -88,7 +88,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'overview' | 'regional' | 'projections'>('overview');
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const { currentSession } = useSession();
   
   const currentIdea = idea || currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || 'AI-powered productivity app';
