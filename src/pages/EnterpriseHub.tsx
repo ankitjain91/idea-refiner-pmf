@@ -12,6 +12,7 @@ import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
 import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
+import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
 
 export default function EnterpriseHub() {
   const { user } = useAuth();
@@ -130,12 +131,15 @@ export default function EnterpriseHub() {
           loading={loading}
         />
 
-        {/* 2. GLOBAL MARKET MAP */}
+        {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
         {viewMode === "deep" && (
-          <GlobalMarketMap 
-            marketData={tiles.market_size}
-            loading={loading}
-          />
+          <div className="space-y-6">
+            <EnhancedMarketSizeTile idea={currentIdea} />
+            <GlobalMarketMap 
+              marketData={tiles.market_size}
+              loading={loading}
+            />
+          </div>
         )}
 
         {/* 3. MAIN ANALYSIS GRID */}

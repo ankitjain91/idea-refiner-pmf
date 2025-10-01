@@ -329,6 +329,9 @@ verify_jwt = false
 [functions.analyze-tile-insight]
 verify_jwt = false
 
+[functions.market-size-analysis]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
