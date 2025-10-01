@@ -158,98 +158,83 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        whileHover={{ scale: 1.02 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
       >
-        <Card 
-          className={cn(
-            "relative overflow-hidden cursor-pointer transition-all duration-300",
-            "border-border/50 bg-card/30 backdrop-blur-xl shadow-xl",
-            "hover:shadow-2xl hover:border-primary/30",
-            isHovered && "ring-2 ring-primary/20"
-          )}
-          onClick={() => setShowDetails(true)}
-        >
-          {/* Gradient background */}
-          <div className={cn(
-            "absolute inset-0 bg-gradient-to-br opacity-30 transition-opacity duration-300",
-            tileStyle,
-            isHovered && "opacity-40"
-          )} />
-          
-          {/* Animated glow effect */}
-          {isHovered && (
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-            </div>
-          )}
-          
-          <CardHeader className="pb-3 relative">
+        <Card className={cn("transition-all duration-300 hover:shadow-lg")}>
+          <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <motion.div 
-                  className={cn(
-                    "p-2.5 rounded-xl bg-gradient-to-br backdrop-blur transition-all",
-                    tileStyle
-                  )}
-                  animate={{ rotate: isHovered ? 360 : 0 }}
-                  transition={{ duration: 0.5 }}
-                >
+              <CardTitle className="flex items-center gap-2">
+                <div className={cn("p-2 rounded-lg bg-gradient-to-br border", tileStyle)}>
                   {icon}
-                </motion.div>
-                <div>
-                  <CardTitle className="text-base font-semibold">{title}</CardTitle>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    {accentIcon || null}
-                    <span className="text-xs text-muted-foreground">
-                      {data?.citations?.length || 0} sources
-                    </span>
-                  </div>
                 </div>
-              </div>
+                {title}
+              </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge 
                   variant="outline" 
-                  className={cn("text-xs backdrop-blur border", qualityColor)}
+                  className={cn("text-xs", qualityColor)}
                 >
-                  <Sparkles className="h-2.5 w-2.5 mr-1" />
-                  {data?.dataQuality || 'unknown'}
+                  {data?.confidence || 'Medium'} Confidence
                 </Badge>
-                {confidenceIcon}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAIChat(true);
+                  }}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  AI Analysis
+                </Button>
               </div>
             </div>
           </CardHeader>
           
-          <CardContent className="relative">
+          <CardContent>
             <div className="space-y-4">
-              {/* Primary Metric Display */}
+              {/* Key Metrics in grid like Market Size card */}
               {primaryMetric && (
-                <motion.div 
-                  className="flex items-baseline justify-between"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <div className="flex items-baseline gap-2">
-                    <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                      {primaryMetric.value}
-                    </div>
-                    {primaryMetric.unit && (
-                      <span className="text-sm text-muted-foreground font-medium">
-                        {primaryMetric.unit}
-                      </span>
-                    )}
-                  </div>
-                  {primaryMetric.trend && (
-                    <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/50 backdrop-blur", primaryMetric.trendColor)}>
-                      {primaryMetric.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : 
-                       primaryMetric.trend === 'down' ? <TrendingDown className="h-3 w-3" /> : 
-                       <Minus className="h-3 w-3" />}
-                      <span className="text-xs font-medium">{primaryMetric.trendText}</span>
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="border-primary/20">
+                    <CardContent className="pt-4">
+                      <div className="text-xs text-muted-foreground mb-1">Score</div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold">{primaryMetric.value}</span>
+                        {primaryMetric.unit && <span className="text-sm text-muted-foreground">{primaryMetric.unit}</span>}
+                      </div>
+                      {primaryMetric.trend && (
+                        <div className={cn(
+                          "flex items-center gap-1 mt-2",
+                          primaryMetric.trend === 'up' ? 'text-green-500' : 
+                          primaryMetric.trend === 'down' ? 'text-red-500' : 
+                          'text-muted-foreground'
+                        )}>
+                          {primaryMetric.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : 
+                           primaryMetric.trend === 'down' ? <TrendingDown className="h-3 w-3" /> : 
+                           <Minus className="h-3 w-3" />}
+                          <span className="text-xs">{primaryMetric.trendText || primaryMetric.trend}</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Quick explanation card */}
+                  {data?.explanation && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-1">Analysis</div>
+                        <p className="text-sm leading-relaxed line-clamp-3">
+                          {typeof data.explanation === 'string' 
+                            ? data.explanation 
+                            : (data.explanation as any)?.summary || ''}
+                        </p>
+                      </CardContent>
+                    </Card>
                   )}
-                </motion.div>
+                </div>
               )}
               
               {/* Progress indicator for scores */}
