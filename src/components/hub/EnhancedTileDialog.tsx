@@ -75,6 +75,7 @@ export function EnhancedTileDialog({
 }: EnhancedTileDialogProps) {
   const [analysis, setAnalysis] = useState<GroqAnalysis | null>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  // Using useSession from SimpleSessionContext, not useSessionStorage
   const { currentSession } = useSession();
   const ideaContext = currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
   
