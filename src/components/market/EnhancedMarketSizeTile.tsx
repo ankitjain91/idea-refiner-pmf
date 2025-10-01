@@ -111,9 +111,15 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
 
       if (error) throw error;
 
-      if (data) {
-        setMarketData(normalizeMarketData(data));
+      if (data && data.market_size) {
+        // Extract market_size from the response structure
+        setMarketData(normalizeMarketData(data.market_size));
         // Auto-expand tile when data is fetched
+        setIsCollapsed(false);
+        console.log('Market data loaded:', data.market_size);
+      } else if (data) {
+        // Try using data directly if market_size is not nested
+        setMarketData(normalizeMarketData(data));
         setIsCollapsed(false);
         console.log('Market data loaded:', data);
       } else {
