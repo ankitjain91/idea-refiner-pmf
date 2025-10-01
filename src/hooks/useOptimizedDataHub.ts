@@ -256,21 +256,45 @@ export function useOptimizedDataHub(input: DataHubInput) {
             const competitionMetrics: any = tiles.competition?.metrics || tiles.competition?.json || {};
             const sentimentMetrics: any = tiles.sentiment?.metrics || tiles.sentiment?.json || {};
             
-            // Normalize market data
-            const TAM = marketMetrics.TAM || marketMetrics.tam || '$10B';
-            const growth_rate = marketMetrics.growth_rate || marketMetrics.growth || '15%';
+            // Normalize market data - prefer numeric values from metrics
+            let TAM = '$10B';
+            let growth_rate = '15%';
+            
+            if (marketMetrics.tam && typeof marketMetrics.tam === 'number') {
+              const tamValue = marketMetrics.tam;
+              if (tamValue >= 1e12) TAM = `$${(tamValue / 1e12).toFixed(1)}T`;
+              else if (tamValue >= 1e9) TAM = `$${(tamValue / 1e9).toFixed(1)}B`;
+              else if (tamValue >= 1e6) TAM = `$${(tamValue / 1e6).toFixed(1)}M`;
+              else TAM = `$${tamValue}`;
+            } else if (marketMetrics.TAM) {
+              TAM = marketMetrics.TAM;
+            }
+            
+            if (marketMetrics.growthRate && typeof marketMetrics.growthRate === 'number') {
+              growth_rate = `${marketMetrics.growthRate}%`;
+            } else if (marketMetrics.growth_rate) {
+              growth_rate = marketMetrics.growth_rate;
+            } else if (marketMetrics.growth) {
+              growth_rate = marketMetrics.growth;
+            }
+            
+            console.log('[SmoothBrains] Market data for scoring:', { TAM, growth_rate });
             
             // Normalize competition data
             const compLevel = (competitionMetrics.level || competitionMetrics.competition || '').toString().toLowerCase();
-            const compScore = Number(competitionMetrics.score) || undefined;
+            const compScore = Number(competitionMetrics.score) || Number(competitionMetrics.total) || undefined;
             const competitionData = {
               level: compLevel || 'moderate',
               score: typeof compScore === 'number' && compScore > 0 ? compScore : 5
             };
             
+            console.log('[SmoothBrains] Competition data for scoring:', competitionData);
+            
             // Normalize sentiment data
             let sentScore = 0.5; // 0-1
-            if (typeof sentimentMetrics.positive === 'string' && sentimentMetrics.positive.includes('%')) {
+            if (typeof sentimentMetrics.positiveRate === 'number') {
+              sentScore = Math.min(Math.max(sentimentMetrics.positiveRate / 100, 0), 1);
+            } else if (typeof sentimentMetrics.positive === 'string' && sentimentMetrics.positive.includes('%')) {
               const val = parseFloat(sentimentMetrics.positive.replace(/[^\d.]/g, ''));
               sentScore = isNaN(val) ? 0.5 : Math.min(Math.max(val / 100, 0), 1);
             } else if (typeof sentimentMetrics.score === 'number') {
@@ -278,6 +302,9 @@ export function useOptimizedDataHub(input: DataHubInput) {
             } else if (typeof sentimentMetrics.positive === 'number') {
               sentScore = Math.min(Math.max(sentimentMetrics.positive, 0), 1);
             }
+            
+            console.log('[SmoothBrains] Sentiment data for scoring:', { score: sentScore, sentiment: Math.round(sentScore * 100) });
+            console.log('[SmoothBrains] Wrinkle points:', wrinklePoints, 'Chat history length:', chatHistory.length);
             
             const { data: pmfResp, error: pmfErr } = await supabase.functions.invoke('calculate-smoothbrains-score', {
               body: {

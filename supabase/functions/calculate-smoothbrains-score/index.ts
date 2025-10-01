@@ -258,10 +258,12 @@ serve(async (req) => {
 
 // Helper functions
 function parseMarketSize(value: string): number {
+  if (!value || value === '0') return 0;
   const num = parseFloat(value.replace(/[^\d.]/g, ''));
-  if (value.includes('T')) return num * 1000;
-  if (value.includes('B')) return num;
-  if (value.includes('M')) return num / 1000;
+  if (value.toUpperCase().includes('T')) return num * 1000;
+  if (value.toUpperCase().includes('B')) return num;
+  if (value.toUpperCase().includes('M')) return num / 1000;
+  if (value.toUpperCase().includes('K')) return num / 1000000;
   return num || 0;
 }
 
@@ -280,7 +282,14 @@ function parseGrowthRate(value: string): number {
 }
 
 function parseSentiment(value: any): number {
-  if (typeof value === 'number') return Math.min(Math.max(value * 100, 0), 100);
+  // If value is already 0-1, use it directly (don't multiply by 100)
+  if (typeof value === 'number' && value >= 0 && value <= 1) {
+    return Math.round(value * 100); // Convert 0-1 to 0-100
+  }
+  // If value is 0-100, use it directly
+  if (typeof value === 'number' && value > 1) {
+    return Math.min(Math.max(value, 0), 100);
+  }
   return 50;
 }
 
