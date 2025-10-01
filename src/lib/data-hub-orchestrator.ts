@@ -273,7 +273,7 @@ export class DataHubOrchestrator {
 
     switch (tileType) {
       case 'pmf_score':
-        return this.synthesizePMFScore();
+        return await this.synthesizePMFScore();
       case 'market_size':
         return this.synthesizeMarketSize();
       case 'competition':
@@ -303,31 +303,68 @@ export class DataHubOrchestrator {
     }
   }
 
-  private synthesizePMFScore(): TileData {
-    const sentimentScore = this.calculateSentimentScore();
-    const competitionScore = this.calculateCompetitionScore();
-    const demandScore = this.calculateDemandScore();
-    const trendsScore = this.calculateTrendsScore();
+  private async synthesizePMFScore(): Promise<TileData> {
+    // Get wrinkle points from localStorage
+    const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
     
-    const pmfScore = Math.round(
-      (sentimentScore * 0.3) +
-      (competitionScore * 0.2) +
-      (demandScore * 0.3) +
-      (trendsScore * 0.2)
-    );
-
-    return {
-      metrics: {
-        score: pmfScore,
-        sentiment: sentimentScore,
-        competition: competitionScore,
-        demand: demandScore,
-        trends: trendsScore
-      },
-      explanation: `PMF Score = (Sentiment × 30%) + (Competition × 20%) + (Demand × 30%) + (Trends × 20%). Sentiment derived from ${this.dataHub.SOCIAL_INDEX.length} social posts and ${this.dataHub.REVIEWS_INDEX.length} reviews. Competition based on ${this.dataHub.COMPETITOR_INDEX.length} competitors analyzed.`,
-      citations: this.getTopCitations('pmf', 3),
-      charts: [
-        {
+    // Get chat history
+    const chatHistory = JSON.parse(localStorage.getItem('ideaChatMessages') || '[]');
+    
+    // Get user answers
+    const userAnswers = JSON.parse(localStorage.getItem('userAnswers') || '{}');
+    
+    // Prepare market data
+    const marketData = {
+      TAM: this.dataHub.MARKET_INDEX.find(d => d.key?.includes('tam'))?.value || '$0B',
+      growth_rate: this.dataHub.MARKET_INDEX.find(d => d.key?.includes('growth'))?.value || '10%'
+    };
+    
+    // Prepare competition data
+    const competitionScore = this.calculateCompetitionScore();
+    const competitionData = {
+      level: competitionScore < 30 ? 'high' : competitionScore < 70 ? 'moderate' : 'low',
+      score: (100 - competitionScore) / 10 // Convert to 1-10 scale
+    };
+    
+    // Prepare sentiment data
+    const sentimentScore = this.calculateSentimentScore();
+    const sentimentData = {
+      score: sentimentScore / 100, // Convert to 0-1 scale
+      sentiment: sentimentScore
+    };
+    
+    try {
+      // Call the strict SmoothBrains score calculation edge function
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase.functions.invoke('calculate-smoothbrains-score', {
+        body: {
+          idea: this.input.idea,
+          wrinklePoints,
+          marketData,
+          competitionData,
+          sentimentData,
+          chatHistory,
+          userAnswers
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data && data.success) {
+        return {
+          metrics: {
+            score: data.score,
+            category: data.category,
+            sentiment: sentimentScore,
+            competition: competitionScore,
+            demand: this.calculateDemandScore(),
+            trends: this.calculateTrendsScore(),
+            breakdown: data.breakdown
+          },
+          explanation: data.explanation,
+          citations: this.getTopCitations('pmf', 3),
+          charts: [
+            {
           type: 'bar',
           series: [
             { name: 'Components', data: [sentimentScore, competitionScore, demandScore, trendsScore] }
