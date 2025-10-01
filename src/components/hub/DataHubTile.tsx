@@ -195,101 +195,56 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
           
           <CardContent>
             <div className="space-y-4">
-              {/* Key Metrics in grid like Market Size card */}
-              {primaryMetric && (
+              {/* Display metrics from data.metrics object */}
+              {data?.metrics && Object.keys(data.metrics).length > 0 && (
                 <div className="grid grid-cols-2 gap-3">
-                  <Card className="border-primary/20">
-                    <CardContent className="pt-4">
-                      <div className="text-xs text-muted-foreground mb-1">Score</div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold">{primaryMetric.value}</span>
-                        {primaryMetric.unit && <span className="text-sm text-muted-foreground">{primaryMetric.unit}</span>}
-                      </div>
-                      {primaryMetric.trend && (
-                        <div className={cn(
-                          "flex items-center gap-1 mt-2",
-                          primaryMetric.trend === 'up' ? 'text-green-500' : 
-                          primaryMetric.trend === 'down' ? 'text-red-500' : 
-                          'text-muted-foreground'
-                        )}>
-                          {primaryMetric.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : 
-                           primaryMetric.trend === 'down' ? <TrendingDown className="h-3 w-3" /> : 
-                           <Minus className="h-3 w-3" />}
-                          <span className="text-xs">{primaryMetric.trendText || primaryMetric.trend}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Quick explanation card */}
-                  {data?.explanation && (
-                    <Card className="border-accent/20">
+                  {Object.entries(data.metrics).slice(0, 4).map(([key, value], index) => (
+                    <Card key={key} className="border-primary/20">
                       <CardContent className="pt-4">
-                        <div className="text-xs text-muted-foreground mb-1">Analysis</div>
-                        <p className="text-sm leading-relaxed line-clamp-3">
-                          {typeof data.explanation === 'string' 
-                            ? data.explanation 
-                            : (data.explanation as any)?.summary || ''}
-                        </p>
+                        <div className="text-xs text-muted-foreground mb-1 capitalize">
+                          {key.replace(/_/g, ' ')}
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-lg font-bold">{String(value)}</span>
+                        </div>
                       </CardContent>
                     </Card>
-                  )}
+                  ))}
                 </div>
               )}
               
-              {/* Progress indicator for scores */}
-              {tileType.includes('score') && primaryMetric && (
+              {/* Display explanation */}
+              {data?.explanation && (
+                <div className="p-3 rounded-lg bg-muted/20">
+                  <p className="text-sm leading-relaxed">
+                    {typeof data.explanation === 'string' 
+                      ? data.explanation 
+                      : (data.explanation as any)?.summary || ''}
+                  </p>
+                </div>
+              )}
+              
+              {/* Display confidence as percentage */}
+              {data?.confidence && (
                 <div className="space-y-2">
-                  <Progress 
-                    value={typeof primaryMetric.value === 'string' ? parseFloat(primaryMetric.value.replace(/[^0-9.-]/g, '')) || 0 : 0} 
-                    className="h-2 bg-muted/30"
-                  />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Low</span>
-                    <span>Medium</span>
-                    <span>High</span>
+                    <span>Confidence</span>
+                    <span className="font-medium">{Math.round(data.confidence * 100)}%</span>
                   </div>
+                  <Progress 
+                    value={data.confidence * 100} 
+                    className="h-2"
+                  />
                 </div>
               )}
               
-              {/* Quick explanation */}
-              <motion.p 
-                className="text-xs text-muted-foreground line-clamp-2 leading-relaxed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                {typeof data?.explanation === 'string' 
-                  ? data.explanation 
-                  : (data as any)?.explanation?.summary || (data as any)?.explanation?.meaning || ''}
-              </motion.p>
-              
-              {/* Action hint */}
-              <motion.div 
-                className="flex items-center justify-between pt-2 border-t border-border/50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 text-xs hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowAIChat(true);
-                  }}
-                >
-                  <Brain className="h-3.5 w-3.5" />
-                  AI Analysis
-                </Button>
-                <motion.div
-                  animate={{ x: isHovered ? 5 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronRight className="h-4 w-4 text-primary/60" />
-                </motion.div>
-              </motion.div>
+              {/* Citations */}
+              {data?.citations && data.citations.length > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <FileText className="h-3 w-3" />
+                  <span>{data.citations.length} sources analyzed</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

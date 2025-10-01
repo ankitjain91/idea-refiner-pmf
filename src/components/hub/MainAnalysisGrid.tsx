@@ -179,7 +179,6 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
       </h2>
       <div className="grid grid-cols-1 gap-6">
         {displayTiles.map((tile) => {
-          console.log('MainAnalysisGrid tile:', tile.id, { title: tile.title, icon: tile.icon, data: tile.data });
           
           // Use enhanced tiles for market_size and competition
           if (tile.id === "market_size") {
