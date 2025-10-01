@@ -177,7 +177,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   variant="outline" 
                   className={cn("text-xs whitespace-nowrap hidden lg:flex", qualityColor)}
                 >
-                  {data?.confidence || 'Medium'} Confidence
+                  {data?.confidence ? `${Math.round(data.confidence * 100)}%` : '50%'} Confidence
                 </Badge>
                 <Button 
                   variant="outline" 
