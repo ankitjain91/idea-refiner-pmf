@@ -24,9 +24,10 @@ interface DataHubTileProps {
   loading?: boolean;
   onRefresh?: () => void;
   expanded?: boolean;
+  className?: string;
 }
 
-export function DataHubTile({ title, tileType = "default", data, Icon, loading, onRefresh, expanded }: DataHubTileProps) {
+export function DataHubTile({ title, tileType = "default", data, Icon, loading, onRefresh, expanded, className }: DataHubTileProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -160,8 +161,9 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         transition={{ duration: 0.3 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
+        className={className}
       >
-        <Card className={cn("transition-all duration-300 hover:shadow-lg")}>
+        <Card className={cn("transition-all duration-300 hover:shadow-lg h-full", className)}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -195,8 +197,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
           
           <CardContent>
             <div className="space-y-4">
-              {/* Display primary insight if available */}
-              {(data as any)?.primaryInsight && (
+              {/* Display primary insight if available - only in expanded mode */}
+              {(data as any)?.primaryInsight && expanded && (
                 <div className="p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                   <p className="text-sm font-medium leading-relaxed">
                     {(data as any).primaryInsight}
@@ -231,8 +233,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
               )}
               
-              {/* Display regional breakdown if available */}
-              {(data as any)?.regionalBreakdown && (
+              {/* Display regional breakdown if available - only in expanded mode */}
+              {(data as any)?.regionalBreakdown && expanded && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Regional Breakdown</div>
@@ -269,8 +271,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display regional growth for market trends */}
-              {(data as any)?.regionalGrowth && (
+              {/* Display regional growth for market trends - only in expanded mode */}
+              {(data as any)?.regionalGrowth && expanded && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Regional Growth</div>
@@ -302,8 +304,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display regional interest for Google Trends */}
-              {(data as any)?.regionalInterest && (
+              {/* Display regional interest for Google Trends - only in expanded mode */}
+              {(data as any)?.regionalInterest && expanded && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Regional Interest</div>
@@ -324,8 +326,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display top themes for sentiment */}
-              {(data as any)?.topThemes && (
+              {/* Display top themes for sentiment - only in expanded mode */}
+              {(data as any)?.topThemes && expanded && (
                 <Card className="border-primary/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Top Themes</div>
@@ -351,8 +353,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display segments for market trends */}
-              {(data as any)?.segments && (
+              {/* Display segments for market trends - only in expanded mode */}
+              {(data as any)?.segments && expanded && (
                 <Card className="border-primary/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Market Segments</div>
@@ -439,8 +441,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
               )}
               
-              {/* Display key drivers for market trends */}
-              {(data as any)?.drivers && (
+              {/* Display key drivers for market trends - only in expanded mode */}
+              {(data as any)?.drivers && expanded && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Key Market Drivers</div>
@@ -456,8 +458,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display breakout terms for Google Trends */}
-              {(data as any)?.breakoutTerms && (
+              {/* Display breakout terms for Google Trends - only in expanded mode */}
+              {(data as any)?.breakoutTerms && expanded && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Breakout Terms</div>
@@ -473,8 +475,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display key events for news */}
-              {(data as any)?.keyEvents && (
+              {/* Display key events for news - only in expanded mode */}
+              {(data as any)?.keyEvents && expanded && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Recent Key Events</div>

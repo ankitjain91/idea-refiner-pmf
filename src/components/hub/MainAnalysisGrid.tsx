@@ -3,6 +3,7 @@ import { TileData } from "@/lib/data-hub-orchestrator";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
 import { EnhancedCompetitionTile } from "@/components/competition/EnhancedCompetitionTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
+import { cn } from "@/lib/utils";
 import { 
   TrendingUp, Users, MessageSquare, Activity, 
   Search, Newspaper, DollarSign, Building2
@@ -293,8 +294,16 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
             );
           }
           
+          // Determine tile size based on content richness
+          const hasRegionalData = (tile.data as any)?.regionalBreakdown || (tile.data as any)?.regionalGrowth || (tile.data as any)?.regionalInterest;
+          const hasMultipleMetrics = tile.data?.metrics && Object.keys(tile.data.metrics).length > 2;
+          const hasDetailedInsights = (tile.data as any)?.segments || (tile.data as any)?.drivers || (tile.data as any)?.breakoutTerms || (tile.data as any)?.keyEvents;
+          
+          const isLargeTile = hasRegionalData || (hasMultipleMetrics && hasDetailedInsights);
+          const gridClass = isLargeTile && viewMode === "deep" ? "lg:col-span-2" : "";
+          
           return (
-            <div key={tile.id} className={tile.span}>
+            <div key={tile.id} className={cn(tile.span, gridClass)}>
               <DataHubTile
                 title={tile.title}
                 Icon={tile.icon}
@@ -302,6 +311,10 @@ export function MainAnalysisGrid({ tiles, loading, viewMode }: MainAnalysisGridP
                 loading={loading}
                 expanded={viewMode === "deep"}
                 tileType={tile.id}
+                className={cn(
+                  "h-full",
+                  isLargeTile && viewMode === "deep" ? "min-h-[400px]" : "min-h-[300px]"
+                )}
               />
             </div>
           );
