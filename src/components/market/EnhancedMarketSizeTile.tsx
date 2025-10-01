@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Globe, TrendingUp, DollarSign, Target, MapPin, BarChart3,
   ExternalLink, Info, RefreshCw, Zap, Building, Users, Brain, 
-  Sparkles, MessageSquare, TrendingDown, Lightbulb
+  Sparkles, MessageSquare, TrendingDown, Lightbulb, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SimpleSessionContext';
@@ -88,6 +88,7 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'overview' | 'regional' | 'projections'>('overview');
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const { currentSession } = useSession();
   
   const currentIdea = idea || currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || 'AI-powered productivity app';
@@ -265,7 +266,8 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
         </div>
       </CardHeader>
 
-      <CardContent>
+      {!isCollapsed && (
+        <CardContent>
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -552,7 +554,8 @@ export function EnhancedMarketSizeTile({ idea, className }: EnhancedMarketSizeTi
             </CardContent>
           </Card>
         )}
-      </CardContent>
+        </CardContent>
+      )}
       
       {/* AI Chat Dialog */}
       <TileAIChat

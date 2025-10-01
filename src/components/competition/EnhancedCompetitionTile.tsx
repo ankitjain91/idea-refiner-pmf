@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, TrendingUp, Users, Shield, Brain, ChevronRight, ExternalLink, AlertCircle, Lightbulb, Target, Sparkles, MessageSquare } from 'lucide-react';
+import { Building2, TrendingUp, Users, Shield, Brain, ChevronRight, ChevronDown, ChevronUp, ExternalLink, AlertCircle, Lightbulb, Target, Sparkles, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +54,7 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
   const [error, setError] = useState<string | null>(null);
   const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const { toast } = useToast();
 
   // Load mock data on mount
@@ -241,7 +242,8 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
           </div>
         </CardHeader>
 
-        <CardContent className="p-4">
+        {!isCollapsed && (
+          <CardContent className="p-4">
           <Tabs defaultValue="overview" className="h-full">
             <TabsList className="grid grid-cols-4 w-full mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -495,6 +497,7 @@ export function EnhancedCompetitionTile({ idea }: EnhancedCompetitionTileProps) 
             </DialogContent>
           </Dialog>
         </CardContent>
+        )}
       </Card>
 
       {/* Competition Chat Dialog */}

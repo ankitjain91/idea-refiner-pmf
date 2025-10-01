@@ -165,7 +165,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
         className={className}
       >
         <Card className={cn("transition-all duration-300 hover:shadow-lg h-full", className)}>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-2">
               <CardTitle className="flex items-center gap-2 min-w-0">
                 <div className={cn("p-2 rounded-lg bg-gradient-to-br border flex-shrink-0", tileStyle)}>
@@ -214,7 +214,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
             </div>
             {isCollapsed && primaryMetric && (
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-lg font-semibold">{primaryMetric.value}</span>
+                <span className="text-sm font-semibold">{primaryMetric.value}</span>
                 {primaryMetric.trend && (
                   <Badge variant="outline" className="text-xs">
                     {primaryMetric.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : 
