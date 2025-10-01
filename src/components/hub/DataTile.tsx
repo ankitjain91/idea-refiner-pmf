@@ -18,7 +18,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { TileInsightsDialog } from './TileInsightsDialog';
-import { useDashboardPersistence } from '@/hooks/useDashboardPersistence';
+
 import { useTileData } from './BaseTile';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
@@ -110,8 +110,9 @@ export function DataTile({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Use persistence hook
-  const { persistTileData, persistComponentData } = useDashboardPersistence();
+  // Persistence functionality removed
+  const persistTileData = () => {};
+  const persistComponentData = () => {};
   
   // Use 15 minute interval for news analysis, 30 seconds for others
   const refreshInterval = tileType === 'news_analysis' ? 15 * 60 : 30;
@@ -282,12 +283,7 @@ export function DataTile({
       
       // Persist the tile data if we have it
       if (data) {
-        persistTileData(tileType, data);
-        
-        // Also persist component-specific data
-        if (tileType) {
-          persistComponentData(tileType, data);
-        }
+        // Persistence functionality removed
       }
     } catch (err) {
       console.error(`Error fetching data for ${tileType}:`, err);

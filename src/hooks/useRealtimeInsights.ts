@@ -1,5 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChannelInsight, ChannelKey } from '@/components/dashboard/MarketingChannels';
+// Channel types
+type ChannelKey = 'seo' | 'sem' | 'linkedin' | 'tiktok' | 'influencers' | 'partnerships' | 'email' | 'content' | 'communities' | 'marketplace' | 'plg';
+
+interface ChannelInsight {
+  channel: ChannelKey;
+  why: string[];
+  metrics: {
+    ctr: number;
+    cvr: number;
+    cac: number;
+    cpmOrCpc: number;
+    ltvToCac: number;
+    timeToImpactDays: number;
+    confidence: string;
+  };
+  budgetSuggestion: {
+    daily: number;
+    weekly: number;
+    currency: string;
+  };
+  impactEstimate: {
+    leads: number;
+    revenue: number;
+  };
+  experiments: Array<{ title: string; hypothesis: string }>;
+}
 
 export interface RealtimeSnapshot {
   profitScore: number;

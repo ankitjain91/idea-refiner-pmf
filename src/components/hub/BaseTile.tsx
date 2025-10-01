@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { AlertCircle, Info, LucideIcon, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { dashboardDataService } from '@/lib/dashboard-data-service';
+
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 
@@ -363,12 +363,7 @@ export function useTileData<T = any>(
     try {
       // Try to load from database first if enabled
       if (options?.useDatabase && options?.tileType && user?.id) {
-        const dbData = await dashboardDataService.getData({
-          userId: user.id,
-          ideaText: localStorage.getItem('pmfCurrentIdea') || '',
-          tileType: options.tileType,
-          sessionId: currentSession?.id
-        });
+        const dbData = null; // Database functionality removed
         
         if (dbData) {
           console.log(`[${options.tileType}] Found data in database`);
@@ -402,16 +397,7 @@ export function useTileData<T = any>(
         // Save REAL data to database if enabled
         if (options?.useDatabase && options?.tileType && user?.id) {
           console.log(`[${options.tileType}] Persisting real API data to database...`);
-          await dashboardDataService.saveData(
-            {
-              userId: user.id,
-              ideaText: localStorage.getItem('pmfCurrentIdea') || '',
-              tileType: options.tileType,
-              sessionId: currentSession?.id
-            },
-            result,
-            options.cacheMinutes || 30
-          );
+          // Database save functionality removed
         }
       } else if (result) {
         // If it's mock data, show it but DON'T persist

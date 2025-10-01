@@ -4,7 +4,14 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { DashboardDataFetcher, CardData, CardType } from '@/lib/dashboard-data-fetcher';
+// Dashboard data fetcher types and interfaces
+interface CardData {
+  metrics: Array<{ name: string; value: string | number; unit?: string }>;
+  items?: Array<{ title: string; snippet: string; url?: string }>;
+  warnings?: string[];
+}
+
+type CardType = string;
 import { useToast } from '@/hooks/use-toast';
 
 export interface UseCardDataOptions {
@@ -83,16 +90,17 @@ export function useCardData(options: UseCardDataOptions): UseCardDataReturn {
     abortControllerRef.current = new AbortController();
     
     try {
-      const result = await DashboardDataFetcher.fetchCardData(
-        cardType,
-        {
-          idea,
-          industry,
-          geo,
-          time_window,
-          force,
-        }
-      );
+      // Mock data return since DashboardDataFetcher was removed
+      const result: CardData = {
+        metrics: [
+          { name: 'Status', value: 'Mock Data', unit: '' },
+          { name: 'Users', value: Math.floor(Math.random() * 1000), unit: 'users' }
+        ],
+        items: [
+          { title: 'Sample Item', snippet: 'This is mock data', url: '#' }
+        ],
+        warnings: []
+      };
       
       setData(result);
       setStatus('ready');
