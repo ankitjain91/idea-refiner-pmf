@@ -189,8 +189,18 @@ serve(async (req) => {
     
     console.log('[reddit-sentiment] Processing request:', { idea, industry, geography, timeWindow, analyzeType });
     
-    // Build search query
-    searchTerms = [idea, industry, geography].filter(Boolean).join(' ');
+    // Extract relevant keywords from idea
+    const extractKeywords = (text: string): string[] => {
+      const stopWords = new Set(['the', 'is', 'at', 'which', 'on', 'and', 'a', 'an', 'as', 'are', 'was', 'were', 'of', 'to', 'in', 'for', 'with', 'it', 'this', 'that', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could', 'should', 'may', 'might', 'ai-powered', 'powered', 'tool', 'highlights', 'suggests', 'addresses', 'focus']);
+      const words = text.toLowerCase().split(/\W+/).filter(w => w.length > 3 && !stopWords.has(w));
+      return words.slice(0, 4); // Top 4 keywords
+    };
+    
+    const keywords = idea ? extractKeywords(idea) : [];
+    console.log('[reddit-sentiment] Extracted keywords:', keywords);
+    
+    // Build focused search query using keywords + industry
+    searchTerms = [...keywords, industry].filter(Boolean).join(' OR ');
     
     // Try OAuth first; fall back to public endpoint on failure
     let accessToken: string | null = null;
