@@ -86,33 +86,7 @@ export function NewsTrendsTile({ data, loading, className, onRefresh }: NewsTren
 
   const GEO_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
-  // Process and enrich the news trends data
-  const processedTrends = useMemo(() => {
-    if (!data) return [];
-    
-    // Handle different data structures
-    const trends = data.news_trends || data.trends || [];
-    
-    return trends.map((trend: any) => {
-      // Generate timeline data if not provided
-      const timeline = trend.metrics?.timeline || generateMockTimeline();
-      
-      // Calculate influence score if not provided
-      const influenceScore = trend.metrics?.influence_score || 
-        calculateInfluenceScore(trend.metrics);
-      
-      return {
-        ...trend,
-        metrics: {
-          ...trend.metrics,
-          timeline,
-          influence_score: influenceScore
-        }
-      };
-    });
-  }, [data]);
-
-  // Helper functions
+  // Helper functions - moved before useMemo
   const generateMockTimeline = () => {
     const timeline = [];
     const today = new Date();
@@ -150,6 +124,32 @@ export function NewsTrendsTile({ data, loading, className, onRefresh }: NewsTren
     if (value < 0) return 'text-red-400';
     return 'text-yellow-500';
   };
+
+  // Process and enrich the news trends data
+  const processedTrends = useMemo(() => {
+    if (!data) return [];
+    
+    // Handle different data structures
+    const trends = data.news_trends || data.trends || [];
+    
+    return trends.map((trend: any) => {
+      // Generate timeline data if not provided
+      const timeline = trend.metrics?.timeline || generateMockTimeline();
+      
+      // Calculate influence score if not provided
+      const influenceScore = trend.metrics?.influence_score || 
+        calculateInfluenceScore(trend.metrics);
+      
+      return {
+        ...trend,
+        metrics: {
+          ...trend.metrics,
+          timeline,
+          influence_score: influenceScore
+        }
+      };
+    });
+  }, [data]);
 
   if (loading) {
     return (
