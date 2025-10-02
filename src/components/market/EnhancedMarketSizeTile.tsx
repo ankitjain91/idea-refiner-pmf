@@ -158,7 +158,7 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
   };
 
   // Use the optimized tile data hook with multistep pipeline integration
-  const { data: marketData, isLoading: loading, error, loadData } = useTileData(
+  const { data: marketData, isLoading: loading, error, loadData, setData } = useTileData(
     fetchOptimizedMarketData,
     [currentIdea], // Dependencies
     {
@@ -195,12 +195,30 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
     }
   }, [currentIdea, marketData, loading, initialData, loadData]);
 
-  // Use initial data if provided
+  // Use initial data if provided to hydrate the tile immediately
   useEffect(() => {
-    if (initialData && !marketData) {
-      console.log('[EnhancedMarketSizeTile] Using provided initial data');
+    if (initialData && !marketData && setData) {
+      try {
+        const metrics = (initialData as any).metrics || {};
+        const json = (initialData as any).json || {};
+        const converted: MarketSizeData = {
+          TAM: formatMoney(metrics.tam ?? json.TAM ?? 0),
+          SAM: formatMoney(metrics.sam ?? json.SAM ?? 0),
+          SOM: formatMoney(metrics.som ?? json.SOM ?? 0),
+          growth_rate: metrics.growthRate !== undefined ? formatPercent(metrics.growthRate) : (json.growth_rate || '0%'),
+          confidence: ((initialData as any).dataQuality === 'high') ? 'High' : ((initialData as any).dataQuality === 'medium') ? 'Moderate' : 'Low',
+          explanation: (initialData as any).explanation || '',
+          citations: (initialData as any).citations || [],
+          charts: (initialData as any).charts || [],
+          regions: json.regions || []
+        };
+        setData(converted);
+        console.log('[EnhancedMarketSizeTile] Hydrated with initialData');
+      } catch (e) {
+        console.warn('[EnhancedMarketSizeTile] Failed to use initialData', e);
+      }
     }
-  }, [initialData, marketData]);
+  }, [initialData, marketData, setData]);
   
   // Funny loading messages for market analysis
   const getLoadingMessage = () => {
