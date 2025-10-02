@@ -40,6 +40,24 @@ serve(async (req) => {
       throw new Error(`GDELT API error: ${response.status}`);
     }
 
+    // Check if response is JSON
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error('GDELT returned non-JSON response:', text.substring(0, 200));
+      
+      // Return fallback data instead of throwing error
+      return new Response(
+        JSON.stringify({
+          articles: [],
+          totalResults: 0,
+          query: query,
+          message: 'GDELT API temporarily unavailable, using fallback data'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const data = await response.json();
     
     // Transform GDELT results to our format
