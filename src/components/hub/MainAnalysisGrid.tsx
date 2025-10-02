@@ -165,7 +165,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
       id: "sentiment", 
       title: "Sentiment", 
       icon: MessageSquare,
-      data: tileData.sentiment || null,
+      data: tiles.sentiment || tileData.sentiment || null,
       span: "col-span-full"
     },
     { 

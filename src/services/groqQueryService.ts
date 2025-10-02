@@ -97,7 +97,10 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
       if (data.sentiment || data.sentimentScore) {
         return {
           score: data.sentiment?.score || data.sentimentScore,
-          breakdown: data.sentiment?.breakdown,
+          positive: data.sentiment?.positive || data.positive || 0,
+          negative: data.sentiment?.negative || data.negative || 0,
+          neutral: data.sentiment?.neutral || data.neutral || 0,
+          breakdown: data.sentiment?.breakdown || data.breakdown,
           confidence: 0.8
         };
       }

@@ -1060,7 +1060,7 @@ function getPrimaryMetric(tileType: string, data: TileData | null) {
     pmf_score: { key: 'score', unit: '/100' },
     market_size: { key: 'tam', unit: '' },
     competition: { key: 'total', unit: ' competitors' },
-    sentiment: { key: 'positiveRate', unit: '% positive' },
+    sentiment: { key: 'positive', unit: '% positive' },
     market_trends: { key: 'trendScore', unit: '% strength' },
     news_analysis: { key: 'articles', unit: ' articles' },
     google_trends: { key: 'currentInterest', unit: '/100' },
