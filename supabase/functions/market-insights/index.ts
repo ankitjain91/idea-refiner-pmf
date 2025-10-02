@@ -241,6 +241,53 @@ serve(async (req) => {
           }
         }`;
         break;
+        
+      case 'market-trends':
+      case 'trends':
+        prompt = `Analyze current market trends for: "${idea}"
+        
+        Provide comprehensive market trend analysis in JSON format:
+        {
+          "trends": [
+            "Specific trend description 1",
+            "Specific trend description 2",
+            "Specific trend description 3",
+            "Specific trend description 4",
+            "Specific trend description 5"
+          ],
+          "growthRate": 25,
+          "drivers": [
+            "Key market driver 1",
+            "Key market driver 2",
+            "Key market driver 3",
+            "Key market driver 4"
+          ],
+          "direction": "upward/downward/stable",
+          "emergingTech": ["AI", "CLOUD", "BLOCKCHAIN", "IOT"],
+          "consumerShifts": [
+            "Consumer behavior change 1",
+            "Consumer behavior change 2"
+          ],
+          "disruptions": [
+            "Industry disruption 1",
+            "Industry disruption 2"
+          ],
+          "regulatoryChanges": [
+            "Regulatory change 1",
+            "Regulatory change 2"
+          ],
+          "investmentTrends": [
+            "Investment trend 1",
+            "Investment trend 2"
+          ],
+          "insights": "Comprehensive analysis summary",
+          "metrics": [
+            {"label": "Growth Rate", "value": "XX% CAGR", "trend": "up"},
+            {"label": "Market Maturity", "value": "Growth Stage", "trend": "stable"},
+            {"label": "Innovation Index", "value": "8.5/10", "trend": "up"}
+          ]
+        }`;
+        break;
     }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {

@@ -469,9 +469,11 @@ export class OptimizedDashboardService {
       
       // Add specific parameters for different endpoints
       if (endpoint === 'serper-batch-search') {
+        // Special handling for market trends
+        const searchType = tileType === 'market-trends' ? 'market_trends' : tileType;
         requestBody = {
           idea: optimizedQuery.searchQuery,
-          searchTypes: [tileType],
+          searchTypes: [searchType],
           filters: optimizedQuery.filters
         };
       } else if (endpoint === 'web-search-optimized' || endpoint === 'web-search') {
@@ -480,7 +482,13 @@ export class OptimizedDashboardService {
           filters: optimizedQuery.filters.join(' '),
           keywords: optimizedQuery.keywords
         };
-      } else if (endpoint === 'market-insights' || endpoint === 'market-intelligence') {
+      } else if (endpoint === 'market-insights') {
+        requestBody = {
+          idea,
+          query: optimizedQuery.searchQuery,
+          type: tileType === 'market-trends' ? 'market-trends' : tileType
+        };
+      } else if (endpoint === 'market-intelligence') {
         requestBody = {
           idea,
           query: `${optimizedQuery.searchQuery} ${optimizedQuery.filters.join(' ')}`,
