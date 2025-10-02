@@ -232,10 +232,42 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
     }
   };
 
-  // Parse monetary values
-  const parseValue = (value: string | undefined): number => {
+  // Parse monetary values - handle strings like "$12.4B", "$500M"
+  const parseValue = (value: string | number | undefined): number => {
     if (!value) return 0;
-    return parseFloat(value.replace(/[^\d.]/g, '')) || 0;
+    
+    if (typeof value === 'number') {
+      // If it's a raw number and very large, it's probably in dollars
+      if (value > 1000000000) {
+        return value / 1000000000; // Convert to billions
+      }
+      return value; // Already in billions
+    }
+    
+    if (typeof value === 'string') {
+      // Remove $ and commas
+      const cleanValue = value.replace(/[$,]/g, '');
+      const numericPart = parseFloat(cleanValue) || 0;
+      
+      // Handle different suffixes
+      if (cleanValue.includes('T')) {
+        return numericPart * 1000; // Trillions to billions
+      }
+      if (cleanValue.includes('B')) {
+        return numericPart; // Already in billions
+      }
+      if (cleanValue.includes('M')) {
+        return numericPart / 1000; // Millions to billions
+      }
+      if (cleanValue.includes('K')) {
+        return numericPart / 1000000; // Thousands to billions
+      }
+      
+      // No suffix, assume raw number
+      return numericPart;
+    }
+    
+    return 0;
   };
 
   const getConfidenceColor = (confidence: string | number) => {

@@ -14,13 +14,38 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
 
   // Parse market size data - handle both string and number formats
   const parseValue = (value: any): number => {
-    if (typeof value === 'number') {
-      // If it's already a number, convert from dollars to billions
-      return value / 1000000000;
-    }
+    if (value === null || value === undefined) return 0;
+    
     if (typeof value === 'string') {
-      return parseFloat(value.replace(/[^0-9.]/g, '') || '0');
+      // Extract numeric value from strings like "$12.4B", "$500M", etc.
+      const cleanValue = value.replace(/[$,]/g, '');
+      const numericPart = parseFloat(cleanValue) || 0;
+      
+      // Already in billions if contains 'B'
+      if (cleanValue.includes('B')) {
+        return numericPart;
+      }
+      // Convert millions to billions
+      if (cleanValue.includes('M')) {
+        return numericPart / 1000;
+      }
+      // Convert trillions to billions
+      if (cleanValue.includes('T')) {
+        return numericPart * 1000;
+      }
+      // Otherwise assume it's already in billions
+      return numericPart;
     }
+    
+    if (typeof value === 'number') {
+      // If it's a raw number and very large, it's probably in dollars
+      if (value > 1000000000) {
+        return value / 1000000000;
+      }
+      // Otherwise assume it's already in billions
+      return value;
+    }
+    
     return 0;
   };
 
@@ -36,8 +61,8 @@ export function MarketSizeChart({ data }: MarketSizeChartProps) {
 
   const segmentData = data.customer_segments?.map((segment: any, index: number) => ({
     segment: segment.segment,
-    size: typeof segment.size === 'number' ? segment.size / 1000000000 : parseFloat(segment.size?.replace(/[^0-9.]/g, '') || '0'),
-    growth: typeof segment.growth_rate === 'number' ? segment.growth_rate : parseFloat(segment.growth_rate?.replace(/[^0-9.]/g, '') || '0'),
+    size: parseValue(segment.size),
+    growth: typeof segment.growth_rate === 'number' ? segment.growth_rate : parseFloat(segment.growth_rate?.replace(/[^0-9.-]/g, '') || '0'),
     color: `hsl(var(--chart-${(index % 5) + 1}))`
   })) || [];
 
