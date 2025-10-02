@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -26,9 +26,8 @@ export function FinancialSignals({ idea }: FinancialSignalsProps) {
   const fetchFinancialData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('financial-analysis', {
-        body: { idea }
-      });
+      const data = await optimizedQueue.invokeFunction('financial-analysis', { idea });
+      const error = null;
 
       // Extract data using the utility function
       const extractedData = extractEdgeFunctionData({ data, error }, 'financials');

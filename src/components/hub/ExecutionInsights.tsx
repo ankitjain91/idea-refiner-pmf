@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { extractEdgeFunctionData } from "@/utils/edgeFunctionUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -26,9 +26,8 @@ export function ExecutionInsights({ idea }: ExecutionInsightsProps) {
   const fetchExecutionData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('execution-insights', {
-        body: { idea }
-      });
+      const data = await optimizedQueue.invokeFunction('execution-insights', { idea });
+      const error = null;
 
       // Extract data using the utility function
       const extractedData = extractEdgeFunctionData({ data, error }, 'execution');

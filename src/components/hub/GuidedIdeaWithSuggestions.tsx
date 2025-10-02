@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2, MessageSquare, Lightbulb } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface GuidedIdeaWithSuggestionsProps {
@@ -26,12 +26,10 @@ export default function GuidedIdeaWithSuggestions({ onSubmit, value }: GuidedIde
   const fetchSuggestions = async (context?: string) => {
     setLoadingSuggestions(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-suggestions', {
-        body: { 
-          userMessage: context || "I want to start a new business",
-          conversationHistory: conversationContext,
-          type: 'startup_ideas'
-        }
+      const data = await optimizedQueue.invokeFunction('generate-suggestions', { 
+        userMessage: context || "I want to start a new business",
+        conversationHistory: conversationContext,
+        type: 'startup_ideas'
       });
 
       if (data?.suggestions && Array.isArray(data.suggestions)) {

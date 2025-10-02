@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -77,17 +77,15 @@ export function TileAIChat({
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('tile-ai-chat', {
-        body: {
-          message: messageText,
-          tileData,
-          tileTitle,
-          idea,
-          chatHistory: messages
-        }
+      const data = await optimizedQueue.invokeFunction('tile-ai-chat', {
+        message: messageText,
+        tileData,
+        tileTitle,
+        idea,
+        chatHistory: messages
       });
 
-      if (error) throw error;
+      
 
       const assistantMessage: Message = {
         role: 'assistant',

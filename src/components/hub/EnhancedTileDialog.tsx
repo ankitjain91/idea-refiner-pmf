@@ -20,7 +20,7 @@ import {
   AreaChart, Area
 } from "recharts";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { useSession } from "@/contexts/SimpleSessionContext";
 
 interface EnhancedTileDialogProps {
@@ -90,15 +90,13 @@ export function EnhancedTileDialog({
     
     setLoadingAnalysis(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('analyze-tile-insight', {
-        body: { 
-          tileType,
-          tileData: data,
-          ideaContext 
-        }
+      const result = await optimizedQueue.invokeFunction('analyze-tile-insight', { 
+        tileType,
+        tileData: data,
+        ideaContext 
       });
 
-      if (error) throw error;
+      
       if (result?.success && result.analysis) {
         setAnalysis(result.analysis);
       }

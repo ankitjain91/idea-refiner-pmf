@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { BaseTile, useTileData } from './BaseTile';
 import { TileInsightsDialog } from './TileInsightsDialog';
 import { SmoothBrainsDialog } from './SmoothBrainsDialog';
@@ -48,11 +48,11 @@ export function QuickStatsTile({
     const functionName = functionMap[tileType];
     if (!functionName) throw new Error(`Unknown tile type: ${tileType}`);
 
-    const { data, error } = await supabase.functions.invoke(functionName, {
-      body: { idea: currentIdea, detailed: tileType === 'pmf_score' }
+    const data = await optimizedQueue.invokeFunction(functionName, { 
+      idea: currentIdea, detailed: tileType === 'pmf_score' 
     });
 
-    if (error) throw error;
+    
     return data;
   };
 

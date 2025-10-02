@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { extractEdgeFunctionData } from "@/utils/edgeFunctionUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -27,12 +27,10 @@ export function EngagementSignals({ idea }: EngagementSignalsProps) {
   const fetchSentimentData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('social-sentiment', {
-        body: { idea }
-      });
+      const data = await optimizedQueue.invokeFunction('social-sentiment', { idea });
 
       // Get the inner data object ({ socialSentiment, searchVolume, ... })
-      const payload = extractEdgeFunctionData({ data, error });
+      const payload = extractEdgeFunctionData({ data, error: null });
       const social = payload?.socialSentiment || payload?.sentiment || payload;
       if (social) {
         const normalized = {

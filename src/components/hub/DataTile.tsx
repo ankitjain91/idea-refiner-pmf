@@ -16,6 +16,7 @@ import {
   BarChart3, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { cn } from '@/lib/utils';
 import { TileInsightsDialog } from './TileInsightsDialog';
 
@@ -145,28 +146,21 @@ export function DataTile({
       
       // Special handling for news_analysis - call dedicated edge function directly
       if (tileType === 'news_analysis') {
-        const { data: newsData, error: newsError } = await supabase.functions.invoke('news-analysis', {
-          body: { 
-            idea: currentIdea,
-            industry: filters?.industry || '',
-            geo: filters?.geography || 'global',
-            time_window: filters?.time_window || 'last_90_days'
-          }
+        const newsData = await optimizedQueue.invokeFunction('news-analysis', { 
+          idea: currentIdea,
+          industry: filters?.industry || '',
+          geo: filters?.geography || 'global',
+          time_window: filters?.time_window || 'last_90_days'
         });
         
-        if (newsError) throw newsError;
         return newsData as TileData;
       }
       
       // Primary path: consolidated AI search for other tile types
-      const { data: response, error: fetchError } = await supabase.functions.invoke('web-search-ai', {
-        body: { tileType, filters, query: currentIdea }
+      const response = await optimizedQueue.invokeFunction('web-search-ai', { 
+        tileType, filters, query: currentIdea 
       });
       
-      if (fetchError) {
-        console.warn(`web-search-ai failed for ${tileType}, trying fallback:`, fetchError);
-        throw fetchError;
-      }
       
       // Check for error in response
       if (response?.error) {
@@ -201,29 +195,22 @@ export function DataTile({
       try {
         // Special handling for news-analysis edge function
         if (tileType === 'news_analysis') {
-          const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('news-analysis', {
-            body: { 
-              idea: filters?.idea_keywords?.join(' ') || (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '') || 'startup',
-              industry: filters?.industry,
-              geo: filters?.geography || 'global',
-              time_window: filters?.time_window || 'last_90_days'
-            }
+          const fallbackData = await optimizedQueue.invokeFunction('news-analysis', { 
+            idea: filters?.idea_keywords?.join(' ') || (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '') || 'startup',
+            industry: filters?.industry,
+            geo: filters?.geography || 'global',
+            time_window: filters?.time_window || 'last_90_days'
           });
           
-          if (fallbackError) throw fallbackError;
           return fallbackData as TileData;
         }
         
         // Default handling for other tile types
-        const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke(fallbackFunction, {
-          body: { 
-            query: filters?.idea_keywords?.join(' ') || 'startup', 
-            filters,
-            tileType 
-          }
+        const fallbackData = await optimizedQueue.invokeFunction(fallbackFunction, { 
+          query: filters?.idea_keywords?.join(' ') || 'startup', 
+          filters,
+          tileType 
         });
-        
-        if (fallbackError) throw fallbackError;
         
         // Transform fallback data to match TileData structure
         return transformFallbackData(tileType, fallbackData);

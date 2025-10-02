@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -35,16 +35,14 @@ export function MarketValidation({ idea }: MarketValidationProps) {
     try {
       // Fetch market trends
       const [trendsRes, competitorsRes] = await Promise.all([
-        supabase.functions.invoke('market-trends', {
-          body: { idea, keywords: idea.split(' ').slice(0, 3) }
+        optimizedQueue.invokeFunction('market-trends', { 
+          idea, keywords: idea.split(' ').slice(0, 3) 
         }),
-        supabase.functions.invoke('competitor-analysis', {
-          body: { idea }
-        })
+        optimizedQueue.invokeFunction('competitor-analysis', { idea })
       ]);
 
-      if (trendsRes.data) setMarketData(trendsRes.data.trends);
-      if (competitorsRes.data) setCompetitors(competitorsRes.data.competitors);
+      if (trendsRes) setMarketData(trendsRes.trends);
+      if (competitorsRes) setCompetitors(competitorsRes.competitors);
     } catch (error) {
       console.error('Error fetching market data:', error);
     } finally {
