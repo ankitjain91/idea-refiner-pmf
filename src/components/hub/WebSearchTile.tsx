@@ -104,7 +104,7 @@ export function WebSearchTile({ idea, className }: WebSearchTileProps) {
 
     try {
       const response = await invokeSupabaseFunction('web-search', {
-        idea,
+        idea_keywords: idea,  // Changed from 'idea' to 'idea_keywords'
         userId: 'anonymous'
       });
 
