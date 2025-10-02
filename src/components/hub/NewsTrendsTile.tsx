@@ -130,7 +130,14 @@ export function NewsTrendsTile({ data, loading, className, onRefresh }: NewsTren
     if (!data) return [];
     
     // Handle different data structures
-    const trends = data.news_trends || data.trends || [];
+    const trends =
+      data.news_trends ||
+      data.trends ||
+      data.data?.news_trends ||
+      data.data?.trends ||
+      data.json?.news_trends ||
+      data.json?.trends ||
+      [];
     
     return trends.map((trend: any) => {
       // Generate timeline data if not provided
