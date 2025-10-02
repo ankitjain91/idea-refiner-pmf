@@ -11,8 +11,9 @@ import {
   TrendingUp, TrendingDown, Activity, BarChart3, 
   RefreshCw, DollarSign, Users, Target, AlertTriangle,
   Zap, Shield, Globe, Calendar, ChevronRight, Info,
-  LineChart, PieChart, AreaChart
+  LineChart, PieChart, AreaChart, Sparkles
 } from "lucide-react";
+import { TileAIChat } from './TileAIChat';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { toast } from "sonner";
 import {
@@ -75,6 +76,7 @@ export function MarketTrendsTile({ idea, className }: MarketTrendsTileProps) {
   const [selectedTrend, setSelectedTrend] = useState<MarketTrend | null>(null);
   const [confidence, setConfidence] = useState<string>("Moderate");
   const [crossLinks, setCrossLinks] = useState<any>({});
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const fetchMarketTrends = async () => {
     if (!idea) {
@@ -292,6 +294,15 @@ export function MarketTrendsTile({ idea, className }: MarketTrendsTileProps) {
             Market Trends Analysis
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIChat(true)}
+              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Analysis</span>
+            </Button>
             <Badge className={getConfidenceBadge()}>
               {confidence} Confidence
             </Badge>
@@ -518,6 +529,14 @@ export function MarketTrendsTile({ idea, className }: MarketTrendsTileProps) {
           </TabsContent>
         </Tabs>
       </CardContent>
+      
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={{ trends } as any}
+        tileTitle="Market Trends Analysis"
+        idea={idea}
+      />
     </Card>
   );
 }

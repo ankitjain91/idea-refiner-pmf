@@ -24,6 +24,7 @@ import {
   ExternalLink, RefreshCw, AlertCircle, CheckCircle2,
   ChevronRight, FileText, Building, Sparkles
 } from 'lucide-react';
+import { TileAIChat } from './TileAIChat';
 import {
   AreaChart, Area, BarChart, Bar, ScatterChart, Scatter,
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -92,6 +93,7 @@ export function WebSearchTile({ idea, className }: WebSearchTileProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const fetchWebSearchData = async () => {
     if (!idea?.trim()) {
@@ -308,6 +310,15 @@ export function WebSearchTile({ idea, className }: WebSearchTileProps) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIChat(true)}
+              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Analysis</span>
+            </Button>
             <Badge variant={getConfidenceBadgeVariant(webSearch.confidence)}>
               {webSearch.confidence} Confidence
             </Badge>
@@ -603,6 +614,14 @@ export function WebSearchTile({ idea, className }: WebSearchTileProps) {
           </TabsContent>
         </Tabs>
       </CardContent>
+      
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={data as any}
+        tileTitle="Web Intelligence"
+        idea={idea}
+      />
     </Card>
   );
 }

@@ -13,8 +13,10 @@ import {
   Calendar,
   Hash,
   ExternalLink,
-  BarChart
+  BarChart,
+  Sparkles
 } from 'lucide-react';
+import { TileAIChat } from './TileAIChat';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { toast } from 'sonner';
 
@@ -63,6 +65,7 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
   const [overallSentiment, setOverallSentiment] = useState<any>(null);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const fetchNewsData = async () => {
     if (!idea) {
@@ -225,6 +228,16 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
             News Trends Analysis
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIChat(true)}
+              disabled={!trends.length}
+              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Analysis</span>
+            </Button>
             {lastFetch && (
               <Badge variant="outline" className="text-xs">
                 <Calendar className="h-3 w-3 mr-1" />
@@ -350,6 +363,14 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
           </Alert>
         )}
       </CardContent>
+      
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={{ trends, totalArticles, overallSentiment } as any}
+        tileTitle="News Trends Analysis"
+        idea={idea}
+      />
     </Card>
   );
 }
