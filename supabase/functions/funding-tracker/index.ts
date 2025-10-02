@@ -11,11 +11,14 @@ serve(async (req) => {
   }
 
   try {
-    const { idea } = await req.json()
+    const { idea, sector } = await req.json()
+    
+    // Support both 'idea' and 'sector' parameters for backward compatibility
+    const searchQuery = idea || sector
 
-    if (!idea) {
+    if (!searchQuery) {
       return new Response(
-        JSON.stringify({ error: 'Missing idea parameter' }),
+        JSON.stringify({ error: 'Missing idea or sector parameter' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }

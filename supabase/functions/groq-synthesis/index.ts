@@ -187,15 +187,16 @@ Provide a JSON response with:
     // Build the synthesis prompt based on tile type
     const systemPrompt = `You are a data synthesis expert. Analyze the provided search results and web content to extract structured insights for a startup dashboard. Return ONLY valid JSON with no additional text or markdown.`;
 
+    
     const userPrompt = `
 Analyze these search results and page content for "${filters?.idea || 'the startup idea'}".
-Focus on extracting data for the "${tileType}" dashboard tile.
+Focus on extracting data for the "${tileType || 'general'}" dashboard tile.
 
 Search Results:
-${JSON.stringify(searchResults).substring(0, 4000)}
+${searchResults ? JSON.stringify(searchResults).substring(0, 4000) : 'No search results available'}
 
 Page Content:
-${JSON.stringify(pageContent).substring(0, 4000)}
+${pageContent ? JSON.stringify(pageContent).substring(0, 4000) : 'No page content available'}
 
 Return a JSON object with this EXACT structure:
 {
