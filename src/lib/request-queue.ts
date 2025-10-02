@@ -9,7 +9,8 @@ class GlobalRequestManager {
     reject: (reason: any) => void;
   }> = [];
   private processing = false;
-  private minDelayMs = 1000; // 1 second between requests
+  private minDelayMs = 1000; // Strictly 1 second between ALL requests
+  private maxConcurrent = 1; // Only 1 request at a time
   private lastRequestTime = 0;
 
   private constructor() {}
@@ -34,33 +35,35 @@ class GlobalRequestManager {
     }
 
     this.processing = true;
+    console.log(`[GlobalRequestQueue] Starting queue processing (${this.queue.length} requests)`);
 
     while (this.queue.length > 0) {
       const item = this.queue.shift();
       if (!item) continue;
 
-      // Ensure minimum delay between requests
+      // STRICT: Always enforce exactly minDelayMs between requests
       const now = Date.now();
       const timeSinceLastRequest = now - this.lastRequestTime;
-      if (timeSinceLastRequest < this.minDelayMs) {
-        await this.delay(this.minDelayMs - timeSinceLastRequest);
+      if (this.lastRequestTime > 0 && timeSinceLastRequest < this.minDelayMs) {
+        const waitTime = this.minDelayMs - timeSinceLastRequest;
+        console.log(`[GlobalRequestQueue] Waiting ${waitTime}ms before next request`);
+        await this.delay(waitTime);
       }
 
       try {
-        console.log(`[RequestQueue] Processing request (${this.queue.length} remaining)`);
+        console.log(`[GlobalRequestQueue] Executing request (${this.queue.length} remaining)`);
         const result = await item.fn();
         item.resolve(result);
         this.lastRequestTime = Date.now();
       } catch (error) {
-        console.error('[RequestQueue] Request failed:', error);
+        console.error('[GlobalRequestQueue] Request failed:', error);
         item.reject(error);
+        this.lastRequestTime = Date.now(); // Still update time to maintain spacing
       }
-
-      // Small delay between requests
-      await this.delay(100);
     }
 
     this.processing = false;
+    console.log('[GlobalRequestQueue] Queue processing complete');
   }
 
   private delay(ms: number): Promise<void> {

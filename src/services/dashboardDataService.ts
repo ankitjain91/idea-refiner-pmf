@@ -1,6 +1,6 @@
-import { supabase } from '@/integrations/supabase/client';
 import { TileData } from '@/lib/data-hub-orchestrator';
 import { CircuitBreaker, createTileCircuitBreaker } from '@/lib/circuit-breaker';
+import { invokeSupabaseFunction } from '@/lib/request-queue';
 
 interface DataFetchOptions {
   idea: string;
@@ -94,11 +94,8 @@ class DashboardDataService {
   }
 
   private async fetchSentimentData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('reddit-sentiment', {
-      body: { query: idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('reddit-sentiment', { query: idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -119,11 +116,8 @@ class DashboardDataService {
   }
 
   private async fetchMarketTrendsData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('market-insights', {
-      body: { idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('market-insights', { idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -145,14 +139,11 @@ class DashboardDataService {
   }
 
   private async fetchGoogleTrendsData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('web-search', {
-      body: { 
-        query: `${idea} trends popularity growth`,
-        type: 'trends'
-      }
+    const data = await invokeSupabaseFunction('web-search', { 
+      query: `${idea} trends popularity growth`,
+      type: 'trends'
     });
-    
-    if (error) throw error;
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -174,11 +165,8 @@ class DashboardDataService {
   }
 
   private async fetchNewsData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('gdelt-news', {
-      body: { query: idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('gdelt-news', { query: idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -199,11 +187,8 @@ class DashboardDataService {
   }
 
   private async fetchWebSearchData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('web-search-optimized', {
-      body: { query: idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('web-search-optimized', { query: idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -223,11 +208,8 @@ class DashboardDataService {
   }
 
   private async fetchRedditData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('reddit-search', {
-      body: { query: idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('reddit-search', { query: idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -248,11 +230,8 @@ class DashboardDataService {
   }
 
   private async fetchTwitterData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('twitter-search', {
-      body: { query: idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('twitter-search', { query: idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -273,11 +252,8 @@ class DashboardDataService {
   }
 
   private async fetchAmazonData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('amazon-public', {
-      body: { query: idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('amazon-public', { query: idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -298,11 +274,8 @@ class DashboardDataService {
   }
 
   private async fetchYouTubeData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('youtube-search', {
-      body: { query: idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('youtube-search', { query: idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -323,11 +296,8 @@ class DashboardDataService {
   }
 
   private async fetchRiskData(idea: string): Promise<TileData> {
-    const { data, error } = await supabase.functions.invoke('web-search-profitability', {
-      body: { idea }
-    });
-    
-    if (error) throw error;
+    const data = await invokeSupabaseFunction('web-search-profitability', { idea });
+    if (!data) throw new Error('No data received');
     
     return {
       metrics: {
@@ -347,7 +317,7 @@ class DashboardDataService {
     };
   }
 
-  // Method to fetch all tile data in parallel
+  // Method to fetch all tile data SEQUENTIALLY (not parallel) to respect rate limits
   async fetchAllTileData(idea: string): Promise<Record<string, TileData | null>> {
     const tileTypes = [
       'sentiment',
@@ -362,22 +332,21 @@ class DashboardDataService {
       'risk_assessment'
     ];
 
-    const promises = tileTypes.map(async (tileType) => {
-      try {
-        const data = await this.fetchTileData({ idea, tileType });
-        return { tileType, data };
-      } catch (error) {
-        console.error(`Failed to fetch ${tileType}:`, error);
-        return { tileType, data: null };
-      }
-    });
-
-    const results = await Promise.all(promises);
+    // Process sequentially through the global queue (no parallel requests)
+    const results: Record<string, TileData | null> = {};
     
-    return results.reduce((acc, { tileType, data }) => {
-      acc[tileType] = data;
-      return acc;
-    }, {} as Record<string, TileData | null>);
+    for (const tileType of tileTypes) {
+      try {
+        console.log(`[DashboardDataService] Fetching ${tileType} sequentially...`);
+        const data = await this.fetchTileData({ idea, tileType });
+        results[tileType] = data;
+      } catch (error) {
+        console.error(`[DashboardDataService] Failed to fetch ${tileType}:`, error);
+        results[tileType] = null;
+      }
+    }
+    
+    return results;
   }
 }
 

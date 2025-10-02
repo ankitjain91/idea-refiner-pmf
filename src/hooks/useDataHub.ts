@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { invokeSupabaseFunction } from '@/lib/request-queue';
 import { useDataMode } from '@/contexts/DataModeContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -347,26 +347,24 @@ export function useDataHub(input: DataHubInput) {
       });
       
       } else {
-        // Use real data from Supabase edge functions
+        // Use real data from Supabase edge functions (through sequential queue)
         console.log('📊 Loading REAL DATA from APIs for:', input.idea);
         
-        const { data, error } = await supabase.functions.invoke('data-hub-orchestrator', {
-          body: {
-            idea: input.idea,
-            userId: user?.id,
-            sessionId: Date.now().toString(),
-            filters: {
-              targetMarkets: input.targetMarkets,
-              audienceProfiles: input.audienceProfiles,
-              geos: input.geos,
-              timeHorizon: input.timeHorizon,
-              competitorHints: input.competitorHints
-            }
+        const data = await invokeSupabaseFunction('data-hub-orchestrator', {
+          idea: input.idea,
+          userId: user?.id,
+          sessionId: Date.now().toString(),
+          filters: {
+            targetMarkets: input.targetMarkets,
+            audienceProfiles: input.audienceProfiles,
+            geos: input.geos,
+            timeHorizon: input.timeHorizon,
+            competitorHints: input.competitorHints
           }
         });
         
-        if (error) {
-          throw error;
+        if (!data) {
+          throw new Error('No data received from orchestrator');
         }
         
         // Initialize orchestrator with the indices from edge function
