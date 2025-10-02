@@ -131,7 +131,7 @@ export class UnifiedResponseCache {
     
     if (params.topics?.length) {
       responses = responses.filter(r => 
-        params.topics!.some(topic => 
+        r?.metadata?.extractedTopics && params.topics!.some(topic => 
           r.metadata.extractedTopics?.includes(topic)
         )
       );
@@ -177,7 +177,9 @@ export class UnifiedResponseCache {
     const topics = new Set<string>();
     
     primaryResponses.forEach(r => {
-      r.metadata.extractedTopics?.forEach(t => topics.add(t));
+      if (r?.metadata?.extractedTopics) {
+        r.metadata.extractedTopics.forEach(t => topics.add(t));
+      }
     });
     
     // Get responses for related topics
