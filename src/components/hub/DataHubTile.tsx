@@ -350,7 +350,11 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               {/* Display metrics from data.metrics object */}
               {data?.metrics && Object.keys(data.metrics).length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {Object.entries(data.metrics).slice(0, 6).map(([key, value], index) => (
+                  {(
+                    Array.isArray(data.metrics)
+                      ? (data.metrics as any[]).map((m: any) => [m.name ?? 'Metric', m.value] as [string, any])
+                      : Object.entries(data.metrics)
+                  ).slice(0, 6).map(([key, value], index) => (
                     <Card key={key} className="border-primary/10 bg-gradient-to-br from-background/50 to-muted/20 hover:shadow-md transition-all duration-200 overflow-hidden group hover:border-primary/30">
                       <CardContent className="p-3">
                         <div className="text-xs text-muted-foreground mb-1 truncate transition-colors group-hover:text-foreground" title={key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}>

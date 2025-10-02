@@ -138,9 +138,9 @@ export function sanitizeTileData(data: any): any {
   
   const sanitized: any = { ...data };
   
-  // Auto-build metrics array for common tiles when not provided
+  // Auto-build metrics map for common tiles when not provided
   if (!Array.isArray(sanitized.metrics) || sanitized.metrics.length === 0) {
-    const metrics: any[] = [];
+    let metrics: Record<string, any> = {};
 
     // Sentiment metrics (supports multiple shapes)
     const s = sanitized.socialSentiment || sanitized.sentiment || sanitized.data?.socialSentiment || sanitized;
@@ -151,48 +151,21 @@ export function sanitizeTileData(data: any): any {
       const mentions = Number(s.mentions ?? sanitized.mentions ?? 0) || 0;
       const trend = s.trend || sanitized.trend;
 
-      // Only add individual sentiment metrics if they have values
-      if (pos > 0) metrics.push({ name: 'Positive', value: Math.round(pos), unit: '%', explanation: 'Share of positive mentions' });
-      if (neu > 0) metrics.push({ name: 'Neutral', value: Math.round(neu), unit: '%', explanation: 'Neutral share of mentions' });
-      if (neg > 0) metrics.push({ name: 'Negative', value: Math.round(neg), unit: '%', explanation: 'Share of negative mentions' });
-      
-      // Add a combined sentiment metric if we have all values
-      if (pos || neg || neu) {
-        metrics.push({ 
-          name: 'Sentiment', 
-          value: `${Math.round(pos)}% positive / ${Math.round(neg)}% negative`,
-          unit: '',
-          explanation: 'Overall sentiment breakdown'
-        });
-      }
-      
-      if (mentions) metrics.push({ name: 'Total Mentions', value: mentions, unit: '', explanation: 'Estimated mentions across platforms' });
-      if (trend) metrics.push({ name: 'Trend', value: trend, unit: '', explanation: 'Momentum of sentiment' });
+      // Build as a map to match TileData.metrics type and UI expectations
+      metrics = {
+        positive: Math.round(pos),
+        neutral: Math.round(neu),
+        negative: Math.round(neg),
+      };
+
+      if (mentions) metrics["total_mentions"] = mentions;
+      if (trend) metrics["trend"] = trend;
+
+      // Optional combined sentiment string for readability
+      metrics["sentiment_summary"] = `${Math.round(pos)}% positive / ${Math.round(neg)}% negative`;
     }
 
-    // Competition metrics (supports competitive-landscape shape)
-    const cRoot = sanitized.data?.topCompetitors ? sanitized.data : sanitized.competitiveAnalysis || sanitized;
-    const topCompetitors = Array.isArray(cRoot?.topCompetitors) ? cRoot.topCompetitors : undefined;
-    if (topCompetitors && topCompetitors.length > 0) {
-      const top = topCompetitors[0];
-      const shareNum = typeof top.marketShare === 'number' 
-        ? top.marketShare 
-        : parseFloat(String(top.marketShare || '').replace(/[^0-9.]/g, ''));
-
-      if (top?.name) {
-        metrics.push({ 
-          name: 'Top Competitor', 
-          value: top.name, 
-          unit: typeof shareNum === 'number' && !isNaN(shareNum) ? `(${Math.round(shareNum)}%)` : '',
-          explanation: 'Largest player by market share'
-        });
-      }
-      metrics.push({ name: 'Competitors', value: topCompetitors.length, unit: '', explanation: 'Notable competitors identified' });
-      if (cRoot.marketConcentration) metrics.push({ name: 'Market Concentration', value: cRoot.marketConcentration, unit: '', explanation: 'Fragmented vs consolidated' });
-      if (cRoot.barrierToEntry) metrics.push({ name: 'Barrier to Entry', value: cRoot.barrierToEntry, unit: '', explanation: 'Estimated difficulty to enter' });
-    }
-
-    if (metrics.length) {
+    if (Object.keys(metrics).length) {
       sanitized.metrics = metrics;
     }
   }
