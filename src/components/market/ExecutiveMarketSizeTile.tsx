@@ -7,8 +7,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Globe, TrendingUp, DollarSign, Target, MapPin, BarChart3,
   ExternalLink, Info, RefreshCw, Building, Users, Brain, 
-  ChevronDown, ChevronUp, Activity, AlertTriangle, Zap
+  ChevronDown, ChevronUp, Activity, AlertTriangle, Zap, Sparkles
 } from 'lucide-react';
+import { TileAIChat } from '@/components/hub/TileAIChat';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -68,6 +69,7 @@ export function ExecutiveMarketSizeTile({
   const [marketData, setMarketData] = useState<MarketSizeData | null>(null);
   const [loading, setLoading] = useState(false);
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
+  const [showAIChat, setShowAIChat] = useState(false);
   
   const currentIdea = useMemo(() => 
     ideaContext || idea || currentSession?.data?.currentIdea || ''
@@ -246,6 +248,17 @@ export function ExecutiveMarketSizeTile({
             </Badge>
           </div>
           <div className="flex items-center gap-1">
+            {!isCollapsed && marketData && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAIChat(true)}
+                className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">AI Analysis</span>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -517,6 +530,15 @@ export function ExecutiveMarketSizeTile({
           )}
         </CardContent>
       )}
+      
+      {/* AI Chat Dialog */}
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={marketData as any}
+        tileTitle="Market Size Analysis"
+        idea={currentIdea}
+      />
     </Card>
   );
 }

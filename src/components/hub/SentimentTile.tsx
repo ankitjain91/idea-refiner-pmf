@@ -13,6 +13,7 @@ import {
   Globe, Newspaper, Twitter, Hash, Calendar, ChevronRight,
   ExternalLink, Sparkles, Users, BarChart3
 } from 'lucide-react';
+import { TileAIChat } from './TileAIChat';
 import {
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -120,6 +121,7 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedCluster, setSelectedCluster] = useState<SentimentCluster | null>(null);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
     if (idea) {
@@ -441,6 +443,15 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
             Market Sentiment Analysis
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIChat(true)}
+              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Analysis</span>
+            </Button>
             <Badge 
               variant={sentimentTrend === 'up' ? 'default' : 'secondary'}
               className="flex items-center gap-1"
@@ -730,6 +741,15 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
           </ScrollArea>
         </Tabs>
       </CardContent>
+      
+      {/* AI Chat Dialog */}
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={data as any}
+        tileTitle="Market Sentiment"
+        idea={idea}
+      />
     </Card>
   );
 }
