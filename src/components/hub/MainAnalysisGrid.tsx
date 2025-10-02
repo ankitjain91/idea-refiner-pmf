@@ -10,7 +10,8 @@ import { toast } from 'sonner';
 import { sanitizeTileData } from '@/utils/dataFormatting';
 import { 
   TrendingUp, Users, MessageSquare, Activity, 
-  Search, Newspaper, DollarSign, Building2
+  Search, Newspaper, DollarSign, Building2,
+  MessageCircle, Twitter, Linkedin, Hash
 } from "lucide-react";
 
 interface MainAnalysisGridProps {
@@ -18,6 +19,9 @@ interface MainAnalysisGridProps {
     market_size?: TileData | null;
     competition?: TileData | null;
     sentiment?: TileData | null;
+    reddit?: TileData | null;
+    twitter?: TileData | null;
+    linkedin?: TileData | null;
     market_trends?: TileData | null;
     google_trends?: TileData | null;
     news_analysis?: TileData | null;
@@ -169,12 +173,28 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
       isUsingFallback: tiles.competition?.confidence < 0.5 || (!tiles.competition && tileData.competition?.confidence < 0.5)
     },
     { 
-      id: "sentiment", 
-      title: "Sentiment", 
-      icon: MessageSquare,
-      data: tiles.sentiment || tileData.sentiment || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.sentiment?.confidence < 0.5 || (!tiles.sentiment && tileData.sentiment?.confidence < 0.5)
+      id: "reddit", 
+      title: "Reddit", 
+      icon: MessageCircle,
+      data: tiles.reddit || tileData.reddit || null,
+      span: "col-span-full lg:col-span-1",
+      isUsingFallback: tiles.reddit?.confidence < 0.5 || (!tiles.reddit && tileData.reddit?.confidence < 0.5)
+    },
+    { 
+      id: "twitter", 
+      title: "Twitter", 
+      icon: Twitter,
+      data: tiles.twitter || tileData.twitter || null,
+      span: "col-span-full lg:col-span-1",
+      isUsingFallback: tiles.twitter?.confidence < 0.5 || (!tiles.twitter && tileData.twitter?.confidence < 0.5)
+    },
+    { 
+      id: "linkedin", 
+      title: "LinkedIn", 
+      icon: Linkedin,
+      data: tiles.linkedin || tileData.linkedin || null,
+      span: "col-span-full lg:col-span-1",
+      isUsingFallback: tiles.linkedin?.confidence < 0.5 || (!tiles.linkedin && tileData.linkedin?.confidence < 0.5)
     },
     { 
       id: "market_trends", 
