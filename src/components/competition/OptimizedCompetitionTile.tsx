@@ -60,9 +60,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
   const { toast } = useToast();
   const dataFetchedRef = useRef(false);
   const dashboardService = useRef(OptimizedDashboardService.getInstance());
-  
-  // Check if mock data mode is enabled
-  const useMockData = localStorage.getItem('useMockData') === 'true';
+  const { useMockData } = useDataMode();
 
   // Get the actual idea to use
   const currentIdea = idea || 
@@ -106,7 +104,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
     if (Array.isArray(raw?.topCompetitors)) {
       console.log('[Competition] Found topCompetitors, mapping to Competitor shape');
       return raw.topCompetitors.map((c: any, index: number) => ({
-        name: c?.name || String(c),
+        name: cleanName(c?.name || String(c)),
         marketShare: typeof c?.marketShare === 'number' ? `${c.marketShare}%` : (c?.marketShare || c?.share || estimateMarketShare(c?.name, index)),
         strength: (c?.strength || 'moderate') as any,
         strengths: Array.isArray(c?.strengths) ? c.strengths : extractStrengths(c),
@@ -136,6 +134,15 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
   };
 
   // Helper functions to estimate missing data based on competitor position and type
+  const cleanName = (name?: string): string => {
+    if (!name) return '';
+    return String(name)
+      .replace(/\s*—\s*Home$/i, '')
+      .replace(/\s*\|\s*.*$/i, '')
+      .replace(/\s*-\s*.*$/i, '')
+      .trim();
+  };
+
   const estimateMarketShare = (name?: string, index: number = 0, isLeader: boolean = false): string => {
     if (isLeader) {
       return index === 0 ? '25-35%' : '15-25%';
@@ -161,8 +168,9 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
       'Idestini': '$10M'
     };
     
-    if (name && knownFunding[name]) {
-      return knownFunding[name];
+    const cleaned = cleanName(name);
+    if (cleaned && knownFunding[cleaned]) {
+      return knownFunding[cleaned];
     }
     
     if (isLeader) {
@@ -189,8 +197,9 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
       'Idestini': '2020'
     };
     
-    if (name && knownYears[name]) {
-      return knownYears[name];
+    const cleaned = cleanName(name);
+    if (cleaned && knownYears[cleaned]) {
+      return knownYears[cleaned];
     }
     
     // Estimate based on market position
@@ -294,7 +303,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
       
       // Call the competitive-landscape edge function for real-time data
       const { data: response, error } = await supabase.functions.invoke('competitive-landscape', {
-        body: { idea: currentIdea }
+        body: { idea: currentIdea, depth: 'comprehensive' }
       });
 
       if (error) throw error;
