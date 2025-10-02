@@ -1379,19 +1379,6 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
-              {/* Display confidence as percentage */}
-              {data?.confidence && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Analysis Confidence</span>
-                    <span className="font-medium">{Math.round(data.confidence * 100)}%</span>
-                  </div>
-                  <Progress 
-                    value={data.confidence * 100} 
-                    className="h-2"
-                  />
-                </div>
-              )}
               
               {/* Citations */}
               {data?.citations && data.citations.length > 0 && (
