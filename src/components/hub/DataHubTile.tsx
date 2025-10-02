@@ -689,19 +689,21 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </div>
               )}
               
-              {/* Display key drivers for market trends */}
+              {/* Market Trends - Enhanced Display with fallback data handling */}
               {(tileType === 'market-trends' || tileType === 'market_trends') && (
                 <>
                   {/* Display main trends */}
-                  {((data as any)?.trends?.length > 0) && (
+                  {((data as any)?.trends?.length > 0 || (data as any)?.json?.trends?.length > 0) && (
                     <Card className="border-primary/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Current Market Trends</div>
                         <div className="space-y-2">
-                          {((data as any).trends || []).slice(0, 5).map((trend: string, idx: number) => (
+                          {((data as any).trends || (data as any).json?.trends || []).slice(0, 5).map((trend: any, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <TrendingUp className="h-3 w-3 text-primary mt-0.5" />
-                              <span className="text-xs leading-relaxed">{trend}</span>
+                              <span className="text-xs leading-relaxed">
+                                {typeof trend === 'string' ? trend : trend.name || trend.description || JSON.stringify(trend)}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -710,15 +712,17 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display drivers */}
-                  {((data as any)?.drivers?.length > 0) && (
+                  {((data as any)?.drivers?.length > 0 || (data as any)?.json?.drivers?.length > 0) && (
                     <Card className="border-accent/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Key Market Drivers</div>
                         <div className="grid grid-cols-1 gap-2">
-                          {((data as any).drivers || []).map((driver: string, idx: number) => (
+                          {((data as any).drivers || (data as any).json?.drivers || []).map((driver: any, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <ChevronRight className="h-3 w-3 text-primary mt-0.5" />
-                              <span className="text-xs leading-relaxed">{driver}</span>
+                              <span className="text-xs leading-relaxed">
+                                {typeof driver === 'string' ? driver : driver.name || driver.description || JSON.stringify(driver)}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -727,15 +731,15 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display emerging tech */}
-                  {((data as any)?.emergingTech?.length > 0) && (
+                  {((data as any)?.emergingTech?.length > 0 || (data as any)?.json?.emergingTech?.length > 0) && (
                     <Card className="border-primary/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Emerging Technologies</div>
                         <div className="flex flex-wrap gap-2">
-                          {((data as any).emergingTech || []).map((tech: string, idx: number) => (
+                          {((data as any).emergingTech || (data as any).json?.emergingTech || []).map((tech: any, idx: number) => (
                             <Badge key={idx} variant="outline" className="text-xs">
                               <Sparkles className="h-3 w-3 mr-1" />
-                              {tech}
+                              {typeof tech === 'string' ? tech : tech.name || tech.description || JSON.stringify(tech)}
                             </Badge>
                           ))}
                         </div>
@@ -744,15 +748,17 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display consumer shifts */}
-                  {((data as any)?.consumerShifts?.length > 0) && (
+                  {((data as any)?.consumerShifts?.length > 0 || (data as any)?.json?.consumerShifts?.length > 0) && (
                     <Card className="border-accent/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Consumer Behavior Shifts</div>
                         <div className="space-y-2">
-                          {((data as any).consumerShifts || []).map((shift: string, idx: number) => (
+                          {((data as any).consumerShifts || (data as any).json?.consumerShifts || []).map((shift: any, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <Users className="h-3 w-3 text-accent mt-0.5" />
-                              <span className="text-xs leading-relaxed">{shift}</span>
+                              <span className="text-xs leading-relaxed">
+                                {typeof shift === 'string' ? shift : shift.name || shift.description || JSON.stringify(shift)}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -787,15 +793,17 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display investment trends */}
-                  {((data as any)?.investmentTrends?.length > 0) && (
+                  {((data as any)?.investmentTrends?.length > 0 || (data as any)?.json?.investmentTrends?.length > 0) && (
                     <Card className="border-accent/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Investment Trends</div>
                         <div className="space-y-2">
-                          {((data as any).investmentTrends || []).map((trend: string, idx: number) => (
+                          {((data as any).investmentTrends || (data as any).json?.investmentTrends || []).map((trend: any, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <DollarSign className="h-3 w-3 text-success mt-0.5" />
-                              <span className="text-xs leading-relaxed">{trend}</span>
+                              <span className="text-xs leading-relaxed">
+                                {typeof trend === 'string' ? trend : trend.name || trend.description || JSON.stringify(trend)}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -804,17 +812,50 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display disruptions */}
-                  {((data as any)?.disruptions?.length > 0) && (
+                  {((data as any)?.disruptions?.length > 0 || (data as any)?.json?.disruptions?.length > 0) && (
                     <Card className="border-destructive/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Industry Disruptions</div>
                         <div className="space-y-2">
-                          {((data as any).disruptions || []).map((disruption: string, idx: number) => (
+                          {((data as any).disruptions || (data as any).json?.disruptions || []).map((disruption: any, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <Zap className="h-3 w-3 text-destructive mt-0.5" />
-                              <span className="text-xs leading-relaxed">{disruption}</span>
+                              <span className="text-xs leading-relaxed">
+                                {typeof disruption === 'string' ? disruption : disruption.name || disruption.description || JSON.stringify(disruption)}
+                              </span>
                             </div>
                           ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Fallback display for any additional JSON data */}
+                  {(data as any)?.json && Object.keys((data as any).json).some(key => 
+                    !['trends', 'drivers', 'emergingTech', 'consumerShifts', 'direction', 'growthRate', 'investmentTrends', 'disruptions', 'confidence', 'dataQuality'].includes(key)
+                  ) && (
+                    <Card className="border-muted/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Additional Market Insights</div>
+                        <div className="space-y-2">
+                          {Object.entries((data as any).json).map(([key, value]) => {
+                            if (['trends', 'drivers', 'emergingTech', 'consumerShifts', 'direction', 'growthRate', 'investmentTrends', 'disruptions', 'confidence', 'dataQuality'].includes(key)) return null;
+                            if (!value) return null;
+                            return (
+                              <div key={key} className="flex flex-col gap-1">
+                                <span className="text-xs font-medium capitalize">
+                                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {Array.isArray(value) 
+                                    ? value.join(', ')
+                                    : typeof value === 'object'
+                                    ? JSON.stringify(value, null, 2)
+                                    : String(value)}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </CardContent>
                     </Card>
