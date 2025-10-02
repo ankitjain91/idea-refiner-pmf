@@ -329,6 +329,42 @@ export type Database = {
           },
         ]
       }
+      llm_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string
+          hit_count: number
+          last_accessed: string
+          model: string
+          prompt_hash: string
+          response: Json
+          tokens_used: number | null
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at: string
+          hit_count?: number
+          last_accessed?: string
+          model: string
+          prompt_hash: string
+          response: Json
+          tokens_used?: number | null
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          hit_count?: number
+          last_accessed?: string
+          model?: string
+          prompt_hash?: string
+          response?: Json
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
       openai_usage: {
         Row: {
           cost_usd: number
@@ -661,6 +697,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_dashboard_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_expired_llm_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

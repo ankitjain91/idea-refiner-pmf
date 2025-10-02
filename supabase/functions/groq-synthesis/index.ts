@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { cachedLLMCall } from '../_shared/llm-cache.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -78,6 +80,11 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
+    // Initialize Supabase client for caching
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { searchResults, pageContent, tileType, filters, marketTrendsData, redditData, webSearchData } = await req.json();
     
     // Handle market trends analysis request
@@ -127,21 +134,33 @@ Return a JSON object with this structure:
   "executionPriority": ["step 1", "step 2", "step 3"]
 }`;
 
-      const response = await callGroqWithRetry(
-        'https://api.groq.com/openai/v1/chat/completions',
+      // Use cached LLM call for market trends analysis
+      const data = await cachedLLMCall(
+        supabase,
         {
           model: 'llama-3.1-8b-instant',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.4,
-          max_tokens: 2000,
-          response_format: { type: "json_object" }
+          prompt: userPrompt,
+          parameters: { temperature: 0.4, max_tokens: 2000 },
+          ttlMinutes: 360 // 6 hours cache for market trends
+        },
+        async () => {
+          const response = await callGroqWithRetry(
+            'https://api.groq.com/openai/v1/chat/completions',
+            {
+              model: 'llama-3.1-8b-instant',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              temperature: 0.4,
+              max_tokens: 2000,
+              response_format: { type: "json_object" }
+            }
+          );
+          return response.json();
         }
       );
 
-      const data = await response.json();
       const analysis = JSON.parse(data.choices[0].message.content);
 
       return new Response(
@@ -194,21 +213,33 @@ Provide a JSON response with:
   "nextSteps": ["immediate action 1", "immediate action 2"]
 }`;
 
-      const response = await callGroqWithRetry(
-        'https://api.groq.com/openai/v1/chat/completions',
+      // Use cached LLM call for Reddit analysis
+      const data = await cachedLLMCall(
+        supabase,
         {
           model: 'llama-3.1-8b-instant',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.4,
-          max_tokens: 1500,
-          response_format: { type: "json_object" }
+          prompt: userPrompt,
+          parameters: { temperature: 0.4, max_tokens: 1500 },
+          ttlMinutes: 180 // 3 hours cache for Reddit data
+        },
+        async () => {
+          const response = await callGroqWithRetry(
+            'https://api.groq.com/openai/v1/chat/completions',
+            {
+              model: 'llama-3.1-8b-instant',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              temperature: 0.4,
+              max_tokens: 1500,
+              response_format: { type: "json_object" }
+            }
+          );
+          return response.json();
         }
       );
 
-      const data = await response.json();
       const analysis = JSON.parse(data.choices[0].message.content);
 
       return new Response(
@@ -270,22 +301,33 @@ Return a JSON object with this EXACT structure:
 
 Extract real data from the search results. If data is not available for a field, use reasonable estimates based on context.`;
 
-    // Call Groq API with retry logic
-    const response = await callGroqWithRetry(
-      'https://api.groq.com/openai/v1/chat/completions',
+    // Use cached LLM call for general synthesis
+    const data = await cachedLLMCall(
+      supabase,
       {
         model: 'llama-3.1-8b-instant',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
+        prompt: userPrompt,
+        parameters: { temperature: 0.3, max_tokens: 2000, tileType },
+        ttlMinutes: 720 // 12 hours cache for general synthesis
+      },
+      async () => {
+        const response = await callGroqWithRetry(
+          'https://api.groq.com/openai/v1/chat/completions',
+          {
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 2000,
+            response_format: { type: "json_object" }
+          }
+        );
+        return response.json();
       }
     );
 
-    const data = await response.json();
     const synthesized = JSON.parse(data.choices[0].message.content);
 
     // Calculate token usage for cost tracking
