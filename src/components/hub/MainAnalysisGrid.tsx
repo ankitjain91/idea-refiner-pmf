@@ -7,6 +7,7 @@ import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
 import { MarketTrendsTile } from "./MarketTrendsTile";
 import { WebSearchTile } from "./WebSearchTile";
+import { SentimentTile } from "./SentimentTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -224,6 +225,15 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
         <Activity className="h-5 w-5 text-primary" />
         Main Analysis
       </h2>
+      
+      {/* Add Sentiment Tile */}
+      <div className="mb-6">
+        <SentimentTile 
+          idea={currentIdea} 
+          className="w-full"
+        />
+      </div>
+      
       <div className="grid grid-cols-1 gap-6">
         {displayTiles.map((tile) => {
           
