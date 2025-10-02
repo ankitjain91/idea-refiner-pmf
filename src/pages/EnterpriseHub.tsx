@@ -302,22 +302,17 @@ export default function EnterpriseHub() {
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Data Mode Toggle */}
+              {/* Real-time Toggle */}
               <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-muted/50 border border-border/50">
-                <Database className={cn("h-4 w-4", !useMockData && "text-primary")} />
-                <Label htmlFor="data-mode" className="text-xs font-medium cursor-pointer">
-                  Real Data
+                <Label htmlFor="realtime-mode" className="text-xs font-medium cursor-pointer">
+                  Realtime
                 </Label>
                 <Switch
-                  id="data-mode"
+                  id="realtime-mode"
                   checked={!useMockData}
                   onCheckedChange={(checked) => setUseMockData(!checked)}
                   className="scale-90"
                 />
-                <Sparkles className={cn("h-4 w-4", useMockData && "text-primary")} />
-                <Label htmlFor="data-mode" className="text-xs font-medium cursor-pointer">
-                  Mock Data
-                </Label>
               </div>
               
               {/* Cache Clear Button */}
