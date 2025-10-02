@@ -9,6 +9,7 @@ import { MarketTrendsTile } from "./MarketTrendsTile";
 import { WebSearchTile } from "./WebSearchTile";
 import { SentimentTile } from "./SentimentTile";
 import { TwitterBuzzTile } from "./TwitterBuzzTile";
+import { YouTubeAnalyticsTile } from "./YouTubeAnalyticsTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -355,6 +356,11 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
         {/* Add Twitter Buzz Tile */}
         <div className="col-span-full">
           <TwitterBuzzTile idea={currentIdea} />
+        </div>
+        
+        {/* Add YouTube Analytics Tile */}
+        <div className="col-span-full">
+          <YouTubeAnalyticsTile idea={currentIdea} />
         </div>
       </div>
     </div>
