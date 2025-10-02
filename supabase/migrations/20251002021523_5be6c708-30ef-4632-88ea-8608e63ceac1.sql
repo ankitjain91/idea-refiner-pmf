@@ -1,0 +1,2 @@
+-- Update the social-sentiment edge function to return more enriched data
+-- This is just a comment for documentation, actual changes will be in the edge function code
