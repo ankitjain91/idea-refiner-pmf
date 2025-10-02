@@ -723,8 +723,114 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </Card>
               )}
               
+              {/* Display sentiment breakdown and analytics */}
+              {tileType === 'sentiment' && (data as any) && (
+                <>
+                  {/* Sentiment Breakdown */}
+                  <Card className="border-primary/20">
+                    <CardContent className="pt-4">
+                      <div className="text-xs text-muted-foreground mb-3">Sentiment Analysis</div>
+                      <div className="space-y-3">
+                        {/* Overall sentiment bars */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">Positive</span>
+                            <span className="text-xs font-bold text-green-600">{(data as any).positive || 0}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-green-500 transition-all duration-500"
+                              style={{ width: `${(data as any).positive || 0}%` }}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">Neutral</span>
+                            <span className="text-xs font-bold text-yellow-600">{(data as any).neutral || 0}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-yellow-500 transition-all duration-500"
+                              style={{ width: `${(data as any).neutral || 0}%` }}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium">Negative</span>
+                            <span className="text-xs font-bold text-red-600">{(data as any).negative || 0}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-red-500 transition-all duration-500"
+                              style={{ width: `${(data as any).negative || 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Additional metrics */}
+                      <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-2 gap-2">
+                        {(data as any).mentions && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Total Mentions</div>
+                            <div className="text-sm font-bold">{((data as any).mentions || 0).toLocaleString()}</div>
+                          </div>
+                        )}
+                        {(data as any).trend && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Trend</div>
+                            <Badge variant={(data as any).trend === 'improving' ? 'default' : 'outline'} className="text-xs">
+                              {(data as any).trend}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Platform breakdown if available */}
+                  {(data as any).breakdown && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Platform Breakdown</div>
+                        <div className="space-y-3">
+                          {Object.entries((data as any).breakdown).map(([platform, metrics]: [string, any]) => (
+                            <div key={platform} className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium capitalize">{platform}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {metrics.positive}% positive
+                                </Badge>
+                              </div>
+                              <div className="flex gap-1 h-1.5">
+                                <div 
+                                  className="bg-green-500 rounded-sm transition-all"
+                                  style={{ width: `${metrics.positive}%` }}
+                                />
+                                <div 
+                                  className="bg-yellow-500 rounded-sm transition-all"
+                                  style={{ width: `${metrics.neutral}%` }}
+                                />
+                                <div 
+                                  className="bg-red-500 rounded-sm transition-all"
+                                  style={{ width: `${metrics.negative}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+              
               {/* Display platforms for sentiment - Enhanced version */}
-              {(data as any)?.platforms && (
+              {(data as any)?.platforms && tileType !== 'sentiment' && (
                 <Card className="border-primary/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Platform Analytics</div>
