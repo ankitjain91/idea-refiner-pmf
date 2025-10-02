@@ -1122,180 +1122,226 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                 </>
               )}
               
-              {/* Enhanced Google Trends Display */}
+              {/* Enhanced Google Trends Display - Redesigned Layout */}
               {tileType === 'google_trends' && (data as any) && (
-                <>
-                  {/* Trend Overview */}
-                  <Card className="border-primary/20">
-                    <CardContent className="pt-4">
-                      <div className="text-xs text-muted-foreground mb-3">Search Trend Analysis</div>
-                      
-                      {/* Main Trend Indicator */}
-                      <div className="flex items-center justify-between mb-4 p-3 rounded-lg bg-muted/10">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold">Interest Score</span>
-                          <Badge variant={(data as any).interest > 70 ? "default" : "outline"} className="text-sm">
-                            {(data as any).interest || 0}/100
-                          </Badge>
+                <div className="space-y-4">
+                  {/* Main Trend Overview Card */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20">
+                    <div className="space-y-4">
+                      {/* Interest Score and Trend Direction */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-baseline gap-3">
+                            <span className="text-3xl font-bold text-primary">
+                              {(data as any).interest || 0}
+                            </span>
+                            <span className="text-sm text-muted-foreground">/100 Interest Score</span>
+                          </div>
+                          {(data as any).searchVolume && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {((data as any).searchVolume / 1000000).toFixed(1)}M search results
+                            </p>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          {(data as any).trend === 'rising' && <TrendingUp className="h-5 w-5 text-green-500" />}
-                          {(data as any).trend === 'declining' && <TrendingDown className="h-5 w-5 text-red-500" />}
-                          {(data as any).trend === 'stable' && <Activity className="h-5 w-5 text-yellow-500" />}
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background/50">
+                          {(data as any).trend === 'rising' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                          {(data as any).trend === 'declining' && <TrendingDown className="h-4 w-4 text-red-500" />}
+                          {(data as any).trend === 'stable' && <Activity className="h-4 w-4 text-yellow-500" />}
                           <span className={cn(
-                            "font-semibold capitalize",
+                            "text-sm font-semibold capitalize",
                             (data as any).trend === 'rising' ? "text-green-600" :
                             (data as any).trend === 'declining' ? "text-red-600" :
                             "text-yellow-600"
                           )}>
-                            {(data as any).trend || 'stable'}
+                            {(data as any).trend || 'stable'} Trend
                           </span>
                         </div>
                       </div>
                       
-                      {/* Trend Signals */}
+                      {/* Sentiment Breakdown */}
                       {(data as any).dataPoints && (
-                        <div className="grid grid-cols-3 gap-2 mb-3">
-                          <div className="text-center p-2 rounded bg-green-500/10">
-                            <div className="text-lg font-bold text-green-600">{(data as any).dataPoints.positive || 0}</div>
-                            <div className="text-xs text-muted-foreground">Positive</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="relative overflow-hidden rounded-lg bg-green-500/10 p-3">
+                            <div className="relative z-10">
+                              <div className="text-xl font-bold text-green-600">
+                                {(data as any).dataPoints.positive || 0}
+                              </div>
+                              <div className="text-[10px] text-green-700 font-medium">Positive Signals</div>
+                            </div>
+                            <TrendingUp className="absolute -bottom-1 -right-1 h-8 w-8 text-green-500/20" />
                           </div>
-                          <div className="text-center p-2 rounded bg-yellow-500/10">
-                            <div className="text-lg font-bold text-yellow-600">{(data as any).dataPoints.neutral || 0}</div>
-                            <div className="text-xs text-muted-foreground">Neutral</div>
+                          <div className="relative overflow-hidden rounded-lg bg-yellow-500/10 p-3">
+                            <div className="relative z-10">
+                              <div className="text-xl font-bold text-yellow-600">
+                                {(data as any).dataPoints.neutral || 0}
+                              </div>
+                              <div className="text-[10px] text-yellow-700 font-medium">Neutral Signals</div>
+                            </div>
+                            <Activity className="absolute -bottom-1 -right-1 h-8 w-8 text-yellow-500/20" />
                           </div>
-                          <div className="text-center p-2 rounded bg-red-500/10">
-                            <div className="text-lg font-bold text-red-600">{(data as any).dataPoints.negative || 0}</div>
-                            <div className="text-xs text-muted-foreground">Negative</div>
+                          <div className="relative overflow-hidden rounded-lg bg-red-500/10 p-3">
+                            <div className="relative z-10">
+                              <div className="text-xl font-bold text-red-600">
+                                {(data as any).dataPoints.negative || 0}
+                              </div>
+                              <div className="text-[10px] text-red-700 font-medium">Negative Signals</div>
+                            </div>
+                            <TrendingDown className="absolute -bottom-1 -right-1 h-8 w-8 text-red-500/20" />
                           </div>
                         </div>
                       )}
                       
-                      {/* Search Volume */}
-                      {(data as any).searchVolume && (
-                        <div className="flex items-center justify-between p-2 rounded bg-muted/10">
-                          <span className="text-sm">Search Volume</span>
-                          <span className="font-bold">{((data as any).searchVolume / 1000000).toFixed(1)}M results</span>
+                      {/* Insights Summary */}
+                      {(data as any).insights?.summary && (
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border border-border/50">
+                          <div className="p-1 rounded bg-primary/10">
+                            <Sparkles className="h-3 w-3 text-primary" />
+                          </div>
+                          <p className="text-xs font-medium flex-1">{(data as any).insights.summary}</p>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                   
-                  {/* Trending Topics */}
-                  {(data as any).trendingTopics && (data as any).trendingTopics.length > 0 && (
-                    <Card className="border-accent/20">
-                      <CardContent className="pt-4">
-                        <div className="text-xs text-muted-foreground mb-3">Trending Keywords</div>
-                        <div className="flex flex-wrap gap-2">
-                          {(data as any).trendingTopics.map((topic: string, idx: number) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
-                              {topic}
-                            </Badge>
-                          ))}
+                  {/* Trending Topics & Keywords */}
+                  {((data as any).trendingTopics?.length > 0 || (data as any).relatedQueries?.length > 0) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Trending Keywords */}
+                      {(data as any).trendingTopics?.length > 0 && (
+                        <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                            <span className="text-xs font-semibold text-accent">Trending Keywords</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(data as any).trendingTopics.slice(0, 6).map((topic: string, idx: number) => (
+                              <Badge 
+                                key={idx} 
+                                variant="secondary" 
+                                className="text-[10px] bg-accent/10 hover:bg-accent/20 border-accent/30"
+                              >
+                                {topic}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      )}
+                      
+                      {/* Related Searches */}
+                      {(data as any).relatedQueries?.length > 0 && (
+                        <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Search className="h-3 w-3 text-primary" />
+                            <span className="text-xs font-semibold text-primary">Related Searches</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {(data as any).relatedQueries.slice(0, 3).map((query: string, idx: number) => (
+                              <div key={idx} className="flex items-center gap-1.5 text-xs">
+                                <ChevronRight className="h-2.5 w-2.5 text-muted-foreground" />
+                                <span className="line-clamp-1">{query}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                   
-                  {/* Related Queries */}
-                  {(data as any).relatedQueries && (data as any).relatedQueries.length > 0 && (
-                    <Card className="border-primary/20">
-                      <CardContent className="pt-4">
-                        <div className="text-xs text-muted-foreground mb-3">Related Searches</div>
-                        <div className="space-y-2">
-                          {(data as any).relatedQueries.slice(0, 5).map((query: string, idx: number) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <Search className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm">{query}</span>
+                  {/* Recent Trend Signals */}
+                  {(data as any).trendSignals?.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 px-1">
+                        <BarChart3 className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-semibold">Recent Market Signals</span>
+                      </div>
+                      <div className="grid gap-2">
+                        {(data as any).trendSignals.slice(0, 3).map((signal: any, idx: number) => (
+                          <div 
+                            key={idx} 
+                            className="group relative p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-border/50"
+                          >
+                            <div className="flex items-start gap-2">
+                              <div className={cn(
+                                "mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0",
+                                signal.sentiment === 'positive' ? "bg-green-500" :
+                                signal.sentiment === 'negative' ? "bg-red-500" :
+                                "bg-yellow-500"
+                              )} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium line-clamp-1 group-hover:line-clamp-none">
+                                  {signal.title}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
+                                  {signal.snippet}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  {signal.isRecent && (
+                                    <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                                      Recent
+                                    </Badge>
+                                  )}
+                                  <Badge 
+                                    variant={signal.sentiment === 'positive' ? 'default' : 
+                                            signal.sentiment === 'negative' ? 'destructive' : 'secondary'}
+                                    className="text-[9px] h-4 px-1.5"
+                                  >
+                                    {signal.sentiment}
+                                  </Badge>
+                                </div>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                   
                   {/* Questions People Ask */}
-                  {(data as any).questionsAsked && (data as any).questionsAsked.length > 0 && (
-                    <Card className="border-accent/20">
-                      <CardContent className="pt-4">
-                        <div className="text-xs text-muted-foreground mb-3">People Also Ask</div>
-                        <div className="space-y-2">
-                          {(data as any).questionsAsked.map((question: string, idx: number) => (
-                            <div key={idx} className="p-2 rounded bg-muted/10">
-                              <p className="text-sm">{question}</p>
-                            </div>
-                          ))}
+                  {(data as any).questionsAsked?.length > 0 && (
+                    <div className="p-3 rounded-lg bg-muted/20 border border-border/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1 rounded bg-primary/10">
+                          <Users className="h-3 w-3 text-primary" />
                         </div>
-                      </CardContent>
-                    </Card>
+                        <span className="text-xs font-semibold">People Also Ask</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {(data as any).questionsAsked.slice(0, 3).map((question: string, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="text-muted-foreground text-xs mt-0.5">•</span>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{question}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                   
-                  {/* Key Trend Signals */}
-                  {(data as any).trendSignals && (data as any).trendSignals.length > 0 && (
-                    <Card className="border-primary/20">
-                      <CardContent className="pt-4">
-                        <div className="text-xs text-muted-foreground mb-3">Recent Trend Signals</div>
-                        <div className="space-y-2">
-                          {(data as any).trendSignals.map((signal: any, idx: number) => (
-                            <div key={idx} className="border-l-2 border-primary/50 pl-3 py-1">
-                              <p className="text-sm font-medium line-clamp-1">{signal.title}</p>
-                              <p className="text-xs text-muted-foreground line-clamp-2">{signal.snippet}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                {signal.isRecent && (
-                                  <Badge variant="outline" className="text-[10px]">Recent</Badge>
-                                )}
-                                <Badge 
-                                  variant={signal.sentiment === 'positive' ? 'default' : 
-                                          signal.sentiment === 'negative' ? 'destructive' : 'secondary'}
-                                  className="text-[10px]"
-                                >
-                                  {signal.sentiment}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
+                  {/* Key Insights */}
+                  {(data as any).insights?.keyFactors?.length > 0 && (
+                    <div className="p-3 rounded-lg border border-border/50 bg-card/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Brain className="h-3 w-3 text-primary" />
+                        <span className="text-xs font-semibold">Key Market Factors</span>
+                        {(data as any).insights.recentActivity && (
+                          <Badge 
+                            variant={(data as any).insights.recentActivity === 'High' ? 'default' : 'outline'}
+                            className="text-[9px] h-4 ml-auto"
+                          >
+                            {(data as any).insights.recentActivity} Activity
+                          </Badge>
+                        )}
+                      </div>
+                      <ul className="space-y-1">
+                        {(data as any).insights.keyFactors.map((factor: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <div className="h-1 w-1 rounded-full bg-primary/60 mt-1.5 flex-shrink-0" />
+                            <span className="text-xs text-muted-foreground line-clamp-2">{factor}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                  
-                  {/* Insights Summary */}
-                  {(data as any).insights && (
-                    <Card className="border-accent/20">
-                      <CardContent className="pt-4">
-                        <div className="text-xs text-muted-foreground mb-3">Trend Insights</div>
-                        <div className="space-y-3">
-                          {(data as any).insights.summary && (
-                            <div className="p-2 rounded bg-primary/5">
-                              <p className="text-sm font-medium">{(data as any).insights.summary}</p>
-                            </div>
-                          )}
-                          {(data as any).insights.recentActivity && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">Recent Activity</span>
-                              <Badge variant={(data as any).insights.recentActivity === 'High' ? 'default' : 'outline'}>
-                                {(data as any).insights.recentActivity}
-                              </Badge>
-                            </div>
-                          )}
-                          {(data as any).insights.keyFactors && (data as any).insights.keyFactors.length > 0 && (
-                            <div>
-                              <div className="text-xs text-muted-foreground mb-2">Key Factors</div>
-                              <ul className="space-y-1">
-                                {(data as any).insights.keyFactors.map((factor: string, idx: number) => (
-                                  <li key={idx} className="text-xs flex items-start gap-1">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1 flex-shrink-0" />
-                                    <span className="line-clamp-2">{factor}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </>
+                </div>
               )}
               
               {/* Display platforms for sentiment - Enhanced version */}
