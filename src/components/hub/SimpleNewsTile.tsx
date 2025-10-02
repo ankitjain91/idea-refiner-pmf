@@ -77,29 +77,36 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
       console.log('[SimpleNewsTile] Fetching news for:', idea);
       
       // Call the news-analysis edge function
-      const data = await optimizedQueue.invokeFunction('news-analysis', { idea });
+      const response = await optimizedQueue.invokeFunction('news-analysis', { idea });
 
-      if (data) {
-        console.log('[SimpleNewsTile] Received data:', data);
-        
-        // Extract news trends - handle multiple possible data structures
-        const newsTrends = data.news_trends || 
-                          data.trends || 
-                          data.data?.news_trends ||
-                          data.data?.trends ||
-                          [];
-        
-        const totalCount = data.total_articles || 
-                          data.totalArticles || 
-                          data.data?.total_articles ||
+      console.log('[SimpleNewsTile] Full response:', {
+        hasResponse: !!response,
+        keys: response ? Object.keys(response) : [],
+        hasNewsTrends: !!response?.news_trends,
+        hasTrends: !!response?.trends,
+        sample: response?.news_trends?.[0],
+        fullResponse: response
+      });
+
+      if (response) {
+        // Handle the response structure from news-analysis edge function
+        // It returns: { success, news_trends, total_articles, overall_sentiment, ... }
+        const newsTrends = response.news_trends || response.trends || [];
+        const totalCount = response.total_articles || 
+                          response.totalArticles ||
                           newsTrends.reduce((sum: number, t: any) => 
-                            sum + (t.metrics?.article_count || 0), 0) ||
-                          0;
+                            sum + (t.metrics?.article_count || 0), 0);
         
-        const sentiment = data.overall_sentiment || 
-                         data.sentiment ||
-                         data.data?.overall_sentiment ||
+        const sentiment = response.overall_sentiment || 
+                         response.sentiment ||
                          { positive: 0, neutral: 0, negative: 0 };
+        
+        console.log('[SimpleNewsTile] Parsed data:', {
+          trendsCount: newsTrends.length,
+          totalArticles: totalCount,
+          sentiment,
+          firstTrend: newsTrends[0]
+        });
 
         setTrends(newsTrends);
         setTotalArticles(totalCount);
@@ -108,7 +115,12 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
         
         if (newsTrends.length === 0) {
           toast.info('No news trends found for this idea. Try refreshing or modifying your search.');
+        } else {
+          toast.success(`Loaded ${newsTrends.length} news trends`);
         }
+      } else {
+        console.warn('[SimpleNewsTile] Empty response from news-analysis');
+        setError('No data received from news analysis');
       }
     } catch (err) {
       console.error('[SimpleNewsTile] Error fetching news:', err);
