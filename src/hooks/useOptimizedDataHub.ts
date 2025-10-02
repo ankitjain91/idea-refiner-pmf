@@ -305,6 +305,17 @@ export function useOptimizedDataHub(input: DataHubInput) {
                   disruptions: obj.disruptions || [],
                   investmentTrends: obj.investmentTrends || obj.investment_trends || []
                 };
+              })() : {}),
+              // IMPORTANT: Preserve news analysis enriched data
+              ...(tileType === 'news_analysis' || tileType === 'news-analysis' ? (() => {
+                const structured = (optimizedData as any).data || optimizedData.insights || {};
+                const obj = typeof structured === 'object' && structured ? structured : {};
+                return {
+                  news_trends: obj.news_trends || obj.trends || [],
+                  total_articles: obj.total_articles || obj.totalArticles || 0,
+                  overall_sentiment: obj.overall_sentiment || obj.sentiment || null,
+                  visuals_ready: obj.visuals_ready ?? true
+                };
               })() : {})
             };
             

@@ -726,12 +726,14 @@ export class OptimizedDashboardService {
           query: idea,
           type: 'sentiment'
         };
-      } else if (endpoint === 'youtube-search') {
-        requestBody = {
-          query: idea,
-          maxResults: 25
-        };
-      }
+    } else if (endpoint === 'youtube-search') {
+      requestBody = {
+        query: idea,
+        maxResults: 25
+      };
+    } else if (endpoint === 'news-analysis') {
+      requestBody = { idea };
+    }
       
       const { data, error } = await supabase.functions.invoke(endpoint, {
         body: requestBody
@@ -759,6 +761,7 @@ export class OptimizedDashboardService {
       'competition-chat': 'competition-chat',
       'serper-batch-search': 'serper-batch-search',
       'gdelt-news': 'gdelt-news',
+      'news-analysis': 'news-analysis',
       'youtube-search': 'youtube-search',
       'groq-data-extraction': 'groq-data-extraction',
       'user-engagement': 'user-engagement',
