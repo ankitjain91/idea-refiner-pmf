@@ -29,7 +29,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Cell, Treemap, Legend
 } from 'recharts';
-import { invokeSupabaseFunction } from '@/lib/request-queue';
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { cn } from '@/lib/utils';
 
 interface WebSearchTileProps {
@@ -103,7 +103,7 @@ export function WebSearchTile({ idea, className }: WebSearchTileProps) {
     setError(null);
 
     try {
-      const response = await invokeSupabaseFunction('web-search', {
+      const response = await optimizedQueue.invokeFunction('web-search', {
         idea_keywords: idea,  // Changed from 'idea' to 'idea_keywords'
         userId: 'anonymous'
       });

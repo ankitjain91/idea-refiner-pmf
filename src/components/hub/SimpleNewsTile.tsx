@@ -15,7 +15,7 @@ import {
   ExternalLink,
   BarChart
 } from 'lucide-react';
-import { invokeSupabaseFunction } from '@/lib/request-queue';
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { toast } from 'sonner';
 
 interface NewsArticle {
@@ -77,7 +77,7 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
       console.log('[SimpleNewsTile] Fetching news for:', idea);
       
       // Call the news-analysis edge function
-      const data = await invokeSupabaseFunction('news-analysis', { idea });
+      const data = await optimizedQueue.invokeFunction('news-analysis', { idea });
 
       if (data) {
         console.log('[SimpleNewsTile] Received data:', data);

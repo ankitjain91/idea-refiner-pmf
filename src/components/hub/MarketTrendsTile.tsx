@@ -13,7 +13,7 @@ import {
   Zap, Shield, Globe, Calendar, ChevronRight, Info,
   LineChart, PieChart, AreaChart
 } from "lucide-react";
-import { invokeSupabaseFunction } from "@/lib/request-queue";
+import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { toast } from "sonner";
 import {
   LineChart as RechartsLineChart,
@@ -87,7 +87,7 @@ export function MarketTrendsTile({ idea, className }: MarketTrendsTileProps) {
     setError(null);
 
     try {
-      const data = await invokeSupabaseFunction('market-trends', { idea });
+      const data = await optimizedQueue.invokeFunction('market-trends', { idea });
       
       if (data?.market_trends) {
         setTrends(data.market_trends);

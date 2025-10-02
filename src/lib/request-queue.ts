@@ -102,3 +102,6 @@ export async function queuedFetch(url: string, options?: RequestInit) {
     return response;
   });
 }
+
+// Export the class for external use
+export { GlobalRequestManager };
