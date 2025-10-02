@@ -64,8 +64,10 @@ serve(async (req) => {
             searchParams.q = summarizeQuery(`${actualIdea} market size revenue TAM statistics`);
             break;
           case 'google_trends':
-            searchParams.q = actualIdea.split(' ').slice(0, 3).join(' ');
-            searchParams.type = 'trends';
+            // Use more comprehensive search for trends data
+            searchParams.q = summarizeQuery(`${actualIdea} trends popularity search volume`);
+            searchParams.num = 20; // Get more results for trend analysis
+            searchParams.tbs = 'qdr:m'; // Last month for recent trends
             break;
           case 'market_trends':
             searchParams.q = summarizeQuery(`${actualIdea} market trends analysis forecast`);
@@ -269,13 +271,68 @@ function processSerperData(searchType: string, data: any, idea: string) {
       };
 
     case 'google_trends':
-      // Process trends data
+      // Enhanced trends data processing
+      const organicResults = data.organic || [];
+      const relatedSearches = data.relatedSearches || [];
+      const peopleAlsoAsk = data.peopleAlsoAsk || [];
+      
+      // Extract trend signals from search results
+      const trendSignals = organicResults.slice(0, 10).map((r: any) => {
+        const isRecent = r.date && new Date(r.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const hasGrowthKeywords = /growing|rising|increase|surge|boom|trending|popular/i.test(r.snippet || '');
+        const hasDeclineKeywords = /declining|falling|decrease|drop|slowing/i.test(r.snippet || '');
+        
+        return {
+          title: r.title,
+          snippet: r.snippet,
+          link: r.link,
+          date: r.date,
+          sentiment: hasGrowthKeywords ? 'positive' : hasDeclineKeywords ? 'negative' : 'neutral',
+          isRecent
+        };
+      });
+      
+      // Calculate overall trend direction
+      const positiveTrends = trendSignals.filter(s => s.sentiment === 'positive').length;
+      const negativeTrends = trendSignals.filter(s => s.sentiment === 'negative').length;
+      const overallTrend = positiveTrends > negativeTrends ? 'rising' : 
+                           negativeTrends > positiveTrends ? 'declining' : 'stable';
+      
+      // Extract top trending topics from snippets
+      const topicsMap = new Map();
+      organicResults.forEach((r: any) => {
+        const words = (r.snippet || '').toLowerCase().split(/\W+/);
+        words.forEach(word => {
+          if (word.length > 4 && !['about', 'which', 'where', 'these', 'those', 'their'].includes(word)) {
+            topicsMap.set(word, (topicsMap.get(word) || 0) + 1);
+          }
+        });
+      });
+      
+      const trendingTopics = Array.from(topicsMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([topic]) => topic);
+      
       return {
-        interest: data.searchParameters?.type === 'trends' ? 75 : 50,
-        trend: 'rising',
-        relatedQueries: data.relatedSearches?.map((r: any) => r.query) || [],
-        searchVolume: data.searchInformation?.totalResults || 1000000,
-        timeRange: 'last_12_months'
+        interest: Math.min(100, 50 + (positiveTrends * 5)), // Dynamic interest score
+        trend: overallTrend,
+        relatedQueries: relatedSearches.slice(0, 10).map((r: any) => r.query),
+        searchVolume: data.searchInformation?.totalResults || 0,
+        timeRange: 'last_30_days',
+        trendSignals: trendSignals.slice(0, 5),
+        trendingTopics,
+        questionsAsked: peopleAlsoAsk.slice(0, 5).map((q: any) => q.question),
+        dataPoints: {
+          positive: positiveTrends,
+          negative: negativeTrends,
+          neutral: trendSignals.length - positiveTrends - negativeTrends
+        },
+        insights: {
+          summary: `${overallTrend === 'rising' ? '📈' : overallTrend === 'declining' ? '📉' : '➡️'} ${overallTrend.charAt(0).toUpperCase() + overallTrend.slice(1)} trend with ${positiveTrends} positive signals`,
+          keyFactors: trendSignals.filter(s => s.sentiment !== 'neutral').slice(0, 3).map(s => s.title),
+          recentActivity: trendSignals.filter(s => s.isRecent).length > 3 ? 'High' : 'Moderate'
+        }
       };
 
     case 'market_trends':

@@ -10,7 +10,7 @@ import {
   Minus, AlertCircle, CheckCircle, XCircle,
   FileText, Sparkles, Activity, BarChart3,
   Brain, Zap, Target, Shield, ChevronDown, ChevronUp, RefreshCw,
-  Users, DollarSign, ArrowRight
+  Users, DollarSign, ArrowRight, Search
 } from "lucide-react";
 import React, { useState } from "react";
 import { TileData } from "@/lib/data-hub-orchestrator";
@@ -1115,6 +1115,182 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                           <Badge variant="default" className="text-base px-3 py-1">
                             {(data as any).socialSentiment.influencer_mentions}
                           </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+              
+              {/* Enhanced Google Trends Display */}
+              {tileType === 'google_trends' && (data as any) && (
+                <>
+                  {/* Trend Overview */}
+                  <Card className="border-primary/20">
+                    <CardContent className="pt-4">
+                      <div className="text-xs text-muted-foreground mb-3">Search Trend Analysis</div>
+                      
+                      {/* Main Trend Indicator */}
+                      <div className="flex items-center justify-between mb-4 p-3 rounded-lg bg-muted/10">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold">Interest Score</span>
+                          <Badge variant={(data as any).interest > 70 ? "default" : "outline"} className="text-sm">
+                            {(data as any).interest || 0}/100
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(data as any).trend === 'rising' && <TrendingUp className="h-5 w-5 text-green-500" />}
+                          {(data as any).trend === 'declining' && <TrendingDown className="h-5 w-5 text-red-500" />}
+                          {(data as any).trend === 'stable' && <Activity className="h-5 w-5 text-yellow-500" />}
+                          <span className={cn(
+                            "font-semibold capitalize",
+                            (data as any).trend === 'rising' ? "text-green-600" :
+                            (data as any).trend === 'declining' ? "text-red-600" :
+                            "text-yellow-600"
+                          )}>
+                            {(data as any).trend || 'stable'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Trend Signals */}
+                      {(data as any).dataPoints && (
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <div className="text-center p-2 rounded bg-green-500/10">
+                            <div className="text-lg font-bold text-green-600">{(data as any).dataPoints.positive || 0}</div>
+                            <div className="text-xs text-muted-foreground">Positive</div>
+                          </div>
+                          <div className="text-center p-2 rounded bg-yellow-500/10">
+                            <div className="text-lg font-bold text-yellow-600">{(data as any).dataPoints.neutral || 0}</div>
+                            <div className="text-xs text-muted-foreground">Neutral</div>
+                          </div>
+                          <div className="text-center p-2 rounded bg-red-500/10">
+                            <div className="text-lg font-bold text-red-600">{(data as any).dataPoints.negative || 0}</div>
+                            <div className="text-xs text-muted-foreground">Negative</div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Search Volume */}
+                      {(data as any).searchVolume && (
+                        <div className="flex items-center justify-between p-2 rounded bg-muted/10">
+                          <span className="text-sm">Search Volume</span>
+                          <span className="font-bold">{((data as any).searchVolume / 1000000).toFixed(1)}M results</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Trending Topics */}
+                  {(data as any).trendingTopics && (data as any).trendingTopics.length > 0 && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Trending Keywords</div>
+                        <div className="flex flex-wrap gap-2">
+                          {(data as any).trendingTopics.map((topic: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {topic}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Related Queries */}
+                  {(data as any).relatedQueries && (data as any).relatedQueries.length > 0 && (
+                    <Card className="border-primary/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Related Searches</div>
+                        <div className="space-y-2">
+                          {(data as any).relatedQueries.slice(0, 5).map((query: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <Search className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm">{query}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Questions People Ask */}
+                  {(data as any).questionsAsked && (data as any).questionsAsked.length > 0 && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">People Also Ask</div>
+                        <div className="space-y-2">
+                          {(data as any).questionsAsked.map((question: string, idx: number) => (
+                            <div key={idx} className="p-2 rounded bg-muted/10">
+                              <p className="text-sm">{question}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Key Trend Signals */}
+                  {(data as any).trendSignals && (data as any).trendSignals.length > 0 && (
+                    <Card className="border-primary/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Recent Trend Signals</div>
+                        <div className="space-y-2">
+                          {(data as any).trendSignals.map((signal: any, idx: number) => (
+                            <div key={idx} className="border-l-2 border-primary/50 pl-3 py-1">
+                              <p className="text-sm font-medium line-clamp-1">{signal.title}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{signal.snippet}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {signal.isRecent && (
+                                  <Badge variant="outline" className="text-[10px]">Recent</Badge>
+                                )}
+                                <Badge 
+                                  variant={signal.sentiment === 'positive' ? 'default' : 
+                                          signal.sentiment === 'negative' ? 'destructive' : 'secondary'}
+                                  className="text-[10px]"
+                                >
+                                  {signal.sentiment}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Insights Summary */}
+                  {(data as any).insights && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Trend Insights</div>
+                        <div className="space-y-3">
+                          {(data as any).insights.summary && (
+                            <div className="p-2 rounded bg-primary/5">
+                              <p className="text-sm font-medium">{(data as any).insights.summary}</p>
+                            </div>
+                          )}
+                          {(data as any).insights.recentActivity && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Recent Activity</span>
+                              <Badge variant={(data as any).insights.recentActivity === 'High' ? 'default' : 'outline'}>
+                                {(data as any).insights.recentActivity}
+                              </Badge>
+                            </div>
+                          )}
+                          {(data as any).insights.keyFactors && (data as any).insights.keyFactors.length > 0 && (
+                            <div>
+                              <div className="text-xs text-muted-foreground mb-2">Key Factors</div>
+                              <ul className="space-y-1">
+                                {(data as any).insights.keyFactors.map((factor: string, idx: number) => (
+                                  <li key={idx} className="text-xs flex items-start gap-1">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1 flex-shrink-0" />
+                                    <span className="line-clamp-2">{factor}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
