@@ -1,3 +1,4 @@
+// Updated to handle both parameter formats - v2
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -16,13 +17,18 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
+    console.log('[serper-batch-search] Received body:', JSON.stringify(body));
+    
     const { idea, query, searchTypes, tileType } = body;
     
     // Handle both formats - either searchTypes array or single tileType
     const actualIdea = idea || query;
     const typesToSearch = searchTypes || (tileType ? [tileType] : ['market_size', 'google_trends', 'market_trends']);
     
+    console.log('[serper-batch-search] Processing - idea:', actualIdea?.substring(0, 50), 'types:', typesToSearch);
+    
     if (!actualIdea) {
+      console.error('[serper-batch-search] Missing idea/query in request body:', body);
       throw new Error('Missing required parameter: idea or query');
     }
 

@@ -203,11 +203,16 @@ export class OptimizedDashboardService {
       }
       
       const { data, error } = await supabase.functions.invoke(endpoint, {
-        body: { 
-          idea,
-          query: idea,
-          tileType 
-        }
+        body: endpoint === 'serper-batch-search' 
+          ? { 
+              idea,
+              searchTypes: [tileType] // serper-batch-search expects searchTypes array
+            }
+          : { 
+              idea,
+              query: idea,
+              tileType 
+            }
       });
       
       if (error) throw error;
