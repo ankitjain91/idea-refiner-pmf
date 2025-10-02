@@ -41,6 +41,25 @@ export function OptimizedDataTile({
   const [detailsData, setDetailsData] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   
+  // Prevent rendering [object Object] in metric values
+  const formatMetricValue = (val: any): string => {
+    if (val === null || val === undefined) return '—';
+    const t = typeof val;
+    if (t === 'string' || t === 'number' || t === 'boolean') return String(val);
+    if (Array.isArray(val)) return `${val.length} items`;
+    if (t === 'object') {
+      // Prefer common human-readable fields
+      if ((val as any).name) return String((val as any).name);
+      if ((val as any).title) return String((val as any).title);
+      const keys = Object.keys(val as any);
+      if (keys.length === 1 && typeof (val as any)[keys[0]] !== 'object') {
+        return String((val as any)[keys[0]]);
+      }
+      try { return JSON.stringify(val); } catch { return '[data]'; }
+    }
+    return String(val);
+  };
+  
   const handleShowDetails = async () => {
     setShowDetails(true);
     
@@ -159,7 +178,7 @@ export function OptimizedDataTile({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold">
-                      {metric.value}{metric.unit && ` ${metric.unit}`}
+                      {formatMetricValue(metric.value)}{metric.unit && ` ${metric.unit}`}
                     </span>
                     {metric.confidence && (
                       <span className={cn("text-xs", getConfidenceColor(metric.confidence))}>
@@ -217,7 +236,7 @@ export function OptimizedDataTile({
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{metric.name}</span>
                           <span className="text-lg font-bold">
-                            {metric.value}{metric.unit && ` ${metric.unit}`}
+                            {formatMetricValue(metric.value)}{metric.unit && ` ${metric.unit}`}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">{metric.explanation}</p>

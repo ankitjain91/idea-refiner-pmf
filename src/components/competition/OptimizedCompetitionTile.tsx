@@ -97,6 +97,21 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
       }));
     }
     
+    // Also support 'topCompetitors' shape from competitive-landscape
+    if (Array.isArray(raw?.topCompetitors)) {
+      console.log('[Competition] Found topCompetitors, mapping to Competitor shape');
+      return raw.topCompetitors.map((c: any, index: number) => ({
+        name: c?.name || String(c),
+        marketShare: typeof c?.marketShare === 'number' ? `${c.marketShare}%` : (c?.marketShare || c?.share || estimateMarketShare(c?.name, index)),
+        strength: (c?.strength || 'moderate') as any,
+        strengths: Array.isArray(c?.strengths) ? c.strengths : extractStrengths(c),
+        weaknesses: Array.isArray(c?.weaknesses) ? c.weaknesses : [],
+        funding: c?.valuation || c?.funding || estimateFunding(c?.name, index),
+        founded: c?.founded || estimateFoundingYear(c?.name, index),
+        url: c?.url || c?.link,
+      }));
+    }
+
     // Check if market_leaders contains competitors
     if (Array.isArray(raw?.market_leaders)) {
       console.log('[Competition] Using market_leaders as competitors');
