@@ -7,10 +7,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   ExternalLink, Info, AlertCircle, Clock, Download, 
-  ChevronRight, RefreshCw, Database, DollarSign, Zap
+  ChevronRight, RefreshCw, Database, DollarSign, Zap, MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CacheIndicator } from '@/components/hub/CacheIndicator';
+import { TileAIChat } from './TileAIChat';
+import { useSession } from '@/contexts/SimpleSessionContext';
 
 interface OptimizedDataTileProps {
   title: string;
@@ -40,6 +42,13 @@ export function OptimizedDataTile({
   const [showDetails, setShowDetails] = useState(false);
   const [detailsData, setDetailsData] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const { currentSession } = useSession();
+
+  const currentIdea = localStorage.getItem('dashboardIdea') || 
+                     currentSession?.data?.currentIdea || 
+                     localStorage.getItem('currentIdea') || 
+                     localStorage.getItem('userIdea') || '';
   
   // Prevent rendering [object Object] in metric values
   const formatMetricValue = (val: any): string => {
@@ -160,6 +169,27 @@ export function OptimizedDataTile({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* AI Analysis Button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAIChat(true);
+                      }}
+                      className="h-7 w-7"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">AI Analysis</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {/* Subtle Data Source Indicator - Same as Overview */}
               {costInfo && (
                 <Badge variant={costInfo.cacheHit ? 'secondary' : 'outline'} className="text-xs h-5">
@@ -288,6 +318,14 @@ export function OptimizedDataTile({
           </div>
         </SheetContent>
       </Sheet>
+
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={data}
+        tileTitle={title}
+        idea={currentIdea}
+      />
     </>
   );
 }

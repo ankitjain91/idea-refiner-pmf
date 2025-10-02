@@ -5,8 +5,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { AlertCircle, Info, LucideIcon, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, Info, LucideIcon, Loader2, RefreshCw, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { TileAIChat } from "./TileAIChat";
 
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
@@ -63,8 +64,14 @@ export function BaseTile({
 }: BaseTileProps) {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const { user } = useAuth();
   const { currentSession } = useSession();
+
+  const currentIdea = localStorage.getItem('dashboardIdea') || 
+                     currentSession?.data?.currentIdea || 
+                     localStorage.getItem('currentIdea') || 
+                     localStorage.getItem('userIdea') || '';
 
   // Auto-load on mount if enabled
   useEffect(() => {
@@ -176,6 +183,25 @@ export function BaseTile({
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {data && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowAIChat(true)}
+                      className="h-7 w-7"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">AI Analysis</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             {showRefreshButton && onRefresh && (
               <TooltipProvider>
                 <Tooltip>
@@ -219,6 +245,14 @@ export function BaseTile({
           {footerContent}
         </div>
       )}
+
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={data}
+        tileTitle={title}
+        idea={currentIdea}
+      />
     </Card>
   );
 }
