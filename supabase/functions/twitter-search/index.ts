@@ -12,18 +12,26 @@ serve(async (req) => {
   }
 
   try {
-    const { query, industry, geo, time_window } = await req.json();
+    const { query, industry, geo, time_window, idea } = await req.json();
     
-    console.log('[twitter-search] Processing request:', { query, industry, geo, time_window });
+    if (!idea && !query) {
+      throw new Error('No idea or query provided');
+    }
+    
+    const searchQuery = idea || query;
+    console.log('[twitter-search] Processing request for idea:', searchQuery);
     
     // Build search query
-    const searchTerms = [query, industry].filter(Boolean).join(' ');
-    const keywords = searchTerms.toLowerCase().split(' ').filter(w => w.length > 4).slice(0, 3);
+    const searchTerms = [searchQuery, industry].filter(Boolean).join(' ');
+    const keywords = searchTerms.toLowerCase().split(' ').filter(w => w.length > 3).slice(0, 3);
     
-    // Generate mock Twitter buzz data in the expected format
+    console.log('[twitter-search] Using keywords:', keywords);
+    
+    // TODO: Integrate real Twitter API when available
+    // For now, generate contextual data based on the actual idea
     const response = {
       twitter_buzz: {
-        summary: `Twitter buzz around "${searchTerms.slice(0, 50)}..." is rising sharply, with 62% positive sentiment and ~4.3K tweets in the last 90 days. Hashtags #${keywords[0] || 'startup'} and #${keywords[1] || 'innovation'} dominate discussions.`,
+        summary: `Twitter buzz around "${searchTerms.slice(0, 80)}..." is ${Math.random() > 0.5 ? 'rising' : 'growing'} with ${50 + Math.floor(Math.random() * 30)}% positive sentiment. Key discussions focus on ${keywords[0]} and ${keywords[1] || 'innovation'}.`,
         metrics: {
           total_tweets: 4300 + Math.floor(Math.random() * 1000),
           buzz_trend: '+28% vs prior 90 days',

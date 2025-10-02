@@ -14,9 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, idea } = await req.json();
     
-    console.log('Analyzing Reddit sentiment for:', query);
+    if (!idea && !query) {
+      throw new Error('No idea or query provided');
+    }
+    
+    const searchQuery = idea || query;
+    console.log('[reddit-search] Analyzing Reddit sentiment for:', searchQuery);
     
     // Simulate Reddit data analysis using Groq
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -49,7 +54,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Generate Reddit sentiment analysis for: "${query}"`
+            content: `Generate realistic Reddit sentiment analysis for the following startup idea. Make the analysis specific and relevant to the idea: "${searchQuery}"`
           }
         ],
         temperature: 0.8,
