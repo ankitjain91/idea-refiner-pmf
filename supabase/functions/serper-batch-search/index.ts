@@ -15,10 +15,15 @@ serve(async (req) => {
   }
 
   try {
-    const { idea, searchTypes } = await req.json();
+    const body = await req.json();
+    const { idea, query, searchTypes, tileType } = body;
     
-    if (!idea || !searchTypes || !Array.isArray(searchTypes)) {
-      throw new Error('Missing required parameters: idea and searchTypes array');
+    // Handle both formats - either searchTypes array or single tileType
+    const actualIdea = idea || query;
+    const typesToSearch = searchTypes || (tileType ? [tileType] : ['market_size', 'google_trends', 'market_trends']);
+    
+    if (!actualIdea) {
+      throw new Error('Missing required parameter: idea or query');
     }
 
     // Check if we have any search API keys
@@ -29,18 +34,18 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          results: generateMockResults(searchTypes, idea)
+          results: generateMockResults(typesToSearch, actualIdea)
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`🔍 Batch search for ${searchTypes.length} types`);
+    console.log(`🔍 Batch search for ${typesToSearch.length} types`);
 
     // Build parallel search requests
-    const searchPromises = searchTypes.map(async (searchType) => {
+    const searchPromises = typesToSearch.map(async (searchType) => {
       try {
-        let query = idea;
+        let query = actualIdea;
         let searchParams: any = {
           q: query,
           num: 10
@@ -49,20 +54,20 @@ serve(async (req) => {
         // Customize search based on type
         switch (searchType) {
           case 'market_size':
-            searchParams.q = `${idea} market size revenue TAM statistics`;
+            searchParams.q = `${actualIdea} market size revenue TAM statistics`;
             break;
           case 'google_trends':
-            searchParams.q = idea.split(' ').slice(0, 3).join(' ');
+            searchParams.q = actualIdea.split(' ').slice(0, 3).join(' ');
             searchParams.type = 'trends';
             break;
           case 'market_trends':
-            searchParams.q = `${idea} market trends analysis forecast`;
+            searchParams.q = `${actualIdea} market trends analysis forecast`;
             break;
           case 'competitors':
-            searchParams.q = `${idea} competitors alternatives similar`;
+            searchParams.q = `${actualIdea} competitors alternatives similar`;
             break;
           case 'news':
-            searchParams.q = `${idea} news latest developments`;
+            searchParams.q = `${actualIdea} news latest developments`;
             searchParams.type = 'news';
             break;
           default:
@@ -120,7 +125,7 @@ serve(async (req) => {
               
               return { 
                 searchType, 
-                data: processSerperData(searchType, transformedData, idea)
+                data: processSerperData(searchType, transformedData, actualIdea)
               };
             }
           } catch (braveError) {
@@ -144,7 +149,7 @@ serve(async (req) => {
             console.log(`✅ Using Serper for ${searchType}`);
             return { 
               searchType, 
-              data: processSerperData(searchType, data, idea)
+              data: processSerperData(searchType, data, actualIdea)
             };
           }
         }
@@ -183,7 +188,7 @@ serve(async (req) => {
             
             return { 
               searchType, 
-              data: processSerperData(searchType, transformedData, idea)
+              data: processSerperData(searchType, transformedData, actualIdea)
             };
           }
         }
