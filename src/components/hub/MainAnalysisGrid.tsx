@@ -166,7 +166,8 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
       title: "Sentiment", 
       icon: MessageSquare,
       data: tiles.sentiment || tileData.sentiment || null,
-      span: "col-span-full"
+      span: "col-span-full",
+      isUsingFallback: !tiles.sentiment && tileData.sentiment !== null
     },
     { 
       id: "market_trends", 
@@ -263,6 +264,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
                 }}
                 expanded={viewMode === "deep"}
                 tileType={tile.id}
+                isUsingFallback={(tile as any).isUsingFallback}
                 className={cn(
                   "h-full",
                   isLargeTile && viewMode === "deep" ? "min-h-[400px]" : "min-h-[300px]"

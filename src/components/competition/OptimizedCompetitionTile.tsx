@@ -53,6 +53,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
   const [data, setData] = useState<CompetitionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(!initialData);
@@ -280,6 +281,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
       setData(buildCompetitionData(competitionData));
       setIsCollapsed(false);
       dataFetchedRef.current = true;
+      setIsUsingFallback(true); // Mock data is also fallback
       return;
     }
 
@@ -324,6 +326,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
         const normalizedData = buildCompetitionData(competitionData);
         console.log('[Competition] Normalized real-time data:', normalizedData);
         setData(normalizedData);
+        setIsUsingFallback(false);
         
         if (forceRefresh) {
           toast({
@@ -336,6 +339,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
         // Always provide useful data, even when API fails
         const fallbackData = getFallbackData();
         setData(fallbackData);
+        setIsUsingFallback(true);
         if (!useMockData) {
           toast({
             title: 'Competition Analysis',
@@ -347,10 +351,10 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
       console.error('[Competition] Error fetching data:', err);
       setError('Failed to load competition data');
       
-      // Only load fallback data if mock mode is enabled
-      if (useMockData) {
-        setData(getFallbackData());
-      }
+      // Always provide fallback data when API fails
+      const fallbackData = getFallbackData();
+      setData(fallbackData);
+      setIsUsingFallback(true);
     } finally {
       setLoading(false);
     }
@@ -453,6 +457,11 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Building2 className="h-5 w-5 text-primary" />
                 Competition Analysis
+                {isUsingFallback && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    Simulated Data
+                  </Badge>
+                )}
                 {isCollapsed ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 ) : (

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EnhancedTileDialog } from "./EnhancedTileDialog";
@@ -25,9 +26,10 @@ interface DataHubTileProps {
   onRefresh?: () => void;
   expanded?: boolean;
   className?: string;
+  isUsingFallback?: boolean;
 }
 
-export function DataHubTile({ title, tileType = "default", data, Icon, loading, onRefresh, expanded, className }: DataHubTileProps) {
+export function DataHubTile({ title, tileType = "default", data, Icon, loading, onRefresh, expanded, className, isUsingFallback = false }: DataHubTileProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -270,6 +272,11 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   {icon}
                 </div>
                 <span className="truncate">{title}</span>
+                {isUsingFallback && (
+                  <Badge variant="secondary" className="ml-1 text-xs">
+                    Simulated
+                  </Badge>
+                )}
               </CardTitle>
               <div className="flex items-center gap-1 flex-shrink-0">
                 {!isCollapsed && (
