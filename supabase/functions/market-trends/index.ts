@@ -22,18 +22,31 @@ serve(async (req) => {
 
     // Extract key concepts from idea
     const keywords = extractKeywords(idea);
+    console.log('[market-trends] Extracted keywords:', keywords);
     
     // Fetch market data from multiple sources (queued)
     const marketData = await fetchMarketData(keywords, idea);
+    console.log('[market-trends] Fetched market data');
     
-    // Process and analyze trends
-    const trends = analyzeTrends(marketData, idea);
+    // Use Groq to analyze trends specific to this idea
+    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    let trends = [];
+    
+    if (GROQ_API_KEY && marketData) {
+      console.log('[market-trends] Using Groq to synthesize idea-specific trends...');
+      trends = await synthesizeTrendsWithGroq(idea, keywords, marketData, GROQ_API_KEY);
+    } else {
+      console.log('[market-trends] Falling back to basic analysis');
+      trends = analyzeTrends(marketData, idea);
+    }
     
     // Generate visualizations
     const processedTrends = trends.map(trend => ({
       ...trend,
       visuals: generateVisuals(trend)
     }));
+
+    console.log('[market-trends] Returning', processedTrends.length, 'trends');
 
     return new Response(
       JSON.stringify({
@@ -188,22 +201,68 @@ async function fetchMarketData(keywords: string[], idea: string): Promise<any> {
       console.error('[market-trends] Error fetching sentiment:', error);
     }
 
-    // Synthesize with Groq
+    // Use Groq to identify relevant trends for this specific idea
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
     if (GROQ_API_KEY) {
       console.log('[market-trends] Synthesizing trends with Groq...');
-      const themes = generateTrendThemes(idea, keywords);
+      data.trends = [];
       
-      for (const theme of themes) {
-        const trendData = await synthesizeTrendWithGroq(theme, idea, data, GROQ_API_KEY);
-        data.trends.push(trendData);
-      }
-    } else {
-      // Fallback to basic analysis
-      const themes = generateTrendThemes(idea, keywords);
-      for (const theme of themes) {
-        const trendData = await analyzeTrendTheme(theme, keywords, data);
-        data.trends.push(trendData);
+      // Let Groq identify the most relevant trend themes for this idea
+      const themesPrompt = `Analyze this business idea: "${idea}"
+
+Based on the keywords: ${keywords.join(', ')}
+
+Identify 3-4 most relevant market trend themes that directly impact this idea's viability and growth potential.
+For each trend, provide:
+- A clear trend title
+- Why it's relevant to this specific idea
+
+Return ONLY valid JSON:
+{
+  "themes": [
+    {"title": "Trend Name", "relevance": "Why this matters for the idea"}
+  ]
+}`;
+
+      const themesResponse = await requestQueue.add(async () => {
+        return await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: 'You are a market analyst. Return only valid JSON.' },
+              { role: 'user', content: themesPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 800
+          })
+        });
+      });
+
+      if (themesResponse.ok) {
+        const themesResult = await themesResponse.json();
+        const content = themesResult.choices?.[0]?.message?.content || '{}';
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        const themesData = jsonMatch ? JSON.parse(jsonMatch[0]) : { themes: [] };
+        
+        console.log('[market-trends] Identified themes:', themesData.themes?.length);
+        
+        // Analyze each identified theme with real data
+        for (const themeObj of (themesData.themes || [])) {
+          const trendData = await synthesizeTrendWithGroq(themeObj.title, idea, data, GROQ_API_KEY, themeObj.relevance);
+          data.trends.push(trendData);
+        }
+      } else {
+        console.log('[market-trends] Groq themes request failed, using fallback');
+        const themes = generateTrendThemes(idea, keywords);
+        for (const theme of themes) {
+          const trendData = await analyzeTrendTheme(theme, keywords, data);
+          data.trends.push(trendData);
+        }
       }
     }
 
@@ -250,43 +309,43 @@ function generateTrendThemes(idea: string, keywords: string[]): string[] {
   return themes.slice(0, 4);
 }
 
-async function synthesizeTrendWithGroq(theme: string, idea: string, marketData: any, groqKey: string): Promise<any> {
+async function synthesizeTrendWithGroq(theme: string, idea: string, marketData: any, groqKey: string, relevanceContext?: string): Promise<any> {
   try {
-    const prompt = `Analyze the "${theme}" trend for this business idea: "${idea}"
+    const prompt = `CRITICAL: Analyze the "${theme}" trend SPECIFICALLY FOR THIS BUSINESS IDEA:
+"${idea}"
 
-Real market data available:
-${JSON.stringify({
-  marketSize: marketData.marketSize?.tam || 'N/A',
-  recentFunding: marketData.funding?.recent_rounds?.slice(0, 3) || [],
-  newsHeadlines: marketData.news?.articles?.slice(0, 5).map((a: any) => a.title) || [],
-  sentiment: marketData.sentiment?.overall || {}
-}, null, 2)}
+${relevanceContext ? `WHY THIS TREND MATTERS: ${relevanceContext}` : ''}
 
-Provide a detailed trend analysis with:
-1. Growth rate estimates (YoY and QoQ percentages)
-2. Funding metrics (volume, number of deals)
-3. Adoption stage (early/growth/mature/declining)
-4. Competition intensity (low/moderate/high)
-5. Sentiment scores (positive, neutral, negative percentages)
-6. Relevance to the idea (0-100)
-7. Key drivers (3-5 bullet points)
-8. Key risks (3-5 bullet points)
+REAL MARKET DATA CONTEXT:
+- Market Size: ${JSON.stringify(marketData.marketSize || 'Not available')}
+- Recent Funding: ${JSON.stringify(marketData.funding?.recent_rounds?.slice(0, 3) || 'Not available')}
+- News Headlines: ${JSON.stringify(marketData.news?.articles?.slice(0, 5).map((a: any) => a.title) || 'Not available')}
+- Social Sentiment: ${JSON.stringify(marketData.sentiment?.overall || 'Not available')}
 
-Return ONLY valid JSON matching this structure:
+YOUR TASK: Provide a detailed trend analysis that DIRECTLY relates to this specific business idea. 
+
+Focus on:
+1. How this trend specifically impacts the idea's market opportunity
+2. Growth metrics that matter for this idea
+3. Competition and adoption levels in this idea's space
+4. Realistic funding environment for this type of business
+5. Key drivers and risks specific to executing this idea
+
+Return ONLY valid JSON with realistic estimates:
 {
-  "growth_yoy": 25,
-  "growth_qoq": 8,
-  "funding_volume_b": 2.5,
-  "funding_deals": 150,
-  "adoption_stage": "growth",
-  "competition": "moderate",
-  "sentiment_positive": 65,
-  "sentiment_neutral": 25,
-  "sentiment_negative": 10,
-  "relevance": 85,
-  "drivers": ["Driver 1", "Driver 2", "Driver 3"],
-  "risks": ["Risk 1", "Risk 2", "Risk 3"],
-  "summary": "One paragraph summary"
+  "growth_yoy": <number 10-80>,
+  "growth_qoq": <number -10 to 25>,
+  "funding_volume_b": <number 0.5-10>,
+  "funding_deals": <number 50-500>,
+  "adoption_stage": "early|growth|mature|declining",
+  "competition": "low|moderate|high",
+  "sentiment_positive": <number 40-80>,
+  "sentiment_neutral": <number 10-30>,
+  "sentiment_negative": <number 5-30>,
+  "relevance": <number 60-100>,
+  "drivers": ["Driver 1 specific to this idea", "Driver 2", "Driver 3"],
+  "risks": ["Risk 1 specific to this idea", "Risk 2", "Risk 3"],
+  "summary": "2-3 sentence summary explaining how ${theme} directly impacts ${idea}"
 }`;
 
     const response = await requestQueue.add(async () => {
@@ -299,21 +358,32 @@ Return ONLY valid JSON matching this structure:
         body: JSON.stringify({
           model: 'llama-3.1-8b-instant',
           messages: [
-            { role: 'system', content: 'You are a market analysis expert. Return only valid JSON.' },
+            { role: 'system', content: 'You are a market analysis expert specializing in business idea validation. Return only valid JSON with realistic data based on the specific business idea provided.' },
             { role: 'user', content: prompt }
           ],
           temperature: 0.3,
-          max_tokens: 1000
+          max_tokens: 1200
         })
       });
     });
 
+    if (!response.ok) {
+      console.error('[market-trends] Groq API error:', response.status);
+      return analyzeTrendTheme(theme, [], marketData);
+    }
+
     const result = await response.json();
     const content = result.choices?.[0]?.message?.content || '{}';
+    console.log('[market-trends] Groq response for', theme, ':', content.substring(0, 200));
     
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    if (!jsonMatch) {
+      console.error('[market-trends] No JSON found in Groq response');
+      return analyzeTrendTheme(theme, [], marketData);
+    }
+    
+    const analysis = JSON.parse(jsonMatch[0]);
 
     return {
       trend_id: theme.toLowerCase().replace(/\s+/g, '_'),
@@ -474,6 +544,91 @@ function generateCitations(theme: string): any[] {
   return shuffled.slice(0, 2 + Math.floor(Math.random() * 2));
 }
 
+async function synthesizeTrendsWithGroq(idea: string, keywords: string[], marketData: any, groqKey: string): Promise<any[]> {
+  console.log('[market-trends] Starting Groq-based trend synthesis for idea:', idea);
+  
+  // First, identify relevant themes using Groq
+  const themesPrompt = `You are analyzing this business idea: "${idea}"
+
+Keywords: ${keywords.join(', ')}
+
+Identify 3-4 SPECIFIC market trend themes that directly impact this business idea's success.
+Each trend should be:
+- Directly relevant to the idea's market/industry
+- Currently active (not hypothetical)
+- Measurable with real data
+
+Return ONLY valid JSON:
+{
+  "themes": [
+    {"title": "Specific Trend Name", "why": "Brief explanation of relevance"}
+  ]
+}`;
+
+  try {
+    const themesResponse = await requestQueue.add(async () => {
+      return await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { role: 'system', content: 'You are a market trend analyst. Return only valid JSON.' },
+            { role: 'user', content: themesPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 800
+        })
+      });
+    });
+
+    if (!themesResponse.ok) {
+      console.error('[market-trends] Failed to get themes from Groq');
+      return analyzeTrends(marketData, idea);
+    }
+
+    const themesResult = await themesResponse.json();
+    const content = themesResult.choices?.[0]?.message?.content || '{}';
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const themesData = jsonMatch ? JSON.parse(jsonMatch[0]) : { themes: [] };
+    
+    console.log('[market-trends] Identified', themesData.themes?.length || 0, 'themes');
+    
+    // Analyze each theme
+    const trends = [];
+    for (const themeObj of (themesData.themes || [])) {
+      const trendData = await synthesizeTrendWithGroq(
+        themeObj.title, 
+        idea, 
+        marketData, 
+        groqKey,
+        themeObj.why
+      );
+      trends.push(trendData);
+    }
+    
+    return trends.length > 0 ? trends : analyzeTrends(marketData, idea);
+    
+  } catch (error) {
+    console.error('[market-trends] Error in synthesizeTrendsWithGroq:', error);
+    return analyzeTrends(marketData, idea);
+  }
+}
+  if (marketData.trends && marketData.trends.length > 0) {
+    return marketData.trends;
+  }
+  
+  // Fallback: generate default trends
+  const keywords = extractKeywords(idea);
+  const themes = generateTrendThemes(idea, keywords);
+  
+  return themes.map(theme => analyzeTrendTheme(theme, keywords, marketData));
+}
+
+
 function analyzeTrends(marketData: any, idea: string): any[] {
   if (marketData.trends && marketData.trends.length > 0) {
     return marketData.trends;
@@ -486,7 +641,6 @@ function analyzeTrends(marketData: any, idea: string): any[] {
   return themes.map(theme => analyzeTrendTheme(theme, keywords, marketData));
 }
 
-function generateVisuals(trend: any): any[] {
   const visuals = [];
   
   // Timeline visualization
