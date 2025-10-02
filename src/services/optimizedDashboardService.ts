@@ -309,18 +309,47 @@ export class OptimizedDashboardService {
   private aggregateSentimentData(responses: any[]): { data: any; confidence: number; sourceIds: string[] } {
     const sentiments: any[] = [];
     const sourceIds: string[] = [];
+    let socialSentimentData: any = null;
+    let searchVolumeData: any = null;
     
     responses.forEach(response => {
-      const localExtractor = TILE_REQUIREMENTS.sentiment.localExtractor;
-      if (localExtractor) {
-        const extracted = localExtractor(response.rawResponse);
-        if (extracted) {
-          sentiments.push(extracted);
-          sourceIds.push(response.id || '');
+      // Check if this is the social-sentiment response with rich data
+      if (response.rawResponse?.data?.socialSentiment) {
+        socialSentimentData = response.rawResponse.data.socialSentiment;
+        searchVolumeData = response.rawResponse.data.searchVolume;
+        sourceIds.push(response.id || 'social-sentiment');
+      } else {
+        const localExtractor = TILE_REQUIREMENTS.sentiment.localExtractor;
+        if (localExtractor) {
+          const extracted = localExtractor(response.rawResponse);
+          if (extracted) {
+            sentiments.push(extracted);
+            sourceIds.push(response.id || '');
+          }
         }
       }
     });
     
+    // If we have social sentiment data, use it as the primary source
+    if (socialSentimentData) {
+      return {
+        data: {
+          positive: socialSentimentData.positive || 65,
+          neutral: socialSentimentData.neutral || 25,
+          negative: socialSentimentData.negative || 10,
+          mentions: socialSentimentData.mentions || 0,
+          trend: socialSentimentData.trend || 'stable',
+          socialSentiment: socialSentimentData,
+          searchVolume: searchVolumeData,
+          sources: responses.map(r => r.id || 'unknown'),
+          confidence: responses[0]?.rawResponse?.data?.confidence || 0.85
+        },
+        confidence: responses[0]?.rawResponse?.data?.confidence || 0.85,
+        sourceIds
+      };
+    }
+    
+    // Fallback to aggregation if no social sentiment data
     if (sentiments.length === 0) {
       return {
         data: {

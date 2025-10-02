@@ -874,21 +874,21 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   {/* Sentiment Breakdown - check both data and data.json for values */}
                   <Card className="border-primary/20">
                     <CardContent className="pt-4">
-                      <div className="text-xs text-muted-foreground mb-3">Sentiment Analysis</div>
+                      <div className="text-xs text-muted-foreground mb-3">Overall Sentiment Analysis</div>
                       <div className="space-y-3">
-                        {/* Get sentiment values from either metrics, json, or direct data */}
+                        {/* Get sentiment values from either metrics, json, socialSentiment or direct data */}
                         {/* Overall sentiment bars */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium">Positive</span>
                             <span className="text-xs font-bold text-green-600">
-                              {((data as any).json?.positive ?? (data as any).metrics?.positive ?? 0)}%
+                              {((data as any).json?.positive ?? (data as any).socialSentiment?.positive ?? (data as any).metrics?.positive ?? 0)}%
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-green-500 transition-all duration-500"
-                              style={{ width: `${(data as any).json?.positive ?? (data as any).metrics?.positive ?? 0}%` }}
+                              style={{ width: `${(data as any).json?.positive ?? (data as any).socialSentiment?.positive ?? (data as any).metrics?.positive ?? 0}%` }}
                             />
                           </div>
                         </div>
@@ -897,13 +897,13 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium">Neutral</span>
                             <span className="text-xs font-bold text-yellow-600">
-                              {((data as any).json?.neutral ?? (data as any).metrics?.neutral ?? 0)}%
+                              {((data as any).json?.neutral ?? (data as any).socialSentiment?.neutral ?? (data as any).metrics?.neutral ?? 0)}%
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-yellow-500 transition-all duration-500"
-                              style={{ width: `${(data as any).json?.neutral ?? (data as any).metrics?.neutral ?? 0}%` }}
+                              style={{ width: `${(data as any).json?.neutral ?? (data as any).socialSentiment?.neutral ?? (data as any).metrics?.neutral ?? 0}%` }}
                             />
                           </div>
                         </div>
@@ -912,13 +912,13 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium">Negative</span>
                             <span className="text-xs font-bold text-red-600">
-                              {((data as any).json?.negative ?? (data as any).metrics?.negative ?? 0)}%
+                              {((data as any).json?.negative ?? (data as any).socialSentiment?.negative ?? (data as any).metrics?.negative ?? 0)}%
                             </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-red-500 transition-all duration-500"
-                              style={{ width: `${(data as any).json?.negative ?? (data as any).metrics?.negative ?? 0}%` }}
+                              style={{ width: `${(data as any).json?.negative ?? (data as any).socialSentiment?.negative ?? (data as any).metrics?.negative ?? 0}%` }}
                             />
                           </div>
                         </div>
@@ -926,54 +926,138 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                       
                       {/* Additional metrics */}
                       <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-2 gap-2">
-                        {(data as any).mentions && (
+                        {((data as any).socialSentiment?.mentions || (data as any).mentions) && (
                           <div>
                             <div className="text-xs text-muted-foreground">Total Mentions</div>
-                            <div className="text-sm font-bold">{((data as any).mentions || 0).toLocaleString()}</div>
+                            <div className="text-sm font-bold">{((data as any).socialSentiment?.mentions || (data as any).mentions || 0).toLocaleString()}</div>
                           </div>
                         )}
-                        {(data as any).trend && (
+                        {((data as any).socialSentiment?.trend || (data as any).trend) && (
                           <div>
                             <div className="text-xs text-muted-foreground">Trend</div>
-                            <Badge variant={(data as any).trend === 'improving' ? 'default' : 'outline'} className="text-xs">
-                              {(data as any).trend}
+                            <Badge variant={((data as any).socialSentiment?.trend || (data as any).trend) === 'growing' ? 'default' : 'outline'} className="text-xs">
+                              {(data as any).socialSentiment?.trend || (data as any).trend}
                             </Badge>
+                          </div>
+                        )}
+                        {(data as any).socialSentiment?.engagement_rate && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Engagement Rate</div>
+                            <div className="text-sm font-bold">{(data as any).socialSentiment.engagement_rate}%</div>
+                          </div>
+                        )}
+                        {(data as any).socialSentiment?.viral_potential && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Viral Potential</div>
+                            <div className="text-sm font-bold">{(data as any).socialSentiment.viral_potential}%</div>
                           </div>
                         )}
                       </div>
                     </CardContent>
                   </Card>
                   
-                  {/* Platform breakdown if available */}
-                  {(data as any).breakdown && (
+                  {/* Platform breakdown - check for platforms in socialSentiment or breakdown */}
+                  {((data as any).socialSentiment?.platforms || (data as any).breakdown) && (
                     <Card className="border-accent/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Platform Breakdown</div>
                         <div className="space-y-3">
-                          {Object.entries((data as any).breakdown).map(([platform, metrics]: [string, any]) => (
+                          {Object.entries((data as any).socialSentiment?.platforms || (data as any).breakdown || {}).map(([platform, metrics]: [string, any]) => (
                             <div key={platform} className="space-y-1">
                               <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium capitalize">{platform}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {metrics.positive}% positive
-                                </Badge>
+                                <span className="text-sm font-medium capitalize flex items-center gap-1">
+                                  {platform === 'reddit' && '🔴'}
+                                  {platform === 'twitter' && '🐦'}
+                                  {platform === 'linkedin' && '💼'}
+                                  {platform}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  {metrics.mentions && (
+                                    <span className="text-xs text-muted-foreground">{metrics.mentions.toLocaleString()} mentions</span>
+                                  )}
+                                  <Badge variant={metrics.sentiment >= 75 ? "default" : "outline"} className="text-xs">
+                                    {metrics.sentiment || metrics.positive}% positive
+                                  </Badge>
+                                  {metrics.trending && (
+                                    <Badge variant="default" className="text-xs">
+                                      Trending
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex gap-1 h-1.5">
+                              <div className="flex gap-1 h-2">
                                 <div 
                                   className="bg-green-500 rounded-sm transition-all"
-                                  style={{ width: `${metrics.positive}%` }}
+                                  style={{ width: `${metrics.sentiment || metrics.positive || 0}%` }}
                                 />
                                 <div 
-                                  className="bg-yellow-500 rounded-sm transition-all"
-                                  style={{ width: `${metrics.neutral}%` }}
-                                />
-                                <div 
-                                  className="bg-red-500 rounded-sm transition-all"
-                                  style={{ width: `${metrics.negative}%` }}
+                                  className="bg-muted rounded-sm transition-all flex-1"
                                 />
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Top Keywords */}
+                  {(data as any).socialSentiment?.top_keywords && (
+                    <Card className="border-primary/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Trending Keywords</div>
+                        <div className="flex flex-wrap gap-2">
+                          {(data as any).socialSentiment.top_keywords.map((keyword: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Search Volume Insights */}
+                  {(data as any).searchVolume && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Search Volume Analytics</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-xs text-muted-foreground">Monthly Volume</div>
+                            <div className="text-sm font-bold">{((data as any).searchVolume.volume || 0).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Growth Rate</div>
+                            <div className="text-sm font-bold text-green-600">+{(data as any).searchVolume.growth_rate}%</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Trend</div>
+                            <Badge variant={(data as any).searchVolume.trend === 'spiking' ? 'default' : 'outline'} className="text-xs">
+                              {(data as any).searchVolume.trend}
+                            </Badge>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Seasonality</div>
+                            <Badge variant="outline" className="text-xs">
+                              {(data as any).searchVolume.seasonality}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Influencer Mentions */}
+                  {(data as any).socialSentiment?.influencer_mentions && (
+                    <Card className="border-primary/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Influencer Impact</div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Total Influencer Mentions</span>
+                          <Badge variant="default" className="text-base px-3 py-1">
+                            {(data as any).socialSentiment.influencer_mentions}
+                          </Badge>
                         </div>
                       </CardContent>
                     </Card>
