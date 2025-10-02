@@ -65,6 +65,21 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
     }
   }, [data]);
   
+  // Debug logging for sentiment data
+  React.useEffect(() => {
+    if (tileType === 'sentiment' && data) {
+      console.log('[DataHubTile] Sentiment data received:', {
+        tileType,
+        hasData: !!data,
+        dataKeys: Object.keys(data),
+        socialSentiment: (data as any)?.socialSentiment,
+        platforms: (data as any)?.socialSentiment?.platforms,
+        searchVolume: (data as any)?.searchVolume,
+        fullData: data
+      });
+    }
+  }, [tileType, data]);
+  
   // Get accent icon based on tile type
   const getAccentIcon = () => {
     const icons: Record<string, React.ReactNode> = {
@@ -197,20 +212,6 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
     return messageList[Math.floor(Math.random() * messageList.length)];
   };
   
-  // Debug logging for sentiment data
-  React.useEffect(() => {
-    if (tileType === 'sentiment' && data) {
-      console.log('[DataHubTile] Sentiment data received:', {
-        tileType,
-        hasData: !!data,
-        dataKeys: Object.keys(data),
-        socialSentiment: (data as any)?.socialSentiment,
-        platforms: (data as any)?.socialSentiment?.platforms,
-        searchVolume: (data as any)?.searchVolume,
-        fullData: data
-      });
-    }
-  }, [tileType, data]);
 
   // Handle expand/collapse with lazy loading
   const handleToggleCollapse = () => {
@@ -378,7 +379,7 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                       ? (data.metrics as any[]).map((m: any) => [m.name ?? 'Metric', m.value] as [string, any])
                       : Object.entries(data.metrics)
                   ).slice(0, 6).map(([key, value], index) => (
-                    <Card key={key} className="border-primary/10 bg-gradient-to-br from-background/50 to-muted/20 hover:shadow-md transition-all duration-200 overflow-hidden group hover:border-primary/30">
+                    <Card key={`${key}-${index}`} className="border-primary/10 bg-gradient-to-br from-background/50 to-muted/20 hover:shadow-md transition-all duration-200 overflow-hidden group hover:border-primary/30">
                       <CardContent className="p-3">
                         <div className="text-xs text-muted-foreground mb-1 truncate transition-colors group-hover:text-foreground" title={key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}>
                           {key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
