@@ -32,11 +32,38 @@ export function SimpleGoogleTrendsTile({ idea, className }: SimpleGoogleTrendsTi
     setError(null);
 
     try {
-      const { data: trendsData, error: trendsError } = await supabase.functions.invoke('web-search', {
-        body: { 
-          idea_keywords: idea
+      const timeoutMs = 12000;
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), timeoutMs)
+      );
+
+      const primaryCall = supabase.functions.invoke('web-search', {
+        body: {
+          idea_keywords: idea,
+          type: 'trends'
         }
       });
+
+      let trendsData: any | null = null;
+      let trendsError: any | null = null;
+
+      try {
+        const res: any = await Promise.race([primaryCall, timeout]);
+        trendsData = res?.data ?? null;
+        trendsError = res?.error ?? null;
+      } catch (raceErr: any) {
+        if (raceErr?.message === 'timeout') {
+          // Fallback to a lighter function if available
+          const fallbackRes: any = await supabase.functions.invoke('web-search-optimized', {
+            body: { idea_keywords: idea, type: 'trends' }
+          });
+          trendsData = fallbackRes?.data ?? null;
+          trendsError = fallbackRes?.error ?? null;
+          if (trendsError) throw trendsError;
+        } else {
+          throw raceErr;
+        }
+      }
 
       if (trendsError) throw trendsError;
 
