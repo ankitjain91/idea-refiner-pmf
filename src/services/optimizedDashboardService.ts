@@ -103,7 +103,7 @@ export class OptimizedDashboardService {
       });
       
       // 4. If confidence is high enough and no critical missing data, return
-      if (extractionResult.confidence > 0.6 && extractionResult.missingDataPoints.length === 0) {
+      if (extractionResult.confidence > 0.7 && extractionResult.missingDataPoints.length === 0) {
         console.log(`[OptimizedDashboard] High confidence extraction for ${tileType}:`, extractionResult);
         return this.formatTileData(extractionResult.data, {
           fromCache: true,
@@ -115,49 +115,16 @@ export class OptimizedDashboardService {
       // 5. Identify what specific data we need to fetch
       const gaps = await this.groqService.identifyDataGaps(idea, tileType, allResponses);
       
-      if (gaps.hasAllData) {
-        // We have the data but extraction confidence is low, still use it
-        return this.formatTileData(extractionResult.data, {
-          fromCache: true,
-          confidence: extractionResult.confidence,
-          sourceIds: extractionResult.sourceResponseIds
-        });
-      }
+      // 6. Fetch from multiple sources to enrich data
+      const enrichmentSources = this.getEnrichmentSources(tileType);
+      let newData = await this.fetchFromMultipleSources(idea, tileType, enrichmentSources);
       
-      // 6. Fetch only the missing data - try serper-batch and groq as fallback
-      let newData = await this.fetchMissingData(idea, tileType, gaps.missingSource);
-      
-      // If still no data, try serper-batch-search and groq-data-extraction as fallback
-      if (newData.length === 0) {
-        console.log(`[OptimizedDashboard] Trying fallback sources for ${tileType}`);
-        
-        // Try serper-batch-search first
-        const serperData = await this.fetchFromSource(idea, 'serper-batch-search', tileType);
-        if (serperData) {
-          newData.push({
-            idea,
-            tileType,
-            source: 'serper-batch-search',
-            rawResponse: serperData,
-            timestamp: new Date().toISOString(),
-            id: `serper-${Date.now()}`
-          });
-        }
-        
-        // If still no data, try groq-data-extraction
-        if (newData.length === 0) {
-          const groqData = await this.fetchFromSource(idea, 'groq-data-extraction', tileType);
-          if (groqData) {
-            newData.push({
-              idea,
-              tileType,
-              source: 'groq-data-extraction',
-              rawResponse: groqData,
-              timestamp: new Date().toISOString(),
-              id: `groq-${Date.now()}`
-            });
-          }
-        }
+      // If primary sources failed, try fallback sources
+      if (newData.length < 2 && TILE_REQUIREMENTS[tileType]) {
+        console.log(`[OptimizedDashboard] Fetching from fallback sources for ${tileType}`);
+        const fallbackSources = TILE_REQUIREMENTS[tileType].fallbackSources;
+        const fallbackData = await this.fetchFromMultipleSources(idea, tileType, fallbackSources);
+        newData = [...newData, ...fallbackData];
       }
       
       // 7. Store new responses in cache
@@ -165,52 +132,207 @@ export class OptimizedDashboardService {
         await this.cache.storeResponse(response);
       }
       
-      // 8. Re-extract with complete data or use mock if still no data
+      // 8. Aggregate and enrich data from all sources
       const finalResponses = [...allResponses, ...newData];
       
       if (finalResponses.length === 0) {
         console.log(`[OptimizedDashboard] No data available for ${tileType}, using mock data`);
-        // Return mock data with appropriate sentiment values
-        if (tileType === 'sentiment') {
-          return this.formatTileData({
-            positive: 65,
-            neutral: 25,
-            negative: 10,
-            mentions: 1200,
-            trend: 'improving',
-            confidence: 0.5
-          }, {
-            fromCache: false,
-            confidence: 0.5,
-            sourceIds: []
-          });
-        }
-        // Default mock for other tiles
-        return this.formatTileData(null, {
-          fromCache: false,
-          confidence: 0,
-          sourceIds: []
-        });
+        return this.getMockDataForTile(tileType);
       }
       
-      const finalExtraction = await this.groqService.extractDataForTile({
-        tileType,
-        cachedResponses: finalResponses,
-        requirements: TILE_REQUIREMENTS[tileType]
-      });
+      // Extract and aggregate data from multiple sources
+      const aggregatedData = await this.aggregateDataFromSources(tileType, finalResponses);
       
-      return this.formatTileData(finalExtraction.data, {
-        fromCache: false,
-        confidence: finalExtraction.confidence,
-        sourceIds: finalExtraction.sourceResponseIds
+      return this.formatTileData(aggregatedData.data, {
+        fromCache: newData.length === 0,
+        confidence: aggregatedData.confidence,
+        sourceIds: aggregatedData.sourceIds
       });
       
     } catch (error) {
       console.error(`Error fetching data for ${tileType}:`, error);
-      return null;
+      return this.getMockDataForTile(tileType);
     }
   }
   
+  private getEnrichmentSources(tileType: string): string[] {
+    // Define multiple sources for each tile type to enrich data
+    const enrichmentMap: Record<string, string[]> = {
+      sentiment: ['social-sentiment', 'reddit-sentiment', 'twitter-search', 'gdelt-news'],
+      market_size: ['market-size-analysis', 'market-intelligence', 'competitive-landscape'],
+      competition: ['competitive-landscape', 'web-search-optimized', 'serper-batch-search'],
+      trends: ['web-search', 'gdelt-news', 'youtube-search'],
+      pmf_score: ['market-insights', 'user-engagement', 'social-sentiment'],
+      google_trends: ['web-search-optimized', 'serper-batch-search'],
+      launch_timeline: ['launch-timeline', 'execution-insights'],
+      financial: ['financial-analysis', 'web-search-profitability']
+    };
+    
+    return enrichmentMap[tileType] || ['web-search-optimized', 'serper-batch-search'];
+  }
+  
+  private async fetchFromMultipleSources(
+    idea: string, 
+    tileType: string, 
+    sources: string[]
+  ): Promise<any[]> {
+    console.log(`[OptimizedDashboard] Fetching from multiple sources for ${tileType}:`, sources);
+    
+    const fetchPromises = sources.map(source => 
+      this.fetchFromSource(idea, source, tileType)
+        .then(data => data ? {
+          idea,
+          source,
+          endpoint: this.getEndpointForSource(source),
+          rawResponse: data,
+          timestamp: new Date().toISOString(),
+          id: `${source}-${Date.now()}`
+        } : null)
+        .catch(err => {
+          console.warn(`Failed to fetch from ${source}:`, err);
+          return null;
+        })
+    );
+    
+    const results = await Promise.allSettled(fetchPromises);
+    
+    return results
+      .filter(r => r.status === 'fulfilled' && r.value !== null)
+      .map(r => (r as PromiseFulfilledResult<any>).value);
+  }
+  
+  private async aggregateDataFromSources(
+    tileType: string, 
+    responses: any[]
+  ): Promise<{ data: any; confidence: number; sourceIds: string[] }> {
+    console.log(`[OptimizedDashboard] Aggregating ${responses.length} responses for ${tileType}`);
+    
+    // Use Groq to intelligently aggregate data from multiple sources
+    const aggregationResult = await this.groqService.extractDataForTile({
+      tileType,
+      cachedResponses: responses,
+      requirements: TILE_REQUIREMENTS[tileType]
+    });
+    
+    // If Groq extraction has good confidence, use it
+    if (aggregationResult.confidence > 0.5) {
+      return {
+        data: aggregationResult.data,
+        confidence: aggregationResult.confidence,
+        sourceIds: aggregationResult.sourceResponseIds
+      };
+    }
+    
+    // Fallback to local aggregation for specific tile types
+    if (tileType === 'sentiment') {
+      return this.aggregateSentimentData(responses);
+    }
+    
+    return {
+      data: aggregationResult.data || {},
+      confidence: aggregationResult.confidence,
+      sourceIds: responses.map(r => r.id || '')
+    };
+  }
+  
+  private aggregateSentimentData(responses: any[]): { data: any; confidence: number; sourceIds: string[] } {
+    const sentiments: any[] = [];
+    const sourceIds: string[] = [];
+    
+    responses.forEach(response => {
+      const localExtractor = TILE_REQUIREMENTS.sentiment.localExtractor;
+      if (localExtractor) {
+        const extracted = localExtractor(response.rawResponse);
+        if (extracted) {
+          sentiments.push(extracted);
+          sourceIds.push(response.id || '');
+        }
+      }
+    });
+    
+    if (sentiments.length === 0) {
+      return {
+        data: {
+          positive: 65,
+          neutral: 25,
+          negative: 10,
+          mentions: 1200,
+          trend: 'stable'
+        },
+        confidence: 0.3,
+        sourceIds: []
+      };
+    }
+    
+    // Aggregate sentiment scores from multiple sources
+    const avgPositive = sentiments.reduce((sum, s) => sum + (s.positive || 0), 0) / sentiments.length;
+    const avgNegative = sentiments.reduce((sum, s) => sum + (s.negative || 0), 0) / sentiments.length;
+    const avgNeutral = sentiments.reduce((sum, s) => sum + (s.neutral || 0), 0) / sentiments.length;
+    const totalMentions = sentiments.reduce((sum, s) => sum + (s.mentions || 0), 0);
+    
+    // Determine trend based on sentiment distribution
+    const trend = avgPositive > 60 ? 'improving' : avgPositive < 40 ? 'declining' : 'stable';
+    
+    return {
+      data: {
+        positive: Math.round(avgPositive),
+        negative: Math.round(avgNegative),
+        neutral: Math.round(avgNeutral),
+        mentions: totalMentions,
+        trend,
+        sources: sentiments.flatMap(s => s.sources || []),
+        breakdown: sentiments[0]?.breakdown || {}
+      },
+      confidence: Math.min(0.9, 0.5 + (sentiments.length * 0.1)),
+      sourceIds
+    };
+  }
+  
+  private getMockDataForTile(tileType: string): OptimizedTileData {
+    const mockData: Record<string, any> = {
+      sentiment: {
+        positive: 65,
+        neutral: 25,
+        negative: 10,
+        mentions: 1200,
+        trend: 'improving',
+        breakdown: {
+          reddit: { positive: 70, negative: 10, neutral: 20 },
+          twitter: { positive: 60, negative: 15, neutral: 25 },
+          news: { positive: 65, negative: 10, neutral: 25 }
+        }
+      },
+      market_size: {
+        tam: 15000000000,
+        sam: 3000000000,
+        som: 500000000,
+        cagr: 25,
+        maturity: 'growth'
+      },
+      competition: {
+        topCompetitors: ['Competitor A', 'Competitor B', 'Competitor C'],
+        marketConcentration: 'moderate',
+        barrierToEntry: 'medium'
+      },
+      pmf_score: {
+        score: 75,
+        indicators: {
+          market_need: 85,
+          timing: 70,
+          execution: 75,
+          competition: 70
+        }
+      }
+    };
+    
+    return this.formatTileData(mockData[tileType] || {}, {
+      fromCache: false,
+      confidence: 0.3,
+      sourceIds: []
+    });
+  }
+  
+  // Keeping for backward compatibility, but using fetchFromMultipleSources now
   private async fetchMissingData(
     idea: string,
     tileType: string,
@@ -219,38 +341,11 @@ export class OptimizedDashboardService {
     const requirements = TILE_REQUIREMENTS[tileType];
     if (!requirements) return [];
     
-    const responses: any[] = [];
-    const fetchPromises: Promise<any>[] = [];
-    
-    // Determine which sources to fetch (prefer primary)
     const sourcesToFetch = missingSources.length > 0 
-      ? missingSources.slice(0, 2) // Limit to 2 sources max
-      : [requirements.primarySources[0]]; // At least fetch one primary
+      ? missingSources.slice(0, 3) // Fetch up to 3 sources for enrichment
+      : requirements.primarySources.slice(0, 2);
     
-    for (const source of sourcesToFetch) {
-      const promise = this.fetchFromSource(idea, source, tileType);
-      fetchPromises.push(promise);
-    }
-    
-    const results = await Promise.allSettled(fetchPromises);
-    
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && result.value) {
-        responses.push({
-          idea,
-          source: sourcesToFetch[index],
-          endpoint: this.getEndpointForSource(sourcesToFetch[index]),
-          rawResponse: result.value,
-          expiresAt: Date.now() + (requirements.freshnessHours * 60 * 60 * 1000),
-          metadata: {
-            searchQuery: idea,
-            confidence: 0.7
-          }
-        });
-      }
-    });
-    
-    return responses;
+    return this.fetchFromMultipleSources(idea, tileType, sourcesToFetch);
   }
   
   private async fetchFromSource(idea: string, source: string, tileType: string): Promise<any> {

@@ -156,15 +156,17 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
       id: "market_size", 
       title: "Market Size", 
       icon: DollarSign,
-      data: tiles.market_size,
-      span: "col-span-full"
+      data: tiles.market_size || tileData.market_size || null,
+      span: "col-span-full",
+      isUsingFallback: tiles.market_size?.confidence < 0.5 || (!tiles.market_size && tileData.market_size?.confidence < 0.5)
     },
     { 
       id: "competition", 
       title: "Competition", 
       icon: Building2,
-      data: tiles.competition,
-      span: "col-span-full"
+      data: tiles.competition || tileData.competition || null,
+      span: "col-span-full",
+      isUsingFallback: tiles.competition?.confidence < 0.5 || (!tiles.competition && tileData.competition?.confidence < 0.5)
     },
     { 
       id: "sentiment", 
@@ -172,28 +174,31 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
       icon: MessageSquare,
       data: tiles.sentiment || tileData.sentiment || null,
       span: "col-span-full",
-      isUsingFallback: !tiles.sentiment && tileData.sentiment !== null
+      isUsingFallback: tiles.sentiment?.confidence < 0.5 || (!tiles.sentiment && tileData.sentiment?.confidence < 0.5)
     },
     { 
       id: "market_trends", 
       title: "Market Trends", 
       icon: TrendingUp,
-      data: tileData.market_trends || null,
-      span: "col-span-full"
+      data: tiles.market_trends || tileData.market_trends || null,
+      span: "col-span-full",
+      isUsingFallback: tiles.market_trends?.confidence < 0.5 || (!tiles.market_trends && tileData.market_trends?.confidence < 0.5)
     },
     { 
       id: "google_trends", 
       title: "Google Trends", 
       icon: Search,
-      data: tileData.google_trends || null,
-      span: "col-span-full"
+      data: tiles.google_trends || tileData.google_trends || null,
+      span: "col-span-full",
+      isUsingFallback: tiles.google_trends?.confidence < 0.5 || (!tiles.google_trends && tileData.google_trends?.confidence < 0.5)
     },
     { 
       id: "news_analysis", 
       title: "News Analysis", 
       icon: Newspaper,
-      data: tileData.news_analysis || null,
-      span: "col-span-full"
+      data: tiles.news_analysis || tileData.news_analysis || null,
+      span: "col-span-full",
+      isUsingFallback: tiles.news_analysis?.confidence < 0.5 || (!tiles.news_analysis && tileData.news_analysis?.confidence < 0.5)
     }
   ];
 
