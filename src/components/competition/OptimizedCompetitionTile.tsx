@@ -460,6 +460,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
               {!isCollapsed && data && (
                 <CardDescription>
                   {data.competitors.length} competitors • {data.competitiveLandscape.directCompetitors} direct threats
+                  <span className="block text-xs mt-1">for idea: {currentIdea?.slice(0, 120)}{currentIdea && currentIdea.length > 120 ? '…' : ''}</span>
                 </CardDescription>
               )}
             </div>
@@ -560,7 +561,21 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <h4 className="font-medium">{competitor.name}</h4>
+                              <h4 className="font-medium flex items-center gap-2">
+                                {competitor.name}
+                                {competitor.url && (
+                                  <a
+                                    href={competitor.url}
+                                    onClick={(e) => e.stopPropagation()}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                                    aria-label={`Open source for ${competitor.name}`}
+                                  >
+                                    Source <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                )}
+                              </h4>
                               <p className="text-sm text-muted-foreground">
                                 {competitor.marketShare} market share • Founded {competitor.founded}
                               </p>
