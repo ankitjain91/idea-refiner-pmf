@@ -67,43 +67,75 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
 
   // Normalization helpers to map Groq extraction to tile shape
   const toCompetitors = (raw: any): Competitor[] => {
-    if (Array.isArray(raw?.competitors)) return raw.competitors as Competitor[];
+    console.log('[Competition] Converting competitors from raw:', raw);
+    
+    // Check multiple possible locations for competitor data
+    if (Array.isArray(raw?.competitors)) {
+      console.log('[Competition] Found competitors array');
+      return raw.competitors as Competitor[];
+    }
     if (Array.isArray(raw?.competitors_list)) {
+      console.log('[Competition] Found competitors_list, mapping to Competitor shape');
       return raw.competitors_list.map((c: any) => ({
         name: c?.name || String(c),
-        marketShare: c?.marketShare || c?.share || '—',
-        strength: (c?.strength || 'moderate') as any,
-        strengths: c?.strengths || [],
-        weaknesses: c?.weaknesses || [],
-        funding: c?.funding || '—',
+        marketShare: c?.marketShare || c?.share || c?.market_share || '—',
+        strength: (c?.strength || c?.strengths || 'moderate') as any,
+        strengths: Array.isArray(c?.strengths) ? c.strengths : [],
+        weaknesses: Array.isArray(c?.weaknesses) ? c.weaknesses : [],
+        funding: c?.funding || c?.funding_information || '—',
         founded: c?.founded || '—',
-        url: c?.url,
+        url: c?.url || c?.link,
       }));
     }
+    
+    // Check if market_leaders contains competitors
+    if (Array.isArray(raw?.market_leaders)) {
+      console.log('[Competition] Using market_leaders as competitors');
+      return raw.market_leaders.map((c: any) => ({
+        name: c?.name || String(c),
+        marketShare: c?.marketShare || '—',
+        strength: 'strong' as any,
+        strengths: c?.strengths ? [c.strengths] : [],
+        weaknesses: [],
+        funding: '—',
+        founded: '—',
+      }));
+    }
+    
+    console.log('[Competition] No competitors found in raw data');
     return [];
   };
 
-  const buildCompetitionData = (raw: any): CompetitionData => ({
-    competitors: toCompetitors(raw),
-    marketConcentration: raw?.marketConcentration || raw?.concentration || 'Medium',
-    entryBarriers: raw?.entryBarriers || 'Moderate',
-    differentiationOpportunities:
-      raw?.differentiationOpportunities ||
-      (Array.isArray(raw?.differentiators)
-        ? raw.differentiators.map((d: any) => d?.name || String(d))
-        : []),
-    competitiveLandscape: raw?.competitiveLandscape || {
-      directCompetitors:
-        raw?.directCompetitors || (Array.isArray(toCompetitors(raw)) ? toCompetitors(raw).length : 0),
-      indirectCompetitors: raw?.indirectCompetitors || 0,
-      substitutes: raw?.substitutes || 0,
-    },
-    analysis: raw?.analysis || {
-      threat: (raw?.threat || 'medium') as any,
-      opportunities: raw?.opportunities || [],
-      recommendations: raw?.recommendations || [],
-    },
-  });
+  const buildCompetitionData = (raw: any): CompetitionData => {
+    console.log('[Competition] Building competition data from:', raw);
+    
+    const competitors = toCompetitors(raw);
+    const data = {
+      competitors,
+      marketConcentration: raw?.marketConcentration || raw?.concentration || raw?.market_concentration || 'Medium',
+      entryBarriers: raw?.entryBarriers || raw?.entry_barriers || 'Moderate',
+      differentiationOpportunities:
+        raw?.differentiationOpportunities ||
+        raw?.differentiators ||
+        (Array.isArray(raw?.differentiators)
+          ? raw.differentiators.map((d: any) => d?.name || String(d))
+          : []),
+      competitiveLandscape: raw?.competitiveLandscape || raw?.landscape || {
+        directCompetitors:
+          raw?.directCompetitors || raw?.direct_competitors || competitors.length || 0,
+        indirectCompetitors: raw?.indirectCompetitors || raw?.indirect_competitors || 0,
+        substitutes: raw?.substitutes || 0,
+      },
+      analysis: raw?.analysis || {
+        threat: (raw?.threat || raw?.threat_level || 'medium') as any,
+        opportunities: raw?.opportunities || raw?.market_opportunities || [],
+        recommendations: raw?.recommendations || raw?.strategic_recommendations || [],
+      },
+    };
+    
+    console.log('[Competition] Built competition data:', data);
+    return data;
+  };
 
   // Process initial data
   useEffect(() => {
@@ -130,7 +162,10 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
 
       if (result?.insights) {
         const competitionData = result.insights as any;
-        setData(buildCompetitionData(competitionData));
+        console.log('[Competition] Raw insights data:', competitionData);
+        const normalizedData = buildCompetitionData(competitionData);
+        console.log('[Competition] Normalized data:', normalizedData);
+        setData(normalizedData);
         
         if (forceRefresh) {
           toast({
@@ -138,6 +173,8 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
             description: 'Fresh competitive landscape data loaded',
           });
         }
+      } else {
+        console.log('[Competition] No insights in result:', result);
       }
     } catch (err) {
       console.error('[Competition] Error fetching data:', err);

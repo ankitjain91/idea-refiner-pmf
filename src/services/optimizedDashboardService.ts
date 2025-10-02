@@ -104,6 +104,7 @@ export class OptimizedDashboardService {
       
       // 4. If confidence is high enough and no critical missing data, return
       if (extractionResult.confidence > 0.6 && extractionResult.missingDataPoints.length === 0) {
+        console.log(`[OptimizedDashboard] High confidence extraction for ${tileType}:`, extractionResult);
         return this.formatTileData(extractionResult.data, {
           fromCache: true,
           confidence: extractionResult.confidence,
