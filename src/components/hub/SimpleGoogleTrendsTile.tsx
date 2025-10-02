@@ -32,72 +32,17 @@ export function SimpleGoogleTrendsTile({ idea, className }: SimpleGoogleTrendsTi
     setError(null);
 
     try {
-      // Simulate Google Trends data with realistic values
-      const mockTrendsData = {
-        interestScore: Math.floor(Math.random() * 30) + 70, // 70-100 range
-        searchVolume: Math.floor(Math.random() * 50000) + 10000, // 10k-60k range
-        growthRate: Math.floor(Math.random() * 40) - 10, // -10 to +30%
-        trendDirection: 'rising',
-        relatedQueries: [
-          { query: `${idea.split(' ')[0]} tools`, value: '100' },
-          { query: `best ${idea.split(' ')[0]} platform`, value: '85' },
-          { query: `${idea.split(' ')[0]} alternatives`, value: '70' },
-          { query: `how to build ${idea.split(' ')[0]}`, value: '65' },
-          { query: `${idea.split(' ')[0]} pricing`, value: '60' }
-        ],
-        risingTopics: [
-          { term: 'AI automation', value: '+250%' },
-          { term: 'No-code platforms', value: '+180%' },
-          { term: 'Startup tools', value: '+150%' },
-          { term: 'Idea validation', value: '+120%' }
-        ],
-        regionalData: [
-          { region: 'United States', value: '100' },
-          { region: 'United Kingdom', value: '85' },
-          { region: 'Canada', value: '75' },
-          { region: 'Australia', value: '70' },
-          { region: 'Germany', value: '65' }
-        ],
-        timelineData: Array.from({ length: 7 }, (_, i) => ({
-          date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
-          value: Math.floor(Math.random() * 20) + 60
-        }))
-      };
-
-      // Try to fetch real data with timeout
-      const timeoutPromise = new Promise((resolve) => {
-        setTimeout(() => resolve({ data: mockTrendsData }), 2000);
+      const { data: trendsData, error: trendsError } = await supabase.functions.invoke('google-trends', {
+        body: { idea }
       });
 
-      const fetchPromise = supabase.functions.invoke('web-search-optimized', {
-        body: { 
-          idea_keywords: idea,
-          type: 'trends'
-        }
-      });
+      if (trendsError) throw trendsError;
 
-      const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-      
-      // Extract data from result
-      const extractedData = result?.data?.google_trends || 
-                          result?.data?.trends || 
-                          result?.data ||
-                          mockTrendsData;
-
-      setData(extractedData);
+      setData(trendsData);
     } catch (err) {
       console.error('Error fetching Google Trends:', err);
-      // Use mock data as fallback
-      setData({
-        interestScore: 75,
-        searchVolume: 25000,
-        growthRate: 15,
-        trendDirection: 'stable',
-        relatedQueries: [],
-        risingTopics: [],
-        regionalData: [],
-        timelineData: []
-      });
+      setError('Failed to fetch Google Trends data');
+      toast.error('Failed to fetch Google Trends data');
     } finally {
       setLoading(false);
     }
