@@ -4,6 +4,7 @@ import { TileData } from "@/lib/data-hub-orchestrator";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
 import { OptimizedCompetitionTile } from "@/components/competition/OptimizedCompetitionTile";
 import { GoogleTrendsTile } from "./GoogleTrendsTile";
+import { NewsTrendsTile } from "./NewsTrendsTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -257,6 +258,24 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
                   data={sanitizeTileData(tiles.google_trends)}
                   loading={loading}
                   className="h-full"
+                />
+              </div>
+            );
+          }
+          
+          if (tile.id === "news_analysis") {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <NewsTrendsTile 
+                  data={sanitizeTileData(tiles.news_analysis)}
+                  loading={loading}
+                  className="h-full"
+                  onRefresh={async () => {
+                    if (onRefreshTile) {
+                      toast.info('Refreshing news trends data...');
+                      await onRefreshTile('news_analysis');
+                    }
+                  }}
                 />
               </div>
             );

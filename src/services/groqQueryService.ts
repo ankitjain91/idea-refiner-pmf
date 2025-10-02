@@ -266,6 +266,69 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
       return null;
     }
   },
+  news_analysis: {
+    primarySources: ['gdelt-news', 'serper-batch-search', 'web-search-optimized', 'news-analysis'],
+    fallbackSources: ['web-search', 'brave-search'],
+    dataPoints: ['article_clusters', 'sentiment_trends', 'volume_timeline', 'geo_distribution', 'entity_mentions'],
+    freshnessHours: 6,
+    groqQuery: `
+      Extract comprehensive news analysis including:
+      - Clustered news themes/trends (with titles and summaries)
+      - Article volume and growth rates
+      - Sentiment distribution per trend
+      - Geographic coverage distribution
+      - Key entities mentioned (companies, people, technologies)
+      - Timeline of coverage intensity
+      - Influence scores based on volume, recency, and reach
+      - Emerging vs established narratives
+    `,
+    localExtractor: (data: any) => {
+      const newsData: any = {
+        news_trends: [],
+        total_articles: 0,
+        overall_sentiment: { positive: 0, neutral: 0, negative: 0 }
+      };
+      
+      const d = data?.data || data?.newsAnalysis || data;
+      
+      // Extract article clusters/trends
+      if (d?.clusters || d?.trends || d?.news_trends) {
+        const trends = d.clusters || d.trends || d.news_trends;
+        if (Array.isArray(trends)) {
+          newsData.news_trends = trends.map((trend: any) => ({
+            trend_id: trend.id || trend.trend_id || Math.random().toString(36),
+            title: trend.title || trend.name || 'Unnamed Trend',
+            summary: trend.summary || trend.description || '',
+            metrics: {
+              article_count: trend.article_count || trend.count || 0,
+              growth_rate: trend.growth_rate || trend.growth || '0%',
+              sentiment: trend.sentiment || { positive: 33, neutral: 34, negative: 33 },
+              geo_distribution: trend.geo_distribution || {},
+              influence_score: trend.influence_score || 50
+            },
+            entities: trend.entities || trend.keywords || [],
+            citations: trend.citations || trend.sources || []
+          }));
+        }
+      }
+      
+      // Extract overall metrics
+      if (d?.total_articles !== undefined) {
+        newsData.total_articles = d.total_articles;
+      }
+      
+      // Extract sentiment
+      if (d?.sentiment || d?.overall_sentiment) {
+        newsData.overall_sentiment = d.sentiment || d.overall_sentiment;
+      }
+      
+      return Object.keys(newsData).length > 1 ? {
+        ...newsData,
+        confidence: 0.85,
+        timestamp: new Date().toISOString()
+      } : null;
+    }
+  },
   google_trends: {
     primarySources: ['serper-batch-search', 'web-search-optimized', 'groq-data-extraction'],
     fallbackSources: ['web-search', 'gdelt-news'],
