@@ -373,7 +373,22 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
         Extended Insights
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* DataHubTiles removed per user request */}
+        {extendedTiles.map((tile) => (
+          <div 
+            key={tile.id} 
+            className={`${tile.span} min-h-0`}
+          >
+            <DataHubTile
+              title={tile.title}
+              Icon={tile.icon}
+              data={tileData[tile.id] || null}
+              loading={tileLoading[tile.id]}
+              tileType={tile.id}
+              onRefresh={() => loadTileData(tile.id)}
+              className="h-full overflow-hidden"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
