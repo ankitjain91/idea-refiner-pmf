@@ -19,6 +19,67 @@ export interface ExtractionResult {
 }
 
 export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
+  market_size: {
+    primarySources: ['market-size-analysis', 'market-intelligence', 'competitive-landscape'],
+    fallbackSources: ['web-search-optimized', 'serper-batch-search', 'gdelt-news'],
+    dataPoints: ['tam', 'sam', 'som', 'growth_rate', 'market_maturity', 'competitive_density'],
+    freshnessHours: 12,
+    groqQuery: `
+      Extract comprehensive market size data including:
+      - Total Addressable Market (TAM) with currency values
+      - Serviceable Addressable Market (SAM) estimates
+      - Serviceable Obtainable Market (SOM) projections
+      - Market growth rates and CAGR
+      - Market maturity stage (emerging, growth, mature, declining)
+      - Competitive density and market concentration
+      - Regional market breakdown
+      - Key market drivers and constraints
+      - Market intelligence indicators (search volume, funding activity, news sentiment)
+    `,
+    localExtractor: (data: any) => {
+      const marketData: any = {};
+      const text = JSON.stringify(data).toLowerCase();
+      
+      // Extract TAM/SAM/SOM values
+      const tamMatch = text.match(/tam[:\s]*\$?(\d+\.?\d*)\s*(billion|million|b|m)/i);
+      const samMatch = text.match(/sam[:\s]*\$?(\d+\.?\d*)\s*(billion|million|b|m)/i);
+      const somMatch = text.match(/som[:\s]*\$?(\d+\.?\d*)\s*(billion|million|b|m)/i);
+      
+      if (tamMatch) {
+        const multiplier = tamMatch[2].toLowerCase().includes('b') ? 1e9 : 1e6;
+        marketData.tam = parseFloat(tamMatch[1]) * multiplier;
+      }
+      if (samMatch) {
+        const multiplier = samMatch[2].toLowerCase().includes('b') ? 1e9 : 1e6;
+        marketData.sam = parseFloat(samMatch[1]) * multiplier;
+      }
+      if (somMatch) {
+        const multiplier = somMatch[2].toLowerCase().includes('b') ? 1e9 : 1e6;
+        marketData.som = parseFloat(somMatch[1]) * multiplier;
+      }
+      
+      // Extract CAGR/Growth rate
+      const cagrMatch = text.match(/(?:cagr|growth)[:\s]*(\d+\.?\d*)%?/i);
+      if (cagrMatch) {
+        marketData.cagr = parseFloat(cagrMatch[1]);
+      }
+      
+      // Extract market maturity
+      const maturityKeywords = ['emerging', 'growth', 'mature', 'declining'];
+      for (const keyword of maturityKeywords) {
+        if (text.includes(keyword)) {
+          marketData.maturity = keyword;
+          break;
+        }
+      }
+      
+      return Object.keys(marketData).length > 0 ? { 
+        ...marketData, 
+        confidence: 0.8,
+        timestamp: new Date().toISOString()
+      } : null;
+    }
+  },
   sentiment: {
     primarySources: ['reddit-sentiment', 'twitter-search'],
     fallbackSources: ['web-search', 'gdelt-news'],
@@ -90,6 +151,56 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
       - Key differentiators
       - Funding information
     `
+  },
+  pmf_score: {
+    primarySources: ['calculate-smoothbrains-score', 'market-size-analysis', 'reddit-sentiment'],
+    fallbackSources: ['web-search-optimized', 'competition-chat', 'user-engagement'],
+    dataPoints: ['wrinkle_points', 'market_size', 'sentiment_score', 'competition_level', 'pmf_indicators', 'execution_viability'],
+    freshnessHours: 6,
+    groqQuery: `
+      Extract comprehensive PMF and SmoothBrains score data including:
+      - User's depth of understanding (wrinkle points from conversation quality)
+      - Market opportunity metrics (TAM, growth rate, competition density)
+      - Product-market fit indicators (user engagement, retention signals, demand validation)
+      - Execution viability factors (technical complexity, resource requirements, timeline)
+      - Sentiment analysis (market reception, user feedback, social signals)
+      - Idea refinement quality (conversation depth, iteration quality, specificity)
+      - Competitive landscape assessment (market saturation, differentiation potential)
+      - Revenue model viability and scalability indicators
+    `,
+    localExtractor: (data: any) => {
+      const pmfData: any = {};
+      
+      // Extract market size
+      const text = JSON.stringify(data).toLowerCase();
+      const tamMatch = text.match(/tam[:\s]*\$?(\d+\.?\d*)\s*(billion|million|b|m)/i);
+      if (tamMatch) {
+        const multiplier = tamMatch[2].toLowerCase().includes('b') ? 1e9 : 1e6;
+        pmfData.marketSize = parseFloat(tamMatch[1]) * multiplier;
+      }
+      
+      // Extract sentiment indicators
+      const positiveWords = (text.match(/(positive|good|excellent|amazing|great)/g) || []).length;
+      const negativeWords = (text.match(/(negative|bad|poor|terrible|awful)/g) || []).length;
+      pmfData.sentimentScore = Math.min(100, Math.max(0, 50 + (positiveWords - negativeWords) * 10));
+      
+      // Extract competition signals
+      const competitorCount = (text.match(/competitor[s]?/g) || []).length;
+      pmfData.competitionLevel = Math.min(10, competitorCount);
+      
+      // Extract PMF indicators
+      const pmfKeywords = ['engagement', 'retention', 'growth', 'demand', 'users', 'adoption'];
+      const pmfSignals = pmfKeywords.reduce((count, keyword) => {
+        return count + (text.match(new RegExp(keyword, 'g')) || []).length;
+      }, 0);
+      pmfData.pmfIndicators = Math.min(100, pmfSignals * 5);
+      
+      return Object.keys(pmfData).length > 0 ? {
+        ...pmfData,
+        confidence: 0.75,
+        timestamp: new Date().toISOString()
+      } : null;
+    }
   },
   engagement: {
     primarySources: ['user-engagement', 'reddit-sentiment'],

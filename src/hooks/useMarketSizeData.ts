@@ -23,6 +23,45 @@ export interface MarketSizeData {
     snippet: string;
   }>;
   charts: any[];
+  enriched?: {
+    marketIntelligence: {
+      keyTrends: string[];
+      disruptors: string[];
+      marketMaturity: string;
+      technologyAdoption: number;
+      regulatoryRisk: string;
+    };
+    liveIndicators: {
+      searchVolume: {
+        volume: number;
+        trend: string;
+      };
+      socialSentiment: {
+        score: number;
+        mentions: number;
+      };
+      newsActivity: {
+        articles: number;
+        sentiment: string;
+      };
+      fundingActivity: {
+        deals: number;
+        totalAmount: string;
+        lastDeal: string;
+      };
+    };
+    competitiveAnalysis: {
+      topCompetitors: string[];
+      marketConcentration: string;
+      barrierToEntry: string;
+    };
+    projections: {
+      nextYear: string;
+      fiveYear: string;
+      keyDrivers: string[];
+      risks: string[];
+    };
+  };
 }
 
 export function useMarketSizeData(idea?: string) {
