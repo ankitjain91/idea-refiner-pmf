@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requestQueue } from "../_shared/request-queue.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,52 +103,62 @@ function extractKeywords(idea: string): string[] {
 }
 
 async function fetchWithScraperAPI(keywords: string[], apiKey: string): Promise<any> {
-  try {
-    const query = keywords.join(' OR ');
-    const url = `https://trends.google.com/trends/explore?q=${encodeURIComponent(query)}&date=today%2012-m`;
-    const scraperUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(url)}&render=true`;
-    
-    const response = await fetch(scraperUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'text/html' },
-    });
+  return requestQueue.add(async () => {
+    try {
+      const query = keywords.join(' OR ');
+      const url = `https://trends.google.com/trends/explore?q=${encodeURIComponent(query)}&date=today%2012-m`;
+      const scraperUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(url)}&render=true`;
+      
+      console.log('[google-trends] Making ScraperAPI request');
+      const response = await fetch(scraperUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'text/html' },
+      });
 
-    if (!response.ok) {
-      throw new Error(`ScraperAPI error: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`ScraperAPI error: ${response.status}`);
+      }
+
+      const html = await response.text();
+      return parseGoogleTrendsHTML(html);
+    } catch (error) {
+      console.error('[google-trends] ScraperAPI error:', error);
+      return null;
     }
-
-    const html = await response.text();
-    return parseGoogleTrendsHTML(html);
-  } catch (error) {
-    console.error('[google-trends] ScraperAPI error:', error);
-    return null;
-  }
+  });
 }
 
 async function fetchWithSerper(keywords: string[], apiKey: string): Promise<any> {
   try {
-    const promises = keywords.map(async (keyword) => {
-      const response = await fetch('https://google.serper.dev/search', {
-        method: 'POST',
-        headers: {
-          'X-API-KEY': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: keyword + ' trends statistics',
-          gl: 'us',
-          num: 10
-        }),
+    const results = [];
+    
+    // Process keywords sequentially through the queue
+    for (const keyword of keywords) {
+      const result = await requestQueue.add(async () => {
+        console.log(`[google-trends] Making Serper request for: ${keyword}`);
+        const response = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: keyword + ' trends statistics',
+            gl: 'us',
+            num: 10
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Serper error: ${response.status}`);
+        }
+
+        return await response.json();
       });
+      
+      results.push(result);
+    }
 
-      if (!response.ok) {
-        throw new Error(`Serper error: ${response.status}`);
-      }
-
-      return await response.json();
-    });
-
-    const results = await Promise.all(promises);
     return processSerperResults(results, keywords);
   } catch (error) {
     console.error('[google-trends] Serper error:', error);

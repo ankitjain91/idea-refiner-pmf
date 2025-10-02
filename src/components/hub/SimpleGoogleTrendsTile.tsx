@@ -10,7 +10,7 @@ import {
   RefreshCw, Globe, Clock, Hash, MapPin, 
   BarChart, LineChart, Activity
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeSupabaseFunction } from "@/lib/request-queue";
 import { toast } from "sonner";
 import {
   LineChart as RechartsLineChart,
@@ -54,12 +54,8 @@ export function SimpleGoogleTrendsTile({ idea, className }: SimpleGoogleTrendsTi
     setError(null);
 
     try {
-      const { data: trendsData, error: trendsError } = await supabase.functions.invoke('google-trends', {
-        body: { idea }
-      });
-
-      if (trendsError) throw trendsError;
-
+      const trendsData = await invokeSupabaseFunction('google-trends', { idea });
+      
       setData(trendsData?.google_trends || trendsData);
     } catch (err) {
       console.error('Error fetching Google Trends:', err);

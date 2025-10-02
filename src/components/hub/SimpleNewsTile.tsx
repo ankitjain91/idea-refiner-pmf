@@ -15,7 +15,7 @@ import {
   ExternalLink,
   BarChart
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeSupabaseFunction } from '@/lib/request-queue';
 import { toast } from 'sonner';
 
 interface NewsArticle {
@@ -77,13 +77,7 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
       console.log('[SimpleNewsTile] Fetching news for:', idea);
       
       // Call the news-analysis edge function
-      const { data, error: fetchError } = await supabase.functions.invoke('news-analysis', {
-        body: { idea }
-      });
-
-      if (fetchError) {
-        throw fetchError;
-      }
+      const data = await invokeSupabaseFunction('news-analysis', { idea });
 
       if (data) {
         console.log('[SimpleNewsTile] Received data:', data);
