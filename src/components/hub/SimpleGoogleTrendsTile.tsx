@@ -34,8 +34,7 @@ export function SimpleGoogleTrendsTile({ idea, className }: SimpleGoogleTrendsTi
     try {
       const { data: trendsData, error: trendsError } = await supabase.functions.invoke('web-search', {
         body: { 
-          query: idea,
-          type: 'trends'
+          idea_keywords: idea
         }
       });
 
