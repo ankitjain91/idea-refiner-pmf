@@ -53,14 +53,13 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
         case 'sentiment':
           mockData = {
             metrics: {
-              positive: 82,
-              neutral: 15,
-              negative: 3,
-              engagement: 4200,
-              reach: "2.3M",
-              trending: "+23%",
-              nps: 67,
-              csat: 4.2
+              positive: 65,
+              neutral: 25,
+              negative: 10,
+              total_mentions: 4200,
+              trend: 'improving',
+              engagement_rate: 85,
+              sentiment_summary: '65% positive / 10% negative'
             },
             explanation: "Users express strong enthusiasm for AI-powered productivity solutions, with particular interest in workflow automation and time-saving features. The sentiment has improved 23% over the past month.",
             confidence: 85,
@@ -70,7 +69,13 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
               { url: "twitter.com", title: "Twitter Analysis", source: "Twitter", relevance: 0.92 }
             ],
             charts: [],
-            json: {}
+            json: {
+              positive: 65,
+              neutral: 25,
+              negative: 10,
+              mentions: 4200,
+              trend: 'improving'
+            }
           };
           break;
           

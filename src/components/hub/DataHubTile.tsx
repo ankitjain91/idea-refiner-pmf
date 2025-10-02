@@ -737,21 +737,24 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               {/* Display sentiment breakdown and analytics */}
               {tileType === 'sentiment' && (data as any) && (
                 <>
-                  {/* Sentiment Breakdown */}
+                  {/* Sentiment Breakdown - check both data and data.json for values */}
                   <Card className="border-primary/20">
                     <CardContent className="pt-4">
                       <div className="text-xs text-muted-foreground mb-3">Sentiment Analysis</div>
                       <div className="space-y-3">
+                        {/* Get sentiment values from either metrics, json, or direct data */}
                         {/* Overall sentiment bars */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium">Positive</span>
-                            <span className="text-xs font-bold text-green-600">{(data as any).positive || 0}%</span>
+                            <span className="text-xs font-bold text-green-600">
+                              {((data as any).json?.positive ?? (data as any).metrics?.positive ?? 0)}%
+                            </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-green-500 transition-all duration-500"
-                              style={{ width: `${(data as any).positive || 0}%` }}
+                              style={{ width: `${(data as any).json?.positive ?? (data as any).metrics?.positive ?? 0}%` }}
                             />
                           </div>
                         </div>
@@ -759,12 +762,14 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium">Neutral</span>
-                            <span className="text-xs font-bold text-yellow-600">{(data as any).neutral || 0}%</span>
+                            <span className="text-xs font-bold text-yellow-600">
+                              {((data as any).json?.neutral ?? (data as any).metrics?.neutral ?? 0)}%
+                            </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-yellow-500 transition-all duration-500"
-                              style={{ width: `${(data as any).neutral || 0}%` }}
+                              style={{ width: `${(data as any).json?.neutral ?? (data as any).metrics?.neutral ?? 0}%` }}
                             />
                           </div>
                         </div>
@@ -772,12 +777,14 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium">Negative</span>
-                            <span className="text-xs font-bold text-red-600">{(data as any).negative || 0}%</span>
+                            <span className="text-xs font-bold text-red-600">
+                              {((data as any).json?.negative ?? (data as any).metrics?.negative ?? 0)}%
+                            </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-red-500 transition-all duration-500"
-                              style={{ width: `${(data as any).negative || 0}%` }}
+                              style={{ width: `${(data as any).json?.negative ?? (data as any).metrics?.negative ?? 0}%` }}
                             />
                           </div>
                         </div>
