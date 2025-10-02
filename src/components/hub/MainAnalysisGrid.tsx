@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { sanitizeTileData } from '@/utils/dataFormatting';
 import { 
   TrendingUp, Users, MessageSquare, Activity, 
-  Search, Newspaper, DollarSign, Building2
+  Search, Newspaper, DollarSign, Building2, Globe
 } from "lucide-react";
 
 interface MainAnalysisGridProps {
@@ -23,6 +23,7 @@ interface MainAnalysisGridProps {
     competition?: TileData | null;
     sentiment?: TileData | null;
     market_trends?: TileData | null;
+    web_search?: TileData | null;
     google_trends?: TileData | null;
     news_analysis?: TileData | null;
   };
@@ -187,6 +188,14 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
       data: tiles.market_trends || tileData.market_trends || null,
       span: "col-span-full",
       isUsingFallback: tiles.market_trends?.confidence < 0.5 || (!tiles.market_trends && tileData.market_trends?.confidence < 0.5)
+    },
+    { 
+      id: "web_search", 
+      title: "Web Intelligence", 
+      icon: Globe,
+      data: tiles.web_search || tileData.web_search || null,
+      span: "col-span-full",
+      isUsingFallback: tiles.web_search?.confidence < 0.5 || (!tiles.web_search && tileData.web_search?.confidence < 0.5)
     },
     { 
       id: "google_trends", 
