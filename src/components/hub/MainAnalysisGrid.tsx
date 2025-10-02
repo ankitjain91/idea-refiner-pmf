@@ -5,6 +5,7 @@ import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTi
 import { OptimizedCompetitionTile } from "@/components/competition/OptimizedCompetitionTile";
 import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
+import { MarketTrendsTile } from "./MarketTrendsTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -266,6 +267,17 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <SimpleNewsTile 
+                  idea={currentIdea}
+                  className="h-full"
+                />
+              </div>
+            );
+          }
+          
+          if (tile.id === "market_trends") {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <MarketTrendsTile 
                   idea={currentIdea}
                   className="h-full"
                 />
