@@ -83,6 +83,12 @@ serve(async (req) => {
 
     const financialData = await financialAnalysis.json();
     
+    // Check for API errors
+    if (!financialData.choices || financialData.choices.length === 0) {
+      console.error('[financial-analysis] Invalid Groq response:', financialData);
+      throw new Error('No response from AI analysis');
+    }
+    
     // Parse response, handling markdown code blocks
     let content = financialData.choices[0].message.content;
     
