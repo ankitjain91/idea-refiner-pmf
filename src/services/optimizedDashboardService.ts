@@ -447,6 +447,9 @@ export class OptimizedDashboardService {
   
   private async fetchFromSource(idea: string, source: string, tileType: string): Promise<any> {
     try {
+      // Generate optimized query for this tile type
+      const optimizedQuery = await this.groqService.generateOptimizedQuery(idea, tileType);
+      
       // Map source to appropriate edge function
       const endpoint = this.getEndpointForSource(source);
       
@@ -455,17 +458,43 @@ export class OptimizedDashboardService {
         return null;
       }
       
+      console.log(`[OptimizedDashboard] Fetching from ${source} with query:`, optimizedQuery.searchQuery);
+      
+      // Prepare request body based on endpoint requirements
+      let requestBody: any = {
+        idea,
+        query: optimizedQuery.searchQuery,
+        tileType
+      };
+      
+      // Add specific parameters for different endpoints
+      if (endpoint === 'serper-batch-search') {
+        requestBody = {
+          idea: optimizedQuery.searchQuery,
+          searchTypes: [tileType],
+          filters: optimizedQuery.filters
+        };
+      } else if (endpoint === 'web-search-optimized' || endpoint === 'web-search') {
+        requestBody = {
+          query: optimizedQuery.searchQuery,
+          filters: optimizedQuery.filters.join(' '),
+          keywords: optimizedQuery.keywords
+        };
+      } else if (endpoint === 'market-insights' || endpoint === 'market-intelligence') {
+        requestBody = {
+          idea,
+          query: `${optimizedQuery.searchQuery} ${optimizedQuery.filters.join(' ')}`,
+          type: tileType
+        };
+      } else if (endpoint === 'reddit-sentiment' || endpoint === 'social-sentiment') {
+        requestBody = {
+          query: idea,
+          searchTerms: [idea, ...optimizedQuery.keywords.slice(0, 3)]
+        };
+      }
+      
       const { data, error } = await supabase.functions.invoke(endpoint, {
-        body: endpoint === 'serper-batch-search' 
-          ? { 
-              idea,
-              searchTypes: [tileType] // serper-batch-search expects searchTypes array
-            }
-          : { 
-              idea,
-              query: idea,
-              tileType 
-            }
+        body: requestBody
       });
       
       if (error) throw error;

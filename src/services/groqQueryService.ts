@@ -382,6 +382,116 @@ export class GroqQueryService {
     return GroqQueryService.instance;
   }
   
+  /**
+   * Generate optimized search queries for a specific tile based on the idea
+   */
+  async generateOptimizedQuery(idea: string, tileType: string): Promise<{
+    searchQuery: string;
+    filters: string[];
+    keywords: string[];
+  }> {
+    try {
+      const requirements = TILE_REQUIREMENTS[tileType];
+      if (!requirements) {
+        return {
+          searchQuery: idea,
+          filters: [],
+          keywords: []
+        };
+      }
+      
+      // Call Groq to generate an optimized query
+      const { data, error } = await supabase.functions.invoke('groq-synthesis', {
+        body: {
+          prompt: `Generate an optimized search query for "${idea}" to gather ${tileType} data.
+          
+          Requirements:
+          ${requirements.groqQuery}
+          
+          Create a search query that will find:
+          ${requirements.dataPoints.join(', ')}
+          
+          Return a JSON object with:
+          - searchQuery: main search query string (optimized for search engines)
+          - filters: array of filter terms (e.g., "2024", "market size", "competitors")
+          - keywords: array of key terms to look for in results
+          
+          Make the query specific and targeted to get the best results.`,
+          responseFormat: 'json'
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Parse and validate the response
+      const result = data?.result || data;
+      if (result && typeof result === 'object') {
+        return {
+          searchQuery: result.searchQuery || `${idea} ${tileType.replace(/_/g, ' ')}`,
+          filters: Array.isArray(result.filters) ? result.filters : [],
+          keywords: Array.isArray(result.keywords) ? result.keywords : []
+        };
+      }
+      
+      // Fallback to default query generation
+      return this.generateDefaultQuery(idea, tileType, requirements);
+      
+    } catch (error) {
+      console.error('Error generating optimized query:', error);
+      return this.generateDefaultQuery(idea, tileType, TILE_REQUIREMENTS[tileType]);
+    }
+  }
+  
+  private generateDefaultQuery(idea: string, tileType: string, requirements?: TileDataRequirements): {
+    searchQuery: string;
+    filters: string[];
+    keywords: string[];
+  } {
+    const queryMap: Record<string, any> = {
+      sentiment: {
+        searchQuery: `"${idea}" sentiment analysis user opinions reviews feedback`,
+        filters: ['reddit', 'twitter', 'reviews', 'forums'],
+        keywords: ['positive', 'negative', 'users say', 'feedback', 'opinion']
+      },
+      'market-trends': {
+        searchQuery: `"${idea}" market trends growth forecast industry analysis 2024`,
+        filters: ['market research', 'industry report', 'growth rate', 'CAGR'],
+        keywords: ['trend', 'growth', 'forecast', 'emerging', 'market driver']
+      },
+      market_size: {
+        searchQuery: `"${idea}" market size TAM SAM SOM valuation billions revenue`,
+        filters: ['market research', 'industry analysis', 'billion', 'million'],
+        keywords: ['TAM', 'SAM', 'SOM', 'market size', 'revenue', 'CAGR']
+      },
+      competition: {
+        searchQuery: `"${idea}" competitors alternatives comparison vs market leaders`,
+        filters: ['vs', 'alternatives', 'competitors', 'comparison'],
+        keywords: ['competitor', 'alternative', 'market leader', 'vs', 'compare']
+      },
+      pmf_score: {
+        searchQuery: `"${idea}" product market fit adoption users traction metrics`,
+        filters: ['users', 'adoption', 'traction', 'engagement'],
+        keywords: ['adoption', 'users', 'engagement', 'retention', 'growth']
+      },
+      google_trends: {
+        searchQuery: `"${idea}" trending search volume interest over time popularity`,
+        filters: ['trending', 'search volume', 'interest'],
+        keywords: ['trending', 'popular', 'search', 'interest', 'volume']
+      }
+    };
+    
+    const defaultQuery = queryMap[tileType] || {
+      searchQuery: `"${idea}" ${tileType.replace(/[_-]/g, ' ')} analysis data`,
+      filters: [],
+      keywords: requirements?.dataPoints || []
+    };
+    
+    return defaultQuery;
+  }
+  
+  /**
+   * Extract data for a specific tile from cached responses with enhanced Groq querying
+   */
   async extractDataForTile(params: {
     tileType: string;
     cachedResponses: CachedApiResponse[];
@@ -408,8 +518,8 @@ export class GroqQueryService {
       };
     }
     
-    // If local extraction insufficient, use Groq
-    const groqResult = await this.extractWithGroq(
+    // If local extraction insufficient, use enhanced Groq with dynamic query
+    const groqResult = await this.extractWithEnhancedGroq(
       params.cachedResponses,
       requirements,
       params.tileType
@@ -463,6 +573,61 @@ export class GroqQueryService {
     }
     
     return null;
+  }
+  
+  private async extractWithEnhancedGroq(
+    responses: CachedApiResponse[],
+    requirements: TileDataRequirements,
+    tileType: string
+  ): Promise<ExtractionResult> {
+    try {
+      // Prepare a summarized version of responses to avoid token limits
+      const summarizedResponses = responses.slice(0, 5).map(r => {
+        const data = r.rawResponse;
+        if (typeof data === 'string') {
+          return data.substring(0, 500);
+        }
+        return JSON.stringify(data).substring(0, 500);
+      });
+      
+      const { data, error } = await supabase.functions.invoke('groq-synthesis', {
+        body: {
+          prompt: `Extract structured data for ${tileType} tile from these API responses.
+          
+          Required data points: ${requirements.dataPoints.join(', ')}
+          
+          Extraction instructions:
+          ${requirements.groqQuery}
+          
+          Responses to analyze:
+          ${summarizedResponses.join('\n---\n')}
+          
+          Return a JSON object with the extracted data matching the required data points.
+          Be specific and extract actual values, not generic placeholders.`,
+          responseFormat: 'json'
+        }
+      });
+      
+      if (!error && data?.result) {
+        const extractedData = data.result;
+        const missingPoints = requirements.dataPoints.filter(
+          point => !extractedData[point] || extractedData[point] === null
+        );
+        
+        return {
+          data: extractedData,
+          confidence: missingPoints.length === 0 ? 0.9 : 0.7 - (missingPoints.length * 0.1),
+          missingDataPoints: missingPoints,
+          sourceResponseIds: responses.slice(0, 5).map(r => r.id || ''),
+          fromCache: true
+        };
+      }
+    } catch (error) {
+      console.error('Enhanced Groq extraction failed:', error);
+    }
+    
+    // Fallback to the original extractWithGroq method
+    return this.extractWithGroq(responses, requirements, tileType);
   }
   
   private async extractWithGroq(
