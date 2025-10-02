@@ -347,6 +347,9 @@ verify_jwt = false
 [functions.calculate-smoothbrains-score]
 verify_jwt = false
 
+[functions.competitive-landscape]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

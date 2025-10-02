@@ -17,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { CompetitionChatDialog } from './CompetitionChatDialog';
 import { supabase } from '@/integrations/supabase/client';
-import { extractEdgeFunctionData } from '@/utils/edgeFunctionUtils';
+
 import { TileData } from '@/lib/data-hub-orchestrator';
 import { OptimizedDashboardService, OptimizedTileData } from '@/services/optimizedDashboardService';
 
@@ -164,39 +164,55 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
     try {
       console.log('[Competition] Fetching data for idea:', currentIdea.substring(0, 100));
       
-      // Call the enhanced business analysis edge function
-      const { data, error } = await supabase.functions.invoke('enhanced-business-analysis', {
-        body: {
-          idea: currentIdea,
-          analysisType: 'competition'
-        }
+      // Call the competitive landscape edge function (real-time via Brave Search)
+      const { data, error } = await supabase.functions.invoke('competitive-landscape', {
+        body: { idea: currentIdea }
       });
       
       if (error) throw error;
       
-      const extractedData = extractEdgeFunctionData(data);
-      console.log('[Competition] Received data:', extractedData);
+      const payload = (data && (data.data || data));
+      const top = payload?.topCompetitors || payload?.data?.topCompetitors || [];
+      console.log('[Competition] Received top competitors:', top);
       
-      if (extractedData?.competitors) {
-        setData(extractedData);
+      if (Array.isArray(top) && top.length) {
+        const competitors = top.map((c: any, index: number) => ({
+          name: c?.name || `Competitor ${index + 1}`,
+          marketShare: typeof c?.marketShare === 'number' ? `${c.marketShare}%` : (c?.marketShare || '—'),
+          strength: (c?.strength || 'moderate') as any,
+          strengths: Array.isArray(c?.strengths) ? c.strengths : ['Brand presence', 'Feature parity'],
+          weaknesses: Array.isArray(c?.weaknesses) ? c.weaknesses : ['Gaps in niche features'],
+          funding: c?.fundingStage || c?.valuation || 'Unknown',
+          founded: c?.founded || '—',
+          url: c?.url
+        }));
+        
+        setData({
+          competitors,
+          marketConcentration: payload?.marketConcentration || 'Moderate',
+          entryBarriers: payload?.barrierToEntry || 'Medium',
+          differentiationOpportunities: ['UX excellence', 'Vertical focus', 'Pricing innovation'],
+          competitiveLandscape: {
+            directCompetitors: competitors.length,
+            indirectCompetitors: Math.max(0, Math.round(competitors.length * 1.5)),
+            substitutes: Math.max(0, Math.round(competitors.length * 0.8))
+          },
+          analysis: {
+            threat: competitors.length >= 8 ? 'high' : competitors.length >= 4 ? 'medium' : 'low',
+            opportunities: ['Underserved segments', 'Speed of execution', 'Partnership channels'],
+            recommendations: ['Differentiate with AI-powered workflows', 'Target a narrow ICP first', 'Build integrations early']
+          }
+        });
         setRetryCount(0);
         setCircuitOpen(false);
         toast({
           title: 'Competition Analysis Updated',
-          description: 'Fresh competitive landscape data loaded',
+          description: 'Live competitor data loaded',
         });
       } else {
-        // Fallback to mock data if no real data
-        await loadMockData();
-        setRetryCount((r) => {
-          const next = r + 1;
-          if (next >= MAX_RETRIES && !circuitOpen) {
-            setCircuitOpen(true);
-            toast({ title: 'Circuit breaker activated', description: 'Too many failed attempts. Using mock data.' });
-          }
-          return next;
-        });
+        throw new Error('No competitors found');
       }
+      
     } catch (err) {
       console.error('[Competition] Error fetching data:', err);
       await loadMockData(); // Fallback to mock data
