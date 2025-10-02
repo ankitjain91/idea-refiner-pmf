@@ -6,6 +6,7 @@ import { OptimizedCompetitionTile } from "@/components/competition/OptimizedComp
 import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
 import { MarketTrendsTile } from "./MarketTrendsTile";
+import { WebSearchTile } from "./WebSearchTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -278,6 +279,17 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <MarketTrendsTile 
+                  idea={currentIdea}
+                  className="h-full"
+                />
+              </div>
+            );
+          }
+          
+          if (tile.id === "web_search") {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <WebSearchTile 
                   idea={currentIdea}
                   className="h-full"
                 />
