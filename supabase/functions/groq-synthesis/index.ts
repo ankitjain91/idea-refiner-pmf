@@ -5,6 +5,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting configuration
+const RATE_LIMIT_DELAY = 2000; // 2 seconds between requests
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 5000; // 5 seconds between retries
+
+async function callGroqWithRetry(
+  endpoint: string,
+  body: any,
+  retries = 0
+): Promise<Response> {
+  const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+  if (!GROQ_API_KEY) {
+    throw new Error('GROQ_API_KEY is not configured');
+  }
+
+  try {
+    // Add delay to avoid rate limiting
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    // Handle rate limiting
+    if (response.status === 429) {
+      console.log(`Rate limited, retry ${retries + 1}/${MAX_RETRIES}`);
+      if (retries < MAX_RETRIES) {
+        const retryAfter = response.headers.get('retry-after');
+        const delay = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAY * (retries + 1);
+        console.log(`Waiting ${delay}ms before retry`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return callGroqWithRetry(endpoint, body, retries + 1);
+      }
+      throw new Error('Rate limit exceeded after maximum retries');
+    }
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Groq API error:', error);
+      throw new Error(`Groq API error: ${response.status} - ${error}`);
+    }
+
+    return response;
+  } catch (error) {
+    if (retries < MAX_RETRIES && error instanceof Error && error.message.includes('Rate limit')) {
+      console.log(`Error occurred, retry ${retries + 1}/${MAX_RETRIES}: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retries + 1)));
+      return callGroqWithRetry(endpoint, body, retries + 1);
+    }
+    throw error;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -14,6 +74,7 @@ serve(async (req) => {
   try {
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
     if (!GROQ_API_KEY) {
+      console.error('GROQ_API_KEY is not configured');
       throw new Error('GROQ_API_KEY is not configured');
     }
 
@@ -66,13 +127,9 @@ Return a JSON object with this structure:
   "executionPriority": ["step 1", "step 2", "step 3"]
 }`;
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const response = await callGroqWithRetry(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
           model: 'llama-3.3-70b-versatile',
           messages: [
             { role: 'system', content: systemPrompt },
@@ -81,14 +138,8 @@ Return a JSON object with this structure:
           temperature: 0.4,
           max_tokens: 2000,
           response_format: { type: "json_object" }
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('Groq API error:', error);
-        throw new Error(`Groq API error: ${response.status}`);
-      }
+        }
+      );
 
       const data = await response.json();
       const analysis = JSON.parse(data.choices[0].message.content);
@@ -105,9 +156,20 @@ Return a JSON object with this structure:
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
     // Handle Reddit data analysis
     if (redditData) {
       console.log('Analyzing Reddit data for business insights');
+      
+      // Validate reddit data structure
+      const sentiment = redditData.sentiment || {};
+      const positive = sentiment.positive || 0;
+      const neutral = sentiment.neutral || 0;
+      const negative = sentiment.negative || 0;
+      const mentions = redditData.mentions || 0;
+      const engagement = redditData.engagement || {};
+      const upvotes = engagement.upvotes || 0;
+      const comments = engagement.comments || 0;
       
       const systemPrompt = `You are a business intelligence analyst specializing in Reddit sentiment analysis and market validation.`;
       
@@ -115,9 +177,9 @@ Return a JSON object with this structure:
 Analyze this Reddit sentiment data for "${redditData.idea}" and provide actionable business insights.
 
 Reddit Data:
-- Sentiment: ${redditData.sentiment.positive}% positive, ${redditData.sentiment.neutral}% neutral, ${redditData.sentiment.negative}% negative
-- Mentions: ${redditData.mentions}
-- Engagement: ${redditData.engagement.upvotes} upvotes, ${redditData.engagement.comments} comments
+- Sentiment: ${positive}% positive, ${neutral}% neutral, ${negative}% negative
+- Mentions: ${mentions}
+- Engagement: ${upvotes} upvotes, ${comments} comments
 - Top Subreddits: ${redditData.topSubreddits?.join(', ') || 'N/A'}
 - Trending Topics: ${redditData.trendingTopics?.join(', ') || 'N/A'}
 - Key Insights: ${redditData.insights?.join('. ') || 'N/A'}
@@ -132,13 +194,9 @@ Provide a JSON response with:
   "nextSteps": ["immediate action 1", "immediate action 2"]
 }`;
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const response = await callGroqWithRetry(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
           model: 'llama-3.1-8b-instant',
           messages: [
             { role: 'system', content: systemPrompt },
@@ -147,14 +205,8 @@ Provide a JSON response with:
           temperature: 0.4,
           max_tokens: 1500,
           response_format: { type: "json_object" }
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('Groq API error for Reddit analysis:', error);
-        throw new Error(`Groq API error: ${response.status}`);
-      }
+        }
+      );
 
       const data = await response.json();
       const analysis = JSON.parse(data.choices[0].message.content);
@@ -218,14 +270,10 @@ Return a JSON object with this EXACT structure:
 
 Extract real data from the search results. If data is not available for a field, use reasonable estimates based on context.`;
 
-    // Call Groq API
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // Call Groq API with retry logic
+    const response = await callGroqWithRetry(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
         model: 'llama-3.1-8b-instant',
         messages: [
           { role: 'system', content: systemPrompt },
@@ -234,14 +282,8 @@ Extract real data from the search results. If data is not available for a field,
         temperature: 0.3,
         max_tokens: 2000,
         response_format: { type: "json_object" }
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Groq API error:', error);
-      throw new Error(`Groq API error: ${response.status}`);
-    }
+      }
+    );
 
     const data = await response.json();
     const synthesized = JSON.parse(data.choices[0].message.content);
@@ -267,6 +309,21 @@ Extract real data from the search results. If data is not available for a field,
     );
   } catch (error) {
     console.error('Error in groq-synthesis:', error);
+    
+    // Return a more graceful error response for rate limiting
+    if (error instanceof Error && error.message.includes('Rate limit')) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded. Please try again in a few moments.',
+          retryAfter: 30
+        }),
+        { 
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 

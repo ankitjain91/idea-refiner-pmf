@@ -7,28 +7,71 @@ const corsHeaders = {
 
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
-// Helper function to make Groq API calls
-async function callGroq(messages: any[], maxTokens = 1000, temperature = 0.7) {
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages,
-      max_tokens: maxTokens,
-      temperature,
-    }),
-  });
+// Rate limiting configuration
+const RATE_LIMIT_DELAY = 2000; // 2 seconds between requests
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 5000; // 5 seconds between retries
 
-  if (!response.ok) {
-    throw new Error(`Groq API error: ${response.statusText}`);
+// Helper function to make Groq API calls with retry logic
+async function callGroq(messages: any[], maxTokens = 1000, temperature = 0.7, retries = 0): Promise<string> {
+  try {
+    // Add delay between requests to avoid rate limiting
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
+    }
+    
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        max_tokens: maxTokens,
+        temperature,
+      }),
+    });
+
+    // Handle rate limiting
+    if (response.status === 429) {
+      console.log(`Rate limited, retry ${retries + 1}/${MAX_RETRIES}`);
+      if (retries < MAX_RETRIES) {
+        const retryAfter = response.headers.get('retry-after');
+        const delay = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAY * (retries + 1);
+        console.log(`Waiting ${delay}ms before retry`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return callGroq(messages, maxTokens, temperature, retries + 1);
+      }
+      throw new Error('Rate limit exceeded after maximum retries');
+    }
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error(`Groq API error: ${response.status} - ${error}`);
+      
+      // Retry on server errors
+      if (response.status >= 500 && retries < MAX_RETRIES) {
+        console.log(`Server error, retry ${retries + 1}/${MAX_RETRIES}`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retries + 1)));
+        return callGroq(messages, maxTokens, temperature, retries + 1);
+      }
+      
+      throw new Error(`Groq API error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    if (retries < MAX_RETRIES && error instanceof Error && 
+        (error.message.includes('Rate limit') || error.message.includes('429'))) {
+      console.log(`Error occurred, retry ${retries + 1}/${MAX_RETRIES}: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retries + 1)));
+      return callGroq(messages, maxTokens, temperature, retries + 1);
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 serve(async (req) => {

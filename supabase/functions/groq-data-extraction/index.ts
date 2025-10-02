@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting configuration
+const RATE_LIMIT_DELAY = 2000; // 2 seconds between requests
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 5000; // 5 seconds between retries
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -74,13 +79,55 @@ serve(async (req) => {
     
     console.log('Making Groq API request for tile:', tileType);
     
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // Call Groq API with retry logic for rate limiting
+    async function callGroqWithRetry(body: any, retries = 0): Promise<Response> {
+      try {
+        // Add delay between retries
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
+        }
+        
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+        
+        // Handle rate limiting
+        if (response.status === 429) {
+          console.log(`Rate limited, retry ${retries + 1}/${MAX_RETRIES}`);
+          if (retries < MAX_RETRIES) {
+            const retryAfter = response.headers.get('retry-after');
+            const delay = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAY * (retries + 1);
+            console.log(`Waiting ${delay}ms before retry`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return callGroqWithRetry(body, retries + 1);
+          }
+          throw new Error('Rate limit exceeded after maximum retries');
+        }
+        
+        // Handle server errors with retry
+        if (response.status >= 500 && retries < MAX_RETRIES) {
+          console.log(`Server error ${response.status}, retry ${retries + 1}/${MAX_RETRIES}`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retries + 1)));
+          return callGroqWithRetry(body, retries + 1);
+        }
+        
+        return response;
+      } catch (error) {
+        if (retries < MAX_RETRIES) {
+          console.log(`Network error, retry ${retries + 1}/${MAX_RETRIES}: ${error}`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retries + 1)));
+          return callGroqWithRetry(body, retries + 1);
+        }
+        throw error;
+      }
+    }
+    
+    const response = await callGroqWithRetry({
         model: 'llama-3.3-70b-versatile', // Updated to a currently supported Groq model
         messages: [
           {
@@ -92,7 +139,7 @@ serve(async (req) => {
         temperature: 0.1,
         max_tokens: 2000
         // Removed response_format as it may not be supported
-      }),
+        response_format: { type: "json_object" }
     });
     
     if (!response.ok) {
