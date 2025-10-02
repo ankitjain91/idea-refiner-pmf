@@ -231,6 +231,8 @@ export class OptimizedDashboardService {
       return this.aggregateSentimentData(responses);
     } else if (tileType === 'market-trends' || tileType === 'market_trends') {
       return this.aggregateMarketTrendsData(responses);
+    } else if (tileType === 'google_trends') {
+      return this.aggregateGoogleTrendsData(responses);
     }
     
     return {
@@ -347,6 +349,115 @@ export class OptimizedDashboardService {
         confidence: Math.min(0.9, 0.5 + (trendsData.length * 0.15))
       },
       confidence: Math.min(0.9, 0.5 + (trendsData.length * 0.15)),
+      sourceIds
+    };
+  }
+  
+  private aggregateGoogleTrendsData(responses: any[]): { data: any; confidence: number; sourceIds: string[] } {
+    const trendsData: any = {
+      interest: 0,
+      trend: 'stable',
+      searchVolume: 0,
+      relatedQueries: [],
+      trendingTopics: [],
+      questionsAsked: [],
+      trendSignals: [],
+      dataPoints: { positive: 0, neutral: 0, negative: 0 },
+      insights: {},
+      keywords: []
+    };
+    
+    const sourceIds: string[] = [];
+    let maxConfidence = 0;
+    
+    responses.forEach(response => {
+      sourceIds.push(response.id || response.source || '');
+      
+      const data = response.rawResponse?.data || response.rawResponse || response;
+      
+      // Extract interest score
+      if (data.interest !== undefined && data.interest > trendsData.interest) {
+        trendsData.interest = data.interest;
+      }
+      
+      // Extract search volume
+      if (data.searchVolume) {
+        trendsData.searchVolume = data.searchVolume;
+      }
+      
+      // Extract trend direction
+      if (data.trend) {
+        trendsData.trend = data.trend;
+      }
+      
+      // Aggregate related queries
+      if (data.relatedQueries || data.relatedSearches) {
+        const queries = data.relatedQueries || data.relatedSearches;
+        if (Array.isArray(queries)) {
+          trendsData.relatedQueries.push(...queries);
+        }
+      }
+      
+      // Aggregate trending topics
+      if (data.trendingTopics || data.trendingKeywords) {
+        const topics = data.trendingTopics || data.trendingKeywords;
+        if (Array.isArray(topics)) {
+          trendsData.trendingTopics.push(...topics);
+        }
+      }
+      
+      // Aggregate questions
+      if (data.questionsAsked || data.peopleAlsoAsk) {
+        const questions = data.questionsAsked || data.peopleAlsoAsk;
+        if (Array.isArray(questions)) {
+          trendsData.questionsAsked.push(...questions);
+        }
+      }
+      
+      // Aggregate keywords
+      if (data.keywords && Array.isArray(data.keywords)) {
+        trendsData.keywords.push(...data.keywords);
+      }
+      
+      // Extract trend signals
+      if (data.trendSignals && Array.isArray(data.trendSignals)) {
+        trendsData.trendSignals.push(...data.trendSignals);
+      }
+      
+      // Extract data points
+      if (data.dataPoints) {
+        trendsData.dataPoints = {
+          positive: (trendsData.dataPoints.positive || 0) + (data.dataPoints.positive || 0),
+          neutral: (trendsData.dataPoints.neutral || 0) + (data.dataPoints.neutral || 0),
+          negative: (trendsData.dataPoints.negative || 0) + (data.dataPoints.negative || 0)
+        };
+      }
+      
+      // Merge insights
+      if (data.insights && typeof data.insights === 'object') {
+        trendsData.insights = { ...trendsData.insights, ...data.insights };
+      }
+    });
+    
+    // Deduplicate arrays
+    trendsData.relatedQueries = [...new Set(trendsData.relatedQueries)].slice(0, 10);
+    trendsData.trendingTopics = [...new Set(trendsData.trendingTopics)].slice(0, 10);
+    trendsData.questionsAsked = [...new Set(trendsData.questionsAsked)].slice(0, 10);
+    trendsData.keywords = [...new Set(trendsData.keywords)].slice(0, 15);
+    trendsData.trendSignals = trendsData.trendSignals.slice(0, 10);
+    
+    // Calculate confidence based on data completeness
+    let dataPoints = 0;
+    if (trendsData.interest > 0) dataPoints++;
+    if (trendsData.searchVolume > 0) dataPoints++;
+    if (trendsData.relatedQueries.length > 0) dataPoints++;
+    if (trendsData.trendingTopics.length > 0) dataPoints++;
+    if (trendsData.questionsAsked.length > 0) dataPoints++;
+    const confidence = Math.min(0.95, dataPoints / 5);
+    
+    return {
+      data: trendsData,
+      confidence: confidence > 0.3 ? confidence : 0.5,
       sourceIds
     };
   }

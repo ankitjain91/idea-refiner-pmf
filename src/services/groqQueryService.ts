@@ -266,6 +266,73 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
       return null;
     }
   },
+  google_trends: {
+    primarySources: ['serper-batch-search', 'web-search-optimized', 'groq-data-extraction'],
+    fallbackSources: ['web-search', 'gdelt-news'],
+    dataPoints: ['interest_score', 'search_volume', 'trending_topics', 'related_queries', 'trend_direction'],
+    freshnessHours: 24,
+    groqQuery: `
+      Extract Google Trends data including:
+      - Interest score (0-100)
+      - Search volume and patterns
+      - Trending topics and keywords
+      - Related searches and queries
+      - Trend direction (rising/stable/declining)
+      - Time-based interest patterns
+      - Regional interest data
+      - Breakout terms
+    `,
+    localExtractor: (data: any) => {
+      const trendsData: any = {};
+      const d = data?.data || data?.googleTrends || data?.trends || data;
+      
+      // Extract interest score
+      if (d?.interest !== undefined) {
+        trendsData.interest = d.interest;
+      }
+      
+      // Extract search volume
+      if (d?.searchVolume !== undefined) {
+        trendsData.searchVolume = d.searchVolume;
+      }
+      
+      // Extract trend direction
+      if (d?.trend) {
+        trendsData.trend = d.trend;
+      }
+      
+      // Extract related queries
+      if (d?.relatedQueries || d?.relatedSearches) {
+        trendsData.relatedQueries = d.relatedQueries || d.relatedSearches;
+      }
+      
+      // Extract trending topics
+      if (d?.trendingTopics || d?.trendingKeywords) {
+        trendsData.trendingTopics = d.trendingTopics || d.trendingKeywords;
+      }
+      
+      // Extract questions
+      if (d?.questionsAsked || d?.peopleAlsoAsk) {
+        trendsData.questionsAsked = d.questionsAsked || d.peopleAlsoAsk;
+      }
+      
+      // Extract data points
+      if (d?.dataPoints) {
+        trendsData.dataPoints = d.dataPoints;
+      }
+      
+      // Extract insights
+      if (d?.insights) {
+        trendsData.insights = d.insights;
+      }
+      
+      return Object.keys(trendsData).length > 0 ? {
+        ...trendsData,
+        confidence: 0.85,
+        timestamp: new Date().toISOString()
+      } : null;
+    }
+  },
   pmf_score: {
     primarySources: ['calculate-smoothbrains-score', 'market-size-analysis', 'reddit-sentiment'],
     fallbackSources: ['web-search-optimized', 'competition-chat', 'user-engagement'],
