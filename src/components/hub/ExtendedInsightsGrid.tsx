@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { DataHubTile } from "./DataHubTile";
+import { RedditSentimentTile } from "./RedditSentimentTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { dashboardDataService } from '@/services/dashboardDataService';
 import { toast } from 'sonner';
@@ -366,12 +367,21 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
         Extended Insights
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Reddit Sentiment Tile - Full Width */}
+        <div className="col-span-full">
+          <RedditSentimentTile 
+            idea={currentIdea} 
+            className="h-full"
+          />
+        </div>
+        
+        {/* Other tiles - commented out for now */}
         {extendedTiles.map((tile) => (
           <div 
             key={tile.id} 
             className={`${tile.span} min-h-0`}
           >
-            <DataHubTile
+            {/* <DataHubTile
               title={tile.title}
               Icon={tile.icon}
               data={tileData[tile.id] || null}
@@ -379,7 +389,7 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
               tileType={tile.id}
               onRefresh={() => loadTileData(tile.id)}
               className="h-full overflow-hidden"
-            />
+            /> */}
           </div>
         ))}
       </div>
