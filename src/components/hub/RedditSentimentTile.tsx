@@ -666,7 +666,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
             </TabsContent>
 
             <TabsContent value="clusters" className="px-4 space-y-4">
-              {data.clusters.map((cluster, idx) => (
+              {(data.clusters || []).map((cluster, idx) => (
                 <Card 
                   key={idx} 
                   className={cn(
@@ -709,7 +709,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
                     {/* Subreddit distribution */}
                     <div className="flex flex-wrap gap-1">
-                      {Object.entries(cluster.metrics.subreddit_distribution).map(([sub, pct]) => (
+                      {Object.entries(cluster.metrics.subreddit_distribution || {}).map(([sub, pct]) => (
                         <Badge key={sub} variant="outline" className="text-xs">
                           {sub}: {pct}%
                         </Badge>
@@ -721,8 +721,8 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
             </TabsContent>
 
             <TabsContent value="quotes" className="px-4 space-y-3">
-              {data.clusters.flatMap(cluster => 
-                cluster.quotes.map((quote, idx) => renderQuoteCard(quote, idx))
+              {(data.clusters || []).flatMap(cluster => 
+                (cluster.quotes || []).map((quote, idx) => renderQuoteCard(quote, idx))
               )}
             </TabsContent>
 
