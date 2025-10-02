@@ -81,7 +81,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant', // Updated to a currently supported Groq model
+        model: 'llama-3.3-70b-versatile', // Updated to a currently supported Groq model
         messages: [
           {
             role: 'system',
@@ -98,6 +98,21 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Groq API error response:', errorText);
+
+      // Graceful fallback on rate limiting
+      if (response.status === 429) {
+        console.warn('[groq-data-extraction] Rate limited by Groq. Falling back to pattern-based extraction.');
+        const extraction = extractWithPatterns(responses, dataPoints);
+        return new Response(
+          JSON.stringify({
+            extraction,
+            confidence: 0.4,
+            method: 'rate_limit_fallback'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
     
