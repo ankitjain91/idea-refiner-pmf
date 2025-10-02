@@ -54,9 +54,34 @@ interface RedditCluster {
   }>;
 }
 
+interface RedditItem {
+  title: string;
+  snippet?: string;
+  url: string;
+  published?: string;
+  source: string;
+  evidence?: string[];
+  score?: number;
+  num_comments?: number;
+}
+
+interface RedditMetric {
+  name: string;
+  value: number;
+  unit?: string;
+  explanation?: string;
+  confidence?: number;
+}
+
 interface RedditSentimentData {
   summary: string;
   clusters: RedditCluster[];
+  items?: RedditItem[];
+  themes?: string[];
+  pain_points?: string[];
+  metrics?: RedditMetric[];
+  citations?: Array<{ label?: string; url: string }>;
+  totalPosts?: number;
   charts: Array<{
     type: string;
     title: string;
@@ -381,7 +406,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
   if (!data) return null;
 
   return (
-    <Card className={cn("h-full overflow-hidden", className)}>
+    <Card className={cn("h-full overflow-hidden animate-fade-in", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
