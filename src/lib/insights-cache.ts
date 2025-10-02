@@ -8,7 +8,7 @@ interface CachedEntry {
 
 const MEMORY_CACHE: Record<string, CachedEntry> = {};
 const LS_PREFIX = 'pmf.insights.cache:';
-const TTL_MS = 10 * 60 * 1000; // 10 minutes
+const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for heavy caching
 
 function computeKey(idea: string, answers: Record<string, any>): string {
   const answersSig = Object.entries(answers || {})

@@ -109,18 +109,32 @@ export class OptimizedRequestQueue {
     this.inFlightRequests.delete(key);
   }
 
-  // Function-specific TTL configuration
+  // Function-specific TTL configuration - HEAVY CACHING
   private getTTLForFunction(functionName: string): number {
     const ttlMap: Record<string, number> = {
-      'reddit-sentiment': 7200000, // 2 hours for Reddit data
-      'unified-sentiment': 7200000, // 2 hours for unified sentiment
-      'market-trends': 3600000, // 1 hour for market trends
-      'google-trends': 3600000, // 1 hour for Google trends
-      'news-analysis': 1800000, // 30 minutes for news (more dynamic)
-      'web-search': 3600000, // 1 hour for web search
+      'reddit-sentiment': 43200000, // 12 hours for Reddit data
+      'unified-sentiment': 43200000, // 12 hours for unified sentiment
+      'market-trends': 86400000, // 24 hours for market trends
+      'google-trends': 86400000, // 24 hours for Google trends
+      'news-analysis': 43200000, // 12 hours for news
+      'web-search': 86400000, // 24 hours for web search
+      'twitter-search': 21600000, // 6 hours for Twitter
+      'youtube-search': 86400000, // 24 hours for YouTube
+      'market-size-analysis': 604800000, // 7 days for market size
+      'competitive-landscape': 259200000, // 3 days for competition
+      'financial-analysis': 259200000, // 3 days for financials
+      'execution-insights': 259200000, // 3 days for execution
+      'funding-tracker': 604800000, // 7 days for funding
+      'launch-timeline': 604800000, // 7 days for launch timeline
+      'dashboard-insights': 43200000, // 12 hours for dashboard
+      'generate-ai-insights': 86400000, // 24 hours for AI insights
+      'analyze-idea': 259200000, // 3 days for idea analysis
+      'calculate-smoothbrains-score': 86400000, // 24 hours for PMF score
+      'user-engagement': 21600000, // 6 hours for engagement
+      'social-sentiment': 21600000, // 6 hours for social sentiment
     };
     
-    return ttlMap[functionName] || 3600000; // Default 1 hour
+    return ttlMap[functionName] || 21600000; // Default 6 hours
   }
 
   private generateCacheKey(url: string, options?: any): string {

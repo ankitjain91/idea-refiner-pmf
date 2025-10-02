@@ -72,7 +72,7 @@ interface MarketSizeData {
 export class RealTimeMarketService {
   private static instance: RealTimeMarketService;
   private cache: Map<string, { data: MarketSizeData; expires: number }> = new Map();
-  private CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days for heavy caching
   private circuitBreaker: CircuitBreaker;
   
   private constructor() {

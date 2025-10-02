@@ -9,6 +9,7 @@ import { DataHubInput, DataHubIndices, TileData } from '@/lib/data-hub-orchestra
 import { getPMFInsights } from '@/lib/pmf-category';
 import { RealTimeMarketService } from '@/services/realTimeMarketService';
 import { formatMoney, formatPercent, sanitizeTileData } from '@/utils/dataFormatting';
+import { CACHE_DURATIONS } from '@/hooks/useCachedSWR';
 
 interface DataHubState {
   indices: DataHubIndices | null;

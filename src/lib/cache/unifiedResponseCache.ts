@@ -29,7 +29,8 @@ export class UnifiedResponseCache {
   private static instance: UnifiedResponseCache;
   private db: IndexedDBManager;
   private memoryCache: Map<string, CachedApiResponse>;
-  private readonly MAX_MEMORY_ITEMS = 100;
+  private readonly MAX_MEMORY_ITEMS = 500; // Increased for heavy caching
+  private readonly DEFAULT_TTL_MS = 86400000; // 24 hours default TTL for heavy caching
   
   private constructor() {
     this.db = IndexedDBManager.getInstance();
@@ -59,10 +60,14 @@ export class UnifiedResponseCache {
     const id = this.generateId(response.idea, response.source, response.endpoint);
     const timestamp = Date.now();
     
+    // Set expiration with heavy caching in mind (default 24 hours if not specified)
+    const expiresAt = response.expiresAt || timestamp + this.DEFAULT_TTL_MS;
+    
     const cachedResponse: CachedApiResponse = {
       id,
       timestamp,
-      ...response
+      ...response,
+      expiresAt
     };
     
     // Store in IndexedDB
