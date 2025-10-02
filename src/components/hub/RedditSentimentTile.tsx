@@ -159,12 +159,29 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
       });
 
       if (response?.reddit_sentiment) {
+        console.log('[Reddit] Response structure:', {
+          hasRedditSentiment: true,
+          keys: Object.keys(response.reddit_sentiment),
+          hasClusters: !!response.reddit_sentiment.clusters,
+          hasItems: !!response.reddit_sentiment.items,
+          hasThemes: !!response.reddit_sentiment.themes,
+          fullData: response.reddit_sentiment
+        });
         setData(response.reddit_sentiment);
         if (response.reddit_sentiment.clusters?.length > 0) {
           setSelectedCluster(response.reddit_sentiment.clusters[0]);
         }
+      } else if (response?.data) {
+        // Try alternate response structure
+        console.log('[Reddit] Using alternate data structure:', response.data);
+        setData(response.data);
+      } else if (response) {
+        // Try direct response
+        console.log('[Reddit] Using direct response:', response);
+        setData(response);
       } else {
         // Generate synthetic data for demonstration
+        console.log('[Reddit] No response data, using synthetic');
         setData(generateSyntheticData(idea));
       }
     } catch (err) {
@@ -530,6 +547,121 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
                     ))}
                   </div>
                 </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="posts" className="px-4 space-y-3">
+              {data.items && data.items.length > 0 ? (
+                data.items.map((item, idx) => (
+                  <Card key={idx} className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-medium text-sm flex-1">{item.title}</h4>
+                        {item.score !== undefined && (
+                          <Badge variant="outline" className="flex-shrink-0">
+                            <ThumbsUp className="h-3 w-3 mr-1" />
+                            {item.score}
+                          </Badge>
+                        )}
+                      </div>
+                      {item.snippet && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{item.snippet}</p>
+                      )}
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {item.source && <span>{item.source}</span>}
+                        {item.num_comments !== undefined && (
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            {item.num_comments}
+                          </span>
+                        )}
+                        {item.published && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {item.published}
+                          </span>
+                        )}
+                      </div>
+                      {item.url && (
+                        <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
+                          <a href={item.url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            View Post
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No Reddit posts found</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="themes" className="px-4 space-y-4">
+              {data.themes && data.themes.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Emerging Themes</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {data.themes.map((theme, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-sm">
+                        <Hash className="h-3 w-3 mr-1" />
+                        {theme}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {data.pain_points && data.pain_points.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-500" />
+                    Pain Points Mentioned
+                  </h4>
+                  <div className="space-y-2">
+                    {data.pain_points.map((point, idx) => (
+                      <div key={idx} className="flex items-start gap-2 p-2 bg-muted/50 rounded">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                        <span className="text-sm">{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {data.metrics && data.metrics.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Key Metrics</h4>
+                  <div className="space-y-3">
+                    {data.metrics.map((metric, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{metric.name}</span>
+                          <span className="text-muted-foreground">
+                            {metric.value}{metric.unit || ''}
+                          </span>
+                        </div>
+                        {metric.confidence !== undefined && (
+                          <Progress value={metric.confidence * 100} className="h-1" />
+                        )}
+                        {metric.explanation && (
+                          <p className="text-xs text-muted-foreground">{metric.explanation}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(!data.themes?.length && !data.pain_points?.length && !data.metrics?.length) && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No themes data available</p>
+                </div>
               )}
             </TabsContent>
 

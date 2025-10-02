@@ -129,15 +129,33 @@ export function NewsTrendsTile({ data, loading, className, onRefresh }: NewsTren
   const processedTrends = useMemo(() => {
     if (!data) return [];
     
-    // Handle different data structures
-    const trends =
+    console.log('[NewsTrends] Processing data:', {
+      hasData: !!data,
+      dataKeys: data ? Object.keys(data) : [],
+      newsTrends: data?.news_trends,
+      trends: data?.trends,
+      dataNewsTrends: data?.data?.news_trends,
+      fullData: data
+    });
+    
+    // Handle different data structures - check all possible locations
+    let trends = 
       data.news_trends ||
       data.trends ||
       data.data?.news_trends ||
       data.data?.trends ||
       data.json?.news_trends ||
       data.json?.trends ||
-      [];
+      (Array.isArray(data) ? data : []);
+    
+    console.log('[NewsTrends] Extracted trends:', {
+      count: trends?.length || 0,
+      sample: trends?.[0]
+    });
+    
+    if (!Array.isArray(trends)) {
+      trends = [];
+    }
     
     return trends.map((trend: any) => {
       // Generate timeline data if not provided

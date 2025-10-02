@@ -89,11 +89,26 @@ export function MarketTrendsTile({ idea, className }: MarketTrendsTileProps) {
     try {
       const data = await optimizedQueue.invokeFunction('market-trends', { idea });
       
-      if (data?.market_trends) {
-        setTrends(data.market_trends);
-        setSelectedTrend(data.market_trends[0] || null);
+      console.log('[MarketTrends] Response:', {
+        hasData: !!data,
+        keys: data ? Object.keys(data) : [],
+        hasMarketTrends: !!data?.market_trends,
+        hasTrends: !!data?.trends,
+        hasDataTrends: !!data?.data?.trends,
+        fullData: data
+      });
+      
+      // Check multiple possible data locations
+      const trendsData = data?.market_trends || data?.trends || data?.data?.trends || data?.data?.market_trends || [];
+      
+      if (trendsData && trendsData.length > 0) {
+        setTrends(trendsData);
+        setSelectedTrend(trendsData[0] || null);
         setConfidence(data.confidence || "Moderate");
         setCrossLinks(data.cross_links || {});
+      } else {
+        console.warn('[MarketTrends] No trends data found in response');
+        setError('No market trends data available');
       }
     } catch (err) {
       console.error('Error fetching market trends:', err);
