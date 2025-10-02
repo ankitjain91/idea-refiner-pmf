@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
+import { TileAIChat } from './TileAIChat';
 
 interface RedditSentimentTileProps {
   idea: string;
@@ -131,6 +132,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
   const [selectedCluster, setSelectedCluster] = useState<RedditCluster | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
     if (idea) {
@@ -431,6 +433,15 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
             Reddit Sentiment Analysis
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIChat(true)}
+              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Analysis</span>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -776,6 +787,14 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
           </ScrollArea>
         </Tabs>
       </CardContent>
+      
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={data as any}
+        tileTitle="Reddit Sentiment"
+        idea={idea}
+      />
     </Card>
   );
 }

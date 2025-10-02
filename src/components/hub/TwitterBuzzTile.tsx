@@ -6,9 +6,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { TrendingUp, TrendingDown, Twitter, Hash, Users, MessageCircle, Heart, Repeat2, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Twitter, Hash, Users, MessageCircle, Heart, Repeat2, RefreshCw, Sparkles } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend, Tooltip as RechartsTooltip, ScatterChart, Scatter } from 'recharts';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
+import { TileAIChat } from './TileAIChat';
 
 interface TwitterBuzzTileProps {
   idea: string;
@@ -46,6 +47,7 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -221,6 +223,15 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
             <CardTitle>Twitter/X Buzz Analysis</CardTitle>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIChat(true)}
+              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Analysis</span>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -505,6 +516,14 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
           </TabsContent>
         </Tabs>
       </CardContent>
+      
+      <TileAIChat
+        open={showAIChat}
+        onOpenChange={setShowAIChat}
+        tileData={data as any}
+        tileTitle="Twitter/X Buzz"
+        idea={idea}
+      />
     </Card>
   );
 }
