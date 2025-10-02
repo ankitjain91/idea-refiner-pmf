@@ -144,18 +144,28 @@ export function sanitizeTileData(data: any): any {
 
     // Sentiment metrics (supports multiple shapes)
     const s = sanitized.socialSentiment || sanitized.sentiment || sanitized.data?.socialSentiment || sanitized;
-    if (s && (s.positive !== undefined && s.negative !== undefined && s.neutral !== undefined)) {
+    if (s && (s.positive !== undefined || s.negative !== undefined || s.neutral !== undefined)) {
       const pos = Number(s.positive) || 0;
       const neg = Number(s.negative) || 0;
       const neu = Number(s.neutral) || 0;
       const mentions = Number(s.mentions ?? sanitized.mentions ?? 0) || 0;
       const trend = s.trend || sanitized.trend;
 
-      metrics.push(
-        { name: 'Positive', value: Math.round(pos), unit: '%', explanation: 'Share of positive mentions' },
-        { name: 'Neutral', value: Math.round(neu), unit: '%', explanation: 'Neutral share of mentions' },
-        { name: 'Negative', value: Math.round(neg), unit: '%', explanation: 'Share of negative mentions' },
-      );
+      // Only add individual sentiment metrics if they have values
+      if (pos > 0) metrics.push({ name: 'Positive', value: Math.round(pos), unit: '%', explanation: 'Share of positive mentions' });
+      if (neu > 0) metrics.push({ name: 'Neutral', value: Math.round(neu), unit: '%', explanation: 'Neutral share of mentions' });
+      if (neg > 0) metrics.push({ name: 'Negative', value: Math.round(neg), unit: '%', explanation: 'Share of negative mentions' });
+      
+      // Add a combined sentiment metric if we have all values
+      if (pos || neg || neu) {
+        metrics.push({ 
+          name: 'Sentiment', 
+          value: `${Math.round(pos)}% positive / ${Math.round(neg)}% negative`,
+          unit: '',
+          explanation: 'Overall sentiment breakdown'
+        });
+      }
+      
       if (mentions) metrics.push({ name: 'Total Mentions', value: mentions, unit: '', explanation: 'Estimated mentions across platforms' });
       if (trend) metrics.push({ name: 'Trend', value: trend, unit: '', explanation: 'Momentum of sentiment' });
     }

@@ -48,14 +48,25 @@ export function OptimizedDataTile({
     if (t === 'string' || t === 'number' || t === 'boolean') return String(val);
     if (Array.isArray(val)) return `${val.length} items`;
     if (t === 'object') {
+      // Handle percentage values specially for sentiment
+      if ((val as any).positive !== undefined && (val as any).negative !== undefined) {
+        const pos = Number((val as any).positive) || 0;
+        const neg = Number((val as any).negative) || 0;
+        const neut = Number((val as any).neutral) || 0;
+        if (pos || neg || neut) {
+          return `+${pos}% / -${neg}%`;
+        }
+      }
       // Prefer common human-readable fields
       if ((val as any).name) return String((val as any).name);
       if ((val as any).title) return String((val as any).title);
+      if ((val as any).value !== undefined) return String((val as any).value);
       const keys = Object.keys(val as any);
       if (keys.length === 1 && typeof (val as any)[keys[0]] !== 'object') {
         return String((val as any)[keys[0]]);
       }
-      try { return JSON.stringify(val); } catch { return '[data]'; }
+      // Don't show raw JSON
+      return '[complex data]';
     }
     return String(val);
   };

@@ -59,6 +59,9 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
   const { toast } = useToast();
   const dataFetchedRef = useRef(false);
   const dashboardService = useRef(OptimizedDashboardService.getInstance());
+  
+  // Check if mock data mode is enabled
+  const useMockData = localStorage.getItem('useMockData') === 'true';
 
   // Get the actual idea to use
   const currentIdea = idea || 
@@ -309,29 +312,23 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
           });
         }
       } else {
-        // Fallback to dashboard service if no real-time data
-        console.log('[Competition] No real-time data, trying dashboard service');
-        const result = await dashboardService.current.getDataForTile(
-          'competition',
-          currentIdea
-        );
-
-        if (result?.insights) {
-          const competitionData = result.insights as any;
-          console.log('[Competition] Using cached insights:', competitionData);
-          const normalizedData = buildCompetitionData(competitionData);
-          setData(normalizedData);
-        } else {
-          console.log('[Competition] No data available, using fallback');
+        // Only use fallback data if mock data mode is enabled
+        if (useMockData) {
+          console.log('[Competition] No real-time data, mock mode enabled - using fallback');
           setData(getFallbackData());
+        } else {
+          console.log('[Competition] No real-time data available and mock mode disabled');
+          setError('No competition data available. Try refreshing.');
         }
       }
     } catch (err) {
       console.error('[Competition] Error fetching data:', err);
       setError('Failed to load competition data');
       
-      // Load fallback data
-      setData(getFallbackData());
+      // Only load fallback data if mock mode is enabled
+      if (useMockData) {
+        setData(getFallbackData());
+      }
     } finally {
       setLoading(false);
     }
