@@ -631,7 +631,8 @@ function analyzeTrends(marketData: any, idea: string): any[] {
 }
 
 function generateVisuals(trend: any): any[] {
-  const visuals = [];
+  // Generate visualizations for market trend data
+  const visuals: any[] = [];
   
   // Timeline visualization
   const timelineData = [];
