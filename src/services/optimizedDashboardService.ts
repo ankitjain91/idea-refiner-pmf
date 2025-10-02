@@ -486,10 +486,35 @@ export class OptimizedDashboardService {
           query: `${optimizedQuery.searchQuery} ${optimizedQuery.filters.join(' ')}`,
           type: tileType
         };
-      } else if (endpoint === 'reddit-sentiment' || endpoint === 'social-sentiment') {
+      } else if (endpoint === 'reddit-sentiment') {
+        requestBody = {
+          idea,
+          industry: tileType,
+          geography: 'global',
+          timeWindow: '30_days',
+          analyzeType: 'sentiment'
+        };
+      } else if (endpoint === 'social-sentiment') {
         requestBody = {
           query: idea,
           searchTerms: [idea, ...optimizedQuery.keywords.slice(0, 3)]
+        };
+      } else if (endpoint === 'twitter-search') {
+        requestBody = {
+          query: idea,
+          industry: tileType,
+          geo: 'global',
+          time_window: '30_days'
+        };
+      } else if (endpoint === 'gdelt-news') {
+        requestBody = {
+          query: idea,
+          type: 'sentiment'
+        };
+      } else if (endpoint === 'youtube-search') {
+        requestBody = {
+          query: idea,
+          maxResults: 25
         };
       }
       
@@ -518,14 +543,14 @@ export class OptimizedDashboardService {
       'web-search-optimized': 'web-search-optimized',
       'competition-chat': 'competition-chat',
       'serper-batch-search': 'serper-batch-search',
-      'groq-data-extraction': 'groq-data-extraction',
       'gdelt-news': 'gdelt-news',
+      'youtube-search': 'youtube-search',
+      'groq-data-extraction': 'groq-data-extraction',
       'user-engagement': 'user-engagement',
       'financial-analysis': 'financial-analysis',
       'web-search-profitability': 'web-search-profitability',
       'launch-timeline': 'launch-timeline',
       'execution-insights': 'execution-insights',
-      'youtube-search': 'youtube-search',
       'web-search': 'web-search'
     };
     
