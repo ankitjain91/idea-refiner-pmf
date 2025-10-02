@@ -15,6 +15,8 @@ export interface OptimizedTileData {
   updatedAt: string;
   fromCache: boolean;
   confidence: number;
+  // Preserve original structured payload for tiles like market_trends
+  data?: any;
 }
 
 export class OptimizedDashboardService {
@@ -684,9 +686,10 @@ export class OptimizedDashboardService {
       notes: sanitizedData.notes || '',
       updatedAt: new Date().toISOString(),
       fromCache: meta.fromCache,
-      confidence: meta.confidence
+      confidence: meta.confidence,
+      data: sanitizedData // preserve structured data
     };
-    
+
     // Add metadata to metrics if not present
     if (formatted.metrics.length > 0) {
       formatted.metrics = formatted.metrics.map((metric: any) => ({

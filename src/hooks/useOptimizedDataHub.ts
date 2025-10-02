@@ -275,16 +275,20 @@ export function useOptimizedDataHub(input: DataHubInput) {
                 searchVolume: (optimizedData as any).data.searchVolume
               } : {}),
               // IMPORTANT: Preserve market trends data
-              ...(tileType === 'market_trends' || tileType === 'market-trends' ? {
-                trends: (optimizedData.insights as any)?.trends || [],
-                drivers: (optimizedData.insights as any)?.drivers || [],
-                direction: (optimizedData.insights as any)?.direction || 'stable',
-                emergingTech: (optimizedData.insights as any)?.emergingTech || [],
-                growthRate: (optimizedData.insights as any)?.growthRate || 0,
-                consumerShifts: (optimizedData.insights as any)?.consumerShifts || [],
-                disruptions: (optimizedData.insights as any)?.disruptions || [],
-                investmentTrends: (optimizedData.insights as any)?.investmentTrends || []
-              } : {})
+              ...(tileType === 'market_trends' || tileType === 'market-trends' ? (() => {
+                const structured = (optimizedData as any).data || (optimizedData.insights as any);
+                const obj = typeof structured === 'object' && structured ? structured : {};
+                return {
+                  trends: obj.trends || [],
+                  drivers: obj.drivers || [],
+                  direction: obj.direction || 'stable',
+                  emergingTech: obj.emergingTech || obj.emerging_tech || [],
+                  growthRate: obj.growthRate || obj.growth_rate || 0,
+                  consumerShifts: obj.consumerShifts || obj.consumer_shifts || [],
+                  disruptions: obj.disruptions || [],
+                  investmentTrends: obj.investmentTrends || obj.investment_trends || []
+                };
+              })() : {})
             };
             
             tiles[tileType] = tileData;
@@ -573,7 +577,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
       const tileData = await optimizedService.current.getDataForTile(tileType, input.idea);
       
       if (tileData) {
-        const convertedTileData: TileData = sanitizeTileData({
+        const baseConverted: TileData = sanitizeTileData({
           metrics: tileData.metrics || {},
           explanation: tileData.notes || '',
           citations: (tileData.citations || []).map(c => 
@@ -586,6 +590,26 @@ export function useOptimizedDataHub(input: DataHubInput) {
           dataQuality: (tileData.metrics && Object.keys(tileData.metrics).length > 3) ? 'high' : 'medium',
           confidence: tileData.confidence || 0.7
         });
+
+        // Preserve structured Market Trends fields on refresh
+        const convertedTileData: TileData = (tileType === 'market_trends' || tileType === 'market-trends')
+          ? {
+              ...baseConverted,
+              ...(function () {
+                const obj: any = (tileData as any).data || tileData.insights || {};
+                return {
+                  trends: obj.trends || [],
+                  drivers: obj.drivers || [],
+                  direction: obj.direction || 'stable',
+                  emergingTech: obj.emergingTech || obj.emerging_tech || [],
+                  growthRate: obj.growthRate || obj.growth_rate || 0,
+                  consumerShifts: obj.consumerShifts || obj.consumer_shifts || [],
+                  disruptions: obj.disruptions || [],
+                  investmentTrends: obj.investmentTrends || obj.investment_trends || []
+                };
+              })()
+            }
+          : baseConverted;
         
         setState(prev => ({
           ...prev,
