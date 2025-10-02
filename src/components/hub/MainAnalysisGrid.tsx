@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
-import { EnhancedCompetitionTile } from "@/components/competition/EnhancedCompetitionTile";
+import { OptimizedCompetitionTile } from "@/components/competition/OptimizedCompetitionTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -224,7 +224,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
           if (tile.id === "competition") {
             return (
               <div key={tile.id} className={tile.span}>
-                <EnhancedCompetitionTile 
+                <OptimizedCompetitionTile 
                   idea={currentIdea} 
                   initialData={sanitizeTileData(tiles.competition) || null}
                   onRefresh={async () => {
