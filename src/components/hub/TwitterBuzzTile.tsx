@@ -53,19 +53,23 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
         setLoading(true);
         setError(null);
         
-        // Use optimized queue for caching
+        // Use optimized queue for caching (add schema_version to bypass stale cache)
         const response = await optimizedQueue.invokeFunction('twitter-search', {
           query: idea,
-          time_window: '90d'
+          time_window: '90d',
+          schema_version: 'v2'
         });
         
         // Prefetch related social data in background
-        optimizedQueue.prefetchRelated('twitter-search', { query: idea });
+        optimizedQueue.prefetchRelated('twitter-search', { query: idea, schema_version: 'v2' });
         
-        if (response) {
-          setData(response);
+        // Normalize payload shape
+        const payload = response?.twitter_buzz ? response.twitter_buzz : response;
+        
+        if (payload && payload.metrics && payload.metrics.overall_sentiment) {
+          setData(payload as TwitterBuzzData);
         } else {
-          // Generate synthetic data if no response
+          // Generate synthetic data if structure is missing or outdated
           setData(generateSyntheticData(idea));
         }
       } catch (err) {
@@ -168,11 +172,12 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
 
   if (!data) return null;
 
-  // Prepare chart data
+  // Prepare chart data (defensive against stale cache/old schema)
+  const dist = data.metrics?.overall_sentiment ?? { positive: 0, neutral: 0, negative: 0 };
   const sentimentData = [
-    { name: 'Positive', value: data.metrics.overall_sentiment.positive, color: 'hsl(var(--success))' },
-    { name: 'Neutral', value: data.metrics.overall_sentiment.neutral, color: 'hsl(var(--muted))' },
-    { name: 'Negative', value: data.metrics.overall_sentiment.negative, color: 'hsl(var(--destructive))' }
+    { name: 'Positive', value: dist.positive, color: 'hsl(var(--success))' },
+    { name: 'Neutral', value: dist.neutral, color: 'hsl(var(--muted))' },
+    { name: 'Negative', value: dist.negative, color: 'hsl(var(--destructive))' }
   ];
 
   const volumeTrendData = Array.from({ length: 90 }, (_, i) => ({
@@ -180,19 +185,21 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
     tweets: Math.floor(30 + Math.random() * 70 + (i / 90) * 50)
   }));
 
-  const influencerData = data.metrics.influencers.map(inf => ({
+  const influencers = data.metrics?.influencers ?? [];
+  const influencerData = influencers.map(inf => ({
     handle: inf.handle,
     followers: inf.followers,
     sentiment: inf.sentiment === 'positive' ? 80 : inf.sentiment === 'neutral' ? 50 : 20,
     engagement: Math.floor(inf.followers * 0.05)
   }));
 
-  const hashtagData = data.metrics.top_hashtags.map((tag, i) => ({
+  const tags = data.metrics?.top_hashtags ?? [];
+  const hashtagData = tags.map((tag, i) => ({
     hashtag: tag,
     mentions: Math.floor(1000 - i * 200 + Math.random() * 100)
   }));
 
-  const isTrendingUp = data.metrics.buzz_trend.includes('+');
+  const isTrendingUp = (data.metrics?.buzz_trend || '').includes('+');
 
   return (
     <Card className="col-span-full">
