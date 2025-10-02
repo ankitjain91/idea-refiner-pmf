@@ -149,7 +149,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
           await cache.current.clearForIdea(input.idea);
         }
         
-        // Fetch all tile data in parallel using the optimized service
+        // Fetch all tile data with deduplication
         const tilePromises = tileTypes.map(async (tileType) => {
           // Special handling for market_size - use real-time service
           if (tileType === 'market_size') {

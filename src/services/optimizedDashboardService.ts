@@ -51,6 +51,67 @@ export class OptimizedDashboardService {
     return this.circuitBreakers.get(tileType)!;
   }
   
+  // NEW: Batch fetch all sources once to avoid duplicate API calls
+  async batchFetchAllSources(idea: string, forceRefresh: boolean = false): Promise<Map<string, any>> {
+    const batchKey = `batch:${idea}`;
+    
+    // Return if already batching
+    if (this.ongoingFetches.has(batchKey)) {
+      return await this.ongoingFetches.get(batchKey);
+    }
+    
+    const batchPromise = this._executeBatchFetch(idea, forceRefresh);
+    this.ongoingFetches.set(batchKey, batchPromise);
+    
+    try {
+      return await batchPromise;
+    } finally {
+      this.ongoingFetches.delete(batchKey);
+    }
+  }
+  
+  private async _executeBatchFetch(idea: string, forceRefresh: boolean): Promise<Map<string, any>> {
+    console.log('[OptimizedDashboard] Batch fetching ALL sources once for:', idea);
+    
+    // Define all unique sources across all tiles
+    const allSources = new Set([
+      'social-sentiment', 'reddit-sentiment', 'twitter-search', 'gdelt-news',
+      'market-insights', 'competitive-landscape', 'web-search-optimized', 
+      'serper-batch-search', 'market-size-analysis', 'market-intelligence',
+      'youtube-search', 'news-analysis', 'launch-timeline', 'execution-insights',
+      'financial-analysis', 'web-search-profitability', 'user-engagement'
+    ]);
+    
+    const sourceDataMap = new Map<string, any>();
+    
+    // Fetch all sources in parallel ONCE
+    const fetchPromises = Array.from(allSources).map(async (source) => {
+      try {
+        const data = await this.fetchFromSource(idea, source, 'batch');
+        if (data) {
+          sourceDataMap.set(source, data);
+          
+          // Store in cache for future use
+          await this.cache.storeResponse({
+            idea,
+            source,
+            endpoint: this.getEndpointForSource(source),
+            rawResponse: data,
+            expiresAt: Date.now() + this.CACHE_TTL,
+            metadata: { confidence: 0.8 }
+          });
+        }
+      } catch (err) {
+        console.warn(`[Batch] Failed to fetch ${source}:`, err);
+      }
+    });
+    
+    await Promise.allSettled(fetchPromises);
+    
+    console.log(`[OptimizedDashboard] Batch fetch complete: ${sourceDataMap.size}/${allSources.size} sources`);
+    return sourceDataMap;
+  }
+
   async getDataForTile(tileType: string, idea: string): Promise<OptimizedTileData | null> {
     const cacheKey = `${idea}:${tileType}`;
     const circuitBreaker = this.getCircuitBreaker(tileType);
@@ -185,8 +246,28 @@ export class OptimizedDashboardService {
   ): Promise<any[]> {
     console.log(`[OptimizedDashboard] Fetching from multiple sources for ${tileType}:`, sources);
     
-    const fetchPromises = sources.map(source => 
-      this.fetchFromSource(idea, source, tileType)
+    // OPTIMIZATION: Check cache first, only fetch what's missing
+    const cachedResponses = await this.cache.getResponsesForIdea(idea);
+    const cachedSources = new Set(cachedResponses.map(r => r.source));
+    const sourcesToFetch = sources.filter(s => !cachedSources.has(s));
+    
+    console.log(`[OptimizedDashboard] Cache: ${cachedSources.size}, Need to fetch: ${sourcesToFetch.length}/${sources.length}`);
+    
+    if (sourcesToFetch.length === 0) {
+      // All sources cached, return cached data
+      return cachedResponses.filter(r => sources.includes(r.source));
+    }
+    
+    const fetchPromises = sourcesToFetch.map(source => {
+      const fetchKey = `fetch:${idea}:${source}`;
+      
+      // Deduplicate: if already fetching, wait for that
+      if (this.ongoingFetches.has(fetchKey)) {
+        console.log(`[OptimizedDashboard] Deduplicating fetch for ${source}`);
+        return this.ongoingFetches.get(fetchKey)!;
+      }
+      
+      const promise = this.fetchFromSource(idea, source, tileType)
         .then(data => data ? {
           idea,
           source,
@@ -199,13 +280,22 @@ export class OptimizedDashboardService {
           console.warn(`Failed to fetch from ${source}:`, err);
           return null;
         })
-    );
+        .finally(() => {
+          this.ongoingFetches.delete(fetchKey);
+        });
+      
+      this.ongoingFetches.set(fetchKey, promise);
+      return promise;
+    });
     
     const results = await Promise.allSettled(fetchPromises);
     
-    return results
+    const newResults = results
       .filter(r => r.status === 'fulfilled' && r.value !== null)
       .map(r => (r as PromiseFulfilledResult<any>).value);
+    
+    // Combine with cached results
+    return [...cachedResponses.filter(r => sources.includes(r.source)), ...newResults];
   }
   
   private async aggregateDataFromSources(
