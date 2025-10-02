@@ -1,103 +1,97 @@
 /**
- * Utility functions for formatting data into human-readable values
+ * Utility functions for formatting data
  */
 
 /**
- * Formats a number into a human-readable money string
+ * Formats a value as currency with appropriate suffix (K, M, B, T)
  */
 export function formatMoney(value: number | string | undefined): string {
-  if (!value && value !== 0) return '$0';
+  if (value === undefined || value === null) return '$0';
   
-  let num: number;
-  if (typeof value === 'string') {
-    // Remove any existing formatting
-    const cleaned = value.replace(/[^0-9.-]/g, '');
-    num = parseFloat(cleaned);
-    if (isNaN(num)) return '$0';
-  } else {
-    num = value;
+  // If it's already formatted, return as is
+  if (typeof value === 'string' && value.includes('$')) {
+    return value;
   }
   
-  // Handle negative values
-  const negative = num < 0;
+  // Convert to number if string
+  let num = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]/g, '')) : value;
+  
+  if (isNaN(num)) return '$0';
+  
+  const isNegative = num < 0;
   num = Math.abs(num);
   
-  let formatted: string;
+  // Format based on size
   if (num >= 1e12) {
-    formatted = `${(num / 1e12).toFixed(1)}T`;
+    return `${isNegative ? '-' : ''}$${(num / 1e12).toFixed(1)}T`;
   } else if (num >= 1e9) {
-    formatted = `${(num / 1e9).toFixed(1)}B`;
+    return `${isNegative ? '-' : ''}$${(num / 1e9).toFixed(1)}B`;
   } else if (num >= 1e6) {
-    formatted = `${(num / 1e6).toFixed(1)}M`;
+    return `${isNegative ? '-' : ''}$${(num / 1e6).toFixed(1)}M`;
   } else if (num >= 1e3) {
-    formatted = `${(num / 1e3).toFixed(1)}K`;
+    return `${isNegative ? '-' : ''}$${(num / 1e3).toFixed(1)}K`;
   } else {
-    formatted = num.toFixed(0);
+    return `${isNegative ? '-' : ''}$${num.toFixed(0)}`;
   }
-  
-  return `${negative ? '-' : ''}$${formatted}`;
 }
 
 /**
- * Formats a percentage value
+ * Formats a value as percentage
  */
 export function formatPercent(value: number | string | undefined): string {
-  if (!value && value !== 0) return '0%';
+  if (value === undefined || value === null) return '0%';
   
-  let num: number;
-  if (typeof value === 'string') {
-    // Extract first number from string (handles "12% CAGR" etc)
-    const match = value.match(/(\d+\.?\d*)/);
-    num = match ? parseFloat(match[1]) : 0;
-  } else {
-    num = value;
+  // If it's already formatted, return as is
+  if (typeof value === 'string' && value.includes('%')) {
+    return value;
   }
   
-  // Cap at reasonable ranges
-  if (num > 100) num = 100;
-  if (num < -100) num = -100;
+  // Convert to number if string
+  const num = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]/g, '')) : value;
   
-  return `${num.toFixed(1)}%`;
+  if (isNaN(num)) return '0%';
+  
+  // Cap percentage between -100 and 100
+  const capped = Math.max(-100, Math.min(100, num));
+  
+  return `${capped.toFixed(1)}%`;
 }
 
 /**
- * Formats large numbers into human-readable strings
+ * Formats a large number with appropriate suffix
  */
 export function formatNumber(value: number | undefined): string {
-  if (!value && value !== 0) return '0';
+  if (value === undefined || value === null) return '0';
   
+  const isNegative = value < 0;
   const num = Math.abs(value);
-  const negative = value < 0;
   
-  let formatted: string;
   if (num >= 1e12) {
-    formatted = `${(num / 1e12).toFixed(1)}T`;
+    return `${isNegative ? '-' : ''}${(num / 1e12).toFixed(1)}T`;
   } else if (num >= 1e9) {
-    formatted = `${(num / 1e9).toFixed(1)}B`;
+    return `${isNegative ? '-' : ''}${(num / 1e9).toFixed(1)}B`;
   } else if (num >= 1e6) {
-    formatted = `${(num / 1e6).toFixed(1)}M`;
+    return `${isNegative ? '-' : ''}${(num / 1e6).toFixed(1)}M`;
   } else if (num >= 1e3) {
-    formatted = `${(num / 1e3).toFixed(1)}K`;
+    return `${isNegative ? '-' : ''}${(num / 1e3).toFixed(1)}K`;
   } else {
-    formatted = num.toFixed(num < 10 ? 1 : 0);
+    return `${isNegative ? '-' : ''}${num.toFixed(num < 10 ? 1 : 0)}`;
   }
-  
-  return `${negative ? '-' : ''}${formatted}`;
 }
 
 /**
- * Sanitizes chart data to ensure human-readable values
+ * Validates and sanitizes chart data to prevent display issues
  */
 export function sanitizeChartData(charts: any[]): any[] {
   if (!Array.isArray(charts)) return [];
   
-  return charts.map(chart => {
-    if (!chart || !chart.series) return chart;
+  return charts.map((chart: any) => {
+    if (!chart) return chart;
     
     const sanitizedChart = { ...chart };
     
+    // Fix line charts with exponential growth projections
     if (chart.type === 'line' && Array.isArray(chart.series)) {
-      // Fix exponential growth projections
       sanitizedChart.series = chart.series.map((point: any, index: number) => {
         if (!point || typeof point.value !== 'number') return point;
         
@@ -106,11 +100,14 @@ export function sanitizeChartData(charts: any[]): any[] {
           const prevValue = chart.series[index - 1].value;
           const maxGrowth = prevValue * 1.5; // 50% max growth
           
-          if (point.value > maxGrowth) {
+          // Also cap at $10T absolute maximum
+          const cappedValue = Math.min(point.value, maxGrowth, 10e12);
+          
+          if (point.value !== cappedValue) {
             return {
               ...point,
-              value: maxGrowth,
-              label: formatMoney(maxGrowth)
+              value: cappedValue,
+              label: formatMoney(cappedValue)
             };
           }
         }

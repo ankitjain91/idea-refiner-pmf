@@ -341,11 +341,15 @@ function generateGrowthProjection(startValue: number, cagr: number): any[] {
   const years = 5;
   const projection = [];
   
+  // Ensure CAGR is reasonable (cap at 100% annual growth)
+  const safeCagr = Math.min(Math.abs(cagr), 100);
+  
   for (let i = 0; i <= years; i++) {
+    const value = startValue * Math.pow(1 + safeCagr/100, i);
     projection.push({
       year: 2025 + i,
-      value: startValue * Math.pow(1 + cagr/100, i),
-      label: `$${(startValue * Math.pow(1 + cagr/100, i)).toFixed(1)}B`
+      value: value,
+      label: `$${value.toFixed(1)}B`
     });
   }
   

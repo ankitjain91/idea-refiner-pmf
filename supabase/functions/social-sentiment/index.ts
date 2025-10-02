@@ -11,11 +11,15 @@ serve(async (req) => {
   }
 
   try {
-    const { idea } = await req.json()
-
-    if (!idea) {
+    const body = await req.json()
+    console.log('Social sentiment request body:', body)
+    
+    const { query, idea } = body
+    const searchQuery = query || idea
+    
+    if (!searchQuery) {
       return new Response(
-        JSON.stringify({ error: 'Missing idea parameter' }),
+        JSON.stringify({ error: 'Missing query or idea parameter' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }

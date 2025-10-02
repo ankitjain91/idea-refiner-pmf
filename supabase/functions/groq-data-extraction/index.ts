@@ -56,6 +56,8 @@ serve(async (req) => {
       4. Never use scientific notation or excessive decimal places
       5. Round all numbers to at most 2 decimal places
       6. For projections, use reasonable yearly growth (not exponential)
+      7. When extracting market size, ensure values are realistic (not trillions for niche markets)
+      8. Always validate extracted numbers are within reasonable business ranges
       
       Return a JSON object with the extracted information. Include a confidence score (0-1) for each extracted point.
       Focus on finding ANY relevant data, even if it's mentioned indirectly.

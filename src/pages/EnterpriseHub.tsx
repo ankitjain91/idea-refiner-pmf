@@ -3,6 +3,7 @@ import { useDataHubWrapper } from "@/hooks/useDataHubWrapper";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -35,12 +36,15 @@ export default function EnterpriseHub() {
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
     // Always check localStorage first for immediate availability
-    const storedIdea = 
+    const rawStoredIdea = 
       localStorage.getItem("pmfCurrentIdea") ||
       localStorage.getItem("dashboardIdea") || 
       localStorage.getItem("currentIdea") || 
       localStorage.getItem("userIdea") || 
       "";
+    
+    // Clean the stored idea
+    const storedIdea = cleanIdeaText(rawStoredIdea);
     
     console.log("[EnterpriseHub] Checking all localStorage keys:", {
       pmfCurrentIdea: localStorage.getItem("pmfCurrentIdea")?.substring(0, 50),
@@ -62,7 +66,13 @@ export default function EnterpriseHub() {
         // Create conversation summary if we have chat history
         if (chatHistory && chatHistory.length > 0) {
           const summary = createConversationSummary(chatHistory, sessionIdea || storedIdea);
-          setConversationSummary(summary);
+          const cleanedSummary = cleanIdeaText(summary);
+          setConversationSummary(cleanedSummary);
+          // Update localStorage with cleaned summary
+          if (cleanedSummary !== storedIdea) {
+            localStorage.setItem("dashboardIdea", cleanedSummary);
+            setCurrentIdea(cleanedSummary);
+          }
         } else {
           setConversationSummary(storedIdea);
         }
@@ -87,11 +97,12 @@ export default function EnterpriseHub() {
           ? createConversationSummary(chatHistory, sessionIdea)
           : sessionIdea || "";
         
-        if (summary) {
-          setCurrentIdea(summary);
-          setConversationSummary(summary);
-          localStorage.setItem("dashboardIdea", summary);
-          console.log("[EnterpriseHub] Got idea from session:", summary.substring(0, 100));
+        const cleanedSummary = cleanIdeaText(summary);
+        if (cleanedSummary) {
+          setCurrentIdea(cleanedSummary);
+          setConversationSummary(cleanedSummary);
+          localStorage.setItem("dashboardIdea", cleanedSummary);
+          console.log("[EnterpriseHub] Got idea from session:", cleanedSummary.substring(0, 100));
         }
       }
       

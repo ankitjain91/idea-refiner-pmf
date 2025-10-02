@@ -7,6 +7,7 @@ import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
 import { toast } from 'sonner';
+import { sanitizeTileData } from '@/utils/dataFormatting';
 import { 
   TrendingUp, Users, MessageSquare, Activity, 
   Search, Newspaper, DollarSign, Building2
@@ -208,8 +209,13 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
               <div key={tile.id} className={tile.span}>
                 <EnhancedMarketSizeTile 
                   idea={currentIdea} 
-                  initialData={tiles.market_size || null}
-                  onRefresh={() => onRefreshTile?.('market_size')}
+                  initialData={sanitizeTileData(tiles.market_size) || null}
+                  onRefresh={async () => {
+                    if (onRefreshTile) {
+                      toast.info('Refreshing market size data...');
+                      await onRefreshTile('market_size');
+                    }
+                  }}
                 />
               </div>
             );
@@ -220,8 +226,13 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
               <div key={tile.id} className={tile.span}>
                 <EnhancedCompetitionTile 
                   idea={currentIdea} 
-                  initialData={tiles.competition || null}
-                  onRefresh={() => onRefreshTile?.('competition')}
+                  initialData={sanitizeTileData(tiles.competition) || null}
+                  onRefresh={async () => {
+                    if (onRefreshTile) {
+                      toast.info('Refreshing competition data...');
+                      await onRefreshTile('competition');
+                    }
+                  }}
                 />
               </div>
             );
@@ -240,9 +251,16 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
               <DataHubTile
                 title={tile.title}
                 Icon={tile.icon}
-                data={tile.data}
+                data={sanitizeTileData(tile.data)}
                 loading={tileLoading[tile.id] || loading}
-                onRefresh={() => onRefreshTile?.(tile.id) || loadTileData(tile.id)}
+                onRefresh={async () => {
+                  if (onRefreshTile && tiles[tile.id as keyof typeof tiles]) {
+                    toast.info(`Refreshing ${tile.title} data...`);
+                    await onRefreshTile(tile.id);
+                  } else {
+                    loadTileData(tile.id);
+                  }
+                }}
                 expanded={viewMode === "deep"}
                 tileType={tile.id}
                 className={cn(
