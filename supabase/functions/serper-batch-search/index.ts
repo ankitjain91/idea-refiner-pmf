@@ -433,11 +433,35 @@ function generateMockResults(searchTypes: string[], idea: string): any {
         break;
       case 'google_trends':
         results[type] = {
-          interest: 65,
+          interest: 50,
           trend: 'stable',
           relatedQueries: [idea, `${idea} app`, `${idea} software`],
           searchVolume: 500000,
-          timeRange: 'last_12_months'
+          timeRange: 'last_30_days',
+          trendSignals: [
+            {
+              title: `${idea} gaining traction in market`,
+              snippet: 'Recent analysis shows growing interest in this space',
+              sentiment: 'positive',
+              isRecent: true
+            }
+          ],
+          trendingTopics: ['innovation', 'technology', 'startup', 'market'],
+          questionsAsked: [
+            `What is ${idea}?`,
+            `How does ${idea} work?`,
+            `Is ${idea} worth investing in?`
+          ],
+          dataPoints: {
+            positive: 3,
+            negative: 1,
+            neutral: 2
+          },
+          insights: {
+            summary: '➡️ Stable trend with moderate interest',
+            keyFactors: ['Growing market awareness', 'Technology adoption phase'],
+            recentActivity: 'Moderate'
+          }
         };
         break;
       case 'market_trends':

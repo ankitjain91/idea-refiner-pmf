@@ -1123,7 +1123,18 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               )}
               
               {/* Enhanced Google Trends Display - Redesigned Layout */}
-              {tileType === 'google_trends' && (data as any) && (
+              {tileType === 'google_trends' && (data as any) && (() => {
+                // Debug logging to see what data we have
+                console.log('[DataHubTile] Google Trends data received:', {
+                  tileType,
+                  hasData: !!data,
+                  dataKeys: data ? Object.keys(data) : [],
+                  interest: (data as any).interest,
+                  trend: (data as any).trend,
+                  fullData: data
+                });
+                return true;
+              })() && (
                 <div className="space-y-4">
                   {/* Main Trend Overview Card */}
                   <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20">
@@ -1293,8 +1304,8 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                </div>
+              )}
                   
                   {/* Questions People Ask */}
                   {(data as any).questionsAsked?.length > 0 && (

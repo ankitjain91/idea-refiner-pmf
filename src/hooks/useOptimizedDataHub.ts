@@ -274,6 +274,23 @@ export function useOptimizedDataHub(input: DataHubInput) {
                 socialSentiment: (optimizedData as any).data.socialSentiment,
                 searchVolume: (optimizedData as any).data.searchVolume
               } : {}),
+              // IMPORTANT: Preserve Google Trends enriched data
+              ...(tileType === 'google_trends' ? (() => {
+                const structured = (optimizedData as any).data || optimizedData.insights || optimizedData.metrics || {};
+                const obj = typeof structured === 'object' && structured ? structured : {};
+                return {
+                  interest: obj.interest || 0,
+                  trend: obj.trend || 'stable',
+                  relatedQueries: obj.relatedQueries || [],
+                  searchVolume: obj.searchVolume || 0,
+                  timeRange: obj.timeRange || 'last_30_days',
+                  trendSignals: obj.trendSignals || [],
+                  trendingTopics: obj.trendingTopics || [],
+                  questionsAsked: obj.questionsAsked || [],
+                  dataPoints: obj.dataPoints || { positive: 0, negative: 0, neutral: 0 },
+                  insights: obj.insights || {}
+                };
+              })() : {}),
               // IMPORTANT: Preserve market trends data
               ...(tileType === 'market_trends' || tileType === 'market-trends' ? (() => {
                 const structured = (optimizedData as any).data || (optimizedData.insights as any);
@@ -577,6 +594,9 @@ export function useOptimizedDataHub(input: DataHubInput) {
       const tileData = await optimizedService.current.getDataForTile(tileType, input.idea);
       
       if (tileData) {
+        // Extract the structured data for specific tile types
+        const structuredData = (tileData as any).data || tileData.insights || {};
+        
         const baseConverted: TileData = sanitizeTileData({
           metrics: tileData.metrics || {},
           explanation: tileData.notes || '',
@@ -588,7 +608,26 @@ export function useOptimizedDataHub(input: DataHubInput) {
           charts: [],
           json: { ...tileData.metrics },
           dataQuality: (tileData.metrics && Object.keys(tileData.metrics).length > 3) ? 'high' : 'medium',
-          confidence: tileData.confidence || 0.7
+          confidence: tileData.confidence || 0.7,
+          // Preserve Google Trends enriched data
+          ...(tileType === 'google_trends' && structuredData ? {
+            interest: structuredData.interest || 0,
+            trend: structuredData.trend || 'stable',
+            relatedQueries: structuredData.relatedQueries || [],
+            searchVolume: structuredData.searchVolume || 0,
+            timeRange: structuredData.timeRange || 'last_30_days',
+            trendSignals: structuredData.trendSignals || [],
+            trendingTopics: structuredData.trendingTopics || [],
+            questionsAsked: structuredData.questionsAsked || [],
+            dataPoints: structuredData.dataPoints || { positive: 0, negative: 0, neutral: 0 },
+            insights: structuredData.insights || {}
+          } : {}),
+          // Preserve Market Trends data
+          ...(tileType === 'market_trends' && structuredData ? {
+            trends: structuredData.trends || [],
+            drivers: structuredData.drivers || [],
+            emergingTech: structuredData.emergingTech || []
+          } : {})
         });
 
         // Preserve structured Market Trends fields on refresh
