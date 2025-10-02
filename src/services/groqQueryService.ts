@@ -388,11 +388,20 @@ export class GroqQueryService {
       
       if (error) throw error;
       
+      // Handle both shapes: top-level fields or wrapped in extraction key
+      const payload = extractedData || {};
+      const extraction = payload.extraction ?? payload;
+      
+      // Log when we normalize top-level extraction
+      if (!payload.extraction && Object.keys(payload).length > 0) {
+        console.log('[GroqQueryService] Normalized top-level extraction for tile:', tileType);
+      }
+      
       return {
-        data: extractedData.extraction,
-        confidence: extractedData.confidence || 0.7,
+        data: extraction,
+        confidence: payload.confidence ?? extraction.confidence ?? 0.7,
         missingDataPoints: this.identifyMissingPoints(
-          extractedData.extraction,
+          extraction,
           requirements.dataPoints
         ),
         sourceResponseIds: relevantResponses.map(r => r.id),

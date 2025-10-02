@@ -306,13 +306,25 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
               </div>
             ) : data ? (
               <>
-                <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="landscape">Landscape</TabsTrigger>
-                    <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                    <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
-                  </TabsList>
+                {/* Show a subtle message if no competitors found */}
+                {data.competitors.length === 0 && (
+                  <div className="text-center py-6 rounded-lg bg-muted/30">
+                    <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No competitors detected yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Competition data will populate as market analysis completes
+                    </p>
+                  </div>
+                )}
+                
+                {data.competitors.length > 0 && (
+                  <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as any)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="overview">Overview</TabsTrigger>
+                      <TabsTrigger value="landscape">Landscape</TabsTrigger>
+                      <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                      <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
+                    </TabsList>
 
                   <TabsContent value="overview" className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -471,7 +483,8 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
                       </div>
                     )}
                   </TabsContent>
-                </Tabs>
+                  </Tabs>
+                )}
 
                 {loading && (
                   <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">

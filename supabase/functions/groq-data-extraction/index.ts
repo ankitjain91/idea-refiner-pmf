@@ -140,20 +140,20 @@ serve(async (req) => {
       
       // If extraction contains nested extraction field, unwrap it
       if (extracted.extraction) {
-        extracted = {
-          ...extracted.extraction,
-          confidence: extracted.confidence || 0.7,
-          sources_used: extracted.sources_used || []
-        };
+        console.log('[groq-data-extraction] Unwrapping nested extraction field');
+        extracted = extracted.extraction;
       }
     } catch (e) {
       console.log('Failed to parse as JSON, using raw content');
       extracted = { raw: result.choices[0].message.content };
     }
     
+    // Always return a consistent shape with extraction key
     return new Response(
       JSON.stringify({
-        ...extracted,
+        extraction: extracted,
+        confidence: extracted.confidence ?? 0.7,
+        sources_used: extracted.sources_used ?? [],
         method: 'groq_extraction'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
