@@ -155,42 +155,6 @@ export class OptimizedDashboardService {
     }
   }
   
-  async getDataForPlatform(platform: string, idea: string): Promise<OptimizedTileData | null> {
-    const cacheKey = `platform_${platform}_${idea}`;
-    
-    try {
-      // Get the social sentiment data which contains all platforms
-      const sentimentData = await this.getDataForTile('sentiment', idea);
-      
-      if (!sentimentData || !(sentimentData as any).socialSentiment?.platforms?.[platform]) {
-        return null;
-      }
-      
-      const platformData = (sentimentData as any).socialSentiment.platforms[platform];
-      const result: OptimizedTileData = {
-        metrics: [
-          { name: 'Sentiment', value: platformData.sentiment || 0, unit: '%' },
-          { name: 'Mentions', value: platformData.mentions || 0, unit: '' },
-          { name: 'Trending', value: platformData.trending ? 'Yes' : 'No', unit: '' }
-        ],
-        notes: `${platform.charAt(0).toUpperCase() + platform.slice(1)} sentiment: ${platformData.sentiment}% positive`,
-        insights: {
-          summary: `${platformData.mentions || 0} mentions on ${platform} with ${platformData.sentiment}% positive sentiment`
-        },
-        confidence: 0.85,
-        citations: [],
-        fromCache: false,
-        updatedAt: new Date().toISOString()
-      };
-      
-      return result;
-      
-    } catch (error) {
-      console.error(`Error fetching ${platform} data:`, error);
-      return null;
-    }
-  }
-  
   private getEnrichmentSources(tileType: string): string[] {
     // Define multiple sources for each tile type to enrich data
     const enrichmentMap: Record<string, string[]> = {
@@ -277,56 +241,17 @@ export class OptimizedDashboardService {
   private aggregateMarketTrendsData(responses: any[]): { data: any; confidence: number; sourceIds: string[] } {
     const trendsData: any[] = [];
     const sourceIds: string[] = [];
-    let marketInsightsData: any = null;
-    
-    console.log('[aggregateMarketTrendsData] Processing responses:', responses.length);
     
     responses.forEach(response => {
-      console.log('[aggregateMarketTrendsData] Response:', {
-        id: response.id,
-        hasRawResponse: !!response.rawResponse,
-        rawData: response.rawResponse
-      });
-      
-      // Check for market-insights response with structured data
-      if (response.id === 'market-insights' && response.rawResponse) {
-        const data = response.rawResponse;
-        if (data.trends || data.drivers || data.emergingTech) {
-          marketInsightsData = data;
-          sourceIds.push('market-insights');
-          console.log('[aggregateMarketTrendsData] Found market insights data:', marketInsightsData);
-        }
-      } else {
-        const localExtractor = TILE_REQUIREMENTS['market-trends']?.localExtractor;
-        if (localExtractor) {
-          const extracted = localExtractor(response.rawResponse);
-          if (extracted) {
-            trendsData.push(extracted);
-            sourceIds.push(response.id || '');
-          }
+      const localExtractor = TILE_REQUIREMENTS['market-trends']?.localExtractor;
+      if (localExtractor) {
+        const extracted = localExtractor(response.rawResponse);
+        if (extracted) {
+          trendsData.push(extracted);
+          sourceIds.push(response.id || '');
         }
       }
     });
-    
-    // If we have market insights data, use it as primary source
-    if (marketInsightsData) {
-      return {
-        data: {
-          trends: marketInsightsData.trends || ['AI integration rising', 'Cloud adoption accelerating'],
-          growthRate: marketInsightsData.growthRate || 25,
-          drivers: marketInsightsData.drivers || ['Digital transformation', 'Market demand'],
-          direction: marketInsightsData.direction || 'upward',
-          emergingTech: marketInsightsData.emergingTech || ['AI', 'CLOUD'],
-          consumerShifts: marketInsightsData.consumerShifts || [],
-          disruptions: marketInsightsData.disruptions || [],
-          investmentTrends: marketInsightsData.investmentTrends || [],
-          insights: marketInsightsData.insights || 'Market analysis in progress',
-          confidence: 0.85
-        },
-        confidence: 0.85,
-        sourceIds
-      };
-    }
     
     if (trendsData.length === 0) {
       return {

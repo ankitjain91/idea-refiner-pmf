@@ -134,8 +134,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
           'sentiment', 'market_trends', 'competition', 'user_engagement',
           'financial', 'news_analysis', 'growth_potential', 'market_readiness',
           'competitive_advantage', 'risk_assessment', 'pmf_score', 'market_size',
-          'google_trends', 'web_search', 'reddit_sentiment', 'twitter_buzz',
-          'reddit', 'twitter', 'linkedin' // Platform-specific tiles
+          'google_trends', 'web_search', 'reddit_sentiment', 'twitter_buzz'
         ];
         
         const tiles: Record<string, TileData> = {};
@@ -215,28 +214,6 @@ export function useOptimizedDataHub(input: DataHubInput) {
             return;
           }
           
-          // Special handling for platform-specific tiles (Reddit, Twitter, LinkedIn)
-          if (['reddit', 'twitter', 'linkedin'].includes(tileType)) {
-            const platformData = await optimizedService.current.getDataForPlatform(tileType, input.idea);
-            
-            if (platformData) {
-              const tileData: TileData = {
-                metrics: platformData.metrics || {},
-                explanation: platformData.notes || '',
-                citations: platformData.citations?.map(c => 
-                  typeof c === 'string' ? { url: c, title: 'Source', source: 'Web', relevance: 0.8 } : c
-                ) || [],
-                charts: [],
-                json: {},
-                confidence: platformData.confidence || 0.7,
-                dataQuality: 'medium' as const
-              };
-              
-              tiles[tileType] = tileData;
-              cacheStatsTracker.hits++;
-            }
-          }
-          
           // Use optimized service for other tiles
           const optimizedData = await optimizedService.current.getDataForTile(tileType, input.idea);
           
@@ -263,21 +240,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
               confidence: optimizedData.confidence || 0.7,
               dataQuality: optimizedData.confidence > 0.8 ? 'high' : 
                            optimizedData.confidence > 0.6 ? 'medium' : 'low',
-              // IMPORTANT: Preserve rich data for specific tile types
+              // IMPORTANT: Preserve rich sentiment data from the data object
               ...(tileType === 'sentiment' && (optimizedData as any).data?.socialSentiment ? {
                 socialSentiment: (optimizedData as any).data.socialSentiment,
                 searchVolume: (optimizedData as any).data.searchVolume
-              } : {}),
-              ...(tileType === 'market-trends' || tileType === 'market_trends' ? {
-                // Preserve all market trends data
-                trends: (optimizedData as any).data?.trends,
-                drivers: (optimizedData as any).data?.drivers,
-                direction: (optimizedData as any).data?.direction,
-                emergingTech: (optimizedData as any).data?.emergingTech,
-                growthRate: (optimizedData as any).data?.growthRate,
-                consumerShifts: (optimizedData as any).data?.consumerShifts,
-                disruptions: (optimizedData as any).data?.disruptions,
-                investmentTrends: (optimizedData as any).data?.investmentTrends
               } : {})
             };
             
