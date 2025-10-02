@@ -92,51 +92,51 @@ serve(async (req) => {
     }));
     
     const response = {
-      summary: `Twitter buzz shows ${positivePercent > 60 ? 'strong positive' : 'mixed'} sentiment for "${searchTerms.slice(0, 80)}..." with ${totalTweets} recent tweets and ${positivePercent}% positive mentions.`,
-      metrics: {
-        total_tweets: totalTweets,
-        buzz_trend: totalTweets > 50 ? '+28% vs prior 90 days' : 'Low activity',
-        overall_sentiment: { 
-          positive: positivePercent, 
-          neutral: neutralPercent, 
-          negative: negativePercent 
-        },
-        top_hashtags: Array.from(hashtags).slice(0, 5),
-        influencers
-      },
-      clusters: [
-        {
-          cluster_id: 'recent_discussions',
-          title: 'Recent Discussions',
-          insight: `${totalTweets} tweets found with ${positivePercent}% positive sentiment`,
-          sentiment: { positive: positivePercent, neutral: neutralPercent, negative: negativePercent },
-          engagement: { 
-            avg_likes: tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.like_count || 0), 0) / totalTweets,
-            avg_retweets: tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.retweet_count || 0), 0) / totalTweets
+      twitter_buzz: {
+        summary: `Twitter buzz shows ${positivePercent > 60 ? 'strong positive' : 'mixed'} sentiment for "${searchTerms.slice(0, 80)}..." with ${totalTweets} recent tweets and ${positivePercent}% positive mentions.`,
+        metrics: {
+          total_tweets: totalTweets,
+          buzz_trend: totalTweets > 50 ? '+28% vs prior 90 days' : 'Low activity',
+          overall_sentiment: { 
+            positive: positivePercent, 
+            neutral: neutralPercent, 
+            negative: negativePercent 
           },
-          hashtags: Array.from(hashtags).slice(0, 5),
-          quotes: tweets.slice(0, 2).map((t: any) => ({
-            text: t.text.substring(0, 100),
-            sentiment: positiveCount > negativeCount ? 'positive' : 'neutral'
-          })),
-          citations: [
-            { source: 'twitter.com', url: `https://twitter.com/search?q=${encodeURIComponent(searchTerms)}` }
-          ]
-        }
-      ],
-      charts: [],
-      visuals_ready: true,
-      confidence: totalTweets > 20 ? 'High' : 'Medium',
-      updatedAt: new Date().toISOString()
+          top_hashtags: Array.from(hashtags).slice(0, 5),
+          influencers
+        },
+        clusters: [
+          {
+            cluster_id: 'recent_discussions',
+            title: 'Recent Discussions',
+            insight: `${totalTweets} tweets found with ${positivePercent}% positive sentiment`,
+            sentiment: { positive: positivePercent, neutral: neutralPercent, negative: negativePercent },
+            engagement: { 
+              avg_likes: tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.like_count || 0), 0) / totalTweets,
+              avg_retweets: tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.retweet_count || 0), 0) / totalTweets
+            },
+            hashtags: Array.from(hashtags).slice(0, 5),
+            quotes: tweets.slice(0, 2).map((t: any) => ({
+              text: t.text.substring(0, 100),
+              sentiment: positiveCount > negativeCount ? 'positive' : 'neutral'
+            })),
+            citations: [
+              { source: 'twitter.com', url: `https://twitter.com/search?q=${encodeURIComponent(searchTerms)}` }
+            ]
+          }
+        ],
+        charts: [],
+        visuals_ready: true,
+        confidence: totalTweets > 20 ? 'High' : 'Medium',
+        updatedAt: new Date().toISOString()
+      }
     };
     
-    const etag = `"${Date.now()}-${Math.random().toString(36).substr(2, 9)}"`;
     
     return new Response(JSON.stringify(response), {
       headers: { 
         ...corsHeaders, 
-        'Content-Type': 'application/json',
-        'ETag': etag
+        'Content-Type': 'application/json'
       },
     });
   } catch (error) {

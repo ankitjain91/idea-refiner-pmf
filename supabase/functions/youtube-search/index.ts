@@ -112,51 +112,50 @@ serve(async (req) => {
       }));
     
     const response = {
-      summary: `YouTube shows ${totalVideos} videos about "${searchTerms.slice(0, 80)}..." with ${totalViews.toLocaleString()} total views and ${positivePercent}% positive sentiment.`,
-      metrics: {
-        total_views: totalViews,
-        avg_engagement_rate: '6%', // This would require likes/comments calculation
-        overall_sentiment: { 
-          positive: positivePercent, 
-          neutral: neutralPercent, 
-          negative: negativePercent 
-        },
-        top_channels: topChannels,
-        trend_delta_views: totalViews > 1000000 ? '+32% vs prior 12 months' : 'Moderate activity'
-      },
-      clusters: [
-        {
-          cluster_id: 'tutorials_adoption',
-          title: 'Tutorials & Content',
-          insight: `${totalVideos} videos found with ${totalViews.toLocaleString()} total views, showing ${positivePercent > 60 ? 'strong' : 'moderate'} interest.`,
-          metrics: {
-            avg_views: avgViews,
-            avg_comments: Math.round(videoStats.reduce((sum: number, v: any) => sum + parseInt(v.statistics.commentCount || 0), 0) / totalVideos),
-            sentiment: { positive: positivePercent, neutral: neutralPercent, negative: negativePercent }
+      youtube_analytics: {
+        summary: `YouTube shows ${totalVideos} videos about "${searchTerms.slice(0, 80)}..." with ${totalViews.toLocaleString()} total views and ${positivePercent}% positive sentiment.`,
+        metrics: {
+          total_views: totalViews,
+          avg_engagement_rate: '6%', // This would require likes/comments calculation
+          overall_sentiment: { 
+            positive: positivePercent, 
+            neutral: neutralPercent, 
+            negative: negativePercent 
           },
-          quotes: videoStats.slice(0, 2).map((v: any) => ({
-            text: v.snippet.title.substring(0, 100),
-            sentiment: positiveCount > negativeCount ? 'positive' : 'neutral'
-          })),
-          citations: [
-            { source: 'youtube.com', url: `https://youtube.com/results?search_query=${encodeURIComponent(searchTerms)}` }
-          ]
-        }
-      ],
-      charts: [],
-      visuals_ready: true,
-      confidence: totalVideos > 10 ? 'High' : 'Medium',
-      updatedAt: new Date().toISOString()
+          top_channels: topChannels,
+          trend_delta_views: totalViews > 1000000 ? '+32% vs prior 12 months' : 'Moderate activity'
+        },
+        clusters: [
+          {
+            cluster_id: 'tutorials_adoption',
+            title: 'Tutorials & Content',
+            insight: `${totalVideos} videos found with ${totalViews.toLocaleString()} total views, showing ${positivePercent > 60 ? 'strong' : 'moderate'} interest.`,
+            metrics: {
+              avg_views: avgViews,
+              avg_comments: Math.round(videoStats.reduce((sum: number, v: any) => sum + parseInt(v.statistics.commentCount || 0), 0) / totalVideos),
+              sentiment: { positive: positivePercent, neutral: neutralPercent, negative: negativePercent }
+            },
+            quotes: videoStats.slice(0, 2).map((v: any) => ({
+              text: v.snippet.title.substring(0, 100),
+              sentiment: positiveCount > negativeCount ? 'positive' : 'neutral'
+            })),
+            citations: [
+              { source: 'youtube.com', url: `https://youtube.com/results?search_query=${encodeURIComponent(searchTerms)}` }
+            ]
+          }
+        ],
+        charts: [],
+        visuals_ready: true,
+        confidence: totalVideos > 10 ? 'High' : 'Medium',
+        updatedAt: new Date().toISOString()
+      }
     };
     
-    // Generate ETag for caching
-    const etag = `"${Date.now()}-${Math.random().toString(36).substr(2, 9)}"`;
     
     return new Response(JSON.stringify(response), {
       headers: { 
         ...corsHeaders, 
-        'Content-Type': 'application/json',
-        'ETag': etag
+        'Content-Type': 'application/json'
       },
     });
   } catch (error) {

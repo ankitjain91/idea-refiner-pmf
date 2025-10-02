@@ -289,34 +289,71 @@ serve(async (req) => {
     const themes = extractThemes(posts);
     const painPoints = extractPainPoints(posts);
     
-    // Build response
+    // Build response with expected structure
     const response = {
-      updatedAt: new Date().toISOString(),
-      filters: { idea, industry, geography, timeWindow },
-      metrics: [
-        { name: 'sentiment_positive', value: positivePercent, unit: '%', explanation: 'share of positive posts', confidence },
-        { name: 'sentiment_neutral', value: neutralPercent, unit: '%', explanation: 'share of neutral posts', confidence },
-        { name: 'sentiment_negative', value: negativePercent, unit: '%', explanation: 'share of negative posts', confidence },
-        { name: 'engagement_score', value: engagementScore, unit: '/100', explanation: 'avg upvotes & posts/week', confidence },
-        { name: 'community_positivity_score', value: cps, unit: '/100', explanation: '0.8*sentiment_core+0.2*engagement', confidence }
-      ],
-      themes,
-      pain_points: painPoints,
-      items: analyzedPosts.slice(0, 10).map(post => ({
-        title: post.title,
-        snippet: post.selftext,
-        url: `https://reddit.com${post.permalink}`,
-        published: new Date(post.created_utc * 1000).toISOString(),
-        source: `r/${post.subreddit}`,
-        evidence: [post.sentiment],
-        score: post.score,
-        num_comments: post.num_comments
-      })),
-      citations: [
-        { label: 'Reddit Search API', url: `https://reddit.com/search?q=${encodeURIComponent(searchTerms)}` }
-      ],
-      warnings: totalPosts < 20 ? ['Sparse results; signals may be noisy'] : [],
-      totalPosts
+      reddit_sentiment: {
+        updatedAt: new Date().toISOString(),
+        filters: { idea, industry, geography, timeWindow },
+        metrics: [
+          { name: 'sentiment_positive', value: positivePercent, unit: '%', explanation: 'share of positive posts', confidence },
+          { name: 'sentiment_neutral', value: neutralPercent, unit: '%', explanation: 'share of neutral posts', confidence },
+          { name: 'sentiment_negative', value: negativePercent, unit: '%', explanation: 'share of negative posts', confidence },
+          { name: 'engagement_score', value: engagementScore, unit: '/100', explanation: 'avg upvotes & posts/week', confidence },
+          { name: 'community_positivity_score', value: cps, unit: '/100', explanation: '0.8*sentiment_core+0.2*engagement', confidence }
+        ],
+        overall_sentiment: {
+          positive: positivePercent,
+          neutral: neutralPercent,
+          negative: negativePercent,
+          total_posts: totalPosts,
+          total_comments: posts.reduce((sum, p) => sum + p.num_comments, 0)
+        },
+        themes,
+        pain_points: painPoints,
+        items: analyzedPosts.slice(0, 10).map(post => ({
+          title: post.title,
+          snippet: post.selftext,
+          url: `https://reddit.com${post.permalink}`,
+          published: new Date(post.created_utc * 1000).toISOString(),
+          source: `r/${post.subreddit}`,
+          evidence: [post.sentiment],
+          score: post.score,
+          num_comments: post.num_comments
+        })),
+        clusters: [
+          {
+            cluster_id: 'reddit_discussions',
+            title: 'Community Discussions',
+            sentiment: { positive: positivePercent, neutral: neutralPercent, negative: negativePercent },
+            metrics: {
+              engagement: { avg_upvotes: Math.round(avgUpvotes), avg_comments: Math.round(posts.reduce((sum, p) => sum + p.num_comments, 0) / totalPosts) },
+              recency_days_median: 15,
+              subreddit_distribution: posts.reduce((acc, p) => {
+                acc[`r/${p.subreddit}`] = (acc[`r/${p.subreddit}`] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>)
+            },
+            insight: `Found ${totalPosts} Reddit posts with ${positivePercent}% positive sentiment across ${new Set(posts.map(p => p.subreddit)).size} subreddits`,
+            quotes: analyzedPosts.slice(0, 3).map(p => ({
+              text: p.title.substring(0, 100),
+              sentiment: p.sentiment,
+              subreddit: `r/${p.subreddit}`,
+              upvotes: p.score
+            })),
+            citations: [
+              { source: 'Reddit Search API', url: `https://reddit.com/search?q=${encodeURIComponent(searchTerms)}` }
+            ]
+          }
+        ],
+        charts: [],
+        visuals_ready: true,
+        confidence: totalPosts > 20 ? 'High' : totalPosts > 5 ? 'Moderate' : 'Low',
+        citations: [
+          { label: 'Reddit Search API', url: `https://reddit.com/search?q=${encodeURIComponent(searchTerms)}` }
+        ],
+        warnings: totalPosts < 20 ? ['Sparse results; signals may be noisy'] : [],
+        totalPosts
+      }
     };
     
     console.log('[reddit-sentiment] Analysis complete:', {
