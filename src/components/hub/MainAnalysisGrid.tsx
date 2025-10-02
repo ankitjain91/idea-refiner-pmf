@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
-import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
+import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
 import { OptimizedCompetitionTile } from "@/components/competition/OptimizedCompetitionTile";
 import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
@@ -243,9 +243,10 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
           if (tile.id === "market_size") {
             return (
               <div key={tile.id} className={tile.span}>
-                <EnhancedMarketSizeTile 
-                  idea={currentIdea} 
-                  initialData={sanitizeTileData(tiles.market_size) || null}
+                <ExecutiveMarketSizeTile 
+                  idea={currentIdea}
+                  ideaContext={currentIdea}
+                  dataHub={tiles}
                   onRefresh={async () => {
                     if (onRefreshTile) {
                       toast.info('Refreshing market size data...');

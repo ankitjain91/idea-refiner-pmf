@@ -20,7 +20,7 @@ import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { createConversationSummary } from "@/utils/conversationUtils";
-import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
+import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
 
 export default function EnterpriseHub() {
   const { user } = useAuth();
