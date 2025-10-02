@@ -323,13 +323,6 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
 
   const extendedTiles = [
     { 
-      id: "web_search", 
-      title: "Web Search", 
-      icon: Search,
-      data: webSearchData,
-      span: "col-span-full lg:col-span-2"
-    },
-    { 
       id: "reddit_sentiment", 
       title: "Reddit Sentiment", 
       icon: MessageSquare,
