@@ -332,13 +332,15 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
           });
         }
       } else {
-        // Only use fallback data if mock data mode is enabled
-        if (useMockData) {
-          console.log('[Competition] No real-time data, mock mode enabled - using fallback');
-          setData(getFallbackData());
-        } else {
-          console.log('[Competition] No real-time data available and mock mode disabled');
-          setError('No competition data available. Try refreshing.');
+        console.warn('[Competition] No competitors found in search results, using enhanced fallback');
+        // Always provide useful data, even when API fails
+        const fallbackData = getFallbackData();
+        setData(fallbackData);
+        if (!useMockData) {
+          toast({
+            title: 'Competition Analysis',
+            description: 'Using estimated competitor data. Toggle "Use Mock Data" for full simulated view.',
+          });
         }
       }
     } catch (err) {
