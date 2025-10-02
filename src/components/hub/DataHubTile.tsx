@@ -692,12 +692,12 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               {(tileType === 'market-trends' || tileType === 'market_trends') && (
                 <>
                   {/* Display main trends */}
-                  {((data as any)?.trends || (data as any)?.json?.trends) && (
+                  {((data as any)?.trends?.length > 0) && (
                     <Card className="border-primary/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Current Market Trends</div>
                         <div className="space-y-2">
-                          {((data as any)?.trends || (data as any)?.json?.trends || []).slice(0, 5).map((trend: string, idx: number) => (
+                          {((data as any).trends || []).slice(0, 5).map((trend: string, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <TrendingUp className="h-3 w-3 text-primary mt-0.5" />
                               <span className="text-xs leading-relaxed">{trend}</span>
@@ -709,12 +709,12 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display drivers */}
-                  {((data as any)?.drivers || (data as any)?.json?.drivers) && (
+                  {((data as any)?.drivers?.length > 0) && (
                     <Card className="border-accent/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Key Market Drivers</div>
                         <div className="grid grid-cols-1 gap-2">
-                          {((data as any)?.drivers || (data as any)?.json?.drivers || []).map((driver: string, idx: number) => (
+                          {((data as any).drivers || []).map((driver: string, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <ChevronRight className="h-3 w-3 text-primary mt-0.5" />
                               <span className="text-xs leading-relaxed">{driver}</span>
@@ -726,12 +726,12 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display emerging tech */}
-                  {((data as any)?.emergingTech || (data as any)?.json?.emergingTech) && (
+                  {((data as any)?.emergingTech?.length > 0) && (
                     <Card className="border-primary/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Emerging Technologies</div>
                         <div className="flex flex-wrap gap-2">
-                          {((data as any)?.emergingTech || (data as any)?.json?.emergingTech || []).map((tech: string, idx: number) => (
+                          {((data as any).emergingTech || []).map((tech: string, idx: number) => (
                             <Badge key={idx} variant="outline" className="text-xs">
                               <Sparkles className="h-3 w-3 mr-1" />
                               {tech}
@@ -743,12 +743,12 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display consumer shifts */}
-                  {((data as any)?.consumerShifts || (data as any)?.json?.consumerShifts) && (
+                  {((data as any)?.consumerShifts?.length > 0) && (
                     <Card className="border-accent/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Consumer Behavior Shifts</div>
                         <div className="space-y-2">
-                          {((data as any)?.consumerShifts || (data as any)?.json?.consumerShifts || []).map((shift: string, idx: number) => (
+                          {((data as any).consumerShifts || []).map((shift: string, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <Users className="h-3 w-3 text-accent mt-0.5" />
                               <span className="text-xs leading-relaxed">{shift}</span>
@@ -786,12 +786,12 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display investment trends */}
-                  {((data as any)?.investmentTrends || (data as any)?.json?.investmentTrends) && (
+                  {((data as any)?.investmentTrends?.length > 0) && (
                     <Card className="border-accent/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Investment Trends</div>
                         <div className="space-y-2">
-                          {((data as any)?.investmentTrends || (data as any)?.json?.investmentTrends || []).map((trend: string, idx: number) => (
+                          {((data as any).investmentTrends || []).map((trend: string, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <DollarSign className="h-3 w-3 text-success mt-0.5" />
                               <span className="text-xs leading-relaxed">{trend}</span>
@@ -803,12 +803,12 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
                   )}
                   
                   {/* Display disruptions */}
-                  {((data as any)?.disruptions || (data as any)?.json?.disruptions) && (
+                  {((data as any)?.disruptions?.length > 0) && (
                     <Card className="border-destructive/20">
                       <CardContent className="pt-4">
                         <div className="text-xs text-muted-foreground mb-3">Industry Disruptions</div>
                         <div className="space-y-2">
-                          {((data as any)?.disruptions || (data as any)?.json?.disruptions || []).map((disruption: string, idx: number) => (
+                          {((data as any).disruptions || []).map((disruption: string, idx: number) => (
                             <div key={idx} className="flex items-start gap-2">
                               <Zap className="h-3 w-3 text-destructive mt-0.5" />
                               <span className="text-xs leading-relaxed">{disruption}</span>

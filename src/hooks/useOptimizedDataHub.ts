@@ -134,7 +134,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
           'sentiment', 'market_trends', 'competition', 'user_engagement',
           'financial', 'news_analysis', 'growth_potential', 'market_readiness',
           'competitive_advantage', 'risk_assessment', 'pmf_score', 'market_size',
-          'google_trends', 'web_search', 'reddit_sentiment', 'twitter_buzz'
+          'google_trends', 'web_search', 'reddit_sentiment', 'twitter_buzz',
+          'reddit', 'twitter', 'linkedin'
         ];
         
         const tiles: Record<string, TileData> = {};
@@ -214,6 +215,34 @@ export function useOptimizedDataHub(input: DataHubInput) {
             return;
           }
           
+          // Handle platform-specific tiles
+          if (['reddit', 'twitter', 'linkedin'].includes(tileType)) {
+            const platformData = await optimizedService.current.getDataForPlatform(tileType, input.idea);
+            
+            if (platformData) {
+              cacheStatsTracker.misses++;
+              
+              const tileData: TileData = {
+                metrics: platformData.metrics || {},
+                explanation: platformData.insights?.summary || 
+                              platformData.notes || 
+                              `${tileType} analysis`,
+                citations: platformData.citations?.map(c => 
+                  typeof c === 'string' ? { url: c, title: 'Source', source: tileType, relevance: 0.8 } : c
+                ) || [],
+                charts: [],
+                json: platformData.items?.[0] || platformData.metrics || {},
+                confidence: platformData.confidence || 0.7,
+                dataQuality: platformData.confidence > 0.8 ? 'high' : 
+                             platformData.confidence > 0.6 ? 'medium' : 'low'
+              };
+              
+              tiles[tileType] = tileData;
+              console.log(`[OptimizedDataHub] ${tileType} platform data loaded`);
+            }
+            return;
+          }
+          
           // Use optimized service for other tiles
           const optimizedData = await optimizedService.current.getDataForTile(tileType, input.idea);
           
@@ -244,6 +273,17 @@ export function useOptimizedDataHub(input: DataHubInput) {
               ...(tileType === 'sentiment' && (optimizedData as any).data?.socialSentiment ? {
                 socialSentiment: (optimizedData as any).data.socialSentiment,
                 searchVolume: (optimizedData as any).data.searchVolume
+              } : {}),
+              // IMPORTANT: Preserve market trends data
+              ...(tileType === 'market_trends' || tileType === 'market-trends' ? {
+                trends: (optimizedData.insights as any)?.trends || [],
+                drivers: (optimizedData.insights as any)?.drivers || [],
+                direction: (optimizedData.insights as any)?.direction || 'stable',
+                emergingTech: (optimizedData.insights as any)?.emergingTech || [],
+                growthRate: (optimizedData.insights as any)?.growthRate || 0,
+                consumerShifts: (optimizedData.insights as any)?.consumerShifts || [],
+                disruptions: (optimizedData.insights as any)?.disruptions || [],
+                investmentTrends: (optimizedData.insights as any)?.investmentTrends || []
               } : {})
             };
             
