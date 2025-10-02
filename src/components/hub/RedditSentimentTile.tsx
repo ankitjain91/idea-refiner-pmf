@@ -407,9 +407,11 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
       <CardContent className="p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 px-4">
+          <TabsList className="grid w-full grid-cols-6 px-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="clusters">Themes</TabsTrigger>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="themes">Themes</TabsTrigger>
+            <TabsTrigger value="clusters">Clusters</TabsTrigger>
             <TabsTrigger value="quotes">Quotes</TabsTrigger>
             <TabsTrigger value="trends">Trends</TabsTrigger>
           </TabsList>
