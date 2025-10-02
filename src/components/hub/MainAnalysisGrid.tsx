@@ -3,6 +3,7 @@ import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
 import { OptimizedCompetitionTile } from "@/components/competition/OptimizedCompetitionTile";
+import { GoogleTrendsTile } from "./GoogleTrendsTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -214,7 +215,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
       <div className="grid grid-cols-1 gap-6">
         {displayTiles.map((tile) => {
           
-          // Use enhanced tiles for market_size and competition
+          // Use enhanced tiles for market_size, competition, and google_trends
           if (tile.id === "market_size") {
             return (
               <div key={tile.id} className={tile.span}>
@@ -244,6 +245,18 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
                       await onRefreshTile('competition');
                     }
                   }}
+                />
+              </div>
+            );
+          }
+          
+          if (tile.id === "google_trends") {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <GoogleTrendsTile 
+                  data={sanitizeTileData(tiles.google_trends)}
+                  loading={loading}
+                  className="h-full"
                 />
               </div>
             );
