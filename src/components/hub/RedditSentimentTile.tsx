@@ -123,6 +123,9 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
     setError(null);
 
     try {
+      // Prefetch related data in background
+      optimizedQueue.prefetchRelated('reddit-sentiment', { idea, detailed: true });
+      
       const response = await optimizedQueue.invokeFunction('reddit-sentiment', {
         idea,
         detailed: true

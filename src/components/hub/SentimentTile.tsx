@@ -138,6 +138,9 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
     setError(null);
 
     try {
+      // Prefetch related sentiment data
+      optimizedQueue.prefetchRelated('unified-sentiment', { idea, detailed: true });
+      
       const response = await optimizedQueue.invokeFunction('unified-sentiment', {
         idea,
         detailed: true

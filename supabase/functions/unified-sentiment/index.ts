@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Cache-Control': 'public, max-age=3600, s-maxage=3600', // Cache for 1 hour
 };
 
 serve(async (req) => {
@@ -23,9 +24,19 @@ serve(async (req) => {
     // Aggregate sentiment from multiple sources
     const sentimentData = await analyzeUnifiedSentiment(idea, detailed);
 
+    // Add ETag for cache validation
+    const etag = `"${btoa(JSON.stringify({ idea: idea.slice(0, 50), timestamp: Math.floor(Date.now() / 3600000) }))}"`;
+
     return new Response(
       JSON.stringify({ sentiment: sentimentData }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'ETag': etag,
+          'X-Cache-Status': 'MISS' 
+        } 
+      }
     );
   } catch (error) {
     console.error('[unified-sentiment] Error:', error);

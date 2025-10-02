@@ -50,27 +50,77 @@ export class OptimizedRequestQueue {
     return response;
   }
 
-  // Optimized Supabase function invocation
+  // Optimized Supabase function invocation with heavy caching
   async invokeFunction(functionName: string, body?: any): Promise<any> {
     const cacheKey = `fn:${functionName}:${JSON.stringify(body || {})}`;
     
-    // Check cache first
+    // Check multiple cache layers
     const cachedData = await this.checkCache(cacheKey);
     if (cachedData) {
       console.log(`[OptimizedQueue] Function cache HIT: ${functionName}`);
+      // Add small delay to prevent cache stampede
+      await new Promise(resolve => setTimeout(resolve, 10));
       return cachedData;
+    }
+
+    // Check if identical request is already in flight (deduplication)
+    const inFlightKey = `inflight:${cacheKey}`;
+    const inFlightRequest = this.getInFlightRequest(inFlightKey);
+    if (inFlightRequest) {
+      console.log(`[OptimizedQueue] Deduping request: ${functionName}`);
+      return await inFlightRequest;
     }
 
     // Queue through optimization pipeline
     console.log(`[OptimizedQueue] Function cache MISS, queueing: ${functionName}`);
-    const result = await baseInvoke(functionName, body);
     
-    // Cache the result
-    if (result && !result.error) {
-      await this.storeInCache(cacheKey, result, functionName);
+    // Store promise for deduplication
+    const requestPromise = baseInvoke(functionName, body);
+    this.setInFlightRequest(inFlightKey, requestPromise);
+    
+    try {
+      const result = await requestPromise;
+      
+      // Cache the result with extended TTL for sentiment/reddit data
+      if (result && !result.error) {
+        const ttl = this.getTTLForFunction(functionName);
+        await this.storeInCache(cacheKey, result, functionName, ttl);
+      }
+      
+      return result;
+    } finally {
+      // Clean up in-flight tracking
+      this.clearInFlightRequest(inFlightKey);
     }
+  }
+
+  // In-flight request tracking for deduplication
+  private inFlightRequests = new Map<string, Promise<any>>();
+
+  private getInFlightRequest(key: string): Promise<any> | undefined {
+    return this.inFlightRequests.get(key);
+  }
+
+  private setInFlightRequest(key: string, promise: Promise<any>): void {
+    this.inFlightRequests.set(key, promise);
+  }
+
+  private clearInFlightRequest(key: string): void {
+    this.inFlightRequests.delete(key);
+  }
+
+  // Function-specific TTL configuration
+  private getTTLForFunction(functionName: string): number {
+    const ttlMap: Record<string, number> = {
+      'reddit-sentiment': 7200000, // 2 hours for Reddit data
+      'unified-sentiment': 7200000, // 2 hours for unified sentiment
+      'market-trends': 3600000, // 1 hour for market trends
+      'google-trends': 3600000, // 1 hour for Google trends
+      'news-analysis': 1800000, // 30 minutes for news (more dynamic)
+      'web-search': 3600000, // 1 hour for web search
+    };
     
-    return result;
+    return ttlMap[functionName] || 3600000; // Default 1 hour
   }
 
   private generateCacheKey(url: string, options?: any): string {
@@ -116,7 +166,9 @@ export class OptimizedRequestQueue {
     return null;
   }
 
-  private async storeInCache(key: string, data: any, source: string): Promise<void> {
+  private async storeInCache(key: string, data: any, source: string, ttl?: number): Promise<void> {
+    const effectiveTTL = ttl || 3600000; // Default 1 hour
+    
     try {
       // Store in unified response cache
       await this.cache.storeResponse({
@@ -124,7 +176,7 @@ export class OptimizedRequestQueue {
         source,
         endpoint: key,
         rawResponse: data,
-        expiresAt: Date.now() + 3600000, // 1 hour
+        expiresAt: Date.now() + effectiveTTL,
         metadata: {
           confidence: 0.9,
           extractedTopics: [key]
@@ -205,6 +257,62 @@ export class OptimizedRequestQueue {
     }
     
     console.log('[OptimizedQueue] All caches cleared');
+  }
+  // Warm cache for common requests
+  async warmCache(idea: string): Promise<void> {
+    const warmupFunctions = [
+      { name: 'unified-sentiment', body: { idea, detailed: true } },
+      { name: 'reddit-sentiment', body: { idea, detailed: true } },
+      { name: 'market-trends', body: { idea } },
+      { name: 'google-trends', body: { idea } },
+      { name: 'web-search', body: { idea_keywords: idea } }
+    ];
+
+    console.log(`[OptimizedQueue] Warming cache for: ${idea}`);
+    
+    // Parallel cache warming with staggered delays
+    await Promise.all(
+      warmupFunctions.map(async (fn, index) => {
+        // Stagger requests by 100ms to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, index * 100));
+        
+        try {
+          await this.invokeFunction(fn.name, fn.body);
+          console.log(`[OptimizedQueue] Warmed ${fn.name}`);
+        } catch (error) {
+          console.warn(`[OptimizedQueue] Failed to warm ${fn.name}:`, error);
+        }
+      })
+    );
+  }
+
+  // Batch prefetch for related data
+  async prefetchRelated(functionName: string, body: any): Promise<void> {
+    // Define related functions to prefetch
+    const relatedFunctions: Record<string, Array<{ name: string; body?: any }>> = {
+      'unified-sentiment': [
+        { name: 'reddit-sentiment', body },
+        { name: 'social-sentiment', body }
+      ],
+      'market-trends': [
+        { name: 'google-trends', body },
+        { name: 'market-size-analysis', body }
+      ]
+    };
+
+    const related = relatedFunctions[functionName];
+    if (related) {
+      // Prefetch in background without blocking
+      setTimeout(async () => {
+        for (const fn of related) {
+          try {
+            await this.invokeFunction(fn.name, fn.body || body);
+          } catch (error) {
+            console.warn(`[OptimizedQueue] Prefetch failed for ${fn.name}`);
+          }
+        }
+      }, 500);
+    }
   }
 }
 

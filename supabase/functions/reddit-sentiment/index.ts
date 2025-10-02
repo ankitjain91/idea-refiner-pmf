@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Cache-Control': 'public, max-age=3600, s-maxage=3600', // Cache for 1 hour
 }
 
 // Reddit OAuth helper
@@ -324,8 +325,16 @@ serve(async (req) => {
       cps
     });
     
+    // Add ETag for cache validation
+    const etag = `"${btoa(JSON.stringify({ idea: idea.slice(0, 50), timestamp: Math.floor(Date.now() / 3600000) }))}"`;
+    
     return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'ETag': etag,
+        'X-Cache-Status': 'MISS' 
+      },
     });
   } catch (error) {
     console.error('[reddit-sentiment] Error:', error);
