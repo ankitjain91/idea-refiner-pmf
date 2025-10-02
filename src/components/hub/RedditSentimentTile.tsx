@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   MessageSquare, TrendingUp, TrendingDown, Users, 
   ThumbsUp, AlertCircle, Quote, Activity, Hash,
-  Calendar, ChevronRight, ExternalLink, Sparkles
+  Calendar, ChevronRight, ExternalLink, Sparkles, RefreshCw
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
@@ -105,6 +105,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
   const [error, setError] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<RedditCluster | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (idea) {
@@ -120,6 +121,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
     }
 
     setLoading(true);
+    setIsRefreshing(false);
     setError(null);
 
     try {
@@ -147,6 +149,14 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
       setData(generateSyntheticData(idea));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!isRefreshing) {
+      setIsRefreshing(true);
+      await fetchRedditSentiment();
+      setTimeout(() => setIsRefreshing(false), 500);
     }
   };
 
@@ -378,9 +388,19 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
             <MessageSquare className="h-5 w-5 text-orange-500" />
             Reddit Sentiment Analysis
           </CardTitle>
-          <Badge variant={data.confidence === 'High' ? 'default' : 'secondary'}>
-            {data.confidence} Confidence
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
+            </Button>
+            <Badge variant={data.confidence === 'High' ? 'default' : 'secondary'}>
+              {data.confidence} Confidence
+            </Badge>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">{data.summary}</p>
       </CardHeader>

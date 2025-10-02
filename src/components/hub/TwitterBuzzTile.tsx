@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { TrendingUp, TrendingDown, Twitter, Hash, Users, MessageCircle, Heart, Repeat2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Twitter, Hash, Users, MessageCircle, Heart, Repeat2, RefreshCw } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend, Tooltip as RechartsTooltip, ScatterChart, Scatter } from 'recharts';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
 
@@ -44,46 +45,56 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setIsRefreshing(false);
+      setError(null);
+      
+      // Use optimized queue for caching (add schema_version to bypass stale cache)
+      const response = await optimizedQueue.invokeFunction('twitter-search', {
+        query: idea,
+        idea: idea,
+        time_window: '90d',
+        schema_version: 'v2'
+      });
+      
+      // Prefetch related social data in background
+      optimizedQueue.prefetchRelated('twitter-search', { query: idea, idea: idea, schema_version: 'v2' });
+      
+      // Normalize payload shape
+      const payload = response?.twitter_buzz ? response.twitter_buzz : response;
+      
+      if (payload && payload.metrics && payload.metrics.overall_sentiment) {
+        setData(payload as TwitterBuzzData);
+      } else {
+        // Generate synthetic data if structure is missing or outdated
+        setData(generateSyntheticData(idea));
+      }
+    } catch (err) {
+      console.error('Error fetching Twitter buzz data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      // Fallback to synthetic data
+      setData(generateSyntheticData(idea));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!idea) return;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Use optimized queue for caching (add schema_version to bypass stale cache)
-        const response = await optimizedQueue.invokeFunction('twitter-search', {
-          query: idea,
-          time_window: '90d',
-          schema_version: 'v2'
-        });
-        
-        // Prefetch related social data in background
-        optimizedQueue.prefetchRelated('twitter-search', { query: idea, schema_version: 'v2' });
-        
-        // Normalize payload shape
-        const payload = response?.twitter_buzz ? response.twitter_buzz : response;
-        
-        if (payload && payload.metrics && payload.metrics.overall_sentiment) {
-          setData(payload as TwitterBuzzData);
-        } else {
-          // Generate synthetic data if structure is missing or outdated
-          setData(generateSyntheticData(idea));
-        }
-      } catch (err) {
-        console.error('Error fetching Twitter buzz data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        // Fallback to synthetic data
-        setData(generateSyntheticData(idea));
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [idea]);
+
+  const handleRefresh = async () => {
+    if (!isRefreshing) {
+      setIsRefreshing(true);
+      await fetchData();
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const generateSyntheticData = (ideaText: string): TwitterBuzzData => {
     const keywords = ideaText.toLowerCase().split(' ').filter(w => w.length > 4).slice(0, 3);
@@ -210,6 +221,14 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
             <CardTitle>Twitter/X Buzz Analysis</CardTitle>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
+            </Button>
             <Badge variant="outline" className="font-medium">
               {data.metrics.total_tweets.toLocaleString()} tweets
             </Badge>

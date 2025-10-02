@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -19,24 +20,48 @@ import {
   MessageCircle,
   ChevronRight,
   Target,
-  Zap
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 
 interface GoogleTrendsTileProps {
   data: any;
   loading?: boolean;
   className?: string;
+  onRefresh?: () => void;
 }
 
-export function GoogleTrendsTile({ data, loading, className }: GoogleTrendsTileProps) {
+export function GoogleTrendsTile({ data, loading, className, onRefresh }: GoogleTrendsTileProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true);
+      await onRefresh();
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
   if (loading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Google Trends Analysis
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Google Trends Analysis
+            </CardTitle>
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -53,10 +78,22 @@ export function GoogleTrendsTile({ data, loading, className }: GoogleTrendsTileP
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Google Trends Analysis
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Google Trends Analysis
+            </CardTitle>
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-8">No trends data available</p>
@@ -108,16 +145,28 @@ export function GoogleTrendsTile({ data, loading, className }: GoogleTrendsTileP
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
+        <div className="flex items-center justify-between w-full">
+          <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
             Google Trends Analysis
-          </span>
-          <Badge variant="outline" className="font-normal">
-            <Calendar className="h-3 w-3 mr-1" />
-            {timeRange}
-          </Badge>
-        </CardTitle>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+            <Badge variant="outline" className="font-normal">
+              <Calendar className="h-3 w-3 mr-1" />
+              {timeRange}
+            </Badge>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[600px] pr-4">

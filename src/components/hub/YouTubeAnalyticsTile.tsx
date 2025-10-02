@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, Youtube, Play, ThumbsUp, MessageSquare, Users, Eye } from 'lucide-react';
+import { TrendingUp, TrendingDown, Youtube, Play, ThumbsUp, MessageSquare, Users, Eye, RefreshCw } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   BarChart, Bar, Legend, Tooltip as RechartsTooltip, ScatterChart, 
@@ -54,46 +55,56 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setIsRefreshing(false);
+      setError(null);
+      
+      // Use optimized queue with schema versioning for cache busting
+      const response = await optimizedQueue.invokeFunction('youtube-search', {
+        query: idea,
+        idea: idea,
+        time_window: '12m',
+        schema_version: 'v1'
+      });
+      
+      // Prefetch related video data in background
+      optimizedQueue.prefetchRelated('youtube-search', { query: idea, idea: idea, schema_version: 'v1' });
+      
+      // Normalize response structure
+      const payload = response?.youtube_analytics ? response.youtube_analytics : response;
+      
+      if (payload && payload.metrics && payload.metrics.overall_sentiment) {
+        setData(payload as YouTubeAnalyticsData);
+      } else {
+        // Generate synthetic data if structure is missing
+        setData(generateSyntheticData(idea));
+      }
+    } catch (err) {
+      console.error('Error fetching YouTube analytics:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      // Fallback to synthetic data
+      setData(generateSyntheticData(idea));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!idea) return;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Use optimized queue with schema versioning for cache busting
-        const response = await optimizedQueue.invokeFunction('youtube-search', {
-          query: idea,
-          time_window: '12m',
-          schema_version: 'v1'
-        });
-        
-        // Prefetch related video data in background
-        optimizedQueue.prefetchRelated('youtube-search', { query: idea, schema_version: 'v1' });
-        
-        // Normalize response structure
-        const payload = response?.youtube_analytics ? response.youtube_analytics : response;
-        
-        if (payload && payload.metrics && payload.metrics.overall_sentiment) {
-          setData(payload as YouTubeAnalyticsData);
-        } else {
-          // Generate synthetic data if structure is missing
-          setData(generateSyntheticData(idea));
-        }
-      } catch (err) {
-        console.error('Error fetching YouTube analytics:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        // Fallback to synthetic data
-        setData(generateSyntheticData(idea));
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [idea]);
+
+  const handleRefresh = async () => {
+    if (!isRefreshing) {
+      setIsRefreshing(true);
+      await fetchData();
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const generateSyntheticData = (ideaText: string): YouTubeAnalyticsData => {
     const keywords = ideaText.toLowerCase().split(' ').filter(w => w.length > 4).slice(0, 3);
@@ -234,6 +245,14 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
             <CardTitle>YouTube Analytics</CardTitle>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
+            </Button>
             <Badge variant="outline" className="font-medium">
               <Eye className="h-3 w-3 mr-1" />
               {(data.metrics.total_views / 1000000).toFixed(1)}M views
