@@ -153,38 +153,89 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
     }
   },
   'market-trends': {
-    primarySources: ['market-insights', 'web-search-optimized'],
-    fallbackSources: ['serper-batch-search', 'gdelt-news'],
-    dataPoints: ['market_size', 'growth_rate', 'competition'],
-    freshnessHours: 24,
+    primarySources: ['market-insights', 'gdelt-news', 'web-search-optimized'],
+    fallbackSources: ['serper-batch-search', 'youtube-search', 'web-search'],
+    dataPoints: ['trend_analysis', 'growth_indicators', 'market_drivers', 'emerging_technologies'],
+    freshnessHours: 4,
     groqQuery: `
-      Extract market data including:
-      - Market size estimates (TAM, SAM, SOM)
-      - Growth rates and projections
-      - Competitor information
-      - Industry trends
+      Extract comprehensive market trends including:
+      - Current market trends and directions
+      - Growth indicators and projections
+      - Key market drivers and catalysts
+      - Emerging technologies and innovations
+      - Consumer behavior shifts
+      - Industry disruptions
+      - Regulatory changes
+      - Investment trends
     `,
     localExtractor: (data: any) => {
-      const marketData: any = {};
-      
-      // Extract market size mentions
+      const trendsData: any = {};
       const text = JSON.stringify(data).toLowerCase();
-      const billionMatch = text.match(/(\d+\.?\d*)\s*billion/);
-      const millionMatch = text.match(/(\d+\.?\d*)\s*million/);
       
-      if (billionMatch) {
-        marketData.tam = parseFloat(billionMatch[1]) * 1e9;
-      } else if (millionMatch) {
-        marketData.tam = parseFloat(millionMatch[1]) * 1e6;
+      // Extract growth indicators
+      const growthMatch = text.match(/(?:growth|cagr)[:\s]*(\d+\.?\d*)%?/gi);
+      if (growthMatch && growthMatch[0]) {
+        trendsData.growthRate = parseFloat(growthMatch[0].match(/\d+\.?\d*/)?.[0] || '0');
       }
       
-      // Extract CAGR
-      const cagrMatch = text.match(/(\d+\.?\d*)%?\s*cagr/i);
-      if (cagrMatch) {
-        marketData.cagr = parseFloat(cagrMatch[1]);
+      // Extract trend keywords and descriptions
+      const trendPatterns = [
+        /(?:emerging|trending|rising|growing) (?:technologies?|trends?|sectors?|markets?)[^.]*\./gi,
+        /(?:market is|industry is) (?:shifting|moving|trending)[^.]*\./gi,
+        /(?:key|major|significant) (?:trend|driver|catalyst)[^.]*\./gi
+      ];
+      
+      const trends: string[] = [];
+      trendPatterns.forEach(pattern => {
+        const matches = text.match(pattern) || [];
+        trends.push(...matches.map(m => m.trim().substring(0, 150)));
+      });
+      
+      if (trends.length > 0) {
+        trendsData.trends = [...new Set(trends)].slice(0, 5);
       }
       
-      return Object.keys(marketData).length > 0 ? marketData : null;
+      // Extract market drivers
+      const driverPatterns = [
+        /(?:driven by|fueled by|powered by|catalyzed by)[^.]*\./gi,
+        /(?:due to|because of|as a result of)[^.]*\./gi,
+        /(?:key|main|primary) driver[s]?[^.]*\./gi
+      ];
+      
+      const drivers: string[] = [];
+      driverPatterns.forEach(pattern => {
+        const matches = text.match(pattern) || [];
+        drivers.push(...matches.map(m => m.trim().substring(0, 100)));
+      });
+      
+      if (drivers.length > 0) {
+        trendsData.drivers = [...new Set(drivers)].slice(0, 4);
+      }
+      
+      // Extract emerging technologies
+      const techKeywords = ['ai', 'blockchain', 'iot', 'cloud', '5g', 'quantum', 'sustainable', 'renewable'];
+      const technologies: string[] = [];
+      techKeywords.forEach(tech => {
+        if (text.includes(tech)) {
+          technologies.push(tech.toUpperCase());
+        }
+      });
+      
+      if (technologies.length > 0) {
+        trendsData.emergingTech = technologies;
+      }
+      
+      // Determine trend direction
+      const positiveIndicators = (text.match(/(?:growth|rising|increasing|expanding|booming)/gi) || []).length;
+      const negativeIndicators = (text.match(/(?:declining|falling|decreasing|slowing|contracting)/gi) || []).length;
+      trendsData.direction = positiveIndicators > negativeIndicators ? 'upward' : 
+                             negativeIndicators > positiveIndicators ? 'downward' : 'stable';
+      
+      return Object.keys(trendsData).length > 0 ? {
+        ...trendsData,
+        confidence: 0.75,
+        timestamp: new Date().toISOString()
+      } : null;
     }
   },
   competition: {

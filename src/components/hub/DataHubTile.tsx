@@ -673,15 +673,15 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               )}
               
               {/* Display key drivers for market trends */}
-              {(data as any)?.drivers && (
+              {((data as any)?.drivers || (data as any)?.insights?.drivers) && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Key Market Drivers</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(data as any).drivers.map((driver: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <ChevronRight className="h-3 w-3 text-primary" />
-                          <span className="text-xs">{driver}</span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {((data as any)?.drivers || (data as any)?.insights?.drivers || []).map((driver: string, idx: number) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <ChevronRight className="h-3 w-3 text-primary mt-0.5" />
+                          <span className="text-xs leading-relaxed">{driver}</span>
                         </div>
                       ))}
                     </div>
