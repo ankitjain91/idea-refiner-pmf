@@ -9,9 +9,9 @@ const DataModeContext = createContext<DataModeContextType | undefined>(undefined
 
 export function DataModeProvider({ children }: { children: React.ReactNode }) {
   const [useMockData, setUseMockData] = useState(() => {
-    // Default to mock data (true)
+    // Default to real data (false) since API keys are configured
     const stored = localStorage.getItem('useMockData');
-    return stored !== null ? stored === 'true' : true;
+    return stored !== null ? stored === 'true' : false;
   });
 
   useEffect(() => {

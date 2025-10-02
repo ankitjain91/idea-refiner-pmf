@@ -6,6 +6,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -321,6 +322,31 @@ export default function EnterpriseHub() {
             </div>
             
             <div className="flex items-center gap-4">
+              {/* Mock Data Toggle */}
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-1 rounded-lg border",
+                useMockData 
+                  ? "bg-amber-500/10 border-amber-500/30" 
+                  : "bg-emerald-500/10 border-emerald-500/30"
+              )}>
+                <Label htmlFor="mock-mode" className="text-xs font-medium cursor-pointer">
+                  {useMockData ? "Mock Data" : "Real Data"}
+                </Label>
+                <Switch
+                  id="mock-mode"
+                  checked={!useMockData}
+                  onCheckedChange={(checked) => {
+                    setUseMockData(!checked);
+                    if (checked) {
+                      toast.success("Switched to real data with API keys");
+                    } else {
+                      toast.warning("Switched to mock data mode");
+                    }
+                  }}
+                  className="scale-90"
+                />
+              </div>
+              
               {/* Real-time Toggle */}
               <div className={cn(
                 "flex items-center gap-2 px-3 py-1 rounded-lg border",

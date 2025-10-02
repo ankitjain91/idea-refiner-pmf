@@ -102,7 +102,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
     
     try {
       if (useMockData) {
-        // Keep existing mock data logic
+        // Warn that mock data is being used when API keys are configured
+        console.warn('⚠️ Using MOCK DATA despite API keys being configured. Toggle off mock data for real data.');
         console.log('📊 Loading MOCK DATA for:', input.idea);
         await new Promise(resolve => setTimeout(resolve, 500));
         
@@ -121,9 +122,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
         });
         
         toast({
-          title: "Mock Data Loaded",
-          description: "Dashboard populated with sample data",
-          duration: 3000
+          title: "⚠️ Mock Data Mode",
+          description: "Using sample data. Toggle off mock mode for real data with API keys.",
+          variant: "default",
+          duration: 5000
         });
         
       } else {
@@ -494,17 +496,20 @@ export function useOptimizedDataHub(input: DataHubInput) {
         });
         
       } catch (fallbackError) {
+        const errorMessage = fallbackError instanceof Error ? fallbackError.message : 'Failed to load data';
+        console.error('❌ Data loading failed:', errorMessage);
+        
         setState(prev => ({
           ...prev,
           loading: false,
-          error: 'Failed to load data'
+          error: errorMessage
         }));
         
         toast({
-          title: "Error",
-          description: "Failed to load dashboard data",
+          title: "Data Loading Error",
+          description: `Failed to load dashboard data: ${errorMessage}. Please check API keys are configured correctly.`,
           variant: "destructive",
-          duration: 4000
+          duration: 6000
         });
       }
     }

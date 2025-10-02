@@ -102,7 +102,7 @@ export function ExecutiveMarketSizeTile({
       }
     } catch (error) {
       console.error('[ExecutiveMarketSizeTile] Error fetching market data:', error);
-      toast.error('Failed to fetch market analysis');
+      toast.error(`Failed to fetch market analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
