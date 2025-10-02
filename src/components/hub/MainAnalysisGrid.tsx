@@ -3,7 +3,7 @@ import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { EnhancedMarketSizeTile } from "@/components/market/EnhancedMarketSizeTile";
 import { OptimizedCompetitionTile } from "@/components/competition/OptimizedCompetitionTile";
-import { GoogleTrendsTile } from "./GoogleTrendsTile";
+import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
@@ -254,9 +254,8 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
           if (tile.id === "google_trends") {
             return (
               <div key={tile.id} className={tile.span}>
-                <GoogleTrendsTile 
-                  data={sanitizeTileData(tiles.google_trends)}
-                  loading={loading}
+                <SimpleGoogleTrendsTile 
+                  idea={currentIdea}
                   className="h-full"
                 />
               </div>
