@@ -312,12 +312,28 @@ export class OptimizedDashboardService {
     let socialSentimentData: any = null;
     let searchVolumeData: any = null;
     
+    console.log('[aggregateSentimentData] Processing responses:', responses.length);
+    
     responses.forEach(response => {
+      console.log('[aggregateSentimentData] Response:', {
+        id: response.id,
+        hasRawResponse: !!response.rawResponse,
+        hasSocialSentiment: !!response.rawResponse?.data?.socialSentiment,
+        rawData: response.rawResponse?.data
+      });
+      
       // Check if this is the social-sentiment response with rich data
       if (response.rawResponse?.data?.socialSentiment) {
         socialSentimentData = response.rawResponse.data.socialSentiment;
         searchVolumeData = response.rawResponse.data.searchVolume;
         sourceIds.push(response.id || 'social-sentiment');
+        console.log('[aggregateSentimentData] Found social sentiment data:', socialSentimentData);
+      } else if (response.rawResponse?.socialSentiment) {
+        // Check if socialSentiment is directly in rawResponse
+        socialSentimentData = response.rawResponse.socialSentiment;
+        searchVolumeData = response.rawResponse.searchVolume;
+        sourceIds.push(response.id || 'social-sentiment');
+        console.log('[aggregateSentimentData] Found social sentiment data (direct):', socialSentimentData);
       } else {
         const localExtractor = TILE_REQUIREMENTS.sentiment.localExtractor;
         if (localExtractor) {
@@ -332,7 +348,7 @@ export class OptimizedDashboardService {
     
     // If we have social sentiment data, use it as the primary source
     if (socialSentimentData) {
-      return {
+      const result = {
         data: {
           positive: socialSentimentData.positive || 65,
           neutral: socialSentimentData.neutral || 25,
@@ -341,16 +357,19 @@ export class OptimizedDashboardService {
           trend: socialSentimentData.trend || 'stable',
           socialSentiment: socialSentimentData,
           searchVolume: searchVolumeData,
-          sources: responses.map(r => r.id || 'unknown'),
-          confidence: responses[0]?.rawResponse?.data?.confidence || 0.85
+          sources: socialSentimentData.sources || responses.map(r => r.id || 'unknown'),
+          confidence: responses[0]?.rawResponse?.data?.confidence || responses[0]?.rawResponse?.confidence || 0.85
         },
-        confidence: responses[0]?.rawResponse?.data?.confidence || 0.85,
+        confidence: responses[0]?.rawResponse?.data?.confidence || responses[0]?.rawResponse?.confidence || 0.85,
         sourceIds
       };
+      console.log('[aggregateSentimentData] Returning social sentiment result:', result);
+      return result;
     }
     
     // Fallback to aggregation if no social sentiment data
     if (sentiments.length === 0) {
+      console.log('[aggregateSentimentData] No sentiment data found, using fallback');
       return {
         data: {
           positive: 65,

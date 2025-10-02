@@ -170,6 +170,14 @@ export function sanitizeTileData(data: any): any {
     }
   }
   
+  // IMPORTANT: Preserve the socialSentiment and searchVolume fields for rich display
+  if (data.socialSentiment && !sanitized.socialSentiment) {
+    sanitized.socialSentiment = data.socialSentiment;
+  }
+  if (data.searchVolume && !sanitized.searchVolume) {
+    sanitized.searchVolume = data.searchVolume;
+  }
+  
   // Sanitize metrics
   if (Array.isArray(sanitized.metrics)) {
     // Clamp percentage-like values where relevant

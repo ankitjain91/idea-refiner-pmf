@@ -196,6 +196,21 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
     const messageList = messages[tileType] || messages.default;
     return messageList[Math.floor(Math.random() * messageList.length)];
   };
+  
+  // Debug logging for sentiment data
+  React.useEffect(() => {
+    if (tileType === 'sentiment' && data) {
+      console.log('[DataHubTile] Sentiment data received:', {
+        tileType,
+        hasData: !!data,
+        dataKeys: Object.keys(data),
+        socialSentiment: (data as any)?.socialSentiment,
+        platforms: (data as any)?.socialSentiment?.platforms,
+        searchVolume: (data as any)?.searchVolume,
+        fullData: data
+      });
+    }
+  }, [tileType, data]);
 
   // Handle expand/collapse with lazy loading
   const handleToggleCollapse = () => {

@@ -239,7 +239,12 @@ export function useOptimizedDataHub(input: DataHubInput) {
               json: optimizedData.items?.[0] || optimizedData.metrics || {},
               confidence: optimizedData.confidence || 0.7,
               dataQuality: optimizedData.confidence > 0.8 ? 'high' : 
-                           optimizedData.confidence > 0.6 ? 'medium' : 'low'
+                           optimizedData.confidence > 0.6 ? 'medium' : 'low',
+              // IMPORTANT: Preserve rich sentiment data from the data object
+              ...(tileType === 'sentiment' && (optimizedData as any).data?.socialSentiment ? {
+                socialSentiment: (optimizedData as any).data.socialSentiment,
+                searchVolume: (optimizedData as any).data.searchVolume
+              } : {})
             };
             
             tiles[tileType] = tileData;
