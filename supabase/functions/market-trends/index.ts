@@ -617,17 +617,6 @@ Return ONLY valid JSON:
     return analyzeTrends(marketData, idea);
   }
 }
-  if (marketData.trends && marketData.trends.length > 0) {
-    return marketData.trends;
-  }
-  
-  // Fallback: generate default trends
-  const keywords = extractKeywords(idea);
-  const themes = generateTrendThemes(idea, keywords);
-  
-  return themes.map(theme => analyzeTrendTheme(theme, keywords, marketData));
-}
-
 
 function analyzeTrends(marketData: any, idea: string): any[] {
   if (marketData.trends && marketData.trends.length > 0) {
@@ -641,7 +630,7 @@ function analyzeTrends(marketData: any, idea: string): any[] {
   return themes.map(theme => analyzeTrendTheme(theme, keywords, marketData));
 }
 
-  const visuals = [];
+function generateVisuals(trend: any): any[] {
   
   // Timeline visualization
   const timelineData = [];
