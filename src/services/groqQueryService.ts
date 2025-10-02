@@ -81,7 +81,7 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
     }
   },
   sentiment: {
-    primarySources: ['reddit-sentiment', 'twitter-search'],
+    primarySources: ['social-sentiment', 'reddit-sentiment', 'twitter-search'],
     fallbackSources: ['web-search', 'gdelt-news'],
     dataPoints: ['sentiment_score', 'user_opinions', 'engagement_metrics'],
     freshnessHours: 1,
@@ -182,7 +182,7 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
     }
   },
   competition: {
-    primarySources: ['competition-chat', 'serper-batch-search'],
+    primarySources: ['competitive-landscape', 'competition-chat', 'serper-batch-search'],
     fallbackSources: ['web-search', 'gdelt-news'],
     dataPoints: ['competitors_list', 'market_leaders', 'differentiators'],
     freshnessHours: 48,

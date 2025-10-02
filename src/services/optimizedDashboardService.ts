@@ -229,6 +229,7 @@ export class OptimizedDashboardService {
     const endpointMap: Record<string, string> = {
       'reddit-sentiment': 'reddit-sentiment',
       'twitter-search': 'twitter-search',
+      'social-sentiment': 'social-sentiment',
       'market-insights': 'market-insights',
       'market-intelligence': 'market-intelligence',
       'market-size-analysis': 'market-size-analysis',
