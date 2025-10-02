@@ -5,6 +5,110 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to parse Google search results for profitability analysis
+function parseGoogleSearchResultsForProfitability(html: string): any {
+  const results = {
+    organic_results: [],
+    ads: [],
+    related_searches: [],
+    related_questions: [],
+    shopping_results: [],
+    inline_shopping: []
+  };
+
+  try {
+    // Extract organic results with enhanced parsing
+    const organicMatches = html.matchAll(/<a[^>]*href="([^"]*)"[^>]*>(?:<h3[^>]*>)?([^<]*)(?:<\/h3>)?/gi);
+    let position = 1;
+    
+    for (const match of organicMatches) {
+      const url = match[1];
+      const title = match[2];
+      
+      // Skip internal Google URLs and ensure we have valid data
+      if (url && !url.includes('google.com') && !url.includes('search?') && title && title.length > 10) {
+        // Clean the URL
+        let cleanUrl = url;
+        if (url.startsWith('/url?q=')) {
+          cleanUrl = decodeURIComponent(url.split('/url?q=')[1].split('&')[0]);
+        }
+        
+        // Try to extract snippet
+        const snippetPattern = new RegExp(`${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^>]*>([^<]{50,400})`, 'i');
+        const snippetMatch = html.match(snippetPattern);
+        
+        results.organic_results.push({
+          title: title.replace(/&[^;]+;/g, '').trim(),
+          link: cleanUrl,
+          snippet: snippetMatch ? snippetMatch[1].replace(/&[^;]+;/g, '').trim() : '',
+          position: position++
+        });
+      }
+    }
+
+    // Extract "People also ask" questions
+    const paaMatches = html.matchAll(/(?:People also ask|Related questions)[^<]*<[^>]*>([^<]*\?)/gi);
+    for (const match of paaMatches) {
+      const question = match[1];
+      if (question && question.length > 10) {
+        results.related_questions.push({ 
+          question: question.replace(/&[^;]+;/g, '').trim() 
+        });
+      }
+    }
+
+    // Alternative PAA extraction
+    const questionMatches = html.matchAll(/role="heading"[^>]*>([^<]*\?)/gi);
+    for (const match of questionMatches) {
+      const question = match[1];
+      if (question && !results.related_questions.some(q => q.question === question)) {
+        results.related_questions.push({ 
+          question: question.replace(/&[^;]+;/g, '').trim() 
+        });
+      }
+    }
+
+    // Extract related searches
+    const relatedSection = html.match(/Related searches[^<]*<[^>]*>([\s\S]*?)(?:<\/div>|<footer)/i);
+    if (relatedSection) {
+      const relatedMatches = relatedSection[1].matchAll(/>([^<]{3,100})</g);
+      for (const match of relatedMatches) {
+        const query = match[1];
+        if (query && !query.includes('>') && !query.includes('<')) {
+          results.related_searches.push({ 
+            query: query.replace(/&[^;]+;/g, '').trim() 
+          });
+        }
+      }
+    }
+
+    // Count ads and shopping results
+    const adMarkers = (html.match(/\bAd\b|\bSponsored\b|\bAds\b/gi) || []).length;
+    const shoppingMatches = (html.match(/Shopping results|Product listing/gi) || []).length;
+    
+    // Create placeholder ad entries based on count
+    for (let i = 0; i < Math.min(adMarkers, 5); i++) {
+      results.ads.push({ 
+        title: `Ad ${i + 1}`,
+        description: 'Sponsored result',
+        position: i + 1 
+      });
+    }
+    
+    // Add shopping results if found
+    if (shoppingMatches > 0) {
+      for (let i = 0; i < Math.min(shoppingMatches * 3, 6); i++) {
+        results.shopping_results.push({ position: i + 1 });
+      }
+    }
+
+  } catch (error) {
+    console.error('[web-search-profitability] Error parsing HTML:', error);
+  }
+
+  return results;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -413,110 +517,6 @@ serve(async (req) => {
             max_tokens: 400
           })
 });
-
-// Helper function to parse Google search results for profitability analysis
-function parseGoogleSearchResultsForProfitability(html: string): any {
-  const results = {
-    organic_results: [],
-    ads: [],
-    related_searches: [],
-    related_questions: [],
-    shopping_results: [],
-    inline_shopping: []
-  };
-
-  try {
-    // Extract organic results with enhanced parsing
-    const organicMatches = html.matchAll(/<a[^>]*href="([^"]*)"[^>]*>(?:<h3[^>]*>)?([^<]*)(?:<\/h3>)?/gi);
-    let position = 1;
-    
-    for (const match of organicMatches) {
-      const url = match[1];
-      const title = match[2];
-      
-      // Skip internal Google URLs and ensure we have valid data
-      if (url && !url.includes('google.com') && !url.includes('search?') && title && title.length > 10) {
-        // Clean the URL
-        let cleanUrl = url;
-        if (url.startsWith('/url?q=')) {
-          cleanUrl = decodeURIComponent(url.split('/url?q=')[1].split('&')[0]);
-        }
-        
-        // Try to extract snippet
-        const snippetPattern = new RegExp(`${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^>]*>([^<]{50,400})`, 'i');
-        const snippetMatch = html.match(snippetPattern);
-        
-        results.organic_results.push({
-          title: title.replace(/&[^;]+;/g, '').trim(),
-          link: cleanUrl,
-          snippet: snippetMatch ? snippetMatch[1].replace(/&[^;]+;/g, '').trim() : '',
-          position: position++
-        });
-      }
-    }
-
-    // Extract "People also ask" questions
-    const paaMatches = html.matchAll(/(?:People also ask|Related questions)[^<]*<[^>]*>([^<]*\?)/gi);
-    for (const match of paaMatches) {
-      const question = match[1];
-      if (question && question.length > 10) {
-        results.related_questions.push({ 
-          question: question.replace(/&[^;]+;/g, '').trim() 
-        });
-      }
-    }
-
-    // Alternative PAA extraction
-    const questionMatches = html.matchAll(/role="heading"[^>]*>([^<]*\?)/gi);
-    for (const match of questionMatches) {
-      const question = match[1];
-      if (question && !results.related_questions.some(q => q.question === question)) {
-        results.related_questions.push({ 
-          question: question.replace(/&[^;]+;/g, '').trim() 
-        });
-      }
-    }
-
-    // Extract related searches
-    const relatedSection = html.match(/Related searches[^<]*<[^>]*>([\s\S]*?)(?:<\/div>|<footer)/i);
-    if (relatedSection) {
-      const relatedMatches = relatedSection[1].matchAll(/>([^<]{3,100})</g);
-      for (const match of relatedMatches) {
-        const query = match[1];
-        if (query && !query.includes('>') && !query.includes('<')) {
-          results.related_searches.push({ 
-            query: query.replace(/&[^;]+;/g, '').trim() 
-          });
-        }
-      }
-    }
-
-    // Count ads and shopping results
-    const adMarkers = (html.match(/\bAd\b|\bSponsored\b|\bAds\b/gi) || []).length;
-    const shoppingMatches = (html.match(/Shopping results|Product listing/gi) || []).length;
-    
-    // Create placeholder ad entries based on count
-    for (let i = 0; i < Math.min(adMarkers, 5); i++) {
-      results.ads.push({ 
-        title: `Ad ${i + 1}`,
-        description: 'Sponsored result',
-        position: i + 1 
-      });
-    }
-    
-    // Add shopping results if found
-    if (shoppingMatches > 0) {
-      for (let i = 0; i < Math.min(shoppingMatches * 3, 6); i++) {
-        results.shopping_results.push({ position: i + 1 });
-      }
-    }
-
-  } catch (error) {
-    console.error('[web-search-profitability] Error parsing HTML:', error);
-  }
-
-  return results;
-}
 
         if (groqResponse.ok) {
           const groqData = await groqResponse.json();
