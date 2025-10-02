@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CompetitionChatDialog } from './CompetitionChatDialog';
 import { OptimizedDashboardService, OptimizedTileData } from '@/services/optimizedDashboardService';
 import { supabase } from '@/integrations/supabase/client';
+import { useDataMode } from '@/contexts/DataModeContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Competitor {
@@ -261,15 +262,25 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
     return data;
   };
 
-  // Process initial data
+  // Process initial data: only use when mock mode is enabled, otherwise fetch live
   useEffect(() => {
-    if (initialData?.insights && !dataFetchedRef.current) {
+    if (dataFetchedRef.current) return;
+
+    if (useMockData && initialData?.insights) {
       const competitionData = initialData.insights as any;
       setData(buildCompetitionData(competitionData));
       setIsCollapsed(false);
       dataFetchedRef.current = true;
+      return;
     }
-  }, [initialData]);
+
+    // Not mock mode: always fetch real-time data on mount
+    if (!loading) {
+      setIsCollapsed(false);
+      dataFetchedRef.current = true;
+      fetchCompetitionData(true);
+    }
+  }, [initialData, useMockData]);
 
   // Fetch competition data from competitive-landscape edge function
   const fetchCompetitionData = async (forceRefresh = false) => {
