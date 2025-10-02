@@ -182,7 +182,7 @@ export function sanitizeTileData(data: any): any {
       if (cRoot.barrierToEntry) metrics.push({ name: 'Barrier to Entry', value: cRoot.barrierToEntry, unit: '', explanation: 'Estimated difficulty to enter' });
     }
 
-    if (metrics.length && (!sanitized.metrics || (Array.isArray(sanitized.metrics) && sanitized.metrics.length === 0))) {
+    if (metrics.length) {
       sanitized.metrics = metrics;
     }
   }

@@ -31,10 +31,20 @@ export function EngagementSignals({ idea }: EngagementSignalsProps) {
         body: { idea }
       });
 
-      // Extract data using the utility function
-      const extractedData = extractEdgeFunctionData({ data, error }, 'sentiment');
-      if (extractedData) {
-        setSentiment(extractedData);
+      // Get the inner data object ({ socialSentiment, searchVolume, ... })
+      const payload = extractEdgeFunctionData({ data, error });
+      const social = payload?.socialSentiment || payload?.sentiment || payload;
+      if (social) {
+        const normalized = {
+          sentiment: {
+            breakdown: {
+              positive: Number(social.positive ?? social.score ?? 0),
+              neutral: Number(social.neutral ?? 0),
+              negative: Number(social.negative ?? 0),
+            },
+          },
+        };
+        setSentiment(normalized);
       }
     } catch (error) {
       console.error('Error fetching sentiment data:', error);
