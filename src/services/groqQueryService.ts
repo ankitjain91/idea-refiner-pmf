@@ -401,39 +401,8 @@ export class GroqQueryService {
       }
       
       // Call Groq to generate an optimized query
-      const { data, error } = await supabase.functions.invoke('groq-synthesis', {
-        body: {
-          prompt: `Generate an optimized search query for "${idea}" to gather ${tileType} data.
-          
-          Requirements:
-          ${requirements.groqQuery}
-          
-          Create a search query that will find:
-          ${requirements.dataPoints.join(', ')}
-          
-          Return a JSON object with:
-          - searchQuery: main search query string (optimized for search engines)
-          - filters: array of filter terms (e.g., "2024", "market size", "competitors")
-          - keywords: array of key terms to look for in results
-          
-          Make the query specific and targeted to get the best results.`,
-          responseFormat: 'json'
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Parse and validate the response
-      const result = data?.result || data;
-      if (result && typeof result === 'object') {
-        return {
-          searchQuery: result.searchQuery || `${idea} ${tileType.replace(/_/g, ' ')}`,
-          filters: Array.isArray(result.filters) ? result.filters : [],
-          keywords: Array.isArray(result.keywords) ? result.keywords : []
-        };
-      }
-      
-      // Fallback to default query generation
+      // Temporarily skip groq-synthesis for query generation due to endpoint issues
+      // Fall back to default query generation
       return this.generateDefaultQuery(idea, tileType, requirements);
       
     } catch (error) {
@@ -581,30 +550,34 @@ export class GroqQueryService {
     tileType: string
   ): Promise<ExtractionResult> {
     try {
-      // Prepare a summarized version of responses to avoid token limits
-      const summarizedResponses = responses.slice(0, 5).map(r => {
-        const data = r.rawResponse;
-        if (typeof data === 'string') {
-          return data.substring(0, 500);
-        }
-        return JSON.stringify(data).substring(0, 500);
-      });
+      // Prepare responses in the format groq-synthesis expects
+      const webSearchData = responses
+        .filter(r => r.source.includes('web-search') || r.source.includes('serper'))
+        .map(r => r.rawResponse);
+      
+      const redditData = responses
+        .filter(r => r.source.includes('reddit'))
+        .map(r => r.rawResponse);
+        
+      const searchResults = responses
+        .filter(r => !r.source.includes('reddit') && !r.source.includes('web-search'))
+        .map(r => r.rawResponse);
       
       const { data, error } = await supabase.functions.invoke('groq-synthesis', {
         body: {
-          prompt: `Extract structured data for ${tileType} tile from these API responses.
+          prompt: `Extract structured data for ${tileType} tile.
           
           Required data points: ${requirements.dataPoints.join(', ')}
           
           Extraction instructions:
           ${requirements.groqQuery}
           
-          Responses to analyze:
-          ${summarizedResponses.join('\n---\n')}
-          
           Return a JSON object with the extracted data matching the required data points.
           Be specific and extract actual values, not generic placeholders.`,
-          responseFormat: 'json'
+          responseFormat: 'json',
+          webSearchData: webSearchData.length > 0 ? webSearchData : undefined,
+          redditData: redditData.length > 0 ? redditData : undefined,
+          searchResults: searchResults.length > 0 ? searchResults : undefined
         }
       });
       

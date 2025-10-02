@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useDataHubWrapper } from "@/hooks/useDataHubWrapper";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +26,7 @@ export default function EnterpriseHub() {
   const { user } = useAuth();
   const { currentSession, saveCurrentSession } = useSession();
   const { useMockData, setUseMockData } = useDataMode();
+  const { isRealTime, setIsRealTime, refreshInterval } = useRealTimeDataMode();
   const [currentIdea, setCurrentIdea] = useState("");
   const [conversationSummary, setConversationSummary] = useState("");
   const [sessionName, setSessionName] = useState("");
@@ -32,6 +34,7 @@ export default function EnterpriseHub() {
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [hasExistingAnalysis, setHasExistingAnalysis] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout>();
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
@@ -127,6 +130,22 @@ export default function EnterpriseHub() {
   });
 
   const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime } = dataHub;
+
+  // Set up real-time refresh
+  useEffect(() => {
+    if (isRealTime && refreshInterval > 0 && currentIdea && !useMockData) {
+      intervalRef.current = setInterval(() => {
+        refresh();
+        console.log('Real-time data refresh triggered');
+      }, refreshInterval);
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+      };
+    }
+  }, [isRealTime, refreshInterval, currentIdea, refresh, useMockData]);
   
   // Check if we have existing analysis data
   useEffect(() => {
@@ -303,14 +322,22 @@ export default function EnterpriseHub() {
             
             <div className="flex items-center gap-4">
               {/* Real-time Toggle */}
-              <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-muted/50 border border-border/50">
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-1 rounded-lg border",
+                isRealTime 
+                  ? "bg-primary/10 border-primary/30" 
+                  : "bg-muted/50 border-border/50"
+              )}>
+                {isRealTime && (
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                )}
                 <Label htmlFor="realtime-mode" className="text-xs font-medium cursor-pointer">
                   Realtime
                 </Label>
                 <Switch
                   id="realtime-mode"
-                  checked={!useMockData}
-                  onCheckedChange={(checked) => setUseMockData(!checked)}
+                  checked={isRealTime}
+                  onCheckedChange={setIsRealTime}
                   className="scale-90"
                 />
               </div>
