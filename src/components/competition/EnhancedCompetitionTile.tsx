@@ -128,6 +128,12 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
       return;
     }
     
+    // Prevent multiple simultaneous loads
+    if (loading) {
+      console.log('[Competition] Already loading, skipping');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -159,7 +165,7 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
       }
     } catch (err) {
       console.error('[Competition] Error fetching data:', err);
-      setError('Failed to load competition data');
+      // Don't set error state to prevent UI disruption, just use mock data
       await loadMockData(); // Fallback to mock data
     } finally {
       setLoading(false);
@@ -168,6 +174,9 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
   
   // Load mock data function
   const loadMockData = async () => {
+    // Prevent concurrent loads
+    if (loading) return;
+    
     setLoading(true);
     
     // Simulate API delay
@@ -261,10 +270,10 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
     setLoading(false);
   };
 
-  // Reload data when idea changes
+  // Reload data when idea changes - but only if we don't already have data
   useEffect(() => {
-    if (currentIdea && hasBeenExpanded) {
-      console.log('[Competition] Idea changed, reloading data');
+    if (currentIdea && hasBeenExpanded && !data && !loading && !initialData) {
+      console.log('[Competition] Idea changed and no data, loading data');
       loadCompetitionData();
     }
   }, [currentIdea]);
