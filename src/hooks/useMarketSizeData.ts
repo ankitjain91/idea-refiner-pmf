@@ -51,7 +51,7 @@ export interface MarketSizeData {
       };
     };
     competitiveAnalysis: {
-      topCompetitors: string[];
+      topCompetitors: any[];
       marketConcentration: string;
       barrierToEntry: string;
     };
