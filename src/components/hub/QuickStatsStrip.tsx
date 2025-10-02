@@ -30,9 +30,47 @@ interface QuickStatCardProps {
 function QuickStatCard({ title, icon: Icon, data, loading, accentColor }: QuickStatCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   
-  const score = data?.metrics?.score || 0;
-  const trend = data?.metrics?.trend || 0;
-  const confidence = data?.confidence || 0;
+  // Derive a numeric score even if tiles provide different metric shapes
+  const deriveScore = (title: string, data?: TileData | null): number | null => {
+    const m: any = data?.metrics || {};
+    // Direct numeric score
+    if (typeof m.score === 'number' && !isNaN(m.score)) return Math.max(0, Math.min(100, m.score));
+    // Common alternative numeric keys (0-1 scale)
+    if (typeof m.readiness_score === 'number') return Math.round(m.readiness_score * 100);
+    if (typeof m.defensibility_score === 'number') return Math.round(m.defensibility_score * 100);
+    // String-based heuristics
+    const toScoreFromText = (v?: string): number | null => {
+      if (!v || typeof v !== 'string') return null;
+      const val = v.toLowerCase();
+      if (/(excellent|optimal|strong|high)/.test(val)) return 85;
+      if (/(good|moderate|medium)/.test(val)) return 65;
+      if (/(low|weak|poor)/.test(val)) return 45;
+      return null;
+    };
+    if (title.includes('Growth') && typeof m.projection === 'string') {
+      const match = m.projection.match(/(\d+(?:\.\d+)?)x/i);
+      if (match) return Math.min(95, 60 + Math.round(parseFloat(match[1]) * 5));
+    }
+    if (title.includes('Market') && typeof m.adoption_rate === 'string') {
+      const s = toScoreFromText(m.adoption_rate); if (s !== null) return s;
+    }
+    if (title.includes('Competitive') && (typeof m.defensibility === 'string' || typeof m.moat === 'string')) {
+      const s1 = toScoreFromText(m.defensibility); if (s1 !== null) return s1;
+      const s2 = toScoreFromText(m.moat); if (s2 !== null) return s2;
+    }
+    if (title.includes('Risk')) {
+      // Invert risk: low risk => high score
+      const riskText = (m.overall_risk || m.market_risk || m.execution_risk || '') as string;
+      const s = toScoreFromText(riskText);
+      if (s !== null) return 110 - s; // invert scale roughly
+    }
+    return null;
+  };
+
+  const score = deriveScore(title, data);
+  const rawTrend: any = data?.metrics?.trend;
+  const trend = typeof rawTrend === 'number' ? rawTrend : /improv|up|grow/i.test(String(rawTrend || '')) ? 1 : /down|declin|fall/i.test(String(rawTrend || '')) ? -1 : 0;
+  const confidence = typeof data?.confidence === 'number' && data?.confidence > 0 ? data.confidence : 0.7;
   
   const getTrendIcon = () => {
     if (trend > 0) return <TrendingUp className="h-3 w-3 text-green-500" />;
