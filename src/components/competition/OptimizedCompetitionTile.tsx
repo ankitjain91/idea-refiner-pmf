@@ -65,30 +65,53 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
     localStorage.getItem('currentIdea') || 
     '';
 
+  // Normalization helpers to map Groq extraction to tile shape
+  const toCompetitors = (raw: any): Competitor[] => {
+    if (Array.isArray(raw?.competitors)) return raw.competitors as Competitor[];
+    if (Array.isArray(raw?.competitors_list)) {
+      return raw.competitors_list.map((c: any) => ({
+        name: c?.name || String(c),
+        marketShare: c?.marketShare || c?.share || '—',
+        strength: (c?.strength || 'moderate') as any,
+        strengths: c?.strengths || [],
+        weaknesses: c?.weaknesses || [],
+        funding: c?.funding || '—',
+        founded: c?.founded || '—',
+        url: c?.url,
+      }));
+    }
+    return [];
+  };
+
+  const buildCompetitionData = (raw: any): CompetitionData => ({
+    competitors: toCompetitors(raw),
+    marketConcentration: raw?.marketConcentration || raw?.concentration || 'Medium',
+    entryBarriers: raw?.entryBarriers || 'Moderate',
+    differentiationOpportunities:
+      raw?.differentiationOpportunities ||
+      (Array.isArray(raw?.differentiators)
+        ? raw.differentiators.map((d: any) => d?.name || String(d))
+        : []),
+    competitiveLandscape: raw?.competitiveLandscape || {
+      directCompetitors:
+        raw?.directCompetitors || (Array.isArray(toCompetitors(raw)) ? toCompetitors(raw).length : 0),
+      indirectCompetitors: raw?.indirectCompetitors || 0,
+      substitutes: raw?.substitutes || 0,
+    },
+    analysis: raw?.analysis || {
+      threat: (raw?.threat || 'medium') as any,
+      opportunities: raw?.opportunities || [],
+      recommendations: raw?.recommendations || [],
+    },
+  });
+
   // Process initial data
   useEffect(() => {
     if (initialData?.insights && !dataFetchedRef.current) {
       const competitionData = initialData.insights as any;
-      if (competitionData.competitors) {
-        setData({
-          competitors: competitionData.competitors || [],
-          marketConcentration: competitionData.marketConcentration || 'Medium',
-          entryBarriers: competitionData.entryBarriers || 'Moderate',
-          differentiationOpportunities: competitionData.differentiationOpportunities || [],
-          competitiveLandscape: competitionData.competitiveLandscape || {
-            directCompetitors: 3,
-            indirectCompetitors: 5,
-            substitutes: 2
-          },
-          analysis: competitionData.analysis || {
-            threat: 'medium',
-            opportunities: [],
-            recommendations: []
-          }
-        });
-        setIsCollapsed(false);
-        dataFetchedRef.current = true;
-      }
+      setData(buildCompetitionData(competitionData));
+      setIsCollapsed(false);
+      dataFetchedRef.current = true;
     }
   }, [initialData]);
 
@@ -107,22 +130,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
 
       if (result?.insights) {
         const competitionData = result.insights as any;
-        setData({
-          competitors: competitionData.competitors || [],
-          marketConcentration: competitionData.marketConcentration || 'Medium',
-          entryBarriers: competitionData.entryBarriers || 'Moderate',
-          differentiationOpportunities: competitionData.differentiationOpportunities || competitionData.opportunities || [],
-          competitiveLandscape: competitionData.competitiveLandscape || competitionData.landscape || {
-            directCompetitors: competitionData.directCompetitors || 3,
-            indirectCompetitors: competitionData.indirectCompetitors || 5,
-            substitutes: competitionData.substitutes || 2
-          },
-          analysis: competitionData.analysis || {
-            threat: competitionData.threatLevel || 'medium',
-            opportunities: competitionData.marketOpportunities || [],
-            recommendations: competitionData.strategicRecommendations || []
-          }
-        });
+        setData(buildCompetitionData(competitionData));
         
         if (forceRefresh) {
           toast({
