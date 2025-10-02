@@ -306,39 +306,8 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             );
           }
           
-          // Determine tile size based on content richness
-          const hasRegionalData = (tile.data as any)?.regionalBreakdown || (tile.data as any)?.regionalGrowth || (tile.data as any)?.regionalInterest;
-          const hasMultipleMetrics = tile.data?.metrics && Object.keys(tile.data.metrics).length > 2;
-          const hasDetailedInsights = (tile.data as any)?.segments || (tile.data as any)?.drivers || (tile.data as any)?.breakoutTerms || (tile.data as any)?.keyEvents;
-          
-          const isLargeTile = hasRegionalData || (hasMultipleMetrics && hasDetailedInsights);
-          const gridClass = isLargeTile && viewMode === "deep" ? "lg:col-span-2" : "";
-          
-          return (
-            <div key={tile.id} className={cn(tile.span, gridClass)}>
-              <DataHubTile
-                title={tile.title}
-                Icon={tile.icon}
-                data={sanitizeTileData(tile.data)}
-                loading={tileLoading[tile.id] || loading}
-                onRefresh={async () => {
-                  if (onRefreshTile && tiles[tile.id as keyof typeof tiles]) {
-                    toast.info(`Refreshing ${tile.title} data...`);
-                    await onRefreshTile(tile.id);
-                  } else {
-                    loadTileData(tile.id);
-                  }
-                }}
-                expanded={viewMode === "deep"}
-                tileType={tile.id}
-                isUsingFallback={(tile as any).isUsingFallback}
-                className={cn(
-                  "h-full",
-                  isLargeTile && viewMode === "deep" ? "min-h-[400px]" : "min-h-[300px]"
-                )}
-              />
-            </div>
-          );
+          // Skip rendering DataHubTile - removed per user request
+          return null;
         })}
       </div>
     </div>
