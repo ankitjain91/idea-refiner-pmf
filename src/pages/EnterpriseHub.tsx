@@ -22,6 +22,7 @@ import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
+import { DashboardLoader } from "@/components/engagement/DashboardLoader";
 
 export default function EnterpriseHub() {
   const { user } = useAuth();
@@ -399,7 +400,12 @@ export default function EnterpriseHub() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6 space-y-8">
-        {/* 1. HERO SECTION */}
+        {/* Show funny loader only when initially loading and no data yet */}
+        {!hasLoadedData && !hasExistingAnalysis && !tiles.pmf_score && loading && (
+          <DashboardLoader stage="initial" />
+        )}
+
+        {/* 1. HERO SECTION - Show immediately, with score loader if loading */}
         <HeroSection 
           pmfScore={tiles.pmf_score}
           loading={loading}
@@ -417,21 +423,31 @@ export default function EnterpriseHub() {
           </div>
         )}
 
-        {/* 3. MAIN ANALYSIS GRID */}
+        {/* 3. MAIN ANALYSIS GRID - Load progressively, show tiles as they arrive */}
         {hasLoadedData && (
-          <MainAnalysisGrid
-            tiles={{
-              market_size: tiles.market_size,
-              competition: tiles.competition,
-              sentiment: tiles.sentiment,
-              market_trends: tiles.market_trends,
-              google_trends: tiles.google_trends,
-              news_analysis: tiles.news_analysis
-            }}
-            loading={loading}
-            viewMode={viewMode}
-            onRefreshTile={refreshTile}
-          />
+          <>
+            {/* Show tile loader only if we're loading and have no tile data yet */}
+            {loading && !tiles.market_size && !tiles.competition && !tiles.sentiment && (
+              <DashboardLoader stage="tiles" />
+            )}
+            
+            {/* Show grid as soon as we have ANY data */}
+            {(tiles.market_size || tiles.competition || tiles.sentiment || tiles.market_trends || tiles.google_trends || tiles.news_analysis) && (
+              <MainAnalysisGrid
+                tiles={{
+                  market_size: tiles.market_size,
+                  competition: tiles.competition,
+                  sentiment: tiles.sentiment,
+                  market_trends: tiles.market_trends,
+                  google_trends: tiles.google_trends,
+                  news_analysis: tiles.news_analysis
+                }}
+                loading={loading}
+                viewMode={viewMode}
+                onRefreshTile={refreshTile}
+              />
+            )}
+          </>
         )}
 
         {/* 4. EXTENDED INSIGHTS GRID - Only in Deep Dive */}

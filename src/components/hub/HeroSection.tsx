@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Minus, Sparkles, ArrowRight, ChartBar, TrendingUp as TrendIcon, Users, Globe } from "lucide-react";
+import { DashboardLoader } from "@/components/engagement/DashboardLoader";
 import { cn } from "@/lib/utils";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -114,30 +115,13 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
     );
   }
 
-  // Loading state
+  // Loading state - show funny loader for score calculation
   if (loading && !pmfScore) {
     return (
       <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="relative p-8">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-32 translate-x-32 animate-pulse" />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="flex flex-col items-center md:items-start space-y-6">
-              <Skeleton className="w-48 h-48 rounded-full" />
-              <Skeleton className="h-8 w-32" />
-            </div>
-            
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-20 w-full" />
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            </div>
-          </div>
+          <DashboardLoader stage="score" />
         </div>
       </Card>
     );
