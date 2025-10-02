@@ -9,7 +9,8 @@ import {
   ChevronRight, TrendingUp, TrendingDown, 
   Minus, AlertCircle, CheckCircle, XCircle,
   FileText, Sparkles, Activity, BarChart3,
-  Brain, Zap, Target, Shield, ChevronDown, ChevronUp, RefreshCw
+  Brain, Zap, Target, Shield, ChevronDown, ChevronUp, RefreshCw,
+  Users, DollarSign, ArrowRight
 } from "lucide-react";
 import React, { useState } from "react";
 import { TileData } from "@/lib/data-hub-orchestrator";
@@ -673,7 +674,140 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
               )}
               
               {/* Display key drivers for market trends */}
-              {((data as any)?.drivers || (data as any)?.insights?.drivers) && (
+              {(tileType === 'market-trends' || tileType === 'market_trends') && (
+                <>
+                  {/* Display main trends */}
+                  {((data as any)?.trends || (data as any)?.json?.trends) && (
+                    <Card className="border-primary/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Current Market Trends</div>
+                        <div className="space-y-2">
+                          {((data as any)?.trends || (data as any)?.json?.trends || []).slice(0, 5).map((trend: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <TrendingUp className="h-3 w-3 text-primary mt-0.5" />
+                              <span className="text-xs leading-relaxed">{trend}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Display drivers */}
+                  {((data as any)?.drivers || (data as any)?.json?.drivers) && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Key Market Drivers</div>
+                        <div className="grid grid-cols-1 gap-2">
+                          {((data as any)?.drivers || (data as any)?.json?.drivers || []).map((driver: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <ChevronRight className="h-3 w-3 text-primary mt-0.5" />
+                              <span className="text-xs leading-relaxed">{driver}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Display emerging tech */}
+                  {((data as any)?.emergingTech || (data as any)?.json?.emergingTech) && (
+                    <Card className="border-primary/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Emerging Technologies</div>
+                        <div className="flex flex-wrap gap-2">
+                          {((data as any)?.emergingTech || (data as any)?.json?.emergingTech || []).map((tech: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              {tech}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Display consumer shifts */}
+                  {((data as any)?.consumerShifts || (data as any)?.json?.consumerShifts) && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Consumer Behavior Shifts</div>
+                        <div className="space-y-2">
+                          {((data as any)?.consumerShifts || (data as any)?.json?.consumerShifts || []).map((shift: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <Users className="h-3 w-3 text-accent mt-0.5" />
+                              <span className="text-xs leading-relaxed">{shift}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Display market direction */}
+                  {((data as any)?.direction || (data as any)?.json?.direction) && (
+                    <Card className="border-primary/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Market Direction</div>
+                        <div className="flex items-center gap-2">
+                          {((data as any)?.direction || (data as any)?.json?.direction) === 'upward' ? (
+                            <TrendingUp className="h-5 w-5 text-green-500" />
+                          ) : ((data as any)?.direction || (data as any)?.json?.direction) === 'downward' ? (
+                            <TrendingDown className="h-5 w-5 text-red-500" />
+                          ) : (
+                            <ArrowRight className="h-5 w-5 text-yellow-500" />
+                          )}
+                          <span className="text-sm font-medium capitalize">
+                            {(data as any)?.direction || (data as any)?.json?.direction || 'stable'} Trend
+                          </span>
+                          {((data as any)?.growthRate || (data as any)?.json?.growthRate) && (
+                            <Badge variant="default" className="ml-auto">
+                              {(data as any)?.growthRate || (data as any)?.json?.growthRate}% CAGR
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Display investment trends */}
+                  {((data as any)?.investmentTrends || (data as any)?.json?.investmentTrends) && (
+                    <Card className="border-accent/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Investment Trends</div>
+                        <div className="space-y-2">
+                          {((data as any)?.investmentTrends || (data as any)?.json?.investmentTrends || []).map((trend: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <DollarSign className="h-3 w-3 text-success mt-0.5" />
+                              <span className="text-xs leading-relaxed">{trend}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Display disruptions */}
+                  {((data as any)?.disruptions || (data as any)?.json?.disruptions) && (
+                    <Card className="border-destructive/20">
+                      <CardContent className="pt-4">
+                        <div className="text-xs text-muted-foreground mb-3">Industry Disruptions</div>
+                        <div className="space-y-2">
+                          {((data as any)?.disruptions || (data as any)?.json?.disruptions || []).map((disruption: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <Zap className="h-3 w-3 text-destructive mt-0.5" />
+                              <span className="text-xs leading-relaxed">{disruption}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+              
+              {/* Keep existing drivers display for other tile types */}
+              {tileType !== 'market-trends' && tileType !== 'market_trends' && ((data as any)?.drivers || (data as any)?.insights?.drivers) && (
                 <Card className="border-accent/20">
                   <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground mb-3">Key Market Drivers</div>
