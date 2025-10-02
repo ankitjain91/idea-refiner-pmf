@@ -128,7 +128,7 @@ serve(async (req) => {
     }
     
     const response = await callGroqWithRetry({
-        model: 'llama-3.3-70b-versatile', // Updated to a currently supported Groq model
+        model: 'llama-3.1-8b-instant', // Updated to a currently supported Groq model
         messages: [
           {
             role: 'system',
