@@ -64,6 +64,12 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
   const [isCollapsed, setIsCollapsed] = useState(!initialData);
   const [hasBeenExpanded, setHasBeenExpanded] = useState(!!initialData);
   const { toast } = useToast();
+
+  // Circuit breaker and retry controls
+  const [retryCount, setRetryCount] = useState(0);
+  const [circuitOpen, setCircuitOpen] = useState(false);
+  const MAX_RETRIES = 5;
+  const processedInitialOnceRef = React.useRef(false);
   
   // Get the actual idea to use
   const currentIdea = idea || 
@@ -72,37 +78,44 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
     localStorage.getItem('userIdea') || 
     '';
     
-  // Process initial data when it arrives
+  // Process initial data when it arrives (only once)
   React.useEffect(() => {
-    if (initialData) {
-      console.log('[EnhancedCompetitionTile] Received initialData:', initialData);
-      // Convert the tile data to competition data format
-      if (initialData.metrics?.competitors || initialData.json?.competitors) {
-        const competitorsData = initialData.metrics?.competitors || initialData.json?.competitors || [];
-        setData({
-          competitors: competitorsData,
-          marketConcentration: initialData.metrics?.marketConcentration || 'Medium',
-          entryBarriers: initialData.metrics?.entryBarriers || 'Moderate',
-          differentiationOpportunities: initialData.metrics?.opportunities || [],
-          competitiveLandscape: initialData.metrics?.landscape || {
-            directCompetitors: 3,
-            indirectCompetitors: 5,
-            substitutes: 2
-          },
-          analysis: initialData.metrics?.analysis || {
-            threat: 'medium',
-            opportunities: [],
-            recommendations: []
-          }
-        });
-        setIsCollapsed(false);
-        setHasBeenExpanded(true);
-      } else {
-        // Fallback to mock data if structure doesn't match
-        loadMockData();
-      }
+    if (!initialData) return;
+    if (circuitOpen) return;
+    // If we already have data or processed once, ignore subsequent initialData updates
+    if (data || processedInitialOnceRef.current) {
+      return;
     }
-  }, [initialData]);
+
+    console.log('[EnhancedCompetitionTile] Received initialData:', initialData);
+    // Convert the tile data to competition data format
+    if (initialData.metrics?.competitors || initialData.json?.competitors) {
+      const competitorsData = initialData.metrics?.competitors || initialData.json?.competitors || [];
+      setData({
+        competitors: competitorsData,
+        marketConcentration: initialData.metrics?.marketConcentration || 'Medium',
+        entryBarriers: initialData.metrics?.entryBarriers || 'Moderate',
+        differentiationOpportunities: initialData.metrics?.opportunities || [],
+        competitiveLandscape: initialData.metrics?.landscape || {
+          directCompetitors: 3,
+          indirectCompetitors: 5,
+          substitutes: 2
+        },
+        analysis: initialData.metrics?.analysis || {
+          threat: 'medium',
+          opportunities: [],
+          recommendations: []
+        }
+      });
+      setIsCollapsed(false);
+      setHasBeenExpanded(true);
+      processedInitialOnceRef.current = true;
+    } else {
+      // Fallback to mock data if structure doesn't match (only once)
+      processedInitialOnceRef.current = true;
+      loadMockData();
+    }
+  }, [initialData, data, circuitOpen]);
   
   // Handle expand/collapse with lazy loading
   const handleToggleCollapse = () => {
@@ -112,6 +125,11 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
     // If expanding for the first time, trigger data load
     if (!newCollapsed && !hasBeenExpanded && !data) {
       setHasBeenExpanded(true);
+      if (circuitOpen) {
+        toast({ title: 'Circuit breaker active', description: 'Using cached/mock data to avoid retries.' });
+        loadMockData();
+        return;
+      }
       if (onRefresh) {
         onRefresh();
       } else {
@@ -122,6 +140,12 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
 
   // Fetch real competition data from edge function
   const loadCompetitionData = async () => {
+    if (circuitOpen) {
+      console.log('[Competition] Circuit breaker open - skipping fetch');
+      await loadMockData();
+      return;
+    }
+
     if (!currentIdea) {
       console.log('[Competition] No idea available');
       loadMockData();
@@ -155,18 +179,35 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
       
       if (extractedData?.competitors) {
         setData(extractedData);
+        setRetryCount(0);
+        setCircuitOpen(false);
         toast({
-          title: "Competition Analysis Updated",
-          description: "Fresh competitive landscape data loaded",
+          title: 'Competition Analysis Updated',
+          description: 'Fresh competitive landscape data loaded',
         });
       } else {
         // Fallback to mock data if no real data
         await loadMockData();
+        setRetryCount((r) => {
+          const next = r + 1;
+          if (next >= MAX_RETRIES && !circuitOpen) {
+            setCircuitOpen(true);
+            toast({ title: 'Circuit breaker activated', description: 'Too many failed attempts. Using mock data.' });
+          }
+          return next;
+        });
       }
     } catch (err) {
       console.error('[Competition] Error fetching data:', err);
-      // Don't set error state to prevent UI disruption, just use mock data
       await loadMockData(); // Fallback to mock data
+      setRetryCount((r) => {
+        const next = r + 1;
+        if (next >= MAX_RETRIES && !circuitOpen) {
+          setCircuitOpen(true);
+          toast({ title: 'Circuit breaker activated', description: 'Too many failed attempts. Using mock data.' });
+        }
+        return next;
+      });
     } finally {
       setLoading(false);
     }
