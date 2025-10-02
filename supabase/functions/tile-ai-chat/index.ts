@@ -14,9 +14,9 @@ serve(async (req) => {
   try {
     const { message, tileData, tileTitle, idea, chatHistory } = await req.json();
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    if (!GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY is not configured');
     }
 
     console.log('Tile chat request:', { message, tileTitle, idea, hasTileData: !!tileData });
@@ -128,16 +128,16 @@ Keep responses concise but insightful. Use markdown formatting for better readab
       content: message
     });
 
-    console.log('Calling Lovable AI with messages:', messages.length);
+    console.log('Calling Groq API with messages:', messages.length);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'mixtral-8x7b-32768',
         messages,
         max_tokens: 1000,
         temperature: 0.7
@@ -146,13 +146,13 @@ Keep responses concise but insightful. Use markdown formatting for better readab
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
+      console.error('Groq API error:', response.status, errorText);
       
       if (response.status === 429) {
         throw new Error('Rate limit exceeded. Please wait a moment before trying again.');
       }
-      if (response.status === 402) {
-        throw new Error('AI credits exhausted. Please add more credits to continue.');
+      if (response.status === 401) {
+        throw new Error('Invalid API key. Please check your Groq API configuration.');
       }
       
       throw new Error(`AI service error: ${response.status}`);
@@ -166,14 +166,14 @@ Keep responses concise but insightful. Use markdown formatting for better readab
     // Generate response suggestions
     const suggestionsPrompt = `Based on this ${tileTitle} analysis conversation about "${idea}", suggest 3 brief, specific follow-up questions the user might want to ask next.`;
     
-    const suggestionsResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const suggestionsResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'mixtral-8x7b-32768',
         messages: [
           { 
             role: 'system', 
