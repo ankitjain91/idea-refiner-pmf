@@ -332,12 +332,6 @@ export function DataTile({
               {metric.explanation && expanded && (
                 <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{metric.explanation}</p>
               )}
-              {metric.confidence && (
-                <div className="flex items-center gap-2 mt-2">
-                  <Progress value={metric.confidence * 100} className="h-1 flex-1" />
-                  <span className="text-xs text-muted-foreground">{Math.round(metric.confidence * 100)}%</span>
-                </div>
-              )}
             </div>
           );
         })}

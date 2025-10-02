@@ -1,5 +1,6 @@
 // Updated to handle both parameter formats - v2
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { summarizeQuery } from '../_shared/query-summarizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,27 +58,28 @@ serve(async (req) => {
           num: 10
         };
 
-        // Customize search based on type
+        // Customize search based on type and summarize to 5-7 words
         switch (searchType) {
           case 'market_size':
-            searchParams.q = `${actualIdea} market size revenue TAM statistics`;
+            searchParams.q = summarizeQuery(`${actualIdea} market size revenue TAM statistics`);
             break;
           case 'google_trends':
             searchParams.q = actualIdea.split(' ').slice(0, 3).join(' ');
             searchParams.type = 'trends';
             break;
           case 'market_trends':
-            searchParams.q = `${actualIdea} market trends analysis forecast`;
+            searchParams.q = summarizeQuery(`${actualIdea} market trends analysis forecast`);
             break;
           case 'competitors':
-            searchParams.q = `${actualIdea} competitors alternatives similar`;
+            searchParams.q = summarizeQuery(`${actualIdea} competitors alternatives similar`);
             break;
           case 'news':
-            searchParams.q = `${actualIdea} news latest developments`;
+            searchParams.q = summarizeQuery(`${actualIdea} news latest developments`);
             searchParams.type = 'news';
             break;
           default:
-            // Keep default query
+            // Summarize default query too
+            searchParams.q = summarizeQuery(query);
             break;
         }
 

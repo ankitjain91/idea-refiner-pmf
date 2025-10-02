@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { summarizeQuery } from '../_shared/query-summarizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,12 +58,15 @@ serve(async (req) => {
     let totalCost = 0;
     
     if (requestType === 'dashboard') {
-      // Group A: Market and competitor insights
-      const queryA = `${idea} market size competitors funding comparable startups demographics ${timeWindow} ${geo}`;
+      // Group A: Market and competitor insights - summarized to 5-7 words
+      const fullQueryA = `${idea} market size competitors funding comparable startups demographics ${timeWindow} ${geo}`;
+      const queryA = summarizeQuery(fullQueryA);
       
-      // Group B: Operational insights
-      const queryB = `${industry} CAC LTV benchmarks risks regulations ${geo} partnerships investor interest forum sentiment 30 60 90 MVP plan`;
+      // Group B: Operational insights - summarized to 5-7 words
+      const fullQueryB = `${industry} CAC LTV benchmarks risks regulations ${geo} partnerships investor interest forum sentiment 30 60 90 MVP plan`;
+      const queryB = summarizeQuery(fullQueryB);
       
+      console.log(`[web-search-optimized] Summarized queries - A: "${queryA}", B: "${queryB}"`);
       searchQueries = [queryA, queryB];
       
       // Execute searches in parallel (try Brave first, then Serper, fallback to Tavily)

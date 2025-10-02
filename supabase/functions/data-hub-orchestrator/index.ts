@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { summarizeQuery } from '../_shared/query-summarizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -204,7 +205,7 @@ async function executeSerperQuery(item: FetchPlanItem, indices: any) {
         'X-API-KEY': SERPER_API_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ q: item.query, num: 10 })
+      body: JSON.stringify({ q: summarizeQuery(item.query), num: 10 })
     });
     
     if (!response.ok) {
