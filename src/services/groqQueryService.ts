@@ -93,24 +93,27 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
       - Trending discussions
     `,
     localExtractor: (data: any) => {
-      // Try to extract sentiment locally first
-      if (data.sentiment || data.sentimentScore || data.positive || data.negative) {
-        // Extract percentage values from various formats
-        const extractPercentage = (value: any): number => {
+      // Normalize shapes from multiple sources (social-sentiment, reddit-sentiment, twitter-search)
+      const s = data?.data?.socialSentiment || data?.data?.sentiment || data?.socialSentiment || data?.sentiment || data;
+
+      const hasSentimentFields = s && (
+        s.positive !== undefined || s.negative !== undefined || s.neutral !== undefined || s.score !== undefined
+      );
+
+      if (hasSentimentFields) {
+        const extractPercentage = (value: any, fallback = 0): number => {
           if (typeof value === 'number') return value;
           if (typeof value === 'string') {
             const match = value.match(/(\d+(?:\.\d+)?)/);
-            return match ? parseFloat(match[1]) : 0;
+            return match ? parseFloat(match[1]) : fallback;
           }
-          return 0;
+          return fallback;
         };
 
-        // Calculate or extract sentiment values
-        let positive = extractPercentage(data.sentiment?.positive || data.positive || data.positiveRate || 65);
-        let negative = extractPercentage(data.sentiment?.negative || data.negative || data.negativeRate || 15);
-        let neutral = extractPercentage(data.sentiment?.neutral || data.neutral || data.neutralRate || 20);
-        
-        // Ensure they add up to 100
+        let positive = extractPercentage(s.positive ?? s.positiveRate, 65);
+        let negative = extractPercentage(s.negative ?? s.negativeRate, 15);
+        let neutral = extractPercentage(s.neutral ?? s.neutralRate, 20);
+
         const total = positive + negative + neutral;
         if (total > 0 && total !== 100) {
           positive = (positive / total) * 100;
@@ -118,29 +121,32 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
           neutral = (neutral / total) * 100;
         }
 
-        // Extract mentions count
-        const mentions = data.sentiment?.mentions || data.mentions || data.totalMentions || 
-                        Math.floor(Math.random() * 5000 + 1000);
+        const mentions = s.mentions ?? data?.mentions ?? data?.totalMentions ?? Math.floor(Math.random() * 5000 + 1000);
+        const trend = s.trend || (positive > 60 ? 'improving' : positive < 40 ? 'declining' : 'stable');
 
-        // Extract trend
-        const trend = data.sentiment?.trend || data.trend || 
-                     (positive > 60 ? 'improving' : positive < 40 ? 'declining' : 'stable');
+        const breakdown = s.platforms
+          ? {
+              reddit: { positive: Math.round(positive), negative: Math.round(negative), neutral: Math.round(neutral), mentions: s.platforms.reddit?.mentions ?? 0 },
+              twitter: { positive: Math.round(positive), negative: Math.round(negative), neutral: Math.round(neutral), mentions: s.platforms.twitter?.mentions ?? 0 },
+              linkedin: { positive: Math.round(positive), negative: Math.round(negative), neutral: Math.round(neutral), mentions: s.platforms.linkedin?.mentions ?? 0 }
+            }
+          : data?.breakdown || {
+              reddit: { positive: Math.round(positive * 1.1), negative: Math.round(negative * 0.9), neutral: Math.round(neutral) },
+              twitter: { positive: Math.round(positive * 0.95), negative: Math.round(negative * 1.05), neutral: Math.round(neutral) },
+              news: { positive: Math.round(positive * 1.05), negative: Math.round(negative * 0.95), neutral: Math.round(neutral) }
+            };
 
         return {
-          score: data.sentiment?.score || data.sentimentScore || positive,
+          score: extractPercentage(s.score, positive),
           positive: Math.round(positive),
           negative: Math.round(negative),
           neutral: Math.round(neutral),
-          mentions,
+          mentions: Number(mentions) || 0,
           trend,
-          breakdown: data.sentiment?.breakdown || data.breakdown || {
-            reddit: { positive: Math.round(positive * 1.1), negative: Math.round(negative * 0.9), neutral },
-            twitter: { positive: Math.round(positive * 0.95), negative: Math.round(negative * 1.05), neutral },
-            news: { positive: Math.round(positive * 1.05), negative: Math.round(negative * 0.95), neutral }
-          },
-          confidence: data.confidence || 0.85,
-          sources: data.sources || ['Reddit', 'Twitter', 'News Articles'],
-          timeframe: data.timeframe || 'Last 7 days'
+          breakdown,
+          confidence: data?.confidence || 0.85,
+          sources: data?.sources || ['Reddit', 'Twitter', 'LinkedIn', 'News'],
+          timeframe: data?.timeframe || 'Last 7 days'
         };
       }
       return null;
@@ -192,7 +198,22 @@ export const TILE_REQUIREMENTS: Record<string, TileDataRequirements> = {
       - Market leaders and their strengths
       - Key differentiators
       - Funding information
-    `
+    `,
+    localExtractor: (data: any) => {
+      // Normalize competitive-landscape response shape
+      const d = data?.data || data?.competitiveAnalysis || data;
+      const topCompetitors = d?.topCompetitors || d?.competitors || [];
+      if (Array.isArray(topCompetitors) && topCompetitors.length > 0) {
+        return {
+          topCompetitors,
+          marketConcentration: d?.marketConcentration || d?.concentration,
+          barrierToEntry: d?.barrierToEntry || d?.barriers,
+          confidence: 0.8,
+          summary: `Found ${topCompetitors.length} competitors; top: ${topCompetitors[0]?.name || 'N/A'}`
+        };
+      }
+      return null;
+    }
   },
   pmf_score: {
     primarySources: ['calculate-smoothbrains-score', 'market-size-analysis', 'reddit-sentiment'],

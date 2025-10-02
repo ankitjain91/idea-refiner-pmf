@@ -143,7 +143,7 @@ export function sanitizeTileData(data: any): any {
     const metrics: any[] = [];
 
     // Sentiment metrics (supports multiple shapes)
-    const s = sanitized.socialSentiment || sanitized.sentiment || sanitized.data?.socialSentiment || null;
+    const s = sanitized.socialSentiment || sanitized.sentiment || sanitized.data?.socialSentiment || sanitized;
     if (s && (s.positive !== undefined && s.negative !== undefined && s.neutral !== undefined)) {
       const pos = Number(s.positive) || 0;
       const neg = Number(s.negative) || 0;
