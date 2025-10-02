@@ -116,9 +116,15 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
       entryBarriers: raw?.entryBarriers || raw?.entry_barriers || 'Moderate',
       differentiationOpportunities:
         raw?.differentiationOpportunities ||
-        raw?.differentiators ||
         (Array.isArray(raw?.differentiators)
-          ? raw.differentiators.map((d: any) => d?.name || String(d))
+          ? raw.differentiators.map((d: any) => {
+              // Handle both string and object formats
+              if (typeof d === 'string') return d;
+              if (typeof d === 'object' && d !== null) {
+                return d.name || d.value || String(d);
+              }
+              return String(d);
+            })
           : []),
       competitiveLandscape: raw?.competitiveLandscape || raw?.landscape || {
         directCompetitors:
