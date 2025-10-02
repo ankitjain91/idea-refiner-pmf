@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { TileData } from '@/lib/data-hub-orchestrator';
+import { CircuitBreaker, createTileCircuitBreaker } from '@/lib/circuit-breaker';
 
 interface DataFetchOptions {
   idea: string;
@@ -8,8 +9,11 @@ interface DataFetchOptions {
 
 class DashboardDataService {
   private static instance: DashboardDataService;
+  private circuitBreakers: Map<string, CircuitBreaker>;
   
-  private constructor() {}
+  private constructor() {
+    this.circuitBreakers = new Map();
+  }
   
   static getInstance(): DashboardDataService {
     if (!DashboardDataService.instance) {
@@ -17,49 +21,76 @@ class DashboardDataService {
     }
     return DashboardDataService.instance;
   }
+  
+  private getCircuitBreaker(tileType: string): CircuitBreaker {
+    if (!this.circuitBreakers.has(tileType)) {
+      this.circuitBreakers.set(tileType, createTileCircuitBreaker(`DashboardData-${tileType}`));
+    }
+    return this.circuitBreakers.get(tileType)!;
+  }
 
   async fetchTileData(options: DataFetchOptions): Promise<TileData | null> {
     const { idea, tileType } = options;
+    const circuitBreaker = this.getCircuitBreaker(tileType);
     
-    try {
-      switch (tileType) {
-        case 'sentiment':
-          return await this.fetchSentimentData(idea);
-        
-        case 'market_trends':
-          return await this.fetchMarketTrendsData(idea);
-        
-        case 'google_trends':
-          return await this.fetchGoogleTrendsData(idea);
-        
-        case 'news_analysis':
-          return await this.fetchNewsData(idea);
-        
-        case 'web_search':
-          return await this.fetchWebSearchData(idea);
-        
-        case 'reddit_sentiment':
-          return await this.fetchRedditData(idea);
-        
-        case 'twitter_buzz':
-          return await this.fetchTwitterData(idea);
-        
-        case 'amazon_reviews':
-          return await this.fetchAmazonData(idea);
-        
-        case 'youtube_analytics':
-          return await this.fetchYouTubeData(idea);
-        
-        case 'risk_assessment':
-          return await this.fetchRiskData(idea);
-        
-        default:
-          return null;
+    return circuitBreaker.execute(
+      async () => {
+        try {
+          switch (tileType) {
+            case 'sentiment':
+              return await this.fetchSentimentData(idea);
+            
+            case 'market_trends':
+              return await this.fetchMarketTrendsData(idea);
+            
+            case 'google_trends':
+              return await this.fetchGoogleTrendsData(idea);
+            
+            case 'news_analysis':
+              return await this.fetchNewsData(idea);
+            
+            case 'web_search':
+              return await this.fetchWebSearchData(idea);
+            
+            case 'reddit_sentiment':
+              return await this.fetchRedditData(idea);
+            
+            case 'twitter_buzz':
+              return await this.fetchTwitterData(idea);
+            
+            case 'amazon_reviews':
+              return await this.fetchAmazonData(idea);
+            
+            case 'youtube_analytics':
+              return await this.fetchYouTubeData(idea);
+            
+            default:
+              console.log(`[DashboardDataService] Unknown tile type: ${tileType}`);
+              return null;
+          }
+        } catch (error) {
+          console.error(`[DashboardDataService] Error fetching ${tileType}:`, error);
+          throw error;
+        }
+      },
+      // Fallback function returns mock data
+      async () => {
+        console.log(`[DashboardDataService] Circuit breaker active for ${tileType}, returning fallback data`);
+        return this.getFallbackData(tileType);
       }
-    } catch (error) {
-      console.error(`Error fetching ${tileType} data:`, error);
-      throw error;
-    }
+    );
+  }
+  
+  private getFallbackData(tileType: string): TileData {
+    return {
+      metrics: {},
+      explanation: `${tileType} data temporarily unavailable (circuit breaker active)`,
+      citations: [],
+      charts: [],
+      json: {},
+      confidence: 0.3,
+      dataQuality: 'low'
+    };
   }
 
   private async fetchSentimentData(idea: string): Promise<TileData> {

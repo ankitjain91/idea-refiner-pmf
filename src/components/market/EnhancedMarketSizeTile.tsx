@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import { formatMoney, formatPercent, sanitizeChartData } from '@/utils/dataForma
 import { OptimizedDashboardService } from '@/services/optimizedDashboardService';
 import { MarketSizeData } from '@/hooks/useMarketSizeData';
 import { useTileData } from '@/components/hub/BaseTile';
+import { createTileCircuitBreaker, CircuitState } from '@/lib/circuit-breaker';
 
 interface EnhancedMarketSizeTileProps {
   idea?: string;
@@ -36,6 +37,16 @@ export function EnhancedMarketSizeTile({ idea, className, initialData, onRefresh
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [viewMode, setViewMode] = useState<'overview' | 'regional' | 'projections' | 'intelligence' | 'live'>('overview');
   const [showAIChat, setShowAIChat] = useState(false);
+  
+  // Circuit breaker for API calls
+  const circuitBreakerRef = useRef<ReturnType<typeof createTileCircuitBreaker>>();
+  if (!circuitBreakerRef.current) {
+    circuitBreakerRef.current = createTileCircuitBreaker('MarketSizeTile', (state) => {
+      if (state === CircuitState.OPEN) {
+        toast.warning('Market data service temporarily unavailable, using cached data');
+      }
+    });
+  }
   
   // Get optimized dashboard service
   const optimizedService = useMemo(() => OptimizedDashboardService.getInstance(), []);

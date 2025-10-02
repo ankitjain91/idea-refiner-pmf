@@ -2,6 +2,8 @@ import { UnifiedResponseCache } from '@/lib/cache/unifiedResponseCache';
 import { GroqQueryService, TILE_REQUIREMENTS } from './groqQueryService';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeTileData } from '@/utils/dataFormatting';
+import { CircuitBreaker, createTileCircuitBreaker } from '@/lib/circuit-breaker';
+import { toast } from 'sonner';
 
 export interface OptimizedTileData {
   metrics: any[];
@@ -20,11 +22,13 @@ export class OptimizedDashboardService {
   private cache: UnifiedResponseCache;
   private groqService: GroqQueryService;
   private ongoingFetches: Map<string, Promise<any>>;
+  private circuitBreakers: Map<string, CircuitBreaker>;
   
   private constructor() {
     this.cache = UnifiedResponseCache.getInstance();
     this.groqService = GroqQueryService.getInstance();
     this.ongoingFetches = new Map();
+    this.circuitBreakers = new Map();
   }
   
   static getInstance(): OptimizedDashboardService {
@@ -34,15 +38,40 @@ export class OptimizedDashboardService {
     return OptimizedDashboardService.instance;
   }
   
+  
+  private getCircuitBreaker(tileType: string): CircuitBreaker {
+    if (!this.circuitBreakers.has(tileType)) {
+      this.circuitBreakers.set(tileType, createTileCircuitBreaker(`OptimizedService-${tileType}`));
+    }
+    return this.circuitBreakers.get(tileType)!;
+  }
+  
   async getDataForTile(tileType: string, idea: string): Promise<OptimizedTileData | null> {
     const cacheKey = `${idea}:${tileType}`;
+    const circuitBreaker = this.getCircuitBreaker(tileType);
     
     // Check if we're already fetching this
     if (this.ongoingFetches.has(cacheKey)) {
       return await this.ongoingFetches.get(cacheKey);
     }
     
-    const fetchPromise = this.fetchTileData(tileType, idea);
+    const fetchPromise = circuitBreaker.execute(
+      () => this.fetchTileData(tileType, idea),
+      async () => {
+        // Fallback: return cached data or default
+        console.log(`[OptimizedDashboard] Circuit open for ${tileType}, using fallback`);
+        const cachedResponses = await this.cache.getResponsesForIdea(idea);
+        if (cachedResponses.length > 0) {
+          return this.formatTileData({}, {
+            fromCache: true,
+            confidence: 0.5,
+            sourceIds: []
+          });
+        }
+        return null;
+      }
+    );
+    
     this.ongoingFetches.set(cacheKey, fetchPromise);
     
     try {

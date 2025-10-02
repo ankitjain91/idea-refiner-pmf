@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { CircuitBreaker, createTileCircuitBreaker } from '@/lib/circuit-breaker';
 
 interface MarketSizeData {
   TAM: string;
@@ -72,8 +73,11 @@ export class RealTimeMarketService {
   private static instance: RealTimeMarketService;
   private cache: Map<string, { data: MarketSizeData; expires: number }> = new Map();
   private CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private circuitBreaker: CircuitBreaker;
   
-  private constructor() {}
+  private constructor() {
+    this.circuitBreaker = createTileCircuitBreaker('RealTimeMarket');
+  }
   
   static getInstance(): RealTimeMarketService {
     if (!RealTimeMarketService.instance) {
