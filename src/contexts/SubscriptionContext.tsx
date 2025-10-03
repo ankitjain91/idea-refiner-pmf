@@ -107,29 +107,75 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { toast } = useToast();
 
   const checkSubscription = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // All users get enterprise access
-    if (session?.user) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        setSubscription({
+          subscribed: false,
+          tier: 'free',
+          product_id: null,
+          subscription_end: null,
+        });
+        return;
+      }
+
       setUser(session.user);
+
+      // Call the check-subscription edge function to validate with Stripe
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+
+      if (error) {
+        console.error('Subscription check error:', error);
+        // Default to free tier on error
+        setSubscription({
+          subscribed: false,
+          tier: 'free',
+          product_id: null,
+          subscription_end: null,
+        });
+        return;
+      }
+
+      // Map product_id to tier
+      let tier: SubscriptionTier = 'free';
+      if (data?.subscribed && data?.product_id) {
+        const productId = data.product_id;
+        if (productId === SUBSCRIPTION_TIERS.enterprise.product_id) {
+          tier = 'enterprise';
+        } else if (productId === SUBSCRIPTION_TIERS.pro.product_id) {
+          tier = 'pro';
+        } else if (productId === SUBSCRIPTION_TIERS.basic.product_id) {
+          tier = 'basic';
+        }
+      }
+
+      setSubscription({
+        subscribed: data?.subscribed || false,
+        tier,
+        product_id: data?.product_id || null,
+        subscription_end: data?.subscription_end || null,
+      });
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setSubscription({
+        subscribed: false,
+        tier: 'free',
+        product_id: null,
+        subscription_end: null,
+      });
     }
-    
-    setSubscription({
-      subscribed: true,
-      tier: 'enterprise',
-      product_id: 'prod_T7CsCuGP8R6RrO',
-      subscription_end: '2099-12-31',
-    });
   };
 
   const canAccess = (feature: keyof typeof SUBSCRIPTION_TIERS.free.features): boolean => {
-    // Enterprise users have access to everything
-    return true;
+    const tierFeatures = SUBSCRIPTION_TIERS[subscription.tier].features;
+    return tierFeatures[feature] === true || tierFeatures[feature] === -1;
   };
 
   const getRemainingIdeas = (): number => {
-    // Unlimited for enterprise
-    return -1;
+    const limit = SUBSCRIPTION_TIERS[subscription.tier].features.ideasPerMonth;
+    if (limit === -1) return -1; // Unlimited
+    return Math.max(0, limit - ideaCount);
   };
 
   const incrementIdeaCount = () => {
