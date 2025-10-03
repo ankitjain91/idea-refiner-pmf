@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_credits_usage: {
+        Row: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          credits_used: number
+          id: string
+          operation_type: string
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          credits_used?: number
+          id?: string
+          operation_type: string
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          credits_used?: number
+          id?: string
+          operation_type?: string
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       analysis_sessions: {
         Row: {
           created_at: string
@@ -179,6 +212,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      exports_usage: {
+        Row: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          export_type: string
+          id: string
+          idea_id: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          export_type: string
+          id?: string
+          idea_id?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          export_type?: string
+          id?: string
+          idea_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       idea_analyses: {
         Row: {
@@ -609,6 +672,45 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_limits: {
+        Row: {
+          ai_credits_used: number
+          billing_period_end: string
+          billing_period_start: string
+          exports_used: number
+          id: string
+          ideas_used: number
+          projects_used: number
+          seats_used: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_credits_used?: number
+          billing_period_end: string
+          billing_period_start: string
+          exports_used?: number
+          id?: string
+          ideas_used?: number
+          projects_used?: number
+          seats_used?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_credits_used?: number
+          billing_period_end?: string
+          billing_period_start?: string
+          exports_used?: number
+          id?: string
+          ideas_used?: number
+          projects_used?: number
+          seats_used?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_features: {
         Row: {
           created_at: string
@@ -704,6 +806,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_current_billing_period: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          period_end: string
+          period_start: string
+        }[]
+      }
       get_openai_total_spend: {
         Args: { _user_id?: string }
         Returns: number
@@ -730,6 +839,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: { _amount?: number; _type: string; _user_id: string }
+        Returns: boolean
+      }
+      initialize_usage_limits: {
+        Args: { _user_id: string }
+        Returns: undefined
       }
       sync_user_subscription: {
         Args: {

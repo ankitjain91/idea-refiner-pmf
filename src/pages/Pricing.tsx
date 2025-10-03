@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, Crown, Zap, Building2, Loader2, RefreshCw, ArrowLeft, Sparkles, Star } from "lucide-react";
+import { Check, X, Crown, Zap, Building2, Loader2, RefreshCw, ArrowLeft, Sparkles, Star, TrendingUp, Lightbulb } from "lucide-react";
 import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -97,35 +97,51 @@ export default function PricingPage() {
 
   const plans = [
     {
+      tier: 'free',
+      icon: <Lightbulb className="w-6 h-6" />,
+      popular: false,
+      color: "from-gray-500/20 to-slate-500/20",
+      features: [
+        { name: '2 ideas per month', included: true },
+        { name: '50 AI credits/month', included: true },
+        { name: 'Manual refresh only', included: true },
+        { name: 'Read-only dashboard', included: true },
+        { name: 'Basic market trends', included: true },
+        { name: 'Auto-refresh', included: false },
+        { name: 'Exports', included: false },
+        { name: 'AI recommendations', included: false },
+      ]
+    },
+    {
       tier: 'basic',
       icon: <Zap className="w-6 h-6" />,
       popular: false,
       color: "from-blue-500/20 to-cyan-500/20",
       features: [
-        { name: '5 ideas per month', included: true },
-        { name: 'Basic analytics', included: true },
-        { name: 'Market analysis', included: true },
-        { name: 'Export capabilities', included: true },
-        { name: 'Advanced PMF analytics', included: false },
-        { name: 'AI insights', included: false },
-        { name: 'Collaboration tools', included: false },
-        { name: 'Priority support', included: false },
+        { name: '10 ideas per month', included: true },
+        { name: '500 AI credits/month', included: true },
+        { name: 'Auto-refresh (24h)', included: true },
+        { name: '3 exports/month', included: true },
+        { name: 'Market size analysis', included: true },
+        { name: 'Competition overview', included: true },
+        { name: 'AI recommendations', included: false },
+        { name: 'Collaboration', included: false },
       ]
     },
     {
       tier: 'pro',
-      icon: <Crown className="w-6 h-6" />,
+      icon: <TrendingUp className="w-6 h-6" />,
       popular: true,
       color: "from-primary/20 to-accent/20",
       features: [
         { name: 'Unlimited ideas', included: true },
-        { name: 'Basic analytics', included: true },
-        { name: 'Market analysis', included: true },
-        { name: 'Export capabilities', included: true },
-        { name: 'Advanced PMF analytics', included: true },
-        { name: 'AI insights', included: true },
-        { name: 'Collaboration tools', included: true },
-        { name: 'Priority support', included: true },
+        { name: '3,000 AI credits/month', included: true },
+        { name: 'Auto-refresh (6h)', included: true },
+        { name: '20 exports/month', included: true },
+        { name: 'AI recommendations', included: true },
+        { name: 'Trend forecasting', included: true },
+        { name: 'Batch analysis', included: true },
+        { name: 'Collaboration (3 seats)', included: true },
       ]
     },
     {
@@ -134,16 +150,14 @@ export default function PricingPage() {
       popular: false,
       color: "from-purple-500/20 to-pink-500/20",
       features: [
-        { name: 'Unlimited ideas', included: true },
-        { name: 'Basic analytics', included: true },
-        { name: 'Market analysis', included: true },
-        { name: 'Export capabilities', included: true },
-        { name: 'Advanced PMF analytics', included: true },
-        { name: 'AI insights', included: true },
-        { name: 'Collaboration tools', included: true },
-        { name: 'Priority support', included: true },
+        { name: 'Everything in Pro', included: true },
+        { name: '10,000 AI credits/month', included: true },
+        { name: 'Auto-refresh (1h)', included: true },
+        { name: 'Unlimited exports', included: true },
         { name: 'API access', included: true },
-        { name: 'Custom integrations', included: true },
+        { name: 'White-label reports', included: true },
+        { name: 'Priority processing', included: true },
+        { name: 'SSO (10+ seats)', included: true },
       ]
     }
   ];
@@ -207,7 +221,7 @@ export default function PricingPage() {
           initial="initial"
           animate="animate"
           variants={stagger}
-          className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"
+          className="grid md:grid-cols-4 gap-6 max-w-7xl mx-auto"
         >
           {plans.map((plan, index) => {
             const tierConfig = SUBSCRIPTION_TIERS[plan.tier as keyof typeof SUBSCRIPTION_TIERS];
@@ -293,7 +307,15 @@ export default function PricingPage() {
                       >
                         Manage Plan
                       </Button>
-                    ) : (
+                     ) : plan.tier === 'free' ? (
+                      <Button 
+                        className="w-full" 
+                        variant="secondary"
+                        disabled
+                      >
+                        Current Plan
+                      </Button>
+                     ) : (
                       <Button 
                         className="w-full"
                         variant={plan.popular ? "default" : "outline"}
