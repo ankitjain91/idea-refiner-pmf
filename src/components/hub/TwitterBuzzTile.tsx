@@ -49,7 +49,7 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (forceNetwork = false) => {
     try {
       setLoading(true);
       setIsRefreshing(false);
@@ -60,7 +60,8 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
         query: idea,
         idea: idea,
         time_window: '90d',
-        schema_version: 'v2'
+        schema_version: 'v2',
+        _cache_bust: forceNetwork ? Date.now() : undefined
       });
       
       // Prefetch related social data in background
@@ -92,13 +93,13 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
 
   useEffect(() => {
     if (!idea) return;
-    fetchData();
+    fetchData(false);
   }, [idea]);
 
   const handleRefresh = async () => {
     if (!isRefreshing) {
       setIsRefreshing(true);
-      await fetchData();
+      await fetchData(true);
       setTimeout(() => setIsRefreshing(false), 500);
     }
   };
@@ -285,6 +286,8 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing || loading}
+              title="Force live fetch (bypasses cache)"
+              aria-label="Force live fetch"
             >
               <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
             </Button>
