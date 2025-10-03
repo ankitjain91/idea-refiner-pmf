@@ -400,6 +400,19 @@ export default function EnterpriseHub() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6 space-y-8">
+        {/* QUICK STATS STRIP - At the top */}
+        {hasLoadedData && (
+          <QuickStatsStrip
+            tiles={{
+              growth_potential: tiles.growth_potential,
+              market_readiness: tiles.market_readiness,
+              competitive_advantage: tiles.competitive_advantage,
+              risk_assessment: tiles.risk_assessment
+            }}
+            loading={loading}
+          />
+        )}
+
         {/* Show funny loader only when initially loading and no data yet */}
         {!hasLoadedData && !hasExistingAnalysis && !tiles.pmf_score && loading && (
           <DashboardLoader stage="initial" />
@@ -465,18 +478,6 @@ export default function EnterpriseHub() {
           />
         )}
 
-        {/* 5. QUICK STATS STRIP - Always visible */}
-        {hasLoadedData && (
-          <QuickStatsStrip
-            tiles={{
-              growth_potential: tiles.growth_potential,
-              market_readiness: tiles.market_readiness,
-              competitive_advantage: tiles.competitive_advantage,
-              risk_assessment: tiles.risk_assessment
-            }}
-            loading={loading}
-          />
-        )}
       </div>
 
       {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}

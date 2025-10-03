@@ -207,20 +207,18 @@ export function QuickStatsStrip({ tiles, loading }: QuickStatsStripProps) {
   ];
   
   return (
-    <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur-lg border-t">
-      <div className="container mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <QuickStatCard
-              key={stat.title}
-              title={stat.title}
-              icon={stat.icon}
-              data={stat.data}
-              loading={loading}
-              accentColor={stat.accentColor}
-            />
-          ))}
-        </div>
+    <div className="mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <QuickStatCard
+            key={stat.title}
+            title={stat.title}
+            icon={stat.icon}
+            data={stat.data}
+            loading={loading}
+            accentColor={stat.accentColor}
+          />
+        ))}
       </div>
     </div>
   );
