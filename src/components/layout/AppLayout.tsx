@@ -1,14 +1,21 @@
 import { Outlet } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 
 
 export function AppLayout() {
+  const { open } = useSidebar();
+  const sidebarWidth = open !== false ? '256px' : '48px';
+  
   return (
-    <div className="min-h-screen flex w-full bg-background/40 backdrop-fade">
+    <div className="min-h-screen w-full bg-background/40 backdrop-fade">
       <div className="fixed inset-y-0 left-0 z-50">
         <AppSidebar />
       </div>
-      <main className="flex-1 flex flex-col min-h-screen overflow-y-auto ml-[var(--sidebar-width)]">
+      <main 
+        className="min-h-screen overflow-y-auto transition-all duration-300"
+        style={{ marginLeft: sidebarWidth }}
+      >
         <Outlet />
       </main>
     </div>
