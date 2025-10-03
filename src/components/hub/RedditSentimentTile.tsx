@@ -152,12 +152,10 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
     setError(null);
 
     try {
-      // Prefetch related data in background
-      optimizedQueue.prefetchRelated('reddit-sentiment', { idea, detailed: true });
-      
-      const response = await optimizedQueue.invokeFunction('reddit-sentiment', {
-        idea,
-        detailed: true
+      // Use the new reddit-research endpoint for comprehensive analysis
+      const response = await optimizedQueue.invokeFunction('reddit-research', {
+        idea_text: idea,
+        time_window: 'year'
       });
 
       if (response?.reddit_sentiment) {

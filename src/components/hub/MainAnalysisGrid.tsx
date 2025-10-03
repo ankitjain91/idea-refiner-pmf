@@ -10,6 +10,7 @@ import { WebSearchTile } from "./WebSearchTile";
 import { SentimentTile } from "./SentimentTile";
 import { TwitterBuzzTile } from "./TwitterBuzzTile";
 import { YouTubeAnalyticsTile } from "./YouTubeAnalyticsTile";
+import { EnhancedRedditTile } from "./EnhancedRedditTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -353,6 +354,11 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             </div>
           );
         })}
+        
+        {/* Enhanced Reddit Research Tile */}
+        <div className="col-span-full">
+          <EnhancedRedditTile idea={currentIdea} />
+        </div>
         
         {/* Add Twitter Buzz Tile */}
         <div className="col-span-full">
