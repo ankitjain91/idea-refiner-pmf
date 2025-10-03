@@ -11,6 +11,14 @@ const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
 
 // Replace with queued version
 (supabase.functions as any).invoke = async function(functionName: string, options?: any) {
+  // Bypass queue for instant, non-rate-limited operations
+  const instantFunctions = ['calculate-smoothbrains-score', 'evaluate-wrinkle-points'];
+  
+  if (instantFunctions.includes(functionName)) {
+    console.log(`[SupabaseQueueWrapper] Bypassing queue for instant function: ${functionName}`);
+    return originalInvoke(functionName, options);
+  }
+  
   console.log(`[SupabaseQueueWrapper] Queueing function: ${functionName}`);
   
   return globalRequestQueue.executeRequest(async () => {
