@@ -2,22 +2,27 @@ import { Brain, TrendingUp, Users, DollarSign, Target, Zap, Sparkles } from 'luc
 import { Progress } from '@/components/ui/progress';
 import { useEffect, useState } from 'react';
 
-const FUNNY_LOADING_MESSAGES = [
-  "Teaching AI to count money it hasn't made yet...",
-  "Asking Reddit if your idea is stupid (spoiler: they'll say yes)...",
-  "Convincing investors this isn't just another AI wrapper...",
-  "Calculating how many pizzas until profitability...",
-  "Pretending to understand your target market...",
-  "Summoning the spirit of Steve Jobs for validation...",
-  "Checking if your competitors are also winging it...",
-  "Converting hopes and dreams into actual metrics...",
-  "Consulting the magic 8-ball of market research...",
-  "Bribing the algorithm for better scores...",
-  "Asking ChatGPT if it would invest (it said no)...",
-  "Calculating unicorn probability (still waiting)...",
-  "Measuring vibes and checking the vibe index...",
-  "Determining if this is disruption or delusion...",
-  "Running numbers through the BS detector...",
+const DASHBOARD_FUN_FACTS = [
+  "🦈 Did you know? Baby sharks are called 'pups' and they're born knowing how to swim!",
+  "🍕 The world's most expensive pizza costs $12,000 and takes 72 hours to make!",
+  "🎮 The first video game ever created was Pong in 1972. It had TWO pixels!",
+  "🐙 Octopuses have three hearts and blue blood. Talk about being extra!",
+  "🌙 There's a planet made entirely of diamonds. It's called 55 Cancri e!",
+  "🦆 Ducks can surf! They've been spotted riding waves in Hawaii for fun!",
+  "🧠 Your brain generates 50,000 thoughts per day. That's a lot of ideas!",
+  "🎯 The inventor of the frisbee was turned into a frisbee after he died. True story!",
+  "🐝 Honey never spoils. Archaeologists found 3,000-year-old honey that was still edible!",
+  "🚀 There are more stars in the universe than grains of sand on all Earth's beaches!",
+  "🦒 Giraffes have purple tongues that are 20 inches long. Fashion statement!",
+  "💎 Bananas are berries, but strawberries aren't. Mind. Blown.",
+  "🌊 The Pacific Ocean is so big, it could fit all continents inside it!",
+  "🦥 Sloths can hold their breath longer than dolphins. Slow and steady wins!",
+  "🎨 The color orange was named after the fruit, not the other way around!",
+  "🐧 Penguins propose to their mates with a pebble. Ultimate romantics!",
+  "⚡ A bolt of lightning is 5 times hotter than the surface of the sun!",
+  "🦈 Sharks existed before trees. They're 400 million years old!",
+  "🎪 The shortest war in history lasted 38 minutes. Literally a coffee break!",
+  "🌈 There are more possible chess game variations than atoms in the universe!",
 ];
 
 const SCORE_TIPS = [
@@ -35,10 +40,10 @@ export function DashboardLoader({ stage = 'initial' }: { stage?: 'initial' | 'sc
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Rotate funny messages
+    // Rotate fun facts
     const messageInterval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % FUNNY_LOADING_MESSAGES.length);
-    }, 3000);
+      setMessageIndex((prev) => (prev + 1) % DASHBOARD_FUN_FACTS.length);
+    }, 4000);
 
     // Rotate tips
     const tipInterval = setInterval(() => {
@@ -60,31 +65,6 @@ export function DashboardLoader({ stage = 'initial' }: { stage?: 'initial' | 'sc
     };
   }, []);
 
-  if (stage === 'score') {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-6 animate-fade-in">
-        <div className="relative">
-          <div className="absolute inset-0 animate-ping">
-            <Brain className="h-16 w-16 text-primary/20" />
-          </div>
-          <Brain className="h-16 w-16 text-primary animate-pulse" />
-        </div>
-        <div className="text-center space-y-2 max-w-md">
-          <h3 className="text-lg font-semibold text-foreground">
-            Calculating SmoothBrains Score...
-          </h3>
-          <p className="text-sm text-muted-foreground animate-pulse">
-            {FUNNY_LOADING_MESSAGES[messageIndex]}
-          </p>
-        </div>
-        <Progress value={progress} className="w-64 h-2" />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-4 py-2 rounded-full">
-          <Sparkles className="h-3 w-3" />
-          {SCORE_TIPS[tipIndex]}
-        </div>
-      </div>
-    );
-  }
 
   if (stage === 'tiles') {
     return (
@@ -131,8 +111,8 @@ export function DashboardLoader({ stage = 'initial' }: { stage?: 'initial' | 'sc
         <h2 className="text-2xl font-bold text-foreground">
           Loading Your Dashboard
         </h2>
-        <p className="text-base text-muted-foreground animate-pulse">
-          {FUNNY_LOADING_MESSAGES[messageIndex]}
+        <p className="text-base text-muted-foreground leading-relaxed">
+          {DASHBOARD_FUN_FACTS[messageIndex]}
         </p>
       </div>
       <Progress value={progress} className="w-80 h-2" />
