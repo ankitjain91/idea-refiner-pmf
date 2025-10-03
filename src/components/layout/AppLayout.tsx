@@ -8,16 +8,16 @@ export function AppLayout() {
   const sidebarWidth = open !== false ? '256px' : '48px';
   
   return (
-    <div className="min-h-screen w-full bg-background/40 backdrop-fade">
-      <div className="fixed inset-y-0 left-0 z-50" style={{ width: sidebarWidth }}>
-        <AppSidebar />
+      <div className="h-screen w-full overflow-hidden bg-background/40 backdrop-fade">
+        <div className="fixed inset-y-0 left-0 z-50" style={{ width: sidebarWidth }}>
+          <AppSidebar />
+        </div>
+        <main 
+          className="h-screen overflow-y-auto"
+          style={{ marginLeft: sidebarWidth }}
+        >
+          <Outlet />
+        </main>
       </div>
-      <main 
-        className="min-h-screen overflow-y-auto"
-        style={{ marginLeft: sidebarWidth }}
-      >
-        <Outlet />
-      </main>
-    </div>
   );
 }

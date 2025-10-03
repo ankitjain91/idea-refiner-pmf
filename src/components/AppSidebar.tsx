@@ -80,7 +80,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
 
   return (
     <Sidebar collapsible="icon" className={cn(
-      "h-screen border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+      "h-full border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
       className
     )} style={style}>
       <SidebarHeader className="h-[73px] border-b flex items-center justify-center px-4">
