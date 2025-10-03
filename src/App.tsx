@@ -20,6 +20,7 @@ import LandingPage from "./pages/LandingPage";
 import EnterpriseHub from "./pages/EnterpriseHub";
 import IdeaChat from "./pages/EnhancedIdeaChatPage";
 import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import IdeaJournal from "./pages/IdeaJournal";
@@ -45,6 +46,7 @@ const RouteTransitionWrapper = () => {
         <Route path="/documentation" element={<Documentation />} />
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/home" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/enterprisehub" element={<EnterpriseHub />} />
           
@@ -52,7 +54,7 @@ const RouteTransitionWrapper = () => {
           <Route path="/ideajournal" element={<IdeaJournal />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/subscription-success" element={<IdeaChat />} />
+          <Route path="/subscription-success" element={<Home />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

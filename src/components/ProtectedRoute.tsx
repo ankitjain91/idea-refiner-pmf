@@ -65,5 +65,10 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
     return <Navigate to="/" state={{ from: location, openAuthModal: true }} replace />;
   }
 
+  // Redirect authenticated users from root to /home
+  if (user && location.pathname === '/') {
+    return <Navigate to="/home" replace />;
+  }
+
   return <>{children}</>;
 };
