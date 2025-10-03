@@ -233,25 +233,25 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
+      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Brain className="h-6 w-6 text-primary" />
-              <span className="font-semibold text-lg">SmoothBrains</span>
+              <Brain className="h-5 w-5 text-foreground" />
+              <span className="font-semibold text-base">SmoothBrains</span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <ThemeToggle />
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="text-sm font-normal">
                 Documentation
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="text-sm font-normal">
                 Pricing
               </Button>
               <Button
-                variant="default"
                 size="sm"
                 onClick={() => setShowAuthModal(true)}
+                className="rounded-full"
               >
                 Sign In
               </Button>
@@ -261,32 +261,32 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="max-w-5xl mx-auto text-center space-y-6">
-          <Badge variant="secondary" className="px-3 py-1">
-            <Sparkles className="h-3 w-3 mr-1" />
+      <section className="container mx-auto px-6 py-32">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-xs font-medium">
             Zero Wrinkles Required™
           </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
+          <h1 className="text-6xl md:text-7xl font-semibold tracking-tight leading-[1.1]">
             Your Brain Might Be Smooth
-            <span className="block text-primary mt-2">But Your Ideas Don't Have To Be</span>
+            <span className="block text-accent mt-3">But Your Ideas Don't Have To Be</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-xl text-secondary-foreground max-w-2xl mx-auto leading-relaxed">
             We add the wrinkles to your perfectly smooth brain, turning those shower thoughts 
             into Silicon Valley gold. No PhD required, just vibes and ambition.
           </p>
-          <div className="flex items-center justify-center gap-4 pt-4">
+          <div className="flex items-center justify-center gap-4 pt-6">
             <Button 
               size="lg" 
               onClick={() => setShowAuthModal(true)}
-              className="gap-2"
+              className="gap-2 rounded-full px-8"
             >
               Start Free <ArrowRight className="h-4 w-4" />
             </Button>
             <Button 
               size="lg" 
-              variant="outline"
+              variant="ghost"
               onClick={() => navigate('/pricing')}
+              className="rounded-full px-8"
             >
               View Pricing
             </Button>
@@ -295,15 +295,15 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section className="container mx-auto px-4 py-20 border-t border-border/50">
+      <section className="container mx-auto px-6 py-24 border-t">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Add Some Texture to That Smooth Dome</h2>
-            <p className="text-muted-foreground">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-semibold mb-4">Add Some Texture to That Smooth Dome</h2>
+            <p className="text-secondary-foreground text-lg">
               Tools so smart, they'll make your brain look like a topographical map
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {features.map((feature, idx) => (
               <motion.div
                 key={idx}
@@ -312,15 +312,15 @@ export default function LandingPage() {
                 transition={{ delay: idx * 0.1 }}
                 viewport={{ once: true }}
               >
-                <Card className="h-full border-border/50 hover:border-border transition-colors">
-                  <CardContent className="p-6">
+                <Card className="h-full hover:shadow-sm transition-shadow">
+                  <CardContent className="p-8">
                     <div className="flex items-start gap-4">
-                      <div className="p-2 bg-muted rounded-lg">
-                        <feature.icon className="h-5 w-5 text-primary" />
+                      <div className="p-2.5 bg-card-hover rounded-lg">
+                        <feature.icon className="h-5 w-5 text-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-2">{feature.title}</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
+                        <p className="text-secondary-foreground leading-relaxed">
                           {feature.description}
                         </p>
                       </div>
@@ -334,39 +334,39 @@ export default function LandingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="container mx-auto px-4 py-20 border-t border-border/50">
+      <section className="container mx-auto px-6 py-24 border-t">
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
             <div>
-              <div className="text-3xl font-bold text-primary">10K+</div>
-              <div className="text-sm text-muted-foreground mt-1">Smooth Brains</div>
+              <div className="text-5xl font-semibold mb-2">10K+</div>
+              <div className="text-sm text-secondary-foreground">Smooth Brains</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary">50K+</div>
-              <div className="text-sm text-muted-foreground mt-1">Wrinkles Added</div>
+              <div className="text-5xl font-semibold mb-2">50K+</div>
+              <div className="text-sm text-secondary-foreground">Wrinkles Added</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary">0%</div>
-              <div className="text-sm text-muted-foreground mt-1">Brain Cells Required</div>
+              <div className="text-5xl font-semibold mb-2">0%</div>
+              <div className="text-sm text-secondary-foreground">Brain Cells Required</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary">∞</div>
-              <div className="text-sm text-muted-foreground mt-1">Smoothness Level</div>
+              <div className="text-5xl font-semibold mb-2">∞</div>
+              <div className="text-sm text-secondary-foreground">Smoothness Level</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section className="container mx-auto px-4 py-20 border-t border-border/50">
+      <section className="container mx-auto px-6 py-24 border-t">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Pricing smoother than your cerebellum</h2>
-            <p className="text-muted-foreground">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-semibold mb-4">Pricing smoother than your cerebellum</h2>
+            <p className="text-secondary-foreground text-lg">
               Pick your wrinkle intensity level
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plans.map((plan, idx) => (
               <motion.div
                 key={idx}
@@ -375,31 +375,31 @@ export default function LandingPage() {
                 transition={{ delay: idx * 0.1 }}
                 viewport={{ once: true }}
               >
-                <Card className={`h-full ${plan.popular ? 'border-primary' : 'border-border/50'}`}>
+                <Card className={`h-full ${plan.popular ? 'ring-2 ring-accent' : ''}`}>
                   {plan.popular && (
-                    <div className="px-6 py-2 bg-primary text-primary-foreground text-center text-sm font-medium">
+                    <div className="px-6 py-2 bg-accent text-white text-center text-sm font-medium">
                       Most Popular
                     </div>
                   )}
                   <CardHeader>
-                    <CardTitle>{plan.name}</CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
-                    <div className="mt-4">
-                      <span className="text-3xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground ml-2">/{plan.period}</span>
+                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                    <CardDescription className="text-base">{plan.description}</CardDescription>
+                    <div className="mt-6">
+                      <span className="text-4xl font-semibold">{plan.price}</span>
+                      <span className="text-secondary-foreground ml-2">/{plan.period}</span>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ul className="space-y-3">
+                  <CardContent className="space-y-6">
+                    <ul className="space-y-4">
                       {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-2 text-sm">
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span>{feature}</span>
+                        <li key={idx} className="flex items-center gap-3">
+                          <Check className="h-5 w-5 text-accent flex-shrink-0" />
+                          <span className="text-secondary-foreground">{feature}</span>
                         </li>
                       ))}
                     </ul>
                     <Button 
-                      className="w-full" 
+                      className="w-full rounded-full" 
                       variant={plan.variant}
                       onClick={() => setShowAuthModal(true)}
                     >
@@ -414,16 +414,16 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20 border-t border-border/50">
-        <div className="max-w-3xl mx-auto text-center space-y-6">
-          <h2 className="text-3xl font-bold">Ready to evolve that smooth brain?</h2>
-            <p className="text-muted-foreground">
+      <section className="container mx-auto px-6 py-24 border-t">
+        <div className="max-w-3xl mx-auto text-center space-y-8">
+          <h2 className="text-4xl font-semibold">Ready to evolve that smooth brain?</h2>
+            <p className="text-secondary-foreground text-lg">
               Join thousands of fellow smoothies who went from zero wrinkles to venture capital
             </p>
           <Button 
             size="lg" 
             onClick={() => setShowAuthModal(true)}
-            className="gap-2"
+            className="gap-2 rounded-full px-8"
           >
             Get Started Free <ArrowRight className="h-4 w-4" />
           </Button>
@@ -431,21 +431,21 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/50">
-        <div className="container mx-auto px-4 py-8">
+      <footer className="border-t">
+        <div className="container mx-auto px-6 py-12">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">© 2024 SmoothBrains. No wrinkles were harmed in the making.</span>
+              <Brain className="h-5 w-5 text-secondary-foreground" />
+              <span className="text-sm text-secondary-foreground">© 2024 SmoothBrains. No wrinkles were harmed in the making.</span>
             </div>
-            <div className="flex items-center gap-6">
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <div className="flex items-center gap-8">
+              <a href="#" className="text-sm text-secondary-foreground hover:text-foreground transition-colors">
                 Privacy
               </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#" className="text-sm text-secondary-foreground hover:text-foreground transition-colors">
                 Terms
               </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#" className="text-sm text-secondary-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>
