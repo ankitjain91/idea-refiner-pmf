@@ -130,6 +130,14 @@ serve(async (req) => {
           top_hashtags: Array.from(hashtags).slice(0, 5),
           influencers
         },
+        // Include raw tweets for display in tile
+        raw_tweets: tweets.slice(0, 10).map((tweet: any) => ({
+          id: tweet.id,
+          text: tweet.text,
+          created_at: tweet.created_at,
+          metrics: tweet.public_metrics,
+          url: `https://twitter.com/i/web/status/${tweet.id}`
+        })),
         clusters: [
           {
             cluster_id: 'recent_discussions',
@@ -137,16 +145,18 @@ serve(async (req) => {
             insight: `${totalTweets} tweets found with ${positivePercent}% positive sentiment`,
             sentiment: { positive: positivePercent, neutral: neutralPercent, negative: negativePercent },
             engagement: { 
-              avg_likes: tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.like_count || 0), 0) / totalTweets,
-              avg_retweets: tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.retweet_count || 0), 0) / totalTweets
+              avg_likes: Math.round(tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.like_count || 0), 0) / totalTweets),
+              avg_retweets: Math.round(tweets.reduce((sum: number, t: any) => sum + (t.public_metrics?.retweet_count || 0), 0) / totalTweets)
             },
             hashtags: Array.from(hashtags).slice(0, 5),
-            quotes: tweets.slice(0, 2).map((t: any) => ({
-              text: t.text.substring(0, 100),
-              sentiment: positiveCount > negativeCount ? 'positive' : 'neutral'
+            quotes: tweets.slice(0, 3).map((t: any) => ({
+              text: t.text.substring(0, 150),
+              sentiment: positiveCount > negativeCount ? 'positive' : 'neutral',
+              url: `https://twitter.com/i/web/status/${t.id}`,
+              metrics: t.public_metrics
             })),
             citations: [
-              { source: 'twitter.com', url: `https://twitter.com/search?q=${encodeURIComponent(searchTerms)}` }
+              { source: 'Twitter Search API', url: `https://twitter.com/search?q=${encodeURIComponent(searchTerms)}` }
             ]
           }
         ],

@@ -161,12 +161,17 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
       });
 
       if (response?.reddit_sentiment) {
-        console.log('[Reddit] Response structure:', {
+        console.log('[Reddit] Full response data:', {
           hasRedditSentiment: true,
           keys: Object.keys(response.reddit_sentiment),
           hasClusters: !!response.reddit_sentiment.clusters,
           hasItems: !!response.reddit_sentiment.items,
           hasThemes: !!response.reddit_sentiment.themes,
+          hasPainPoints: !!response.reddit_sentiment.pain_points,
+          hasMetrics: !!response.reddit_sentiment.metrics,
+          itemsCount: response.reddit_sentiment.items?.length || 0,
+          themesCount: response.reddit_sentiment.themes?.length || 0,
+          painPointsCount: response.reddit_sentiment.pain_points?.length || 0,
           fullData: response.reddit_sentiment
         });
         setData(response.reddit_sentiment);

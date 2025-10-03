@@ -309,8 +309,9 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tweets">Tweets</TabsTrigger>
             <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
             <TabsTrigger value="influencers">Influencers</TabsTrigger>
             <TabsTrigger value="hashtags">Hashtags</TabsTrigger>
@@ -397,6 +398,51 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="tweets" className="space-y-4 mt-4">
+            {(data as any).raw_tweets && (data as any).raw_tweets.length > 0 ? (
+              (data as any).raw_tweets.map((tweet: any, idx: number) => (
+                <Card key={idx} className="p-4">
+                  <div className="space-y-3">
+                    <p className="text-sm">{tweet.text}</p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {tweet.created_at && (
+                        <span>{new Date(tweet.created_at).toLocaleDateString()}</span>
+                      )}
+                      {tweet.metrics && (
+                        <>
+                          <span className="flex items-center gap-1">
+                            <Heart className="h-3 w-3" />
+                            {tweet.metrics.like_count || 0}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Repeat2 className="h-3 w-3" />
+                            {tweet.metrics.retweet_count || 0}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            {tweet.metrics.reply_count || 0}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {tweet.url && (
+                      <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
+                        <a href={tweet.url} target="_blank" rel="noopener noreferrer">
+                          View on Twitter →
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Twitter className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No tweets available</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="sentiment" className="space-y-4 mt-4">
