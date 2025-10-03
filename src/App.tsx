@@ -19,6 +19,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import LandingPage from "./pages/LandingPage";
 import EnterpriseHub from "./pages/EnterpriseHub";
 import IdeaChat from "./pages/EnhancedIdeaChatPage";
+import Dashboard from "./pages/Dashboard";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import IdeaJournal from "./pages/IdeaJournal";
@@ -44,7 +45,7 @@ const RouteTransitionWrapper = () => {
         <Route path="/documentation" element={<Documentation />} />
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-          <Route path="/dashboard" element={<EnterpriseHub />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/enterprisehub" element={<EnterpriseHub />} />
           
           <Route path="/ideachat" element={<IdeaChat />} />
