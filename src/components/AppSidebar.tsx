@@ -46,6 +46,12 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
 
   const mainNav = [
     { 
+      title: "Home", 
+      url: "/home", 
+      icon: BarChart3,
+      badge: null
+    },
+    { 
       title: "Idea Chat", 
       url: "/ideachat", 
       icon: MessageSquare,
