@@ -20,18 +20,33 @@ serve(async (req) => {
       throw new Error('No idea or query provided');
     }
     
-    const searchQuery = idea || query;
+    let searchQuery = idea || query;
     console.log('[twitter-search] Processing request for idea:', searchQuery);
     
-    // Build search query
-    const searchTerms = [searchQuery, industry].filter(Boolean).join(' ');
-    const keywords = searchTerms.toLowerCase().split(' ').filter(w => w.length > 3).slice(0, 3);
+    // Clean the search query to avoid Twitter API syntax errors
+    // Remove common problematic words and phrases
+    searchQuery = searchQuery
+      .replace(/I'm here to help transform your startup idea into reality\./gi, '')
+      .replace(/\band\b/gi, '') // Remove "and" to avoid Twitter API ambiguity
+      .replace(/\bor\b/gi, '')
+      .replace(/\bthat\b/gi, '')
+      .replace(/\bthe\b/gi, '')
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim();
     
-    console.log('[twitter-search] Using keywords:', keywords);
+    // Extract meaningful keywords (3-4 main terms)
+    const keywords = searchQuery
+      .toLowerCase()
+      .split(' ')
+      .filter(w => w.length > 4) // Only words longer than 4 chars
+      .slice(0, 4); // Take top 4 keywords
+    
+    const searchTerms = keywords.join(' ');
+    console.log('[twitter-search] Cleaned search terms:', searchTerms);
     
     if (!TWITTER_BEARER_TOKEN) {
       console.warn('[twitter-search] TWITTER_BEARER_TOKEN not configured, using fallback data');
-      throw new Error('Twitter API not configured');
+      throw new Error('Twitter API not configured - please add TWITTER_BEARER_TOKEN to use real Twitter data');
     }
     
     // Call Twitter API v2 recent search
@@ -49,7 +64,17 @@ serve(async (req) => {
     if (!twitterResponse.ok) {
       const errorText = await twitterResponse.text();
       console.error('[twitter-search] Twitter API error:', twitterResponse.status, errorText);
-      throw new Error(`Twitter API error: ${twitterResponse.status}`);
+      
+      // Specific error handling
+      if (twitterResponse.status === 429) {
+        throw new Error('Twitter API rate limit exceeded. Please try again in a few minutes.');
+      } else if (twitterResponse.status === 401) {
+        throw new Error('Twitter API authentication failed. Please check your TWITTER_BEARER_TOKEN.');
+      } else if (twitterResponse.status === 400) {
+        throw new Error('Invalid Twitter search query. Please try a simpler search term.');
+      }
+      
+      throw new Error(`Twitter API error: ${twitterResponse.status} - ${errorText}`);
     }
     
     const twitterData = await twitterResponse.json();
@@ -143,23 +168,35 @@ serve(async (req) => {
     console.error('[twitter-search] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Twitter data';
     
-    // Return graceful fallback with correct structure
+    // Determine if it's a rate limit or API config issue
+    const isRateLimit = errorMessage.includes('rate limit');
+    const isConfigIssue = errorMessage.includes('not configured') || errorMessage.includes('authentication');
+    
+    // Return graceful fallback with helpful error message
     return new Response(JSON.stringify({
-      summary: 'Unable to fetch Twitter data',
-      metrics: {
-        total_tweets: 0,
-        buzz_trend: 'Unknown',
-        overall_sentiment: { positive: 0, neutral: 0, negative: 0 },
-        top_hashtags: [],
-        influencers: []
-      },
-      clusters: [],
-      charts: [],
-      visuals_ready: false,
-      confidence: 'Low',
-      error: errorMessage
+      twitter_buzz: {
+        summary: isRateLimit 
+          ? 'Twitter data temporarily unavailable due to rate limiting. Using cached/mock data.' 
+          : isConfigIssue
+          ? 'Twitter API not configured. Add TWITTER_BEARER_TOKEN to enable real-time Twitter data.'
+          : 'Unable to fetch Twitter data at this time.',
+        metrics: {
+          total_tweets: 0,
+          buzz_trend: 'Data unavailable',
+          overall_sentiment: { positive: 0, neutral: 0, negative: 0 },
+          top_hashtags: [],
+          influencers: []
+        },
+        clusters: [],
+        charts: [],
+        visuals_ready: false,
+        confidence: 'Low',
+        error: errorMessage,
+        error_type: isRateLimit ? 'rate_limit' : isConfigIssue ? 'config' : 'unknown'
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200 // Return 200 even on error for graceful degradation
     });
   }
 });
