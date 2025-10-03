@@ -27,7 +27,8 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
   );
 
   try {
@@ -54,8 +55,41 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, returning unsubscribed state");
-      return new Response(JSON.stringify({ 
+      logStep("No Stripe customer found, falling back to Supabase roles/profiles");
+
+      const { data: roleRow } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const { data: profileRow } = await supabaseClient
+        .from('profiles')
+        .select('subscription_end_date')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const role = roleRow?.role as string | undefined;
+      const productMap: Record<string, string> = {
+        basic: 'prod_T7Cs2e5UUZ0eov',
+        pro: 'prod_T7CsnetIz8NE1N',
+        enterprise: 'prod_T7CsCuGP8R6RrO',
+      };
+
+      if (role && role !== 'free') {
+        logStep("Fallback entitlements found", { role, subEnd: profileRow?.subscription_end_date });
+        return new Response(JSON.stringify({
+          subscribed: true,
+          tier: role,
+          product_id: productMap[role] ?? null,
+          subscription_end: profileRow?.subscription_end_date ?? null
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({
         subscribed: false,
         tier: 'free',
         product_id: null,
@@ -75,7 +109,7 @@ serve(async (req) => {
       limit: 1,
     });
     
-    const hasActiveSub = subscriptions.data.length > 0;
+    let hasActiveSub = subscriptions.data.length > 0;
     let productId = null;
     let subscriptionEnd = null;
     let tier = 'free';
@@ -97,7 +131,34 @@ serve(async (req) => {
         productId: productId
       });
     } else {
-      logStep("No active subscription found");
+      logStep("No active subscription found - checking Supabase entitlements fallback");
+
+      const { data: roleRow } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const { data: profileRow } = await supabaseClient
+        .from('profiles')
+        .select('subscription_end_date')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const role = roleRow?.role as string | undefined;
+      const productMap: Record<string, string> = {
+        basic: 'prod_T7Cs2e5UUZ0eov',
+        pro: 'prod_T7CsnetIz8NE1N',
+        enterprise: 'prod_T7CsCuGP8R6RrO',
+      };
+
+      if (role && role !== 'free') {
+        hasActiveSub = true;
+        tier = role;
+        productId = productMap[role] ?? null;
+        subscriptionEnd = profileRow?.subscription_end_date ?? null;
+        logStep("Using fallback entitlements", { tier, productId, subscriptionEnd });
+      }
     }
 
     return new Response(JSON.stringify({
