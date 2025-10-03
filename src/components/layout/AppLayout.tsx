@@ -9,11 +9,11 @@ export function AppLayout() {
   
   return (
     <div className="min-h-screen w-full bg-background/40 backdrop-fade">
-      <div className="fixed inset-y-0 left-0 z-50">
+      <div className="fixed inset-y-0 left-0 z-50" style={{ width: sidebarWidth }}>
         <AppSidebar />
       </div>
       <main 
-        className="min-h-screen overflow-y-auto transition-all duration-300"
+        className="min-h-screen overflow-y-auto"
         style={{ marginLeft: sidebarWidth }}
       >
         <Outlet />
