@@ -69,7 +69,12 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
       // Normalize payload shape
       const payload = response?.twitter_buzz ? response.twitter_buzz : response;
       
-      if (payload && payload.metrics && payload.metrics.overall_sentiment) {
+      // Check if this is an error response (rate limit, config issue, etc.)
+      if (payload?.error) {
+        setError(payload.error);
+        // Still set the data so we can show the error state with helpful message
+        setData(payload as TwitterBuzzData);
+      } else if (payload && payload.metrics && payload.metrics.overall_sentiment) {
         setData(payload as TwitterBuzzData);
       } else {
         // Generate synthetic data if structure is missing or outdated
@@ -184,6 +189,49 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
   }
 
   if (!data) return null;
+
+  // Show error state if Twitter API has issues
+  if (error && data.metrics.total_tweets === 0) {
+    return (
+      <Card className="col-span-full">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Twitter className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Twitter/X Buzz Analysis</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="p-4 bg-muted/50 rounded-lg border border-border">
+              <p className="text-sm text-muted-foreground">{data.summary}</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Twitter className="h-4 w-4" />
+              <span>{error}</span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+            >
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Prepare chart data (defensive against stale cache/old schema)
   const dist = data.metrics?.overall_sentiment ?? { positive: 0, neutral: 0, negative: 0 };
