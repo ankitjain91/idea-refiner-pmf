@@ -207,7 +207,7 @@ export function QuickStatsStrip({ tiles, loading }: QuickStatsStripProps) {
   ];
   
   return (
-    <div className="mb-6">
+    <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-lg border-b mb-6 -mx-4 px-4 py-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <QuickStatCard
