@@ -55,8 +55,8 @@ export const AsyncDashboardButton = () => {
       await Promise.all([
         // Simulate component preloading
         new Promise(resolve => setTimeout(resolve, 800)),
-        // Preload any dashboard data if needed
-        import('@/pages/Dashboard').catch(() => {}),
+        // Preload Enterprise Hub page
+        import('@/pages/EnterpriseHub').catch(() => {}),
       ]);
 
       // Mark as loaded
