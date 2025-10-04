@@ -513,143 +513,205 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
             </AnimatePresence>
           </div>
           
-          {/* Enhanced summary cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground font-medium">Total Market (TAM)</p>
-                      <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                        {formatCurrency(totalTAM)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" />
-                        Total available opportunity
-                      </p>
-                    </div>
-                    <motion.div 
-                      className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      <TrendingUp className="h-6 w-6 text-primary" />
-                    </motion.div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground font-medium">Addressable (SAM)</p>
-                      <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                        {formatCurrency(totalSAM)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        Reachable segment
-                      </p>
-                    </div>
-                    <motion.div 
-                      className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      <Users className="h-6 w-6 text-primary" />
-                    </motion.div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground font-medium">Obtainable (SOM)</p>
-                      <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                        {formatCurrency(totalSOM)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        Year 1 projection
-                      </p>
-                    </div>
-                    <motion.div 
-                      className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      <DollarSign className="h-6 w-6 text-primary" />
-                    </motion.div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
           
-          {/* Regional breakdown table */}
-          {selectedRegion && (
-            <Card className="border-border/50 bg-card/50">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <BarChart className="h-4 w-4 text-primary" />
-                    {selectedRegion.name} - Detailed Analysis
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedRegion(null)}
-                  >
-                    Close
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Competition Density</p>
-                    <Progress value={selectedRegion.competitorDensity * 100} className="mt-2 h-2" />
-                    <p className="text-xs mt-1">{Math.round(selectedRegion.competitorDensity * 100)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Regulatory Score</p>
-                    <Progress value={selectedRegion.regulatoryScore * 100} className="mt-2 h-2" />
-                    <p className="text-xs mt-1">{Math.round(selectedRegion.regulatoryScore * 100)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Internet Penetration</p>
-                    <Progress value={selectedRegion.demographics.internetPenetration * 100} className="mt-2 h-2" />
-                    <p className="text-xs mt-1">{Math.round(selectedRegion.demographics.internetPenetration * 100)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Mobile Users</p>
-                    <Progress value={selectedRegion.demographics.mobileUsers * 100} className="mt-2 h-2" />
-                    <p className="text-xs mt-1">{Math.round(selectedRegion.demographics.mobileUsers * 100)}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Dynamic content based on view type */}
+          <AnimatePresence mode="wait">
+            {viewType === "market" && (
+              <motion.div
+                key="market"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground font-medium">Total Market (TAM)</p>
+                          <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                            {formatCurrency(totalTAM)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            Total available opportunity
+                          </p>
+                        </div>
+                        <motion.div 
+                          className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.6 }}
+                        >
+                          <TrendingUp className="h-6 w-6 text-primary" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground font-medium">Addressable (SAM)</p>
+                          <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                            {formatCurrency(totalSAM)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            Reachable segment
+                          </p>
+                        </div>
+                        <motion.div 
+                          className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.6 }}
+                        >
+                          <Users className="h-6 w-6 text-primary" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground font-medium">Obtainable (SOM)</p>
+                          <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                            {formatCurrency(totalSOM)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            Year 1 projection
+                          </p>
+                        </div>
+                        <motion.div 
+                          className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.6 }}
+                        >
+                          <DollarSign className="h-6 w-6 text-primary" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {viewType === "growth" && (
+              <motion.div
+                key="growth"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="border-border/50 bg-gradient-to-br from-green-500/5 to-background">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-500" />
+                      Regional Growth Rates (CAGR)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {regions.sort((a, b) => b.cagr - a.cagr).map((region, i) => (
+                        <motion.div
+                          key={region.name}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedRegion(region)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: getRegionColor(region) }}
+                            />
+                            <span className="font-medium">{region.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Progress value={(region.cagr / 25) * 100} className="w-24 h-2" />
+                            <span className="text-lg font-bold text-green-500">{region.cagr}%</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {viewType === "penetration" && (
+              <motion.div
+                key="penetration"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <Card className="border-border/50 bg-gradient-to-br from-blue-500/5 to-background">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-blue-500" />
+                      Market Penetration by Region
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {regions.sort((a, b) => b.marketPenetration - a.marketPenetration).map((region, i) => (
+                        <motion.div
+                          key={region.name}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedRegion(region)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: getRegionColor(region) }}
+                            />
+                            <span className="font-medium">{region.name}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right text-xs text-muted-foreground">
+                              <div>SOM: {formatCurrency(region.som)}</div>
+                              <div>TAM: {formatCurrency(region.tam)}</div>
+                            </div>
+                            <Progress value={region.marketPenetration * 100} className="w-24 h-2" />
+                            <span className="text-lg font-bold text-blue-500 w-16 text-right">
+                              {(region.marketPenetration * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </CardContent>
     </Card>

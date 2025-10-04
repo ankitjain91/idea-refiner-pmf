@@ -470,7 +470,7 @@ export default function EnterpriseHub() {
             </TabsList>
           </div>
 
-          {/* OVERVIEW TAB - Just PMF Score */}
+          {/* OVERVIEW TAB - PMF Score + Global Market Map */}
           <TabsContent value="overview" className="space-y-6">
             <HeroSection 
               pmfScore={tiles.pmf_score}
@@ -480,31 +480,31 @@ export default function EnterpriseHub() {
               loadingTasks={loadingTasks}
               currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
             />
+            
+            {hasLoadedData && (
+              <LazyWorldMap 
+                marketData={tiles.market_size}
+                loading={loading}
+              />
+            )}
           </TabsContent>
 
           {/* MARKET ANALYSIS TAB - Market Size, Trends, Google Trends, Competition */}
           <TabsContent value="market" className="space-y-6">
             {hasLoadedData && (
-              <>
-                <LazyWorldMap 
-                  marketData={tiles.market_size}
+              <div className="space-y-4">
+                <MainAnalysisGrid
+                  tiles={{
+                    market_size: tiles.market_size,
+                    market_trends: tiles.market_trends,
+                    google_trends: tiles.google_trends,
+                    competition: tiles.competition,
+                  }}
                   loading={loading}
+                  viewMode="deep"
+                  onRefreshTile={refreshTile}
                 />
-                
-                <div className="space-y-4">
-                  <MainAnalysisGrid
-                    tiles={{
-                      market_size: tiles.market_size,
-                      market_trends: tiles.market_trends,
-                      google_trends: tiles.google_trends,
-                      competition: tiles.competition,
-                    }}
-                    loading={loading}
-                    viewMode="deep"
-                    onRefreshTile={refreshTile}
-                  />
-                </div>
-              </>
+              </div>
             )}
           </TabsContent>
 
@@ -512,7 +512,6 @@ export default function EnterpriseHub() {
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Customer Insights</h3>
                 <SentimentTile idea={currentIdea} className="mb-6" />
                 <MainAnalysisGrid
                   tiles={{
