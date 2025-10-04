@@ -32,6 +32,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { LS_KEYS } from '@/lib/storage-keys';
 import { backgroundProcessor } from '@/lib/background-processor';
+import { AsyncDashboardButton } from '@/components/AsyncDashboardButton';
 
 // Import refactored components and utilities
 import { Message, SuggestionItem } from './chat/types';
@@ -2063,73 +2064,7 @@ User submission: """${messageText}"""`;
       
       {/* Quick Actions */}
       <div className="flex gap-2 mt-3 max-w-4xl mx-auto">
-        <Button
-          onClick={() => {
-            // Extract the actual idea from conversation history
-            const extractIdeaFromHistory = () => {
-              // Try to find the most relevant idea from messages
-              for (let i = messages.length - 1; i >= 0; i--) {
-                const msg = messages[i];
-                if (msg.type === 'user' && msg.content && msg.content.length > 20) {
-                  // Check if this looks like an idea description
-                  const lowerContent = msg.content.toLowerCase();
-                  if (!lowerContent.includes('what') && 
-                      !lowerContent.includes('how') && 
-                      !lowerContent.includes('can you') &&
-                      !lowerContent.includes('tell me') &&
-                      !lowerContent.includes('explain')) {
-                    return msg.content;
-                  }
-                }
-              }
-              return currentIdea;
-            };
-            
-            const ideaToStore = hasValidIdea ? (currentIdea || extractIdeaFromHistory()) : extractIdeaFromHistory();
-            
-            // Store the idea properly before navigation
-            if (ideaToStore) {
-              // First store the raw idea
-              localStorage.setItem('currentIdea', ideaToStore);
-              localStorage.setItem(LS_KEYS.userIdea, ideaToStore);
-              localStorage.setItem('ideaText', ideaToStore);
-              
-              // Show processing toast
-              toast({
-                title: "Preparing Dashboard",
-                description: "Analyzing and summarizing your conversation...",
-                duration: 2000,
-              });
-              
-              // Summarize the conversation into a coherent startup idea
-              console.log('[IdeaChat] Creating summary from messages:', messages.length);
-              const conversationSummary = createConversationSummary(messages, ideaToStore);
-              console.log('[IdeaChat] Summary created:', conversationSummary.substring(0, 200));
-              
-              // Store the summarized idea for dashboard
-              localStorage.setItem('dashboardIdea', conversationSummary);
-              localStorage.setItem('dashboardConversationHistory', JSON.stringify(messages));
-              
-              // Navigate to dashboard after brief delay for toast
-              setTimeout(() => {
-                navigate('/dashboard');
-              }, 300);
-            } else {
-              // If no idea, still navigate but show warning
-              toast({
-                title: "No Idea Found",
-                description: "Please describe your startup idea first",
-                variant: "destructive",
-              });
-            }
-          }}
-          variant="outline"
-          size="sm"
-          className="fluid-text-xs group hover:bg-primary/10 hover:border-primary/50"
-        >
-          <BarChart3 className="h-3 w-3 mr-1.5 text-primary group-hover:scale-110 transition-transform" />
-          Dashboard
-        </Button>
+        <AsyncDashboardButton />
         <motion.div whileHover={hasValidIdea ? { scale: 1.02 } : {}} whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
             variant="outline"
