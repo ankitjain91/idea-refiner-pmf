@@ -47,7 +47,7 @@ const RouteTransitionWrapper = () => {
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/home" element={<Home />} />
-          <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/enterprisehub" element={<EnterpriseHub />} />
           
           <Route path="/ideachat" element={<IdeaChat />} />
