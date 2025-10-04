@@ -1265,10 +1265,7 @@ const ChatMessageItem = useMemo(() => {
           "w-full sm:max-w-[85%] lg:max-w-[75%] space-y-2 sm:space-y-3 min-w-0",
           message.type === 'user' ? 'items-end' : 'items-start'
         )}>
-          <motion.div
-            whileHover={{ scale: 1.01 }}
-            transition={{ type: "spring", stiffness: 400 }}
-          >
+          <div>
             <Card className={cn(
               "p-3 sm:p-5 relative transition-all duration-300 w-full border-2",
               message.type === 'user' 
@@ -1310,7 +1307,7 @@ const ChatMessageItem = useMemo(() => {
                 )}
               </div>
             </Card>
-          </motion.div>
+          </div>
         </div>
 
         {message.type === 'user' && (
