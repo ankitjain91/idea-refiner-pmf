@@ -119,7 +119,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
         <SidebarGroup className="px-2 py-2 border-b">
           {isOpen && (
             <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground">
-              Dashboard
+              Home
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
@@ -145,7 +145,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
                       "flex-1",
                       dashboardLoaded && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-semibold"
                     )}>
-                      {dashboardLoading ? "Loading..." : dashboardLoaded ? "Go to Dashboard" : "Dashboard"}
+                      {dashboardLoading ? "Loading..." : dashboardLoaded ? "Go to Home" : "Home"}
                     </span>
                   )}
                 </SidebarMenuButton>
