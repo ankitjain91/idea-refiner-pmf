@@ -251,30 +251,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
                 }
               }
               
-              // Check if we need to add the PMF analysis message
-              if (storedPMFAnalysis) {
-                try {
-                  const pmfData = JSON.parse(storedPMFAnalysis);
-                  // Check if this analysis message already exists
-                  const hasAnalysisMessage = parsedMessages.some((msg: Message) => 
-                    msg.type === 'bot' && msg.pmfAnalysis
-                  );
-                  
-                  if (!hasAnalysisMessage && pmfData.score) {
-                    // Add the PMF analysis as a bot message
-                    const analysisMessage: Message = {
-                      id: `pmf-${Date.now()}`,
-                      type: 'bot',
-                      content: 'Here is your Product-Market Fit analysis based on our conversation:',
-                      timestamp: new Date(),
-                      pmfAnalysis: pmfData
-                    };
-                    setMessages(prev => [...prev, analysisMessage]);
-                  }
-                } catch (e) {
-                  console.error('Error parsing stored PMF analysis:', e);
-                }
-              }
+              // PMF analysis will be injected via useEffect after restore
               if (storedWrinkles) {
                 setWrinklePoints(parseInt(storedWrinkles) || 0);
               }
@@ -314,6 +291,55 @@ What's your startup idea?`,
       setMessages([welcomeMessage]);
     }
   }, [currentSession?.name, anonymous, fetchRandomIdeas, messages.length]);
+
+  // Inject stored PMF analysis after messages are restored
+  useEffect(() => {
+    if (anonymous || messages.length === 0) return;
+    
+    const storedPMFAnalysis = localStorage.getItem('pmfAnalysisData');
+    if (!storedPMFAnalysis) return;
+    
+    try {
+      const pmfData = JSON.parse(storedPMFAnalysis);
+      
+      // Check if analysis message already exists
+      const hasAnalysisMessage = messages.some(msg => 
+        msg.type === 'bot' && msg.pmfAnalysis
+      );
+      
+      if (hasAnalysisMessage) return;
+      
+      // Check for valid pmfScore (handle both string and number)
+      const score = typeof pmfData.pmfScore === 'string' 
+        ? parseFloat(pmfData.pmfScore) 
+        : pmfData.pmfScore;
+        
+      if (!score || isNaN(score)) return;
+      
+      // Normalize the pmfAnalysis object with fallbacks
+      const normalizedAnalysis = {
+        score: score,
+        pmfScore: score,
+        breakdown: pmfData.breakdown || pmfData.scoreBreakdown || [],
+        insights: pmfData.insights || pmfData.keyInsights || [],
+        nextSteps: pmfData.nextSteps || pmfData.recommendations || [],
+        summary: pmfData.summary || `PMF Score: ${score}/100`
+      };
+      
+      // Add the PMF analysis message
+      const analysisMessage: Message = {
+        id: `pmf-${Date.now()}`,
+        type: 'bot',
+        content: 'Here is your Product-Market Fit analysis based on our conversation:',
+        timestamp: new Date(),
+        pmfAnalysis: normalizedAnalysis
+      };
+      
+      setMessages(prev => [...prev, analysisMessage]);
+    } catch (e) {
+      console.error('Error loading stored PMF analysis:', e);
+    }
+  }, [messages.length, anonymous]);
 
   // Listen for background request completions
   useEffect(() => {
