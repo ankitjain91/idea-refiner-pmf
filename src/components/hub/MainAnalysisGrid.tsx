@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
@@ -11,6 +11,7 @@ import { SentimentTile } from "./SentimentTile";
 import { TwitterBuzzTile } from "./TwitterBuzzTile";
 import { YouTubeAnalyticsTile } from "./YouTubeAnalyticsTile";
 import { EnhancedRedditTile } from "./EnhancedRedditTile";
+import { ViralGrowthLoopTile } from "@/components/market/ViralGrowthLoopTile";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
 import { dashboardDataService } from '@/services/dashboardDataService';
@@ -256,6 +257,36 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
                   }}
                 />
               </div>
+            );
+          }
+          
+          // Add Viral Growth Loop Tile after Market Size
+          if (tile.id === "competition" && tiles.market_size) {
+            return (
+              <React.Fragment key={`${tile.id}-with-viral`}>
+                <div className="col-span-full">
+                  <ViralGrowthLoopTile 
+                    idea={currentIdea}
+                    ideaContext={currentIdea}
+                    dataHub={tiles}
+                    onRefresh={async () => {
+                      toast.info('Refreshing viral growth analysis...');
+                    }}
+                  />
+                </div>
+                <div className={tile.span}>
+                  <OptimizedCompetitionTile 
+                    idea={currentIdea} 
+                    initialData={sanitizeTileData(tiles.competition) || null}
+                    onRefresh={async () => {
+                      if (onRefreshTile) {
+                        toast.info('Refreshing competition data...');
+                        await onRefreshTile('competition');
+                      }
+                    }}
+                  />
+                </div>
+              </React.Fragment>
             );
           }
           
