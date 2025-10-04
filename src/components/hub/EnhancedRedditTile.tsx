@@ -427,27 +427,39 @@ export function EnhancedRedditTile({ idea, className }: Props) {
                 <div>
                   <h4 className="text-sm font-medium mb-2">Core Keywords</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.summary.keywords_used?.core?.map(kw => (
-                      <Badge key={kw} variant="default">{kw}</Badge>
-                    )) || <span className="text-xs text-muted-foreground">No keywords</span>}
+                    {Array.isArray(data.summary.keywords_used?.core) && data.summary.keywords_used.core.length > 0 ? (
+                      data.summary.keywords_used.core.map(kw => (
+                        <Badge key={kw} variant="default">{kw}</Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No keywords</span>
+                    )}
                   </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2">Synonyms & Variants</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.summary.keywords_used?.synonyms?.map(kw => (
-                      <Badge key={kw} variant="secondary">{kw}</Badge>
-                    )) || <span className="text-xs text-muted-foreground">No synonyms</span>}
+                    {Array.isArray(data.summary.keywords_used?.synonyms) && data.summary.keywords_used.synonyms.length > 0 ? (
+                      data.summary.keywords_used.synonyms.map(kw => (
+                        <Badge key={kw} variant="secondary">{kw}</Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No synonyms</span>
+                    )}
                   </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2">Pain Phrases</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.summary.keywords_used?.painPhrases?.slice(0, 6).map(kw => (
-                      <Badge key={kw} variant="outline" className="text-amber-500 border-amber-500">
-                        {kw}
-                      </Badge>
-                    )) || <span className="text-xs text-muted-foreground">No pain phrases</span>}
+                    {Array.isArray(data.summary.keywords_used?.painPhrases) && data.summary.keywords_used.painPhrases.length > 0 ? (
+                      data.summary.keywords_used.painPhrases.slice(0, 6).map(kw => (
+                        <Badge key={kw} variant="outline" className="text-amber-500 border-amber-500">
+                          {kw}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No pain phrases</span>
+                    )}
                   </div>
                 </div>
               </div>
