@@ -202,6 +202,15 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
           onPointerDownOutside={allowClose ? undefined : (e) => e.preventDefault()} 
           onEscapeKeyDown={allowClose ? undefined : (e) => e.preventDefault()}
         >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Your Sessions
+            </DialogTitle>
+            <DialogDescription>
+              Create a new session or continue with an existing one
+            </DialogDescription>
+          </DialogHeader>
         <div className="space-y-6">
           {/* Create New Session */}
           <div className="relative min-h-[60px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">

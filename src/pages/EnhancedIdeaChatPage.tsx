@@ -30,13 +30,12 @@ const EnhancedIdeaChatPage = () => {
     }
   }, [initialized, authLoading, user, navigate]);
 
-  // Show session picker when user is logged in but has no current session
+  // Show session picker when needed, but allow user to close it
   useEffect(() => {
     if (!authLoading && user && !currentSession && !saving) {
-      // Always show session picker if no current session is loaded
+      // Show picker but allow closing
       setShowSessionPicker(true);
     } else if (currentSession) {
-      // Hide session picker when a session is loaded
       setShowSessionPicker(false);
     }
   }, [authLoading, user, currentSession, saving]);
@@ -79,7 +78,7 @@ const EnhancedIdeaChatPage = () => {
       <SessionPicker 
         open={showSessionPicker} 
         onSessionSelected={() => setShowSessionPicker(false)}
-        allowClose={!!currentSession}
+        allowClose={true}
         onClose={() => setShowSessionPicker(false)}
       />
       
