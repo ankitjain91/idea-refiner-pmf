@@ -173,8 +173,8 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
               <Eye className="h-3 w-3 mr-1" />
               {formatViews(summary.total_views)} views
             </Badge>
-            <Badge variant={data.meta.confidence === 'High' ? 'default' : 'secondary'}>
-              {data.meta.confidence} Confidence
+            <Badge variant={(data.meta?.confidence ?? 'Unknown') === 'High' ? 'default' : 'secondary'}>
+              {(data.meta?.confidence ?? 'Unknown')} Confidence
             </Badge>
           </div>
         </div>
@@ -382,8 +382,8 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Confidence</span>
-                      <Badge variant={data.meta.confidence === 'High' ? 'default' : 'secondary'}>
-                        {data.meta.confidence}
+                      <Badge variant={(data.meta?.confidence ?? 'Unknown') === 'High' ? 'default' : 'secondary'}>
+                        {data.meta?.confidence ?? 'Unknown'}
                       </Badge>
                     </div>
                   </div>
