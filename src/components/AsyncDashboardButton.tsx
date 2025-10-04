@@ -37,15 +37,7 @@ export const AsyncDashboardButton = () => {
   }, []);
 
   const handleClick = async () => {
-    if (isDisabled) return;
-
-    if (loadState === 'loaded') {
-      // Navigate to dashboard
-      navigate('/dashboard');
-      return;
-    }
-
-    if (loadState === 'loading') return;
+    if (isDisabled || loadState === 'loading') return;
 
     // Start loading
     setLoadState('loading');
@@ -59,8 +51,9 @@ export const AsyncDashboardButton = () => {
         import('@/pages/EnterpriseHub').catch(() => {}),
       ]);
 
-      // Mark as loaded
+      // Mark as loaded and navigate
       setLoadState('loaded');
+      navigate('/dashboard');
     } catch (error) {
       console.error('Failed to preload dashboard:', error);
       setLoadState('idle');
@@ -68,55 +61,40 @@ export const AsyncDashboardButton = () => {
   };
 
   const getButtonContent = () => {
-    switch (loadState) {
-      case 'loading':
-        return (
-          <>
-            <div className="relative">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-pulse text-primary" />
-            </div>
-            <span className="animate-pulse">Preparing Dashboard</span>
-          </>
-        );
-      case 'loaded':
-        return (
-          <>
-            <LayoutDashboard className="h-4 w-4" />
-            <span>Go to Dashboard</span>
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </>
-        );
-      default:
-        return (
-          <>
-            <LayoutDashboard className="h-4 w-4" />
-            <span>Dashboard</span>
-          </>
-        );
+    if (loadState === 'loading') {
+      return (
+        <>
+          <div className="relative">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <Sparkles className="h-3 w-3 absolute -top-1 -right-1 animate-pulse text-primary" />
+          </div>
+          <span className="animate-pulse">Preparing Dashboard</span>
+        </>
+      );
     }
+    
+    return (
+      <>
+        <LayoutDashboard className="h-4 w-4" />
+        <span>Dashboard</span>
+      </>
+    );
   };
 
   return (
     <Button
       onClick={handleClick}
-      disabled={isDisabled}
-      variant={loadState === 'loaded' ? 'default' : 'outline'}
+      disabled={isDisabled || loadState === 'loading'}
+      variant="outline"
       className={cn(
         'group relative overflow-hidden transition-all duration-300',
         loadState === 'loading' && 'bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 animate-pulse',
-        loadState === 'loaded' && 'bg-gradient-to-r from-primary via-primary/90 to-primary shadow-lg shadow-primary/20',
         isDisabled && 'opacity-50 cursor-not-allowed'
       )}
     >
       {/* Animated background shimmer for loading state */}
       {loadState === 'loading' && (
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-      )}
-      
-      {/* Success glow for loaded state */}
-      {loadState === 'loaded' && (
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-glow/0 via-primary-glow/20 to-primary-glow/0 animate-pulse" />
       )}
       
       <div className="relative flex items-center gap-2">
