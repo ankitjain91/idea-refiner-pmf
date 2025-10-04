@@ -23,6 +23,7 @@ import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
 import { DashboardLoader } from "@/components/engagement/DashboardLoader";
+import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { LoadingStatusIndicator } from "@/components/hub/LoadingStatusIndicator";
 
 
@@ -196,6 +197,11 @@ export default function EnterpriseHub() {
     }
     refresh();
   }, [refresh, currentIdea]);
+  
+  // Show full-page loading state when loading and no data loaded yet
+  if (loading && !hasLoadedData) {
+    return <DashboardLoadingState tasks={loadingTasks || []} currentTask={loadingTasks?.find(t => t.status === "loading")?.label} />;
+  }
 
   // No idea state
   if (!currentIdea) {
