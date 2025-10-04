@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { UsageWarnings } from "@/components/dashboard/UsageWarnings";
 import { RecentIdeas } from "@/components/dashboard/RecentIdeas";
 import { CollaborationPanel } from "@/components/dashboard/CollaborationPanel";
@@ -7,12 +8,33 @@ import { BookOpen, HelpCircle, MessageSquare, Badge as BadgeIcon, BarChart3, Tre
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
+import { DashboardLoader } from "@/components/engagement/DashboardLoader";
 
 export default function Dashboard() {
   const { subscription, usage } = useSubscription();
   const { user } = useAuth();
   const isPro = subscription.tier === 'pro' || subscription.tier === 'enterprise';
   const limits = SUBSCRIPTION_TIERS[subscription.tier].features;
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading dashboard data
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
+        <div className="container mx-auto px-4 py-20">
+          <DashboardLoader />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
