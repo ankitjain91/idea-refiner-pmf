@@ -203,11 +203,15 @@ export function EnhancedRedditTile({ idea, className }: Props) {
           </p>
           <div className="flex flex-wrap gap-1">
             <span className="text-xs text-muted-foreground">Keywords:</span>
-            {data.summary.keywords_used?.core?.map(kw => (
-              <Badge key={kw} variant="secondary" className="text-xs">
-                {kw}
-              </Badge>
-            )) || <span className="text-xs text-muted-foreground">No keywords</span>}
+            {data.summary.keywords_used?.core?.length > 0 ? (
+              data.summary.keywords_used.core.map(kw => (
+                <Badge key={kw} variant="secondary" className="text-xs">
+                  {kw}
+                </Badge>
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground">No keywords</span>
+            )}
           </div>
         </div>
       </CardHeader>
