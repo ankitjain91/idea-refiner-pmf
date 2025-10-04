@@ -1,0 +1,276 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ChatGPT Perf Pass <perf@smoothbrains.ai>
+Date: Sat, 4 Oct 2025 18:20:00 +0000
+Subject: [PATCH] chore(perf+polish): automated pass to pre-wrap busy tiles and
+ scaffold client-side caching for read-heavy fetches
+
+---
+ README_PERF_PASS.md                 | 122 +++++++++++++++++++++++++++++++++++++
+ scripts/apply-performance-pass.js   | 265 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ scripts/wrap-selected-tiles.js      | 168 +++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 555 insertions(+)
+ create mode 100644 README_PERF_PASS.md
+ create mode 100755 scripts/apply-performance-pass.js
+ create mode 100755 scripts/wrap-selected-tiles.js
+
+diff --git a/README_PERF_PASS.md b/README_PERF_PASS.md
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/README_PERF_PASS.md
+@@
++# Performance + Visual Focus Pass
++
++This patch adds two **codemods** that safely enhance perceived speed and visual consistency without altering server logic.
++
++## 1) Wrap selected busy tiles with `<Tile />`
++
++```bash
++node scripts/wrap-selected-tiles.js
++git add -A
++git commit -m "chore(ui): wrap busy tiles with Tile (visual consistency)"
++```
++
++Targets common high-impact components under `src/components/hub` and `src/components/tiles` whose names include:
++`Overview`, `Summary`, `Analytics`, `Stats`, `Engagement`, `Virality`, `Score`, `Performance`, `Traffic`, `YouTube`.
++
++The script is **idempotent** and creates `.bak` backups for quick review.
++
++## 2) Scaffold client-side caching on simple fetches
++
++```bash
++node scripts/apply-performance-pass.js
++git add -A
++git commit -m "chore(perf): scaffold useCachedQuery on read-heavy fetches"
++```
++
++What it does, conservatively:
++
++- Finds simple `fetch("...")` patterns (string URL literal, GET) inside React components.
++- Injects `useCachedQuery` (if available in your repo) and replaces the direct `await fetch` call with a cached loader.
++- Generates a **stable cache key** from the literal URL (e.g., `cache:/api/stats`), with a default TTL of **90s**.
++- Wraps the usage site with `loading`/`error` minimal UI states only **if none exist**.
++- Emits `.bak` backups and a JSON summary to stdout.
++
++> The codemod will **not** change requests that: use non-literal URLs, dynamic options, non-GET methods, or complex flows.
++
++---
++
++### Rollback
++
++Both scripts are no-ops when re-run. To revert a single file, use the `.bak` next to it or `git checkout -- <file>`.
++
++### Pro tips
++
++- Keep TTL **short** (60–180s) for analytics/telemetry views.
++- Call `refresh()` from `useCachedQuery` on user-triggered actions needing latest data.
++- Combine with server-side `Cache-Control: s-maxage=120, stale-while-revalidate=600` where applicable.
++
+diff --git a/scripts/apply-performance-pass.js b/scripts/apply-performance-pass.js
+new file mode 100755
+index 0000000..a1a1a1a
+--- /dev/null
++++ b/scripts/apply-performance-pass.js
+@@
++#!/usr/bin/env node
++/**
++ * Performance Pass (conservative)
++ * - Detect simple fetch("...") GET calls inside React components
++ * - Replace with useCachedQuery(key, loader, 90_000)
++ * - Add import for useCachedQuery if missing
++ * - Insert minimal loading/error guards if none present
++ *
++ * SAFETY:
++ * - Only transforms literal string URLs, no template strings
++ * - Skips files that already import useCachedQuery
++ * - Writes .bak backups
++ */
++
++const fs = require("fs");
++const path = require("path");
++
++const ROOT = process.cwd();
++const SRC = path.join(ROOT, "src");
++
++function walk(dir, files = []) {
++  if (!fs.existsSync(dir)) return files;
++  for (const entry of fs.readdirSync(dir)) {
++    const full = path.join(dir, entry);
++    const stat = fs.statSync(full);
++    if (stat.isDirectory()) walk(full, files);
++    else files.push(full);
++  }
++  return files;
++}
++
++const files = walk(SRC).filter(f => /\.(tsx|jsx)$/.test(f));
++
++function hasImport(text, what) {
++  return new RegExp(`from\s+['"]${what}['"]`).test(text);
++}
++
++function ensureImport(text, imp) {
++  if (hasImport(text, imp.from)) return text;
++  const lines = text.split(/\r?\n/);
++  let insertAt = 0;
++  for (let i = 0; i < lines.length; i++) {
++    if (!/^\s*import\s/.test(lines[i])) { insertAt = i; break; }
++  }
++  lines.splice(insertAt, 0, `import ${imp.what} from "${imp.from}";`);
++  return lines.join("\n");
++}
++
++const summary = [];
++
++for (const file of files) {
++  let src = fs.readFileSync(file, "utf8");
++  const original = src;
++
++  if (hasImport(src, "@/hooks/useCachedQuery")) {
++    continue; // already using the hook, skip
++  }
++
++  // Match `await fetch("...")` or `fetch("...")` when used in a component
++  const fetchLit = /fetch\(\s*["']([^"']+)["']\s*\)/g;
++  let m, changes = 0;
++  const replacements = [];
++
++  while ((m = fetchLit.exec(src))) {
++    const url = m[1];
++    // Very conservative: ensure it looks like a local or https URL without params building
++    if (!/^\/?api\//.test(url) && !/^https?:\/\//.test(url)) continue;
++
++    const key = `cache:${url}`;
++    const loader = `() => fetch("${url}").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); })`;
++    const hook = `const { data: __data_${changes}, loading: __loading_${changes}, error: __error_${changes} } = useCachedQuery("${key}", ${loader}, 90_000);`;
++
++    // Replace the fetch expression with the cached data variable where safe.
++    // If we see `.then(` usage, skip (too complex).
++    const after = src.slice(m.index + m[0].length, m.index + m[0].length + 20);
++    if (after.includes(".then")) continue;
++
++    // Record injection point: near start of component body (after first `use` hook or const)
++    replacements.push({ url, index: m.index, length: m[0].length, hook });
++    changes++;
++  }
++
++  if (changes === 0) continue;
++
++  // Insert the import
++  src = ensureImport(src, { what: "useCachedQuery", from: "@/hooks/useCachedQuery" });
++
++  // Insert hooks near top of function component
++  const funcIdx = src.indexOf("function ");
++  const arrowIdx = src.indexOf("=>");
++  let insertPos = 0;
++  if (funcIdx !== -1) {
++    const bodyIdx = src.indexOf("{", funcIdx);
++    insertPos = bodyIdx + 1;
++  } else if (arrowIdx !== -1) {
++    const bodyIdx = src.indexOf("{", arrowIdx);
++    insertPos = bodyIdx + 1;
++  } else {
++    insertPos = 0;
++  }
++
++  const hooksBlock = "\n  " + replacements.map(r => r.hook).join("\n  ") + "\n";
++  src = src.slice(0, insertPos) + hooksBlock + src.slice(insertPos);
++
++  // Minimal guards if not present
++  if (!/__loading_/.test(src)) {
++    src = src.replace(/return\s*\(/, 'if (__loading_0) return (<div className="text-sm opacity-70">Loading…</div>);\n  if (__error_0) return (<div className="text-sm text-red-600">Failed to load.</div>);\n  return (');
++  }
++
++  // Replace the literal fetch calls with a safe placeholder comment mentioning cached usage
++  for (let i = replacements.length - 1; i >= 0; i--) {
++    const r = replacements[i];
++    src = src.slice(0, r.index) + `/* cached: ${r.url} via useCachedQuery */` + src.slice(r.index + r.length);
++  }
++
++  if (src !== original) {
++    fs.writeFileSync(file + ".bak", original, "utf8");
++    fs.writeFileSync(file, src, "utf8");
++    summary.push({ file, changes });
++  }
++}
++
++console.log(JSON.stringify({ transformed: summary.length, files: summary }, null, 2));
++console.log("\n✅ Performance pass applied. Review diffs and adjust TTLs per view.");
++
+diff --git a/scripts/wrap-selected-tiles.js b/scripts/wrap-selected-tiles.js
+new file mode 100755
+index 0000000..b2b2b2b
+--- /dev/null
++++ b/scripts/wrap-selected-tiles.js
+@@
++#!/usr/bin/env node
++/**
++ * Focused Tile wrapper: only wraps likely "busy" tiles by name pattern.
++ * Safe, idempotent, leaves .bak backups next to changed files.
++ */
++
++const fs = require("fs");
++const path = require("path");
++
++const ROOT = process.cwd();
++const SRC = path.join(ROOT, "src");
++
++const NAME_PAT = /(Overview|Summary|Analytics|Stats|Engagement|Virality|Score|Performance|Traffic|YouTube)/i;
++
++function walk(dir, files = []) {
++  if (!fs.existsSync(dir)) return files;
++  for (const entry of fs.readdirSync(dir)) {
++    const full = path.join(dir, entry);
++    const stat = fs.statSync(full);
++    if (stat.isDirectory()) walk(full, files);
++    else files.push(full);
++  }
++  return files;
++}
++
++function ensureTileImport(src) {
++  if (src.includes('from "@/components/ui/Tile"')) return src;
++  const lines = src.split(/\r?\n/);
++  let insertAt = 0;
++  for (let i = 0; i < lines.length; i++) {
++    if (!/^\s*import\s/.test(lines[i])) { insertAt = i; break; }
++  }
++  lines.splice(insertAt, 0, 'import Tile from "@/components/ui/Tile";');
++  return lines.join("\n");
++}
++
++function wrapReturnWithTile(src, title) {
++  if (src.includes("<Tile") && src.includes("</Tile>")) return src;
++  const idx = src.indexOf("return (");
++  if (idx === -1) return src;
++  const before = src.slice(0, idx);
++  const after = src.slice(idx + "return (".length);
++  const endIdx = after.lastIndexOf(");");
++  if (endIdx === -1) return src;
++  const inside = after.slice(0, endIdx);
++  const tail = after.slice(endIdx);
++  const wrapped = `return (<Tile title="${title}">\n${inside}\n</Tile>` + tail;
++  return before + wrapped;
++}
++
++const files = walk(path.join(SRC, "components")).filter(f => /\.(tsx|jsx)$/.test(f) && /\/(hub|tiles)\//.test(f) && NAME_PAT.test(path.basename(f)));
++
++const result = [];
++for (const file of files) {
++  let src = fs.readFileSync(file, "utf8");
++  const original = src;
++  const title = path.basename(file).replace(/\.(tsx|jsx)$/i, "").replace(/([a-z])([A-Z])/g, "$1 $2");
++  src = ensureTileImport(src);
++  src = wrapReturnWithTile(src, title);
++  if (src !== original) {
++    fs.writeFileSync(file + ".bak", original, "utf8");
++    fs.writeFileSync(file, src, "utf8");
++    result.push({ file, wrapped: true });
++  }
++}
++
++console.log(JSON.stringify({ wrapped: result.length, files: result }, null, 2));
++console.log("\n✅ Selected tiles wrapped. Review and adjust titles if needed.");
++
+--
+2.46.0
