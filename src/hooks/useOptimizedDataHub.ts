@@ -129,13 +129,6 @@ export function useOptimizedDataHub(input: DataHubInput) {
           loadingTasks: []
         });
         
-        toast({
-          title: "⚠️ Mock Data Mode",
-          description: "Using sample data. Toggle off mock mode for real data with API keys.",
-          variant: "default",
-          duration: 5000
-        });
-        
       } else {
         // Use optimized data loading
         console.log('🚀 Loading OPTIMIZED DATA for:', input.idea);
