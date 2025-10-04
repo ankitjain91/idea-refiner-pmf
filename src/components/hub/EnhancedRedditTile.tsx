@@ -145,16 +145,35 @@ export function EnhancedRedditTile({ idea, className }: Props) {
     );
   }
 
+  // Validate data structure - handle both nested and flat structures
+  console.log('[EnhancedRedditTile] Received data structure:', Object.keys(data));
+  const summary = (data.summary || data) as any; // If data.summary exists, use it; otherwise data itself is the summary
+  const insights = (data.insights || {
+    sentiment_distribution: { positive: 0, neutral: 0, negative: 0 },
+    top_pain_categories: {}
+  }) as any;
+  const posts = (data.posts || []) as any[];
+
+  // Ensure required fields exist with fallbacks
+  const totalPosts = summary.total_posts_analyzed || 0;
+  const topSubreddits = summary.top_subreddits || [];
+  const commonPainPoints = summary.common_pain_points || [];
+  const keywordsUsed = summary.keywords_used || { core: [] };
+  
+  console.log('[EnhancedRedditTile] Processed data - totalPosts:', totalPosts, 'topSubreddits count:', topSubreddits.length);
+
   const sentimentData = [
-    { name: 'Positive', value: data.insights.sentiment_distribution.positive, color: SENTIMENT_COLORS.positive },
-    { name: 'Neutral', value: data.insights.sentiment_distribution.neutral, color: SENTIMENT_COLORS.neutral },
-    { name: 'Negative', value: data.insights.sentiment_distribution.negative, color: SENTIMENT_COLORS.negative }
+    { name: 'Positive', value: insights.sentiment_distribution?.positive || 0, color: SENTIMENT_COLORS.positive },
+    { name: 'Neutral', value: insights.sentiment_distribution?.neutral || 0, color: SENTIMENT_COLORS.neutral },
+    { name: 'Negative', value: insights.sentiment_distribution?.negative || 0, color: SENTIMENT_COLORS.negative }
   ];
 
-  const painCategoryData = Object.entries(data.insights.top_pain_categories).map(([name, value]) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    value
-  }));
+  const painCategoryData = insights.top_pain_categories 
+    ? Object.entries(insights.top_pain_categories).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value
+      }))
+    : [];
 
   return (
     <Card className={cn("h-full overflow-hidden", className)}>
@@ -359,11 +378,11 @@ export function EnhancedRedditTile({ idea, className }: Props) {
             <TabsContent value="subreddits" className="px-4 space-y-3">
               <div className="space-y-2">
                 <h4 className="text-sm font-medium mb-3">Top Subreddits by Signal</h4>
-                {data.summary.top_subreddits.map((sub, idx) => (
+                {topSubreddits.map((sub, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded">
                     <div className="flex items-center gap-2">
                       <Hash className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">r/{sub.subreddit}</span>
+                      <span className="font-medium">r/{sub.subreddit || 'unknown'}</span>
                     </div>
                     <Badge variant="outline">{sub.posts} posts</Badge>
                   </div>
@@ -390,7 +409,7 @@ export function EnhancedRedditTile({ idea, className }: Props) {
                     <div>
                       <p className="text-sm font-medium">Market Signal</p>
                       <p className="text-xs text-muted-foreground">
-                        {data.posts.length} high-relevance discussions identified across {data.summary.top_subreddits.length} communities
+                        {posts.length} high-relevance discussions identified across {topSubreddits.length} communities
                       </p>
                     </div>
                   </div>
