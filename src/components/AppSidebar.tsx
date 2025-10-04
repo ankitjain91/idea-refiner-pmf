@@ -26,13 +26,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import HelpSupport from '@/components/HelpSupport';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 
 interface AppSidebarProps {
   style?: React.CSSProperties;
@@ -45,28 +43,17 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
   const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
   const [showHelp, setShowHelp] = useState(false);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
-  const [dashboardLoaded, setDashboardLoaded] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleDashboardClick = async () => {
-    if (dashboardLoaded) {
-      navigate('/enterprisehub');
-      return;
-    }
-
-    setDashboardLoading(true);
-    // Simulate async dashboard loading
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setDashboardLoading(false);
-    setDashboardLoaded(true);
-  };
 
   const mainNav = [
     { 
-      title: "Idea Chat", 
+      title: "Home", 
       url: "/enterprisehub", 
+      icon: BarChart3,
+      badge: null
+    },
+    { 
+      title: "Idea Chat", 
+      url: "/ideachat", 
       icon: MessageSquare,
       badge: null
     },
@@ -115,45 +102,6 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Dashboard Button */}
-        <SidebarGroup className="px-2 py-2 border-b">
-          {isOpen && (
-            <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground">
-              Home
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={handleDashboardClick}
-                  disabled={dashboardLoading}
-                  className={cn(
-                    "flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-all",
-                    "hover:bg-accent hover:text-accent-foreground",
-                    dashboardLoaded && "bg-primary/10 text-primary hover:bg-primary/20",
-                    location.pathname === '/enterprisehub' && "bg-accent text-accent-foreground"
-                  )}
-                >
-                  {dashboardLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <BarChart3 className="h-4 w-4" />
-                  )}
-                  {isOpen && (
-                    <span className={cn(
-                      "flex-1",
-                      dashboardLoaded && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-semibold"
-                    )}>
-                      {dashboardLoading ? "Loading..." : dashboardLoaded ? "Go to Home" : "Home"}
-                    </span>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         {/* Main Navigation */}
         <SidebarGroup className="px-2 py-2">
           {isOpen && (
