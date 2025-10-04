@@ -7,6 +7,7 @@ import { DashboardLoader } from "@/components/engagement/DashboardLoader";
 import { cn } from "@/lib/utils";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 interface HeroSectionProps {
   pmfScore?: TileData | null;
@@ -126,16 +127,31 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
       "relative overflow-hidden border-border/50 transition-all duration-500 animate-fade-in",
       hasData && `bg-gradient-to-br from-background via-background to-primary/5`
     )}>
-      <div className="relative p-8">
-        {/* Background decoration with score-based color */}
-        <div className={cn(
-          "absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -translate-y-32 translate-x-32 transition-all duration-1000",
-          hasData && `bg-gradient-to-br ${getScoreGradient(score)}`
-        )} />
+      <motion.div 
+        className="relative p-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        {/* Animated background decoration with score-based color */}
+        <motion.div 
+          className={cn(
+            "absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -translate-y-32 translate-x-32",
+            hasData && `bg-gradient-to-br ${getScoreGradient(score)}`
+          )}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        />
         
         <div className="relative grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Score Display */}
-          <div className="flex flex-col items-center md:items-start space-y-6 animate-scale-in">
+          <motion.div 
+            className="flex flex-col items-center md:items-start space-y-6"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             <div className="relative">
               {/* Circular Progress Ring */}
               <div className="relative w-48 h-48">
@@ -149,7 +165,7 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
                     fill="none"
                     className="text-muted/20"
                   />
-                  <circle
+                  <motion.circle
                     cx="96"
                     cy="96"
                     r="88"
@@ -157,24 +173,43 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
                     strokeWidth="12"
                     fill="none"
                     strokeDasharray={`${2 * Math.PI * 88}`}
-                    strokeDashoffset={`${2 * Math.PI * 88 * (1 - score / 100)}`}
                     className={cn("transition-all duration-1000 ease-out", getScoreColor(score))}
                     strokeLinecap="round"
+                    initial={{ strokeDashoffset: 2 * Math.PI * 88 }}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 88 * (1 - score / 100) }}
+                    transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
                   />
                 </svg>
                 
                 {/* Score Text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={cn("text-5xl font-bold transition-all duration-500", getScoreColor(score))}>
+                  <motion.span 
+                    className={cn("text-5xl font-bold transition-all duration-500", getScoreColor(score))}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.8, type: "spring", stiffness: 200 }}
+                  >
                     {loading ? "..." : score}
-                  </span>
-                  <span className="text-sm text-muted-foreground">SmoothBrains Score</span>
+                  </motion.span>
+                  <motion.span 
+                    className="text-sm text-muted-foreground"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                  >
+                    SmoothBrains Score
+                  </motion.span>
                 </div>
               </div>
             </div>
             
             {/* Category Badge */}
-            <div className="flex items-center gap-2 animate-fade-in animation-delay-200">
+            <motion.div 
+              className="flex items-center gap-2"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 1.2 }}
+            >
               <Badge 
                 variant={score >= 70 ? "default" : score >= 40 ? "secondary" : "destructive"}
                 className="text-sm px-3 py-1"
@@ -182,52 +217,94 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
                 {category}
               </Badge>
               {getTrendIcon()}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
           
           {/* Insights */}
-          <div className="space-y-4 animate-fade-in animation-delay-300">
+          <motion.div 
+            className="space-y-4"
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
             <div>
-              <h1 className="text-3xl font-bold mb-2">SmoothBrains Analysis Complete</h1>
-              <p className="text-lg text-muted-foreground leading-relaxed">
+              <motion.h1 
+                className="text-3xl font-bold mb-2"
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                SmoothBrains Analysis Complete
+              </motion.h1>
+              <motion.p 
+                className="text-lg text-muted-foreground leading-relaxed"
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.7 }}
+              >
                 {insight}
-              </p>
+              </motion.p>
             </div>
             
             {/* Key Metrics */}
             {pmfScore?.metrics && (
               <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="space-y-1 animate-fade-in animation-delay-400">
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.9 }}
+                >
                   <p className="text-sm text-muted-foreground">Market Demand</p>
                   <Progress value={pmfScore.metrics.demand || 0} className="h-2" />
-                </div>
-                <div className="space-y-1 animate-fade-in animation-delay-500">
+                </motion.div>
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 1.0 }}
+                >
                   <p className="text-sm text-muted-foreground">Competition Level</p>
                   <Progress value={100 - (pmfScore.metrics.competition || 0)} className="h-2" />
-                </div>
-                <div className="space-y-1 animate-fade-in animation-delay-600">
+                </motion.div>
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 1.1 }}
+                >
                   <p className="text-sm text-muted-foreground">Market Growth</p>
                   <Progress value={pmfScore.metrics.growth || 0} className="h-2" />
-                </div>
-                <div className="space-y-1 animate-fade-in animation-delay-700">
+                </motion.div>
+                <motion.div 
+                  className="space-y-1"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 1.2 }}
+                >
                   <p className="text-sm text-muted-foreground">Sentiment</p>
                   <Progress value={pmfScore.metrics.sentiment || 0} className="h-2" />
-                </div>
+                </motion.div>
               </div>
             )}
             
             {/* Confidence Badge */}
             {pmfScore?.confidence && (
-              <div className="flex items-center gap-2 pt-2 animate-fade-in animation-delay-800">
+              <motion.div 
+                className="flex items-center gap-2 pt-2"
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.3 }}
+              >
                 <span className="text-xs text-muted-foreground">Confidence:</span>
                 <Badge variant="outline" className="text-xs">
                   {Math.round(pmfScore.confidence * 100)}%
                 </Badge>
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </Card>
   );
 }
