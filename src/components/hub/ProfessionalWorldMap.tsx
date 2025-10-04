@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Globe2, TrendingUp, DollarSign, Users, Activity, MapPin, BarChart } from "lucide-react";
+import { Globe2, TrendingUp, DollarSign, Users, Activity, MapPin, BarChart, Maximize2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Satellite background + equirectangular projection for markers
 const satUrl = "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73909/world.topo.bathy.200412.3x5400x2700.jpg"; // contains "world.topo.bathy"
@@ -257,127 +258,334 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       
       <CardContent>
         <div className="space-y-6">
-          {/* Clean SVG World Map */}
-          <div className="relative aspect-[2/1] rounded-xl bg-gradient-to-b from-muted/30 to-background border border-border/50 overflow-hidden">
+          {/* Enhanced Interactive SVG World Map */}
+          <div className="relative aspect-[2/1] rounded-xl bg-gradient-to-br from-primary/5 via-background to-primary/10 border border-border/50 overflow-hidden group">
             
-<div ref={containerRef} className="relative w-full rounded-2xl border overflow-hidden" style={{ height: containerSize.h }}>
-  <img src={satUrl} alt="World Satellite" className="absolute inset-0 w-full h-full object-cover" />
-  {markers.map((m, i) => {
-    const p = project(m.lat, m.lng);
-    return (
-      <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: p.x, top: p.y }}>
-        <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
-          {m.name ? <span className="text-[10px] px-1 py-0.5 rounded bg-black/60 text-white">{m.name}</span> : null}
-        </div>
-      </div>
-    );
-  })}
-</div>
-
-            
-            {/* Hover tooltip */}
-            {hoveredRegion && (
-              <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-xl border border-border rounded-lg p-4 shadow-lg max-w-xs">
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      {hoveredRegion.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {Math.round(hoveredRegion.confidence * 100)}% confidence
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="text-center p-2 rounded-md bg-muted/50">
-                      <p className="text-xs text-muted-foreground">TAM</p>
-                      <p className="text-sm font-semibold">{formatCurrency(hoveredRegion.tam)}</p>
-                    </div>
-                    <div className="text-center p-2 rounded-md bg-muted/50">
-                      <p className="text-xs text-muted-foreground">SAM</p>
-                      <p className="text-sm font-semibold">{formatCurrency(hoveredRegion.sam)}</p>
-                    </div>
-                    <div className="text-center p-2 rounded-md bg-muted/50">
-                      <p className="text-xs text-muted-foreground">SOM</p>
-                      <p className="text-sm font-semibold">{formatCurrency(hoveredRegion.som)}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Growth Rate</span>
-                      <span className="font-medium">{hoveredRegion.cagr}%</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Market Penetration</span>
-                      <span className="font-medium">{Math.round(hoveredRegion.marketPenetration * 100)}%</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Population</span>
-                      <span className="font-medium">{formatNumber(hoveredRegion.demographics.population)}</span>
-                    </div>
-                  </div>
-                </div>
+            <div ref={containerRef} className="relative w-full rounded-2xl overflow-hidden transition-all duration-700" style={{ height: containerSize.h }}>
+              {/* Satellite background with subtle animation */}
+              <motion.img 
+                src={satUrl} 
+                alt="World Satellite" 
+                className="absolute inset-0 w-full h-full object-cover opacity-80"
+                initial={{ scale: 1 }}
+                animate={{ scale: 1.02 }}
+                transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
+              />
+              
+              {/* Gradient overlay for depth */}
+              <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-background/20 pointer-events-none" />
+              
+              {/* Animated grid overlay */}
+              <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <svg className="w-full h-full">
+                  <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.3"/>
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
               </div>
-            )}
+              
+              {/* Interactive region markers */}
+              {markers.map((m, i) => {
+                const region = regions[i];
+                const p = project(m.lat, m.lng);
+                const isHovered = hoveredRegion?.name === region.name;
+                const isSelected = selectedRegion?.name === region.name;
+                
+                return (
+                  <motion.div 
+                    key={i} 
+                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10"
+                    style={{ left: p.x, top: p.y }}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: i * 0.1, duration: 0.5, type: "spring" }}
+                    onMouseEnter={() => setHoveredRegion(region)}
+                    onMouseLeave={() => setHoveredRegion(null)}
+                    onClick={() => setSelectedRegion(isSelected ? null : region)}
+                    whileHover={{ scale: 1.3 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      {/* Pulsing ring effect */}
+                      {(isHovered || isSelected) && (
+                        <motion.div
+                          className="absolute w-12 h-12 rounded-full border-2 border-primary"
+                          initial={{ scale: 0.5, opacity: 0.8 }}
+                          animate={{ scale: 2, opacity: 0 }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        />
+                      )}
+                      
+                      {/* Main marker */}
+                      <motion.div 
+                        className={cn(
+                          "w-3 h-3 rounded-full shadow-lg transition-all duration-300",
+                          isSelected ? "ring-4 ring-primary/50" : "",
+                          isHovered ? "ring-2 ring-primary/30" : ""
+                        )}
+                        style={{ 
+                          backgroundColor: getRegionColor(region),
+                          boxShadow: `0 0 ${isHovered || isSelected ? '20px' : '10px'} ${getRegionColor(region)}`
+                        }}
+                        animate={{
+                          scale: isHovered || isSelected ? [1, 1.2, 1] : 1,
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: isHovered || isSelected ? Infinity : 0,
+                        }}
+                      />
+                      
+                      {/* Region label */}
+                      <AnimatePresence>
+                        {(isHovered || isSelected) && m.name && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="absolute top-6 whitespace-nowrap"
+                          >
+                            <span className="text-[11px] px-2 py-1 rounded-md bg-background/95 backdrop-blur-sm text-foreground shadow-lg border border-border/50 font-medium">
+                              {m.name}
+                            </span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      
+                      {/* Quick stats on hover */}
+                      {isHovered && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="absolute top-12 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-xl border border-border/50 min-w-[120px]"
+                        >
+                          <div className="text-[10px] space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Growth:</span>
+                              <span className="font-semibold text-green-500">{region.cagr}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">SOM:</span>
+                              <span className="font-semibold">{formatCurrency(region.som)}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+              
+              {/* Connecting lines animation */}
+              <svg className="absolute inset-0 pointer-events-none">
+                {hoveredRegion && markers.map((m, i) => {
+                  if (regions[i].name === hoveredRegion.name) return null;
+                  const start = project(hoveredRegion.coordinates[1], hoveredRegion.coordinates[0]);
+                  const end = project(m.lat, m.lng);
+                  
+                  return (
+                    <motion.line
+                      key={i}
+                      x1={start.x}
+                      y1={start.y}
+                      x2={end.x}
+                      y2={end.y}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="1"
+                      opacity="0.2"
+                      strokeDasharray="5,5"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 1 }}
+                    />
+                  );
+                })}
+              </svg>
+            </div>
+
+
+            {/* Enhanced hover tooltip */}
+            <AnimatePresence>
+              {hoveredRegion && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute top-4 right-4 bg-background/98 backdrop-blur-xl border-2 border-primary/20 rounded-xl p-5 shadow-2xl max-w-sm"
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-primary/10">
+                            <MapPin className="h-4 w-4 text-primary" />
+                          </div>
+                          {hoveredRegion.name}
+                        </h3>
+                        <Badge variant="secondary" className="text-xs gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          {Math.round(hoveredRegion.confidence * 100)}%
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      <motion.div 
+                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        <p className="text-[10px] text-muted-foreground font-medium mb-1">TAM</p>
+                        <p className="text-sm font-bold text-primary">{formatCurrency(hoveredRegion.tam)}</p>
+                      </motion.div>
+                      <motion.div 
+                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        <p className="text-[10px] text-muted-foreground font-medium mb-1">SAM</p>
+                        <p className="text-sm font-bold text-primary">{formatCurrency(hoveredRegion.sam)}</p>
+                      </motion.div>
+                      <motion.div 
+                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        <p className="text-[10px] text-muted-foreground font-medium mb-1">SOM</p>
+                        <p className="text-sm font-bold text-primary">{formatCurrency(hoveredRegion.som)}</p>
+                      </motion.div>
+                    </div>
+                    
+                    <div className="space-y-2.5 pt-2 border-t border-border/50">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <TrendingUp className="h-3 w-3" />
+                          Growth Rate
+                        </span>
+                        <span className="font-bold text-sm text-green-500">{hoveredRegion.cagr}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Activity className="h-3 w-3" />
+                          Market Penetration
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Progress value={hoveredRegion.marketPenetration * 100} className="h-1.5 w-16" />
+                          <span className="font-semibold text-xs">{Math.round(hoveredRegion.marketPenetration * 100)}%</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Users className="h-3 w-3" />
+                          Population
+                        </span>
+                        <span className="font-semibold text-xs">{formatNumber(hoveredRegion.demographics.population)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Globe2 className="h-3 w-3" />
+                          Internet
+                        </span>
+                        <span className="font-semibold text-xs">{Math.round(hoveredRegion.demographics.internetPenetration * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
-          {/* Summary cards */}
+          {/* Enhanced summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-border/50 bg-card/50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Market (TAM)</p>
-                    <p className="text-2xl font-semibold mt-1">{formatCurrency(totalTAM)}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Available opportunity
-                    </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground font-medium">Total Market (TAM)</p>
+                      <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        {formatCurrency(totalTAM)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        Total available opportunity
+                      </p>
+                    </div>
+                    <motion.div 
+                      className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <TrendingUp className="h-6 w-6 text-primary" />
+                    </motion.div>
                   </div>
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
             
-            <Card className="border-border/50 bg-card/50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Addressable (SAM)</p>
-                    <p className="text-2xl font-semibold mt-1">{formatCurrency(totalSAM)}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Reachable segment
-                    </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground font-medium">Addressable (SAM)</p>
+                      <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        {formatCurrency(totalSAM)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        Reachable segment
+                      </p>
+                    </div>
+                    <motion.div 
+                      className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <Users className="h-6 w-6 text-primary" />
+                    </motion.div>
                   </div>
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
             
-            <Card className="border-border/50 bg-card/50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Obtainable (SOM)</p>
-                    <p className="text-2xl font-semibold mt-1">{formatCurrency(totalSOM)}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Year 1 projection
-                    </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="border-border/50 bg-gradient-to-br from-primary/5 to-background hover:shadow-lg transition-all duration-300 group">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground font-medium">Obtainable (SOM)</p>
+                      <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        {formatCurrency(totalSOM)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        Year 1 projection
+                      </p>
+                    </div>
+                    <motion.div 
+                      className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <DollarSign className="h-6 w-6 text-primary" />
+                    </motion.div>
                   </div>
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <DollarSign className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
           
           {/* Regional breakdown table */}
