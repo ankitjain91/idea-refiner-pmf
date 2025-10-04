@@ -148,6 +148,38 @@ export function useOptimizedDataHub(input: DataHubInput) {
           'reddit', 'twitter', 'linkedin'
         ];
         
+        // Initialize loading tasks
+        const taskLabels: Record<string, string> = {
+          sentiment: "Sentiment Analysis",
+          market_trends: "Market Trends",
+          competition: "Competition Analysis",
+          user_engagement: "User Engagement",
+          financial: "Financial Signals",
+          news_analysis: "News Analysis",
+          growth_potential: "Growth Potential",
+          market_readiness: "Market Readiness",
+          competitive_advantage: "Competitive Edge",
+          risk_assessment: "Risk Assessment",
+          pmf_score: "PMF Score",
+          market_size: "Market Size",
+          google_trends: "Google Trends",
+          web_search: "Web Search",
+          reddit_sentiment: "Reddit Sentiment",
+          twitter_buzz: "Twitter Buzz",
+          reddit: "Reddit Data",
+          twitter: "Twitter Data",
+          linkedin: "LinkedIn Data"
+        };
+        
+        setState(prev => ({
+          ...prev,
+          loadingTasks: tileTypes.map(type => ({
+            id: type,
+            label: taskLabels[type] || type,
+            status: "pending" as const
+          }))
+        }));
+        
         const tiles: Record<string, TileData> = {};
         
         // Clear cache if force refresh to ensure real API calls
