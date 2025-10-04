@@ -232,6 +232,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
         const storedMessages = localStorage.getItem('enhancedIdeaChatMessages');
         const storedIdea = localStorage.getItem('currentIdea');
         const storedWrinkles = localStorage.getItem('wrinklePoints');
+        const storedPMFAnalysis = localStorage.getItem('pmfAnalysisData');
         
         if (storedMessages) {
           try {
@@ -247,6 +248,31 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
                 const storedSummaryName = localStorage.getItem('ideaSummaryName');
                 if (storedSummaryName) {
                   setIdeaSummaryName(storedSummaryName);
+                }
+              }
+              
+              // Check if we need to add the PMF analysis message
+              if (storedPMFAnalysis) {
+                try {
+                  const pmfData = JSON.parse(storedPMFAnalysis);
+                  // Check if this analysis message already exists
+                  const hasAnalysisMessage = parsedMessages.some((msg: Message) => 
+                    msg.type === 'bot' && msg.pmfAnalysis
+                  );
+                  
+                  if (!hasAnalysisMessage && pmfData.score) {
+                    // Add the PMF analysis as a bot message
+                    const analysisMessage: Message = {
+                      id: `pmf-${Date.now()}`,
+                      type: 'bot',
+                      content: 'Here is your Product-Market Fit analysis based on our conversation:',
+                      timestamp: new Date(),
+                      pmfAnalysis: pmfData
+                    };
+                    setMessages(prev => [...prev, analysisMessage]);
+                  }
+                } catch (e) {
+                  console.error('Error parsing stored PMF analysis:', e);
                 }
               }
               if (storedWrinkles) {
