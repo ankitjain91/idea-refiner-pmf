@@ -445,28 +445,19 @@ export default function EnterpriseHub() {
 
         {/* 3. MAIN ANALYSIS GRID - Load progressively, show tiles as they arrive */}
         {hasLoadedData && (
-          <>
-            {loading && !tiles.market_size && !tiles.competition && !tiles.sentiment ? (
-              <DashboardLoader stage="tiles" />
-            ) : (
-              /* Show grid as soon as we have ANY data */
-              (tiles.market_size || tiles.competition || tiles.sentiment || tiles.market_trends || tiles.google_trends || tiles.news_analysis) && (
-                <MainAnalysisGrid
-                  tiles={{
-                    market_size: tiles.market_size,
-                    competition: tiles.competition,
-                    sentiment: tiles.sentiment,
-                    market_trends: tiles.market_trends,
-                    google_trends: tiles.google_trends,
-                    news_analysis: tiles.news_analysis
-                  }}
-                  loading={loading}
-                  viewMode={viewMode}
-                  onRefreshTile={refreshTile}
-                />
-              )
-            )}
-          </>
+          <MainAnalysisGrid
+            tiles={{
+              market_size: tiles.market_size,
+              competition: tiles.competition,
+              sentiment: tiles.sentiment,
+              market_trends: tiles.market_trends,
+              google_trends: tiles.google_trends,
+              news_analysis: tiles.news_analysis
+            }}
+            loading={loading}
+            viewMode={viewMode}
+            onRefreshTile={refreshTile}
+          />
         )}
 
         {/* 4. EXTENDED INSIGHTS GRID - Only in Deep Dive */}
