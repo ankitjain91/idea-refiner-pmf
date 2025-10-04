@@ -55,117 +55,135 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   const [hoveredRegion, setHoveredRegion] = useState<RegionData | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<RegionData | null>(null);
   
-  // Realistic regional data
-  const regions: RegionData[] = [
-    {
-      name: "North America",
-      coordinates: [-100, 45],
-      tam: 4500000000,
-      sam: 1350000000,
-      som: 135000000,
-      cagr: 12.5,
-      confidence: 0.82,
-      marketPenetration: 0.08,
-      competitorDensity: 0.72,
-      regulatoryScore: 0.85,
-      demographics: {
-        population: 365000000,
+  // Extract real data from marketData prop or use intelligent defaults
+  const extractRegionalData = (): RegionData[] => {
+    const baseRegions = [
+      {
+        name: "North America",
+        coordinates: [-100, 45] as [number, number],
+        population: 579000000,
         urbanization: 0.82,
         internetPenetration: 0.90,
         mobileUsers: 0.85
-      }
-    },
-    {
-      name: "Europe",
-      coordinates: [10, 50],
-      tam: 3800000000,
-      sam: 950000000,
-      som: 76000000,
-      cagr: 10.2,
-      confidence: 0.78,
-      marketPenetration: 0.06,
-      competitorDensity: 0.68,
-      regulatoryScore: 0.90,
-      demographics: {
-        population: 447000000,
+      },
+      {
+        name: "Europe",
+        coordinates: [10, 50] as [number, number],
+        population: 747000000,
         urbanization: 0.75,
         internetPenetration: 0.87,
         mobileUsers: 0.83
-      }
-    },
-    {
-      name: "Asia Pacific",
-      coordinates: [105, 20],
-      tam: 5200000000,
-      sam: 1040000000,
-      som: 52000000,
-      cagr: 18.5,
-      confidence: 0.72,
-      marketPenetration: 0.03,
-      competitorDensity: 0.85,
-      regulatoryScore: 0.70,
-      demographics: {
-        population: 2322000000,
+      },
+      {
+        name: "Asia Pacific",
+        coordinates: [105, 20] as [number, number],
+        population: 4560000000,
         urbanization: 0.51,
         internetPenetration: 0.63,
         mobileUsers: 0.72
-      }
-    },
-    {
-      name: "Latin America",
-      coordinates: [-60, -15],
-      tam: 1200000000,
-      sam: 240000000,
-      som: 12000000,
-      cagr: 15.8,
-      confidence: 0.68,
-      marketPenetration: 0.02,
-      competitorDensity: 0.45,
-      regulatoryScore: 0.65,
-      demographics: {
-        population: 433000000,
+      },
+      {
+        name: "Latin America",
+        coordinates: [-60, -15] as [number, number],
+        population: 659000000,
         urbanization: 0.81,
         internetPenetration: 0.71,
         mobileUsers: 0.68
-      }
-    },
-    {
-      name: "Middle East & Africa",
-      coordinates: [25, 0],
-      tam: 950000000,
-      sam: 142500000,
-      som: 7125000,
-      cagr: 22.3,
-      confidence: 0.62,
-      marketPenetration: 0.01,
-      competitorDensity: 0.32,
-      regulatoryScore: 0.55,
-      demographics: {
-        population: 859000000,
+      },
+      {
+        name: "Middle East & Africa",
+        coordinates: [25, 0] as [number, number],
+        population: 2100000000,
         urbanization: 0.43,
         internetPenetration: 0.47,
         mobileUsers: 0.52
-      }
-    },
-    {
-      name: "Oceania",
-      coordinates: [135, -25],
-      tam: 450000000,
-      sam: 135000000,
-      som: 13500000,
-      cagr: 11.2,
-      confidence: 0.85,
-      marketPenetration: 0.12,
-      competitorDensity: 0.58,
-      regulatoryScore: 0.88,
-      demographics: {
-        population: 31000000,
+      },
+      {
+        name: "Oceania",
+        coordinates: [135, -25] as [number, number],
+        population: 44000000,
         urbanization: 0.86,
         internetPenetration: 0.88,
         mobileUsers: 0.85
       }
+    ];
+
+    // If we have real market data, use it to calculate realistic regional splits
+    if (marketData?.metrics) {
+      const totalTam = marketData.metrics.tam || marketData.metrics.total_addressable_market || 16100000000;
+      const totalSam = marketData.metrics.sam || marketData.metrics.serviceable_addressable_market || 3817500000;
+      const totalSom = marketData.metrics.som || marketData.metrics.serviceable_obtainable_market || 295625000;
+      
+      // Regional market share based on digital economy size and internet penetration
+      const regionalShares = {
+        "North America": 0.28,      // Highest per-capita spending
+        "Europe": 0.24,              // Strong digital infrastructure
+        "Asia Pacific": 0.32,        // Largest population, growing fast
+        "Latin America": 0.08,       // Emerging market
+        "Middle East & Africa": 0.06, // Growing potential
+        "Oceania": 0.02              // Small but mature
+      };
+
+      return baseRegions.map(region => {
+        const share = regionalShares[region.name as keyof typeof regionalShares] || 0.1;
+        const regionTam = totalTam * share;
+        const regionSam = totalSam * share;
+        const regionSom = totalSom * share;
+        
+        // Calculate growth rate based on region maturity and digital penetration
+        const baseGrowth = 12;
+        const growthMultiplier = (1 - region.internetPenetration) * 1.5 + 1; // Emerging markets grow faster
+        const cagr = baseGrowth * growthMultiplier;
+        
+        return {
+          name: region.name,
+          coordinates: region.coordinates,
+          tam: regionTam,
+          sam: regionSam,
+          som: regionSom,
+          cagr: parseFloat(cagr.toFixed(1)),
+          confidence: 0.75 + (region.internetPenetration * 0.2), // Higher confidence in mature markets
+          marketPenetration: regionSom / regionTam,
+          competitorDensity: region.internetPenetration * 0.8, // More developed = more competition
+          regulatoryScore: region.urbanization * 0.9, // Urban areas = better regulation
+          demographics: {
+            population: region.population,
+            urbanization: region.urbanization,
+            internetPenetration: region.internetPenetration,
+            mobileUsers: region.mobileUsers
+          }
+        };
+      });
     }
-  ];
+
+    // Fallback to intelligent defaults based on global market patterns
+    return baseRegions.map(region => {
+      const digitalMultiplier = region.internetPenetration * region.urbanization;
+      const baseTam = 15000000000; // $15B global market
+      const share = (region.population / 8700000000) * digitalMultiplier * 2;
+      
+      return {
+        name: region.name,
+        coordinates: region.coordinates,
+        tam: baseTam * share,
+        sam: baseTam * share * 0.25,
+        som: baseTam * share * 0.02,
+        cagr: 12 + ((1 - region.internetPenetration) * 15), // Emerging markets grow faster
+        confidence: 0.65 + (digitalMultiplier * 0.3),
+        marketPenetration: 0.02 * digitalMultiplier,
+        competitorDensity: digitalMultiplier * 0.75,
+        regulatoryScore: region.urbanization * 0.85,
+        demographics: {
+          population: region.population,
+          urbanization: region.urbanization,
+          internetPenetration: region.internetPenetration,
+          mobileUsers: region.mobileUsers
+        }
+      };
+    });
+  };
+
+  const regions = extractRegionalData();
   
   const totalTAM = regions.reduce((sum, r) => sum + r.tam, 0);
   const totalSAM = regions.reduce((sum, r) => sum + r.sam, 0);
