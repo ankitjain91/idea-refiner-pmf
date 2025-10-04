@@ -66,15 +66,20 @@ const Logout = () => {
         window.dispatchEvent(new CustomEvent('auth:state-changed', { detail: 'SIGNED_OUT' })); 
       } catch {}
       
-      // Also delete all persisted sessions for this user from Supabase
-      try {
-        await deleteAllUserSessions();
-      } catch (e) {
+      // Delete persisted sessions (don't block on this, add timeout)
+      const sessionDeletionPromise = deleteAllUserSessions().catch(e => {
         console.error('[Logout] Error deleting persisted sessions:', e);
-      }
+      });
       
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      // Sign out from Supabase immediately (don't wait for session deletion)
+      const signOutPromise = supabase.auth.signOut();
+      
+      // Wait for both with a timeout
+      await Promise.race([
+        Promise.all([sessionDeletionPromise, signOutPromise]),
+        new Promise(resolve => setTimeout(resolve, 3000)) // Max 3 seconds
+      ]);
+      
       console.log('[Logout] Supabase signout complete');
       
       // Redirect to landing page with state to open auth modal
