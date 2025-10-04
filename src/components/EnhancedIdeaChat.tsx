@@ -318,6 +318,17 @@ What's your startup idea?`,
         return;
       }
       
+      // Show a temporary typing/loader message in chat
+      const typingId = `typing-pmf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const typingMessage: Message = {
+        id: typingId,
+        type: 'bot',
+        content: '',
+        timestamp: new Date(),
+        isTyping: true
+      };
+      setMessages(prev => [...prev, typingMessage]);
+      
       // Check for valid pmfScore (handle both string and number)
       const score = typeof pmfData.pmfScore === 'string' 
         ? parseFloat(pmfData.pmfScore) 
@@ -325,6 +336,8 @@ What's your startup idea?`,
         
       if (!score || isNaN(score)) {
         console.log('No valid PMF score found in stored data');
+        // remove typing indicator
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
         return;
       }
       
@@ -340,7 +353,7 @@ What's your startup idea?`,
         summary: pmfData.summary || `PMF Score: ${score}/100`
       };
       
-      // Add the PMF analysis message
+      // Add the PMF analysis message and remove typing
       const analysisMessage: Message = {
         id: `pmf-${Date.now()}`,
         type: 'bot',
@@ -349,9 +362,11 @@ What's your startup idea?`,
         pmfAnalysis: normalizedAnalysis
       };
       
-      setMessages(prevMessages => [...prevMessages, analysisMessage]);
+      setMessages(prevMessages => [...prevMessages.filter(msg => !msg.isTyping), analysisMessage]);
     } catch (e) {
       console.error('Error loading stored PMF analysis:', e);
+      // Ensure typing indicator is removed on error
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
     }
   }, [messages.length, anonymous]);
 
