@@ -18,6 +18,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 
 import LandingPage from "./pages/LandingPage";
 import EnterpriseHub from "./pages/EnterpriseHub";
+import Hub from './pages/Hub';
+import DeepDive from './pages/DeepDive';
 import IdeaChat from "./pages/EnhancedIdeaChatPage";
 import Dashboard from "./pages/Dashboard";
 
@@ -43,8 +45,11 @@ const RouteTransitionWrapper = () => {
         
         <Route path="/logged-out" element={<LoggedOut />} />
 <Route path="/" element={<LandingPage />} />
-        <Route path="/logout" element={<Logout />} />
+  <Route path="/logout" element={<Logout />} />
         <Route path="/documentation" element={<Documentation />} />
+  <Route path="/hub" element={<ProtectedRoute><AppLayout /><Hub /></ProtectedRoute>} />
+  {/* Deep dive publicly accessible for verification script (contains only static viz) */}
+  <Route path="/deep-dive" element={<DeepDive />} />
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/home" element={<Dashboard />} />

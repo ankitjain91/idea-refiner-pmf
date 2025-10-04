@@ -8,35 +8,8 @@ import { cn } from "@/lib/utils";
 
 // Satellite background + equirectangular projection for markers
 const satUrl = "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73909/world.topo.bathy.200412.3x5400x2700.jpg"; // contains "world.topo.bathy"
-const containerRef = useRef<HTMLDivElement | null>(null);
-const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
-useEffect(() => {
-  const el = containerRef.current;
-  if (!el) return;
-  const ro = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      const cr = entry.contentRect;
-      setContainerSize({ w: cr.width, h: Math.max(360, cr.width * 0.5) });
-    }
-  });
-  ro.observe(el);
-  return () => ro.disconnect();
-}, []);
-
-const markers = (regions || []).map((r: any) => ({
-  lng: r?.coordinates?.[0] ?? 0,
-  lat: r?.coordinates?.[1] ?? 0,
-  name: r?.name || r?.region || "",
-}));
-
-const project = (lat: number, lng: number) => {
-  const w = containerSize.w || 800;
-  const h = containerSize.h || 400;
-  const x = ((lng + 180) / 360) * w;
-  const y = ((90 - lat) / 180) * h;
-  return { x, y };
-};
+// markers & projection now defined within component after regions & container size are available
 
 interface RegionData {
   name: string;
@@ -63,6 +36,20 @@ interface ProfessionalWorldMapProps {
 }
 
 export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldMapProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const cr = entry.contentRect;
+        setContainerSize({ w: cr.width, h: Math.max(360, cr.width * 0.5) });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [viewType, setViewType] = useState<"market" | "growth" | "penetration">("market");
   const [hoveredRegion, setHoveredRegion] = useState<RegionData | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<RegionData | null>(null);
@@ -182,6 +169,20 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   const totalTAM = regions.reduce((sum, r) => sum + r.tam, 0);
   const totalSAM = regions.reduce((sum, r) => sum + r.sam, 0);
   const totalSOM = regions.reduce((sum, r) => sum + r.som, 0);
+
+  const markers = regions.map((r: any) => ({
+    lng: r?.coordinates?.[0] ?? 0,
+    lat: r?.coordinates?.[1] ?? 0,
+    name: r?.name || r?.region || '',
+  }));
+
+  const project = (lat: number, lng: number) => {
+    const w = containerSize.w || 800;
+    const h = containerSize.h || 400;
+    const x = ((lng + 180) / 360) * w;
+    const y = ((90 - lat) / 180) * h;
+    return { x, y };
+  };
   
   const formatCurrency = (value: number) => {
     if (value >= 1000000000) return `$${(value / 1000000000).toFixed(2)}B`;
