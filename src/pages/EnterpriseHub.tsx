@@ -492,7 +492,6 @@ export default function EnterpriseHub() {
                 />
                 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Market Intelligence</h3>
                   <MainAnalysisGrid
                     tiles={{
                       market_size: tiles.market_size,
