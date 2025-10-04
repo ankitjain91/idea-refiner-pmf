@@ -50,6 +50,9 @@ import MessageRenderer from './chat/MessageRenderer';
 import AnimatedBrain from './AnimatedBrain';
 import { BrainHeader } from './enhanced/BrainHeader';
 import { validateFirstIdea } from './enhanced/ideaValidation';
+import { ShareableReportCard } from './share/ShareableReportCard';
+import { ConfettiAnimation } from './share/ConfettiAnimation';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface EnhancedIdeaChatProps {
   sessionName?: string;
@@ -130,6 +133,17 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
     return null;
   });
+
+  // Viral growth state
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [shareCardData, setShareCardData] = useState<{
+    ideaTitle: string;
+    score: number;
+    marketSize?: string;
+    insights: string[];
+  } | null>(null);
+  const [triggerConfetti, setTriggerConfetti] = useState(false);
+  const { subscription } = useSubscription();
 
   // Derived: wrinkle tier + dynamic tooltip messaging
   const wrinkleTier = useMemo(() => {
@@ -1115,6 +1129,22 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         setMessages(prev => [...prev.filter(msg => !msg.isTyping), analysisMessage]);
         setIsTyping(false);
         onAnalysisReady(messageText, data.pmfAnalysis);
+
+        // Trigger confetti and share card for completed analysis
+        if (data.pmfAnalysis.pmfScore) {
+          setTriggerConfetti(true);
+          setTimeout(() => {
+            setShareCardData({
+              ideaTitle: currentIdea || ideaSummaryName || 'My Idea',
+              score: data.pmfAnalysis.pmfScore,
+              marketSize: data.pmfAnalysis.growthMetrics?.marketSize,
+              insights: [
+                ...(data.pmfAnalysis.improvements?.slice(0, 2) || []),
+              ],
+            });
+            setShowShareCard(true);
+          }, 1000);
+        }
       } else {
         // Use the pre-generated detailed and summary responses from the edge function
         const detailedContent = data.detailedResponse || data.response || "Let me help you explore that further.";
@@ -2009,6 +2039,9 @@ User submission: """${messageText}"""`;
       </div>
     </div>
 
+    {/* Confetti Animation */}
+    <ConfettiAnimation trigger={triggerConfetti} />
+
     {/* Messages Area */}
     <ScrollArea className="flex-1 relative">
       <div className="fluid-pad-sm lg:fluid-pad-md space-y-4 sm:space-y-6">
@@ -2023,6 +2056,21 @@ User submission: """${messageText}"""`;
             />
           ))}
         </AnimatePresence>
+
+        {/* Share Card */}
+        {showShareCard && shareCardData && (
+          <div className="max-w-3xl mx-auto mt-8">
+            <ShareableReportCard
+              ideaTitle={shareCardData.ideaTitle}
+              score={shareCardData.score}
+              marketSize={shareCardData.marketSize}
+              insights={shareCardData.insights}
+              isPaid={subscription.tier === 'enterprise'}
+              showBranding={subscription.tier !== 'enterprise'}
+            />
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
     </ScrollArea>
