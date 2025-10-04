@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
-import { ProfessionalWorldMap } from "@/components/hub/ProfessionalWorldMap";
+import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
 import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
@@ -436,7 +436,7 @@ export default function EnterpriseHub() {
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
         {hasLoadedData && viewMode === "deep" && (
           <div className="space-y-6">
-            <ProfessionalWorldMap 
+            <LazyWorldMap 
               marketData={tiles.market_size}
               loading={loading}
             />

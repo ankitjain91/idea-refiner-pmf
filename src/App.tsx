@@ -1,4 +1,5 @@
-import LoggedOut from "@/pages/LoggedOut";
+// Keep LoggedOut eagerly loaded (tiny page needed for auth edge cases)
+import LoggedOut from '@/pages/LoggedOut';
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,25 +17,28 @@ import GlobalAlertCenter from "@/components/feedback/GlobalAlertCenter";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
-import LandingPage from "./pages/LandingPage";
-import EnterpriseHub from "./pages/EnterpriseHub";
-import Hub from './pages/Hub';
-import DeepDive from './pages/DeepDive';
-import IdeaChat from "./pages/EnhancedIdeaChatPage";
-import Dashboard from "./pages/Dashboard";
+// Eager lightweight pages / critical shell
+import LandingPage from './pages/LandingPage';
 
-import { AppLayout } from "@/components/layout/AppLayout";
-import IdeaJournal from "./pages/IdeaJournal";
-import Pricing from "./pages/Pricing";
-import Settings from "./pages/Settings";
-import Logout from "./pages/Logout";
-import NotFound from "./pages/NotFound";
+// Lazy heavy pages for code-splitting
+const EnterpriseHub = React.lazy(() => import('./pages/EnterpriseHub'));
+const Hub = React.lazy(() => import('./pages/Hub'));
+const DeepDive = React.lazy(() => import('./pages/DeepDive'));
+const IdeaChat = React.lazy(() => import('./pages/EnhancedIdeaChatPage'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const IdeaJournal = React.lazy(() => import('./pages/IdeaJournal'));
+const Pricing = React.lazy(() => import('./pages/Pricing'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const Logout = React.lazy(() => import('./pages/Logout'));
+const Documentation = React.lazy(() => import('./pages/Documentation'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
+const AppLayout = React.lazy(() => import('@/components/layout/AppLayout'));
 import StatusAnnouncer from '@/components/accessibility/StatusAnnouncer';
 import CommandPalette from '@/components/CommandPalette';
 import React, { useEffect, useState } from 'react';
 import EngagingLoader from '@/components/engagement/EngagingLoader';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
-import Documentation from "./pages/Documentation";
+// (Documentation now lazy loaded above)
 import { IdeasInitializer } from '@/components/IdeasInitializer';
 
 const RouteTransitionWrapper = () => {
@@ -43,26 +47,25 @@ const RouteTransitionWrapper = () => {
     <div className="flex-1 flex flex-col">
       <Routes>
         
-        <Route path="/logged-out" element={<LoggedOut />} />
-<Route path="/" element={<LandingPage />} />
-  <Route path="/logout" element={<Logout />} />
-        <Route path="/documentation" element={<Documentation />} />
-  <Route path="/hub" element={<ProtectedRoute><AppLayout /><Hub /></ProtectedRoute>} />
-  {/* Deep dive publicly accessible for verification script (contains only static viz) */}
-  <Route path="/deep-dive" element={<DeepDive />} />
+    <Route path="/logged-out" element={<LoggedOut />} />
+    <Route path="/" element={<LandingPage />} />
+    <Route path="/logout" element={<React.Suspense fallback={<div className='p-8'>Loading...</div>}><Logout /></React.Suspense>} />
+    <Route path="/documentation" element={<React.Suspense fallback={<div className='p-8'>Loading docs...</div>}><Documentation /></React.Suspense>} />
+    <Route path="/hub" element={<ProtectedRoute><React.Suspense fallback={<div className='p-8'>Loading Hub...</div>}><AppLayout /><Hub /></React.Suspense></ProtectedRoute>} />
+    {/* Deep dive publicly accessible for verification script (contains only static viz) */}
+    <Route path="/deep-dive" element={<React.Suspense fallback={<div className='p-8'>Loading Deep Dive...</div>}><DeepDive /></React.Suspense>} />
         {/* Protected routes with shared layout */}
-        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-          <Route path="/home" element={<Dashboard />} />
-          <Route path="/dashboard" element={<EnterpriseHub />} />
-          <Route path="/enterprisehub" element={<EnterpriseHub />} />
-          
-          <Route path="/ideachat" element={<IdeaChat />} />
-          <Route path="/ideajournal" element={<IdeaJournal />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/subscription-success" element={<Dashboard />} />
+        <Route element={<ProtectedRoute><React.Suspense fallback={<div className='p-8'>Loading dashboard shell...</div>}><AppLayout /></React.Suspense></ProtectedRoute>}>
+          <Route path="/home" element={<React.Suspense fallback={<div className='p-8'>Loading...</div>}><Dashboard /></React.Suspense>} />
+          <Route path="/dashboard" element={<React.Suspense fallback={<div className='p-8'>Loading Enterprise Hub...</div>}><EnterpriseHub /></React.Suspense>} />
+          <Route path="/enterprisehub" element={<React.Suspense fallback={<div className='p-8'>Loading Enterprise Hub...</div>}><EnterpriseHub /></React.Suspense>} />
+          <Route path="/ideachat" element={<React.Suspense fallback={<div className='p-8'>Loading Chat...</div>}><IdeaChat /></React.Suspense>} />
+          <Route path="/ideajournal" element={<React.Suspense fallback={<div className='p-8'>Loading Journal...</div>}><IdeaJournal /></React.Suspense>} />
+          <Route path="/settings" element={<React.Suspense fallback={<div className='p-8'>Loading Settings...</div>}><Settings /></React.Suspense>} />
+          <Route path="/pricing" element={<React.Suspense fallback={<div className='p-8'>Loading Pricing...</div>}><Pricing /></React.Suspense>} />
+          <Route path="/subscription-success" element={<React.Suspense fallback={<div className='p-8'>Loading...</div>}><Dashboard /></React.Suspense>} />
         </Route>
-        <Route path="*" element={<NotFound />} />
+        <Route path="*" element={<React.Suspense fallback={<div className='p-8'>Loading...</div>}><NotFound /></React.Suspense>} />
       </Routes>
     </div>
   );

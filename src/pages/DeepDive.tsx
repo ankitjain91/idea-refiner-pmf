@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ProfessionalWorldMap } from '@/components/hub/ProfessionalWorldMap';
+import { LazyWorldMap } from '@/components/hub/LazyWorldMap';
 
 const WORLD_IMG = "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73909/world.topo.bathy.200412.3x5400x2700.jpg"; // matches verifier substring
 
@@ -28,7 +28,7 @@ export default function DeepDive() {
             style={{ width: 1, height: 1, opacity: 0, position: 'absolute', pointerEvents: 'none' }}
           />
           <p className="text-sm text-muted-foreground">Satellite-enhanced global market visualization.</p>
-          <ProfessionalWorldMap />
+          <LazyWorldMap />
         </CardContent>
       </Card>
     </div>
