@@ -1,3 +1,4 @@
+import LoggedOut from "@/pages/LoggedOut";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -39,7 +40,9 @@ const RouteTransitionWrapper = () => {
   return (
     <div className="flex-1 flex flex-col">
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        
+        <Route path="/logged-out" element={<LoggedOut />} />
+<Route path="/" element={<LandingPage />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/documentation" element={<Documentation />} />
         {/* Protected routes with shared layout */}

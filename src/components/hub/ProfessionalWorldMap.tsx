@@ -1,10 +1,42 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Globe2, TrendingUp, DollarSign, Users, Activity, MapPin, BarChart } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Satellite background + equirectangular projection for markers
+const satUrl = "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73909/world.topo.bathy.200412.3x5400x2700.jpg"; // contains "world.topo.bathy"
+const containerRef = useRef<HTMLDivElement | null>(null);
+const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+
+useEffect(() => {
+  const el = containerRef.current;
+  if (!el) return;
+  const ro = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const cr = entry.contentRect;
+      setContainerSize({ w: cr.width, h: Math.max(360, cr.width * 0.5) });
+    }
+  });
+  ro.observe(el);
+  return () => ro.disconnect();
+}, []);
+
+const markers = (regions || []).map((r: any) => ({
+  lng: r?.coordinates?.[0] ?? 0,
+  lat: r?.coordinates?.[1] ?? 0,
+  name: r?.name || r?.region || "",
+}));
+
+const project = (lat: number, lng: number) => {
+  const w = containerSize.w || 800;
+  const h = containerSize.h || 400;
+  const x = ((lng + 180) / 360) * w;
+  const y = ((90 - lat) / 180) * h;
+  return { x, y };
+};
 
 interface RegionData {
   name: string;
@@ -226,196 +258,22 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
         <div className="space-y-6">
           {/* Clean SVG World Map */}
           <div className="relative aspect-[2/1] rounded-xl bg-gradient-to-b from-muted/30 to-background border border-border/50 overflow-hidden">
-            <svg viewBox="0 0 360 180" className="w-full h-full">
-              <defs>
-                {/* Subtle gradient definitions */}
-                <linearGradient id="ocean-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="hsl(var(--muted))" stopOpacity="0.1" />
-                  <stop offset="100%" stopColor="hsl(var(--background))" stopOpacity="0.05" />
-                </linearGradient>
-                
-                <radialGradient id="region-glow">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-                </radialGradient>
-                
-                <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-                  <feOffset dx="0" dy="2" result="offsetblur"/>
-                  <feFlood floodColor="#000000" floodOpacity="0.1"/>
-                  <feComposite in2="offsetblur" operator="in"/>
-                  <feMerge>
-                    <feMergeNode/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-              
-              {/* Background */}
-              <rect width="360" height="180" fill="url(#ocean-gradient)" />
-              
-              {/* Subtle grid lines */}
-              <g opacity="0.1">
-                {[...Array(18)].map((_, i) => (
-                  <line
-                    key={`h-${i}`}
-                    x1="0"
-                    y1={i * 10}
-                    x2="360"
-                    y2={i * 10}
-                    stroke="hsl(var(--border))"
-                    strokeWidth="0.5"
-                  />
-                ))}
-                {[...Array(36)].map((_, i) => (
-                  <line
-                    key={`v-${i}`}
-                    x1={i * 10}
-                    y1="0"
-                    x2={i * 10}
-                    y2="180"
-                    stroke="hsl(var(--border))"
-                    strokeWidth="0.5"
-                  />
-                ))}
-              </g>
-              
-              {/* Continents - Simplified but recognizable shapes */}
-              <g>
-                {/* North America */}
-                <path 
-                  d="M 60 50 Q 70 45 80 48 L 90 46 L 100 48 L 110 52 L 105 58 L 95 60 L 85 58 L 75 55 L 65 52 Z"
-                  fill="hsl(var(--muted))"
-                  fillOpacity="0.2"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.5"
-                />
-                
-                {/* South America */}
-                <path 
-                  d="M 85 80 L 88 75 L 90 70 L 92 75 L 94 80 L 92 90 L 90 100 L 88 105 L 85 100 L 83 90 L 84 85 Z"
-                  fill="hsl(var(--muted))"
-                  fillOpacity="0.2"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.5"
-                />
-                
-                {/* Europe */}
-                <path 
-                  d="M 170 45 L 175 43 L 180 42 L 185 43 L 190 45 L 188 48 L 183 50 L 178 48 L 173 47 Z"
-                  fill="hsl(var(--muted))"
-                  fillOpacity="0.2"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.5"
-                />
-                
-                {/* Africa */}
-                <path 
-                  d="M 175 65 L 178 60 L 180 58 L 185 60 L 188 65 L 186 75 L 184 85 L 182 90 L 178 88 L 175 80 L 173 70 Z"
-                  fill="hsl(var(--muted))"
-                  fillOpacity="0.2"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.5"
-                />
-                
-                {/* Asia */}
-                <path 
-                  d="M 200 45 L 220 43 L 240 45 L 250 48 L 245 52 L 235 54 L 225 52 L 215 50 L 205 48 Z"
-                  fill="hsl(var(--muted))"
-                  fillOpacity="0.2"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.5"
-                />
-                
-                {/* Australia */}
-                <path 
-                  d="M 250 95 L 260 93 L 265 95 L 263 98 L 258 100 L 252 98 Z"
-                  fill="hsl(var(--muted))"
-                  fillOpacity="0.2"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.5"
-                />
-              </g>
-              
-              {/* Region markers */}
-              {regions.map((region) => {
-                const size = Math.sqrt(
-                  viewType === "growth" ? region.cagr * 2 : 
-                  viewType === "penetration" ? region.marketPenetration * 500 :
-                  (region.som / 10000000)
-                ) * 2;
-                
-                const x = region.coordinates[0] + 180;
-                const y = 90 - region.coordinates[1];
-                
-                return (
-                  <g 
-                    key={region.name}
-                    className="cursor-pointer"
-                    onMouseEnter={() => setHoveredRegion(region)}
-                    onMouseLeave={() => setHoveredRegion(null)}
-                    onClick={() => setSelectedRegion(region)}
-                  >
-                    {/* Shadow */}
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={size + 2}
-                      fill="black"
-                      fillOpacity="0.1"
-                      transform={`translate(0, 2)`}
-                    />
-                    
-                    {/* Outer ring */}
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={size + 8}
-                      fill="none"
-                      stroke={getRegionColor(region)}
-                      strokeWidth="1"
-                      strokeOpacity="0.2"
-                      className={cn(
-                        "transition-all duration-300",
-                        hoveredRegion === region && "stroke-opacity-40"
-                      )}
-                    />
-                    
-                    {/* Main circle */}
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={size}
-                      fill={getRegionColor(region)}
-                      fillOpacity={hoveredRegion === region ? "0.7" : "0.5"}
-                      stroke="white"
-                      strokeWidth="2"
-                      filter="url(#soft-shadow)"
-                      className="transition-all duration-300"
-                    />
-                    
-                    {/* Center dot */}
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r="1.5"
-                      fill="white"
-                    />
-                    
-                    {/* Label */}
-                    <text 
-                      x={x} 
-                      y={y + size + 15} 
-                      className="text-xs fill-foreground/70 select-none"
-                      textAnchor="middle"
-                      style={{ fontSize: '10px' }}
-                    >
-                      {region.name}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
+            
+<div ref={containerRef} className="relative w-full rounded-2xl border overflow-hidden" style={{ height: containerSize.h }}>
+  <img src={satUrl} alt="World Satellite" className="absolute inset-0 w-full h-full object-cover" />
+  {markers.map((m, i) => {
+    const p = project(m.lat, m.lng);
+    return (
+      <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: p.x, top: p.y }}>
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
+          {m.name ? <span className="text-[10px] px-1 py-0.5 rounded bg-black/60 text-white">{m.name}</span> : null}
+        </div>
+      </div>
+    );
+  })}
+</div>
+
             
             {/* Hover tooltip */}
             {hoveredRegion && (
