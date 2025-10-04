@@ -2065,7 +2065,7 @@ User submission: """${messageText}"""`;
       {/* Quick Actions */}
       <div className="flex gap-2 mt-3 max-w-4xl mx-auto">
         <AsyncDashboardButton />
-        <motion.div whileHover={hasValidIdea ? { scale: 1.02 } : {}} whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
+        <motion.div whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
             variant="outline"
             size="sm"
@@ -2081,7 +2081,7 @@ User submission: """${messageText}"""`;
             Risk Assessment
           </Button>
         </motion.div>
-        <motion.div whileHover={hasValidIdea ? { scale: 1.02 } : {}} whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
+        <motion.div whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
             variant="outline"
             size="sm"
