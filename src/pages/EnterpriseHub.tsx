@@ -474,20 +474,6 @@ export default function EnterpriseHub() {
               loadingTasks={loadingTasks}
               currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
             />
-            
-            {hasLoadedData && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <MainAnalysisGrid
-                  tiles={{
-                    market_size: tiles.market_size,
-                    competition: tiles.competition,
-                  }}
-                  loading={loading}
-                  viewMode="executive"
-                  onRefreshTile={refreshTile}
-                />
-              </div>
-            )}
           </TabsContent>
 
           {/* MARKET ANALYSIS TAB */}
@@ -499,47 +485,20 @@ export default function EnterpriseHub() {
                   loading={loading}
                 />
                 
-                <Accordion type="multiple" defaultValue={["market-overview"]} className="space-y-4">
-                  <AccordionItem value="market-overview" className="border rounded-lg px-4">
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-2">
-                        <LayoutGrid className="h-5 w-5 text-primary" />
-                        <span className="font-semibold">Market Overview</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                      <MainAnalysisGrid
-                        tiles={{
-                          market_size: tiles.market_size,
-                          market_trends: tiles.market_trends,
-                        }}
-                        loading={loading}
-                        viewMode="deep"
-                        onRefreshTile={refreshTile}
-                      />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="competition" className="border rounded-lg px-4">
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-2">
-                        <Eye className="h-5 w-5 text-primary" />
-                        <span className="font-semibold">Competition & Positioning</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                      <MainAnalysisGrid
-                        tiles={{
-                          competition: tiles.competition,
-                          google_trends: tiles.google_trends,
-                        }}
-                        loading={loading}
-                        viewMode="deep"
-                        onRefreshTile={refreshTile}
-                      />
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Market Intelligence</h3>
+                  <MainAnalysisGrid
+                    tiles={{
+                      market_size: tiles.market_size,
+                      market_trends: tiles.market_trends,
+                      google_trends: tiles.google_trends,
+                      competition: tiles.competition,
+                    }}
+                    loading={loading}
+                    viewMode="deep"
+                    onRefreshTile={refreshTile}
+                  />
+                </div>
               </>
             )}
           </TabsContent>
@@ -547,45 +506,18 @@ export default function EnterpriseHub() {
           {/* CUSTOMER RESEARCH TAB */}
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
-              <Accordion type="multiple" defaultValue={["sentiment"]} className="space-y-4">
-                <AccordionItem value="sentiment" className="border rounded-lg px-4">
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">Customer Intelligence</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <MainAnalysisGrid
-                      tiles={{
-                        sentiment: tiles.sentiment,
-                      }}
-                      loading={loading}
-                      viewMode="deep"
-                      onRefreshTile={refreshTile}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="news" className="border rounded-lg px-4">
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">Media & News</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <MainAnalysisGrid
-                      tiles={{
-                        news_analysis: tiles.news_analysis,
-                      }}
-                      loading={loading}
-                      viewMode="deep"
-                      onRefreshTile={refreshTile}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Customer Insights</h3>
+                <MainAnalysisGrid
+                  tiles={{
+                    sentiment: tiles.sentiment,
+                    news_analysis: tiles.news_analysis,
+                  }}
+                  loading={loading}
+                  viewMode="deep"
+                  onRefreshTile={refreshTile}
+                />
+              </div>
             )}
           </TabsContent>
 
