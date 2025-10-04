@@ -27,14 +27,16 @@ import { IdeasInitializer } from '@/components/IdeasInitializer';
 const EnterpriseHub = lazy(() => import('./pages/EnterpriseHub'));
 const Hub = lazy(() => import('./pages/Hub'));
 const DeepDive = lazy(() => import('./pages/DeepDive'));
-const IdeaChat = lazy(() => import('./pages/EnhancedIdeaChatPage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const IdeaJournal = lazy(() => import('./pages/IdeaJournal'));
 const Pricing = lazy(() => import('./pages/Pricing'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Logout = lazy(() => import('./pages/Logout'));
 const Documentation = lazy(() => import('./pages/Documentation'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Eagerly load frequently used pages
+import IdeaChat from './pages/EnhancedIdeaChatPage';
+import IdeaJournal from './pages/IdeaJournal';
+import Settings from './pages/Settings';
+import Logout from './pages/Logout';
 
 const RouteTransitionWrapper = () => {
   const location = useLocation();
@@ -43,7 +45,7 @@ const RouteTransitionWrapper = () => {
       <Routes>
         <Route path="/logged-out" element={<LoggedOut />} />
         <Route path="/" element={<LandingPage />} />
-        <Route path="/logout" element={<Suspense fallback={null}><Logout /></Suspense>} />
+        <Route path="/logout" element={<Logout />} />
         <Route path="/documentation" element={<Suspense fallback={null}><Documentation /></Suspense>} />
         <Route path="/hub" element={<ProtectedRoute><Suspense fallback={null}><AppLayout /><Hub /></Suspense></ProtectedRoute>} />
         <Route path="/deep-dive" element={<Suspense fallback={null}><DeepDive /></Suspense>} />
@@ -53,9 +55,9 @@ const RouteTransitionWrapper = () => {
           <Route path="/home" element={<Suspense fallback={null}><Dashboard /></Suspense>} />
           <Route path="/dashboard" element={<Suspense fallback={null}><EnterpriseHub /></Suspense>} />
           <Route path="/enterprisehub" element={<Suspense fallback={null}><EnterpriseHub /></Suspense>} />
-          <Route path="/ideachat" element={<Suspense fallback={null}><IdeaChat /></Suspense>} />
-          <Route path="/ideajournal" element={<Suspense fallback={null}><IdeaJournal /></Suspense>} />
-          <Route path="/settings" element={<Suspense fallback={null}><Settings /></Suspense>} />
+          <Route path="/ideachat" element={<IdeaChat />} />
+          <Route path="/ideajournal" element={<IdeaJournal />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/pricing" element={<Suspense fallback={null}><Pricing /></Suspense>} />
           <Route path="/subscription-success" element={<Suspense fallback={null}><Dashboard /></Suspense>} />
         </Route>
