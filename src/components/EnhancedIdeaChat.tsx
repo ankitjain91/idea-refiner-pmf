@@ -294,27 +294,41 @@ What's your startup idea?`,
 
   // Inject stored PMF analysis after messages are restored
   useEffect(() => {
-    if (anonymous || messages.length === 0) return;
+    // Skip for anonymous users or empty message history
+    if (anonymous || messages.length === 0) {
+      return;
+    }
     
     const storedPMFAnalysis = localStorage.getItem('pmfAnalysisData');
-    if (!storedPMFAnalysis) return;
+    if (!storedPMFAnalysis) {
+      return;
+    }
     
     try {
       const pmfData = JSON.parse(storedPMFAnalysis);
+      console.log('Checking stored PMF analysis:', pmfData);
       
       // Check if analysis message already exists
       const hasAnalysisMessage = messages.some(msg => 
         msg.type === 'bot' && msg.pmfAnalysis
       );
       
-      if (hasAnalysisMessage) return;
+      if (hasAnalysisMessage) {
+        console.log('PMF analysis message already exists in chat');
+        return;
+      }
       
       // Check for valid pmfScore (handle both string and number)
       const score = typeof pmfData.pmfScore === 'string' 
         ? parseFloat(pmfData.pmfScore) 
         : pmfData.pmfScore;
         
-      if (!score || isNaN(score)) return;
+      if (!score || isNaN(score)) {
+        console.log('No valid PMF score found in stored data');
+        return;
+      }
+      
+      console.log('Injecting PMF analysis message with score:', score);
       
       // Normalize the pmfAnalysis object with fallbacks
       const normalizedAnalysis = {
@@ -335,7 +349,7 @@ What's your startup idea?`,
         pmfAnalysis: normalizedAnalysis
       };
       
-      setMessages(prev => [...prev, analysisMessage]);
+      setMessages(prevMessages => [...prevMessages, analysisMessage]);
     } catch (e) {
       console.error('Error loading stored PMF analysis:', e);
     }
