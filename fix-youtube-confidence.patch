@@ -1,0 +1,157 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ChatGPT Patch Bot <patch@smoothbrains.ai>
+Date: Sat, 4 Oct 2025 14:05:00 +0000
+Subject: [PATCH] fix: add ErrorBoundary and codemod to harden YouTubeAnalyticsTile confidence access
+
+---
+ src/components/shared/ErrorBoundary.tsx   | 40 +++++++++++++++++++++++++++++++
+ scripts/fix-youtube-confidence.js         | 83 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 123 insertions(+)
+ create mode 100644 src/components/shared/ErrorBoundary.tsx
+ create mode 100755 scripts/fix-youtube-confidence.js
+
+diff --git a/src/components/shared/ErrorBoundary.tsx b/src/components/shared/ErrorBoundary.tsx
+new file mode 100644
+index 0000000..e1e1e1e
+--- /dev/null
++++ b/src/components/shared/ErrorBoundary.tsx
+@@
++import React from "react";
++
++export class ErrorBoundary extends React.Component<
++  { fallback?: React.ReactNode },
++  { hasError: boolean }
++> {
++  constructor(props: any) {
++    super(props);
++    this.state = { hasError: false };
++  }
++  static getDerivedStateFromError() {
++    return { hasError: true };
++  }
++  componentDidCatch(err: any, info: any) {
++    console.error("UI ErrorBoundary:", err, info);
++  }
++  render() {
++    if (this.state.hasError) {
++      return (
++        this.props.fallback ?? (
++          <div className="rounded-2xl border p-4 text-sm">
++            Something went wrong. Refresh or try again.
++          </div>
++        )
++      );
++    }
++    return this.props.children;
++  }
++}
+diff --git a/scripts/fix-youtube-confidence.js b/scripts/fix-youtube-confidence.js
+new file mode 100755
+index 0000000..a1a1a1a
+--- /dev/null
++++ b/scripts/fix-youtube-confidence.js
+@@
++#!/usr/bin/env node
++/**
++ * Hardens YouTubeAnalyticsTile against undefined `.confidence` reads
++ * without changing content/logic:
++ *  - Injects tiny helpers (__num, __arr)
++ *  - Normalizes `predictions` to a safe array
++ *  - Adds empty-state guard to avoid blank screen
++ *  - Rewrites `.confidence` → `__num(x?.confidence ?? x?.score, 0)`
++ *
++ * Usage:
++ *   node scripts/fix-youtube-confidence.js
++ *
++ * A .bak backup is written next to the original file.
++ */
++
++const fs = require("fs");
++const path = require("path");
++
++const FILE = path.join(process.cwd(), "src", "components", "hub", "YouTubeAnalyticsTile.tsx");
++
++function injectHelpers(src) {
++  if (src.includes("/* __YT_SAFE_HELPERS__ */")) return src;
++  const helpers = `
++/* __YT_SAFE_HELPERS__ */
++const __num = (v: any, fb = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : fb);
++const __arr = <T,>(v: any): T[] => (Array.isArray(v) ? (v.filter(Boolean) as T[]) : []);
++`;
++  const lines = src.split(/\r?\n/);
++  let insertAt = 0;
++  for (let i = 0; i < lines.length; i++) {
++    if (!/^\s*import\s/.test(lines[i])) { insertAt = i; break; }
++  }
++  lines.splice(insertAt, 0, helpers.trim());
++  return lines.join("\n");
++}
++
++function injectNormalization(src) {
++  if (src.includes("/* __YT_NORMALIZE__ */")) return src;
++  const sig = "export default function YouTubeAnalyticsTile";
++  const idx = src.indexOf(sig);
++  if (idx === -1) return src;
++  const braceIdx = src.indexOf("{", idx);
++  if (braceIdx === -1) return src;
++  const before = src.slice(0, braceIdx + 1);
++  const after = src.slice(braceIdx + 1);
++  const norm = `
++  /* __YT_NORMALIZE__ */
++  // Ensure arrays & numbers are safe. Adjust if your variable names differ.
++  const __predRaw = (typeof predictions !== "undefined" ? predictions : (data?.predictions ?? props?.predictions ?? []));
++  // @ts-ignore we coerce unknown to safe list
++  const predictions = (typeof predictions === "undefined" ? __arr<any>(__predRaw) : predictions);
++`;
++  return before + norm + after;
++}
++
++function addEmptyState(src) {
++  if (src.includes("/* __YT_EMPTY__ */")) return src;
++  const hookIdx = src.indexOf("/* __YT_NORMALIZE__ */");
++  if (hookIdx === -1) return src;
++  // insert right after normalize block
++  const insertAt = hookIdx + "/* __YT_NORMALIZE__ */".length;
++  const empty = `
++  /* __YT_EMPTY__ */
++  if (!Array.isArray(predictions) || predictions.length === 0) {
++    return <div className="rounded-2xl border p-4 text-sm opacity-70">No YouTube analytics yet — connect a channel or run your first sync.</div>;
++  }
++`;
++  return src.slice(0, insertAt) + empty + src.slice(insertAt);
++}
++
++function rewriteConfidence(src) {
++  // predictions[i].confidence -> __num(predictions[i]?.confidence ?? predictions[i]?.score, 0)
++  src = src.replace(/(\w+(?:\[[^\]]+\])?)\.confidence\b/g, "(__num($1?.confidence ?? $1?.score, 0))");
++  // rare: ?.confidence
++  src = src.replace(/\?\.confidence\b/g, "?.confidence ?? ?.score ?? 0");
++  return src;
++}
++
++function main() {
++  if (!fs.existsSync(FILE)) {
++    console.error("Cannot find:", FILE);
++    process.exit(1);
++  }
++  const original = fs.readFileSync(FILE, "utf8");
++  let src = original;
++
++  src = injectHelpers(src);
++  src = injectNormalization(src);
++  src = addEmptyState(src);
++  src = rewriteConfidence(src);
++
++  if (src !== original) {
++    fs.writeFileSync(FILE + ".bak", original, "utf8");
++    fs.writeFileSync(FILE, src, "utf8");
++    console.log("Patched:", FILE);
++    console.log("Backup:", FILE + ".bak");
++  } else {
++    console.log("No changes applied (already safe or pattern not found).");
++  }
++}
++
++main();
+--
+2.46.0
