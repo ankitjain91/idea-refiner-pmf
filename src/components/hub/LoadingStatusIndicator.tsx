@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Loader2, AlertCircle, Database, TrendingUp, Users, Search, Newspaper } from "lucide-react";
+import { CheckCircle2, Loader2, AlertCircle, Database, TrendingUp, Users, Search, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface LoadingTask {
   id: string;
@@ -28,6 +30,8 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export function LoadingStatusIndicator({ show, tasks, currentTask }: LoadingStatusIndicatorProps) {
+  const [isMinimized, setIsMinimized] = useState(false);
+  
   console.log('[LoadingStatusIndicator] show:', show, 'tasks count:', tasks.length, 'currentTask:', currentTask);
   
   if (!show || tasks.length === 0) return null;
@@ -45,88 +49,128 @@ export function LoadingStatusIndicator({ show, tasks, currentTask }: LoadingStat
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-6 right-6 z-50 max-w-md"
+          className="fixed bottom-6 right-6 z-50"
         >
-          <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg">
-            <div className="p-4 space-y-4">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <h3 className="font-semibold">Loading Analysis</h3>
+          {isMinimized ? (
+            // Minimized view - compact progress bar
+            <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg w-64">
+              <div className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium">Loading...</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-primary">{Math.round(progress)}%</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => setIsMinimized(false)}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {completedCount}/{totalCount}
-                </Badge>
+                <Progress value={progress} className="h-1.5" />
               </div>
+            </Card>
+          ) : (
+            // Expanded view - full details
+            <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg max-w-md">
+              <div className="p-4 space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <h3 className="font-semibold">Loading Analysis</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {completedCount}/{totalCount}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => setIsMinimized(true)}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
 
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <Progress value={progress} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  {progress < 100 
-                    ? `Analyzing ${currentTask || "data"}...`
-                    : hasErrors 
-                    ? "Completed with some errors"
-                    : "Analysis complete!"}
-                </p>
-              </div>
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Progress value={progress} className="h-2 flex-1" />
+                    <span className="text-sm font-semibold text-primary ml-3">{Math.round(progress)}%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {progress < 100 
+                      ? `Analyzing ${currentTask || "data"}...`
+                      : hasErrors 
+                      ? "Completed with some errors"
+                      : "Analysis complete!"}
+                  </p>
+                </div>
 
-              {/* Task List */}
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {tasks.map((task) => (
-                  <motion.div
-                    key={task.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={cn(
-                      "flex items-center gap-3 p-2 rounded-lg transition-colors",
-                      task.status === "loading" && "bg-primary/5",
-                      task.status === "complete" && "bg-success/5",
-                      task.status === "error" && "bg-destructive/5"
-                    )}
-                  >
-                    {/* Status Icon */}
-                    <div className="flex-shrink-0">
-                      {task.status === "pending" && (
-                        <div className="h-5 w-5 rounded-full border-2 border-muted" />
+                {/* Task List */}
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {tasks.map((task) => (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={cn(
+                        "flex items-center gap-3 p-2 rounded-lg transition-colors",
+                        task.status === "loading" && "bg-primary/5",
+                        task.status === "complete" && "bg-success/5",
+                        task.status === "error" && "bg-destructive/5"
                       )}
-                      {task.status === "loading" && (
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      )}
-                      {task.status === "complete" && (
-                        <CheckCircle2 className="h-5 w-5 text-success" />
-                      )}
-                      {task.status === "error" && (
-                        <AlertCircle className="h-5 w-5 text-destructive" />
-                      )}
-                    </div>
-
-                    {/* Task Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {iconMap[task.id] || task.icon}
-                        <span className={cn(
-                          "text-sm font-medium truncate",
-                          task.status === "complete" && "text-muted-foreground",
-                          task.status === "error" && "text-destructive"
-                        )}>
-                          {task.label}
-                        </span>
+                    >
+                      {/* Status Icon */}
+                      <div className="flex-shrink-0">
+                        {task.status === "pending" && (
+                          <div className="h-5 w-5 rounded-full border-2 border-muted" />
+                        )}
+                        {task.status === "loading" && (
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        )}
+                        {task.status === "complete" && (
+                          <CheckCircle2 className="h-5 w-5 text-success" />
+                        )}
+                        {task.status === "error" && (
+                          <AlertCircle className="h-5 w-5 text-destructive" />
+                        )}
                       </div>
-                    </div>
 
-                    {/* Status Badge */}
-                    {task.status === "loading" && (
-                      <Badge variant="secondary" className="text-xs">
-                        Loading
-                      </Badge>
-                    )}
-                  </motion.div>
-                ))}
+                      {/* Task Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {iconMap[task.id] || task.icon}
+                          <span className={cn(
+                            "text-sm font-medium truncate",
+                            task.status === "complete" && "text-muted-foreground",
+                            task.status === "error" && "text-destructive"
+                          )}>
+                            {task.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      {task.status === "loading" && (
+                        <Badge variant="secondary" className="text-xs">
+                          Loading
+                        </Badge>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
