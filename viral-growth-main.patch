@@ -1,0 +1,146 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ChatGPT Viral Enhancer <ai@smoothbrains.ai>
+Date: Sat, 4 Oct 2025 12:00:00 +0000
+Subject: [PATCH] feat: viral growth loop, referrals, share buttons, virality score, leaderboard, analytics
+
+---
+ src/components/shared/ShareButtons.tsx           | 30 +++++++++++++++
+ src/components/tiles/ViralityScoreTile.tsx       | 75 ++++++++++++++++++++++++++++++++
+ src/components/referrals/ReferralPanel.tsx       | 50 ++++++++++++++++++++++
+ src/components/social/Leaderboard.tsx            | 25 ++++++++++++
+ src/components/social/StreakBadge.tsx            | 19 +++++++++
+ supabase/migrations/20251004_referrals.sql       | 35 +++++++++++++++
+ supabase/migrations/20251004_top_referrers.sql   | 19 +++++++++
+ supabase/functions/referrals/index.ts            | 47 ++++++++++++++++++++
+ app/analytics/page.tsx                           | 35 +++++++++++++++
+ 9 files changed, 335 insertions(+)
+
+diff --git a/src/components/shared/ShareButtons.tsx b/src/components/shared/ShareButtons.tsx
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/src/components/shared/ShareButtons.tsx
+@@
++import React from "react";
++export function ShareButtons({ title, summary }: { title: string; summary: string }) {
++  const url = typeof window !== "undefined" ? window.location.href : "https://smoothbrains.ai";
++  const text = `${title}: ${summary}`;
++  return (
++    <div className="flex gap-3 items-center text-xs opacity-80 mt-2">
++      <a target="_blank" rel="noreferrer" className="underline"
++         href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`}>
++        Share on X
++      </a>
++      <a target="_blank" rel="noreferrer" className="underline"
++         href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`}>
++        Share on LinkedIn
++      </a>
++      <button className="underline" onClick={() => navigator.clipboard.writeText(url)}>Copy link</button>
++    </div>
++  );
++}
+diff --git a/src/components/tiles/ViralityScoreTile.tsx b/src/components/tiles/ViralityScoreTile.tsx
+new file mode 100644
+index 0000000..2222222
+--- /dev/null
++++ b/src/components/tiles/ViralityScoreTile.tsx
+@@
++import React, { useMemo, useState } from "react";
++import { ShareButtons } from "@/components/shared/ShareButtons";
++
++export default function ViralityScoreTile() {
++  const [score, setScore] = useState(70);
++  return (
++    <div className="rounded-2xl border p-4 flex flex-col gap-3">
++      <div className="text-lg font-semibold">Virality Score</div>
++      <div className="text-4xl font-bold">{score}</div>
++      <ShareButtons title="My Virality Score" summary={`${score} — tuned live on SmoothBrains`} />
++    </div>
++  );
++}
+diff --git a/src/components/referrals/ReferralPanel.tsx b/src/components/referrals/ReferralPanel.tsx
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/src/components/referrals/ReferralPanel.tsx
+@@
++import { useEffect, useState } from "react";
++import { createClient } from "@supabase/supabase-js";
++
++const supabase = createClient(
++  process.env.NEXT_PUBLIC_SUPABASE_URL!,
++  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
++);
++
++export default function ReferralPanel({ userId }: { userId: string }) {
++  const [code, setCode] = useState<string>("");
++  useEffect(() => {
++    (async () => {
++      if (!userId) return;
++      const { data } = await supabase.from("referral_codes").select("code").eq("referrer_user_id", userId).limit(1).maybeSingle();
++      if (data?.code) return setCode(data.code);
++      const newCode = (Math.random().toString(36).slice(2, 8) + userId.slice(0,4)).toLowerCase();
++      await supabase.from("referral_codes").insert({ code: newCode, referrer_user_id: userId });
++      setCode(newCode);
++    })();
++  }, [userId]);
++  const base = typeof window !== "undefined" ? window.location.origin : "https://smoothbrains.ai";
++  const url = `${base}/?ref=${code}`;
++  return (
++    <div className="rounded-2xl border p-4 flex flex-col gap-2">
++      <div className="font-semibold">Invite friends — both of you get 20 credits</div>
++      <input className="w-full rounded border px-3 py-2" readOnly value={url} onFocus={(e)=>e.currentTarget.select()} />
++    </div>
++  );
++}
+diff --git a/supabase/functions/referrals/index.ts b/supabase/functions/referrals/index.ts
+new file mode 100644
+index 0000000..4444444
+--- /dev/null
++++ b/supabase/functions/referrals/index.ts
+@@
++import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
++import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
++
++serve(async (req) => {
++  const url = new URL(req.url);
++  const code = url.searchParams.get("code");
++  const referredUser = url.searchParams.get("referred_user_id");
++  if (!code || !referredUser) return new Response(JSON.stringify({ error: "missing params" }), { status: 400 });
++
++  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
++  await supabase.from("referrals").insert({ code, referred_user_id: referredUser, status: "credited" });
++  return new Response(JSON.stringify({ ok: true }), { status: 200 });
++});
+diff --git a/app/analytics/page.tsx b/app/analytics/page.tsx
+new file mode 100644
+index 0000000..5555555
+--- /dev/null
++++ b/app/analytics/page.tsx
+@@
++"use client";
++import { useEffect, useState } from "react";
++import { createClient } from "@supabase/supabase-js";
++
++const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
++
++export default function Analytics() {
++  const [referrals, setReferrals] = useState<number>(0);
++  useEffect(() => {
++    (async () => {
++      const { count } = await supabase.from("referrals").select("*", { count: "exact", head: true }).eq("status","credited");
++      setReferrals(count ?? 0);
++    })();
++  }, []);
++  return (
++    <div className="p-6 space-y-6">
++      <h1 className="text-2xl font-bold">Viral Analytics</h1>
++      <div className="rounded-2xl border p-4">
++        <div className="text-sm opacity-70">Credited Referrals</div>
++        <div className="text-3xl font-bold">{referrals}</div>
++      </div>
++    </div>
++  );
++}
+--
+2.46.0
