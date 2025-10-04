@@ -408,8 +408,8 @@ export default function EnterpriseHub() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6 space-y-8">
-        {/* QUICK STATS STRIP - At the top */}
-        {hasLoadedData && (
+        {/* QUICK STATS STRIP - At the top - only show if we have tile data */}
+        {hasLoadedData && (tiles.growth_potential || tiles.market_readiness || tiles.competitive_advantage || tiles.risk_assessment) && (
           <QuickStatsStrip
             tiles={{
               growth_potential: tiles.growth_potential,
