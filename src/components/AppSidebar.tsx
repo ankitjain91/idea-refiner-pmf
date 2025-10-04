@@ -47,7 +47,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
   const mainNav = [
     { 
       title: "Home", 
-      url: "/home", 
+      url: "/enterprisehub", 
       icon: BarChart3,
       badge: null
     },
