@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Loader2, Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { LayoutDashboard, Sparkles, ArrowRight, Brain, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type LoadState = 'idle' | 'loading' | 'loaded';
@@ -69,15 +69,16 @@ export const AsyncDashboardButton = () => {
       case 'loading':
         return (
           <>
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span>Loading Dashboard...</span>
+            <Brain className="h-4 w-4 animate-pulse" />
+            <span className="font-medium">Analyzing Your Dashboard</span>
+            <Zap className="h-3 w-3 animate-pulse" />
           </>
         );
       case 'loaded':
         return (
           <>
-            <Sparkles className="h-4 w-4" />
-            <span className="font-semibold">Go to Dashboard</span>
+            <Sparkles className="h-4 w-4 animate-pulse" />
+            <span className="font-semibold">Go to My Dashboard</span>
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </>
         );
@@ -98,20 +99,29 @@ export const AsyncDashboardButton = () => {
       variant={loadState === 'loaded' ? 'default' : 'outline'}
       size="sm"
       className={cn(
-        'group relative overflow-hidden transition-all duration-500',
-        loadState === 'loading' && 'border-primary/50 animate-pulse',
-        loadState === 'loaded' && 'bg-gradient-to-r from-primary to-accent shadow-lg shadow-primary/30',
+        'group relative overflow-hidden transition-all duration-700',
+        loadState === 'loading' && 'border-primary/70 bg-primary/5',
+        loadState === 'loaded' && 'bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%] animate-[gradient_3s_ease_infinite] shadow-lg shadow-primary/40',
         loadState === 'idle' && 'hover:border-primary/50 hover:shadow-md'
       )}
     >
-      {/* Gentle glow for loading state */}
+      {/* AI-themed shimmer for loading state */}
       {loadState === 'loading' && (
-        <div className="absolute inset-0 bg-primary/10 animate-pulse" />
+        <>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent animate-[shimmer_2s_ease-in-out_infinite]" 
+               style={{ backgroundSize: '200% 100%' }} />
+          <div className="absolute inset-0">
+            <div className="absolute top-0 left-0 w-full h-full bg-primary/5 animate-pulse" />
+          </div>
+        </>
       )}
       
-      {/* Success glow for loaded state */}
+      {/* Success celebration glow for loaded state */}
       {loadState === 'loaded' && (
-        <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent opacity-50 blur-lg animate-pulse" />
+        <>
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-primary opacity-60 blur-xl animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10" />
+        </>
       )}
       
       <div className="relative flex items-center gap-2 z-10">
