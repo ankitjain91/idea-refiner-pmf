@@ -66,7 +66,7 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
   const mainNav = [
     { 
       title: "Idea Chat", 
-      url: "/ideachat", 
+      url: "/enterprisehub", 
       icon: MessageSquare,
       badge: null
     },
