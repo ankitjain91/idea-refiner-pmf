@@ -25,6 +25,7 @@ import {
   Brain
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
+import { useNavigate } from 'react-router-dom';
 import { useSubscription, SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,8 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
   const { user, signOut } = useAuth();
   const { subscription } = useSubscription();
   const [showHelp, setShowHelp] = useState(false);
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
 
   const mainNav = [
     { 
@@ -209,9 +212,17 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 ml-auto"
-                onClick={() => signOut()}
+                disabled={signingOut}
+                onClick={() => {
+                  if (signingOut) return;
+                  setSigningOut(true);
+                  // navigate first for instant UI feedback; context signOut will navigate too but idempotent
+                  navigate('/logout');
+                  // Fallback: force signOut logic in context (delegates to /logout route) after microtask
+                  setTimeout(() => signOut(), 0);
+                }}
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className={cn("h-4 w-4", signingOut && 'animate-spin')} />
               </Button>
             )}
           </div>

@@ -39,13 +39,17 @@ const AuthContext = createContext<AuthContextType>({
   canAccessFeature: () => false,
 });
 
-export const useAuth = () => {
+// Stabilization window (ms) after sign-in where background session checks are skipped
+const STABILIZATION_WINDOW_MS = 5000;
+
+// Hook to access auth context (named function export for more consistent React Fast Refresh behavior)
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-};
+}
 
 const roleHierarchy: Record<UserRole, number> = {
   free: 0,
@@ -414,16 +418,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed successfully');
         } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
+          console.log('User signed out (auth listener)');
           setSession(null);
           setUser(null);
           setUserProfile(null);
-          
-          // Clear auth snapshot
+          // Clear auth snapshot only
           try { localStorage.removeItem(AUTH_SNAPSHOT_KEY); } catch {}
-          
-          // Navigate to login
-          navigate('/', { state: { from: location, openAuthModal: true } });
+          // Do NOT navigate here; allow dedicated logout flow or route guards to decide
         }
         
         setSession(newSession);
@@ -469,17 +470,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           // Restart session check interval
           const sessionCheckInterval = setInterval(async () => {
+            // Skip checks during stabilization window after sign-in
+            const lastSignInAt = (window as any).__lastSignInAt as number | undefined;
+            if (lastSignInAt && Date.now() - lastSignInAt < STABILIZATION_WINDOW_MS) {
+              if (process.env.NODE_ENV !== 'production') {
+                console.debug('[Auth] Skipping session check during stabilization window');
+              }
+              return; // allow session to settle
+            }
             const { data: { session: currentSession }, error: checkError } = await supabase.auth.getSession();
             if (checkError || !currentSession) {
-              console.log('Session check failed in interval, logging out');
+              console.log('[Auth] Session check failed in interval, initiating logout');
               clearInterval(sessionCheckInterval);
               await signOut();
             }
           }, 30000);
           (window as any).__sessionCheckInterval = sessionCheckInterval;
           
-          // Handle sign in redirect
+          // Handle sign in redirect + stabilization window
           if (event === 'SIGNED_IN') {
+            (window as any).__lastSignInAt = Date.now();
+            if (process.env.NODE_ENV !== 'production') {
+              console.debug('[Auth] Sign-in stabilization window started', { windowMs: STABILIZATION_WINDOW_MS });
+            }
             const from = location.state?.from?.pathname;
             if (from) navigate(from);
           }
@@ -524,52 +537,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Sign out
   const signOut = async () => {
-    try {
-      setLoading(true);
-      
-      // Clear timers
-      if (tokenRefreshTimeoutRef.current) {
-        clearTimeout(tokenRefreshTimeoutRef.current);
-        tokenRefreshTimeoutRef.current = null;
-      }
-      if (roleSyncIntervalRef.current) {
-        clearInterval(roleSyncIntervalRef.current);
-        roleSyncIntervalRef.current = null;
-      }
-      
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // Clear local state
-      setUser(null);
-      setSession(null);
-      setUserProfile(null);
-      try {
-        APP_LOCALSTORAGE_KEYS.forEach(key => localStorage.removeItem(key));
-        // We intentionally keep theme preference
-      } catch {}
-      try { window.dispatchEvent(new CustomEvent('auth:state-changed', { detail: 'SIGNED_OUT' })); } catch {}
-      
-      addAlert({
-        variant: 'success',
-        title: 'Signed out',
-        message: 'You have been logged out of your account.',
-        scope: 'auth',
-        autoDismissMs: 6000,
-      });
-      
-      navigate('/', { replace: true, state: { openAuthModal: true } });
-    } catch (error) {
-      console.error("Sign out error:", error);
-      addAlert({
-        variant: 'error',
-        title: 'Sign out failed',
-        message: 'There was an error signing out. Please try again.',
-        scope: 'auth',
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Delegate actual heavy work & redirect to /logout page to keep logic single-sourced
+    navigate('/logout');
   };
 
   // Persist snapshot whenever userProfile or user changes (lightweight)

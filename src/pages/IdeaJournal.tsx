@@ -171,11 +171,11 @@ const IdeaJournal = () => {
         {/* Create New Session or Show Sessions */}
         <div className="space-y-6">
           {/* Create New Session Button/Form */}
-          <div className="relative min-h-[100px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
+          <div className="relative min-h-[100px] transition-all duration-500 ease-\[cubic-bezier(0.32,0.72,0,1)\]">
             {!isCreating ? (
               <Button 
                 onClick={() => setIsCreating(true)}
-                className="w-full h-24 border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                className="w-full h-24 border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-700 ease-\[cubic-bezier(0.32,0.72,0,1)\] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                 variant="outline"
                 size="lg"
               >
@@ -185,7 +185,7 @@ const IdeaJournal = () => {
                 </div>
               </Button>
             ) : (
-              <Card className="transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] border-primary/20 shadow-sm hover:shadow-md">
+              <Card className="transition-all duration-500 ease-\[cubic-bezier(0.32,0.72,0,1)\] border-primary/20 shadow-sm hover:shadow-md">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Plus className="h-5 w-5" />
@@ -210,21 +210,21 @@ const IdeaJournal = () => {
                           }
                         }}
                         autoFocus
-                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus:scale-[1.01] focus:shadow-sm"
+                        className="transition-all duration-300 ease-\[cubic-bezier(0.32,0.72,0,1)\] focus:scale-[1.01] focus:shadow-sm"
                       />
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => setNewSessionName(generateFunName())}
                         title="Generate a fun name"
-                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:rotate-12 active:scale-95"
+                        className="transition-all duration-300 ease-\[cubic-bezier(0.32,0.72,0,1)\] hover:rotate-12 active:scale-95"
                       >
                         <Sparkles className="h-4 w-4" />
                       </Button>
                       <Button 
                         onClick={handleCreateSession}
                         disabled={!newSessionName.trim()}
-                        className="transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95"
+                        className="transition-all duration-300 ease-\[cubic-bezier(0.32,0.72,0,1)\] active:scale-95"
                       >
                         Create
                       </Button>
@@ -236,7 +236,7 @@ const IdeaJournal = () => {
                         setIsCreating(false);
                         setNewSessionName('');
                       }}
-                      className="w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-muted/50 active:scale-[0.98]"
+                      className="w-full transition-all duration-300 ease-\[cubic-bezier(0.32,0.72,0,1)\] hover:bg-muted/50 active:scale-[0.98]"
                     >
                       Cancel
                     </Button>
