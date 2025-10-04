@@ -39,16 +39,38 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
   // Beautiful loading state with integrated analysis
   if (loading) {
     return (
-      <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-primary/5">
+      <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="relative p-12">
-          {/* Animated background gradient */}
+          {/* Multi-layer animated background gradients */}
           <motion.div 
-            className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent"
+            className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent opacity-50"
             animate={{ 
               backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
             }}
-            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             style={{ backgroundSize: '200% 200%' }}
+          />
+          <motion.div 
+            className="absolute inset-0 bg-gradient-to-l from-primary/10 via-transparent to-primary/10 opacity-30"
+            animate={{ 
+              backgroundPosition: ['100% 50%', '0% 50%', '100% 50%'],
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            style={{ backgroundSize: '200% 200%' }}
+          />
+          
+          {/* Radial glow effect */}
+          <motion.div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.2, 0.4, 0.2]
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
           />
           
           <div className="relative flex flex-col items-center justify-center space-y-8">
