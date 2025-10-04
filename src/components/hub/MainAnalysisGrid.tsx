@@ -224,10 +224,6 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold flex items-center gap-2">
-        <Activity className="h-5 w-5 text-primary" />
-        Main Analysis
-      </h2>
       <div className="grid grid-cols-1 gap-6">
         {displayTiles.map((tile) => {
           
