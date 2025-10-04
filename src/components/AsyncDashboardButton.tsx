@@ -10,35 +10,8 @@ type LoadState = 'idle' | 'loading' | 'loaded';
 export const AsyncDashboardButton = () => {
   const navigate = useNavigate();
   const [loadState, setLoadState] = useState<LoadState>('idle');
-  const [isDisabled, setIsDisabled] = useState(true);
-
-  // Check if analysis is completed
-  useEffect(() => {
-    const checkAnalysis = () => {
-      try {
-        const completed = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
-        setIsDisabled(!completed);
-      } catch {
-        setIsDisabled(true);
-      }
-    };
-    
-    checkAnalysis();
-    
-    // Listen for analysis completion
-    const handleAnalysisComplete = () => checkAnalysis();
-    window.addEventListener('storage', handleAnalysisComplete);
-    window.addEventListener('chat:activity', handleAnalysisComplete);
-    
-    return () => {
-      window.removeEventListener('storage', handleAnalysisComplete);
-      window.removeEventListener('chat:activity', handleAnalysisComplete);
-    };
-  }, []);
 
   const handleClick = async () => {
-    if (isDisabled) return;
-
     if (loadState === 'loaded') {
       // Navigate to dashboard
       navigate('/dashboard');
@@ -100,13 +73,12 @@ export const AsyncDashboardButton = () => {
   return (
     <Button
       onClick={handleClick}
-      disabled={isDisabled}
+      disabled={loadState === 'loading'}
       variant={loadState === 'loaded' ? 'default' : 'outline'}
       className={cn(
         'group relative overflow-hidden transition-all duration-300',
         loadState === 'loading' && 'bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 animate-pulse',
-        loadState === 'loaded' && 'bg-gradient-to-r from-primary via-primary/90 to-primary shadow-lg shadow-primary/20',
-        isDisabled && 'opacity-50 cursor-not-allowed'
+        loadState === 'loaded' && 'bg-gradient-to-r from-primary via-primary/90 to-primary shadow-lg shadow-primary/20'
       )}
     >
       {/* Animated background shimmer for loading state */}
