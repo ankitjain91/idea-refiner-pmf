@@ -115,20 +115,9 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
     );
   }
 
-  // Loading state - show simple skeleton
+  // Loading state - show enhanced loader
   if (loading && !pmfScore) {
-    return (
-      <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="relative p-8">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-32 translate-x-32 animate-pulse" />
-          <div className="flex flex-col items-center justify-center py-12 space-y-6">
-            <Skeleton className="h-32 w-32 rounded-full" />
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-80" />
-          </div>
-        </div>
-      </Card>
-    );
+    return <DashboardLoader stage="hero" />;
   }
 
   // Data loaded state

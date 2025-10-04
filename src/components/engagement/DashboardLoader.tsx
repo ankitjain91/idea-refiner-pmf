@@ -35,7 +35,7 @@ const SCORE_TIPS = [
   "⚡ Speed to market beats perfect planning",
 ];
 
-export function DashboardLoader({ stage = 'initial' }: { stage?: 'initial' | 'score' | 'tiles' }) {
+export function DashboardLoader({ stage = 'initial' }: { stage?: 'initial' | 'score' | 'tiles' | 'hero' }) {
   const [messageIndex, setMessageIndex] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
   const [progress, setProgress] = useState(0);
