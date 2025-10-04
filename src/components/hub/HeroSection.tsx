@@ -1,20 +1,33 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Sparkles, Brain, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { motion } from "framer-motion";
+
+interface LoadingTask {
+  id: string;
+  label: string;
+  status: "pending" | "loading" | "complete" | "error";
+}
 
 interface HeroSectionProps {
   pmfScore?: TileData | null;
   loading?: boolean;
   onGetScore?: () => void;
   hasData?: boolean;
+  loadingTasks?: LoadingTask[];
+  currentTask?: string;
 }
 
-export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSectionProps) {
+export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTasks = [], currentTask }: HeroSectionProps) {
   const score = pmfScore?.metrics?.score || 0;
   const category = pmfScore?.metrics?.category || "Analyzing...";
+  
+  const completedCount = loadingTasks.filter(t => t.status === "complete").length;
+  const totalCount = loadingTasks.length || 1;
+  const progress = (completedCount / totalCount) * 100;
   
   const getScoreColor = (score: number) => {
     if (score >= 80) return "hsl(var(--success))";
@@ -23,33 +36,57 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
     return "hsl(var(--destructive))";
   };
 
-  // Loading state
+  // Beautiful loading state with integrated analysis
   if (loading) {
     return (
-      <Card className="relative overflow-hidden border-border/50">
+      <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-primary/5">
         <div className="relative p-12">
-          <div className="flex flex-col items-center justify-center space-y-6">
-            {/* Animated calculating indicator */}
-            <div className="relative w-32 h-32">
-              <motion.div
-                className="absolute inset-0 rounded-full border-4 border-primary/20"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              />
-              <motion.div
-                className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="h-10 w-10 text-primary animate-pulse" />
+          {/* Animated background gradient */}
+          <motion.div 
+            className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent"
+            animate={{ 
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            }}
+            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+            style={{ backgroundSize: '200% 200%' }}
+          />
+          
+          <div className="relative flex flex-col items-center justify-center space-y-8">
+            {/* Animated Brain with glow */}
+            <motion.div
+              className="relative"
+              animate={{ 
+                scale: [1, 1.05, 1],
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <div className="relative w-32 h-32">
+                <motion.div
+                  className="absolute inset-0 bg-primary/20 rounded-full blur-2xl"
+                  animate={{ 
+                    scale: [1, 1.3, 1],
+                    opacity: [0.3, 0.6, 0.3]
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Brain className="h-20 w-20 text-primary" />
+                </div>
               </div>
-            </div>
+            </motion.div>
             
-            <div className="text-center space-y-2">
+            {/* Title and description */}
+            <div className="text-center space-y-3">
               <motion.h2 
-                className="text-2xl font-bold"
+                className="text-4xl font-bold bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
@@ -57,24 +94,113 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData }: HeroSect
                 Calculating Your Score
               </motion.h2>
               <motion.p 
-                className="text-muted-foreground"
+                className="text-lg text-muted-foreground"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Analyzing market data, competition, and growth signals...
+                {currentTask || "Analyzing market data and validating your idea"}
               </motion.p>
             </div>
 
-            {/* Progress dots */}
+            {/* Progress section */}
+            <motion.div 
+              className="w-full max-w-2xl space-y-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Analysis Progress</span>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                    <span className="text-xl font-bold text-primary tabular-nums">
+                      {Math.round(progress)}%
+                    </span>
+                  </div>
+                </div>
+                
+                <Progress value={progress} className="h-3" />
+                
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{completedCount} of {totalCount} complete</span>
+                  <span>{totalCount - completedCount} remaining</span>
+                </div>
+              </div>
+
+              {/* Active tasks preview */}
+              {loadingTasks.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 pt-2">
+                  {loadingTasks.slice(0, 6).map((task, idx) => (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.7 + (idx * 0.05) }}
+                      className={cn(
+                        "flex items-center gap-2 p-2 rounded-lg border transition-all",
+                        task.status === "loading" && "bg-primary/10 border-primary/30 shadow-sm",
+                        task.status === "complete" && "bg-success/5 border-success/20",
+                        task.status === "error" && "bg-destructive/5 border-destructive/20",
+                        task.status === "pending" && "bg-muted/30 border-border/30"
+                      )}
+                    >
+                      <div className="flex-shrink-0">
+                        {task.status === "pending" && (
+                          <div className="h-3 w-3 rounded-full border-2 border-muted" />
+                        )}
+                        {task.status === "loading" && (
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                        )}
+                        {task.status === "complete" && (
+                          <CheckCircle2 className="h-3 w-3 text-success" />
+                        )}
+                        {task.status === "error" && (
+                          <AlertCircle className="h-3 w-3 text-destructive" />
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-xs font-medium truncate",
+                        task.status === "complete" && "text-muted-foreground",
+                        task.status === "loading" && "text-primary",
+                        task.status === "error" && "text-destructive"
+                      )}>
+                        {task.label}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
+            {/* Loading tip */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="text-center"
+            >
+              <p className="text-sm text-muted-foreground italic">
+                💡 Gathering real-time data from multiple sources
+              </p>
+            </motion.div>
+
+            {/* Animated dots */}
             <div className="flex gap-2">
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
                   className="w-2 h-2 rounded-full bg-primary"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                  animate={{
+                    scale: [1, 1.3, 1],
+                    opacity: [0.3, 1, 0.3]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    delay: i * 0.3
+                  }}
                 />
               ))}
             </div>

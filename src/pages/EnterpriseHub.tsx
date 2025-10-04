@@ -429,6 +429,8 @@ export default function EnterpriseHub() {
           loading={loading}
           onGetScore={handleGetScore}
           hasData={hasLoadedData || hasExistingAnalysis || !!tiles.pmf_score}
+          loadingTasks={loadingTasks}
+          currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
         />
 
         {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
