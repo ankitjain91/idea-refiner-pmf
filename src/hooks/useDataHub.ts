@@ -494,6 +494,8 @@ export function useDataHub(input: DataHubInput) {
     fetchDataHub,
     refresh,
     refreshTile,
-    getTileData
+    getTileData,
+    loadingTasks: [], // Not implemented for legacy hook
+    cacheStats: { hits: 0, misses: 0, apiCalls: 0 }
   };
 }

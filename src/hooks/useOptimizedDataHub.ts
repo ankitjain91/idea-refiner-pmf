@@ -23,6 +23,11 @@ interface DataHubState {
     misses: number;
     apiCalls: number;
   };
+  loadingTasks: {
+    id: string;
+    label: string;
+    status: "pending" | "loading" | "complete" | "error";
+  }[];
 }
 
 export function useOptimizedDataHub(input: DataHubInput) {
@@ -37,7 +42,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
       hits: 0,
       misses: 0,
       apiCalls: 0
-    }
+    },
+    loadingTasks: []
   });
   
   const { user } = useAuth();
@@ -119,7 +125,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
           error: null,
           summary: generateMockSummary(),
           lastFetchTime: new Date().toISOString(),
-          cacheStats: { hits: 0, misses: 0, apiCalls: 0 }
+          cacheStats: { hits: 0, misses: 0, apiCalls: 0 },
+          loadingTasks: []
         });
         
         toast({
@@ -447,7 +454,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
           error: null,
           summary,
           lastFetchTime: new Date().toISOString(),
-          cacheStats: cacheStatsTracker
+          cacheStats: cacheStatsTracker,
+          loadingTasks: []
         });
         
         hasFetchedRef.current = true;
@@ -498,7 +506,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
           error: null,
           summary: data?.summary || null,
           lastFetchTime: new Date().toISOString(),
-          cacheStats: { hits: 0, misses: 1, apiCalls: 50 } // Approximate
+          cacheStats: { hits: 0, misses: 1, apiCalls: 50 }, // Approximate
+          loadingTasks: []
         });
         
         // Dispatch event that tiles are loaded (fallback path)

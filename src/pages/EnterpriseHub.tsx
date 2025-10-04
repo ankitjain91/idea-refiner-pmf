@@ -23,6 +23,7 @@ import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
 import { DashboardLoader } from "@/components/engagement/DashboardLoader";
+import { LoadingStatusIndicator } from "@/components/hub/LoadingStatusIndicator";
 
 
 export default function EnterpriseHub() {
@@ -132,7 +133,7 @@ export default function EnterpriseHub() {
     competitorHints: []
   });
 
-  const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime } = dataHub;
+  const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime, loadingTasks } = dataHub;
 
   // Set up real-time refresh
   useEffect(() => {
@@ -483,6 +484,13 @@ export default function EnterpriseHub() {
         onOpenChange={setEvidenceOpen}
         evidenceStore={indices?.EVIDENCE_STORE || []}
         providerLog={indices?.PROVIDER_LOG || []}
+      />
+
+      {/* LOADING STATUS INDICATOR */}
+      <LoadingStatusIndicator
+        show={loading && hasLoadedData}
+        tasks={loadingTasks || []}
+        currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
       />
     </div>
   );
