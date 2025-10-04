@@ -189,6 +189,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
         }
         
         // Fetch all tile data with deduplication
+        // Update state as each tile loads for progressive rendering
         const tilePromises = tileTypes.map(async (tileType) => {
           try {
             // Update task status to loading
@@ -256,20 +257,20 @@ export function useOptimizedDataHub(input: DataHubInput) {
                              marketData.confidence === 'Moderate' ? 'medium' : 'low'
               });
               
-              tiles[tileType] = tileData;
+              // Update state immediately with this tile's data
+              setState(prev => ({
+                ...prev,
+                tiles: { ...prev.tiles, [tileType]: tileData },
+                loadingTasks: prev.loadingTasks.map(t =>
+                  t.id === tileType ? { ...t, status: "complete" as const } : t
+                )
+              }));
+              
               console.log('[OptimizedDataHub] Real-time market data loaded:', {
                 TAM: marketData.TAM,
                 SAM: marketData.SAM,
                 SOM: marketData.SOM
               });
-              
-              // Mark as complete
-              setState(prev => ({
-                ...prev,
-                loadingTasks: prev.loadingTasks.map(t =>
-                  t.id === tileType ? { ...t, status: "complete" as const } : t
-                )
-              }));
             } else {
               // Mark as error if no data
               setState(prev => ({
@@ -304,16 +305,16 @@ export function useOptimizedDataHub(input: DataHubInput) {
                              platformData.confidence > 0.6 ? 'medium' : 'low'
               };
               
-              tiles[tileType] = tileData;
-              console.log(`[OptimizedDataHub] ${tileType} platform data loaded`);
-              
-              // Mark as complete
+              // Update state immediately with this tile's data
               setState(prev => ({
                 ...prev,
+                tiles: { ...prev.tiles, [tileType]: tileData },
                 loadingTasks: prev.loadingTasks.map(t =>
                   t.id === tileType ? { ...t, status: "complete" as const } : t
                 )
               }));
+              
+              console.log(`[OptimizedDataHub] ${tileType} platform data loaded`);
             } else {
               // Mark as error if no data
               setState(prev => ({
@@ -402,11 +403,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
               })() : {})
             };
             
-            tiles[tileType] = tileData;
-            
-            // Mark as complete
+            // Update state immediately with this tile's data
             setState(prev => ({
               ...prev,
+              tiles: { ...prev.tiles, [tileType]: tileData },
               loadingTasks: prev.loadingTasks.map(t =>
                 t.id === tileType ? { ...t, status: "complete" as const } : t
               )
