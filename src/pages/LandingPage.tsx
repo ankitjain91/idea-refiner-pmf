@@ -25,7 +25,12 @@ import {
   Users,
   Database,
   GitBranch,
-  Lock
+  Lock,
+  Rocket,
+  Star,
+  Award,
+  DollarSign,
+  Send
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -157,26 +162,56 @@ export default function LandingPage() {
     }
   };
 
+  const successStories = [
+    {
+      idea: "AI Fitness Coach App",
+      score: 94,
+      outcome: "Raised $2M seed funding",
+      timeline: "Validated Dec 2023 → Funded Mar 2024",
+      color: "from-primary to-accent",
+      icon: Rocket
+    },
+    {
+      idea: "Sustainable Packaging Startup",
+      score: 92,
+      outcome: "Now in 300+ retail stores",
+      timeline: "Validated Jan 2024 → Launched May 2024",
+      color: "from-secondary to-warning",
+      icon: Award
+    },
+    {
+      idea: "Remote Work SaaS Tool",
+      score: 88,
+      outcome: "Acquired by Microsoft",
+      timeline: "Validated Feb 2024 → Acquired Oct 2024",
+      color: "from-accent to-primary",
+      icon: Star
+    },
+    {
+      idea: "Creator Economy Platform",
+      score: 91,
+      outcome: "10K+ active users, $500K ARR",
+      timeline: "Validated Mar 2024 → Profitable Dec 2024",
+      color: "from-warning to-secondary",
+      icon: DollarSign
+    }
+  ];
+
   const features = [
     {
-      icon: Brain,
-      title: "Wrinkle Generator 3000",
-      description: "Our AI adds deep grooves to your smooth cortex, making you sound smart at parties"
+      icon: Send,
+      title: "Enter Your Idea",
+      description: "Share your startup concept in plain English"
     },
     {
       icon: BarChart3,
-      title: "Charts That Make Sense",
-      description: "Even your smoothest investor can understand these colorful lines going up"
+      title: "Get Your Score",
+      description: "Receive detailed market insights and validation"
     },
     {
-      icon: Shield,
-      title: "Protects Your Ego",
-      description: "We encrypt your failed ideas so nobody will ever know about that pet rock 2.0"
-    },
-    {
-      icon: Globe,
-      title: "Worldwide Wrinkle Network",
-      description: "Connect with other smooth brains globally who also thought NFT laundromats were genius"
+      icon: Rocket,
+      title: "Act On What Works",
+      description: "Make confident decisions backed by data"
     }
   ];
 
@@ -261,69 +296,95 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-6 py-32">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-xs font-medium">
-            Zero Wrinkles Required™
-          </Badge>
-          <h1 className="text-6xl md:text-7xl font-semibold tracking-tight leading-[1.1]">
-            Your Brain Might Be Smooth
-            <span className="block text-accent mt-3">But Your Ideas Don't Have To Be</span>
-          </h1>
-          <p className="text-xl text-secondary-foreground max-w-2xl mx-auto leading-relaxed">
-            We add the wrinkles to your perfectly smooth brain, turning those shower thoughts 
-            into Silicon Valley gold. No PhD required, just vibes and ambition.
-          </p>
-          <div className="flex items-center justify-center gap-4 pt-6">
-            <Button 
-              size="lg" 
-              onClick={() => setShowAuthModal(true)}
-              className="gap-2 rounded-full px-8"
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5" />
+        <div className="container mx-auto px-6 py-32 relative z-10">
+          <div className="max-w-5xl mx-auto text-center space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
             >
-              Start Free <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="ghost"
-              onClick={() => navigate('/pricing')}
-              className="rounded-full px-8"
-            >
-              View Pricing
-            </Button>
+              <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-xs font-medium mb-6">
+                <Sparkles className="h-3 w-3 inline mr-2" />
+                Join 12,000+ Validated Ideas
+              </Badge>
+              <h1 className="text-6xl md:text-7xl font-semibold tracking-tight leading-[1.1]">
+                Every Billion-Dollar Startup
+                <span className="block bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mt-3">
+                  Started as an Idea
+                </span>
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mt-8">
+                See which of your ideas could win, just like these founders did. 
+                SmoothBrains helps you validate and launch with confidence.
+              </p>
+              <div className="flex items-center justify-center gap-4 pt-8">
+                <Button 
+                  size="lg" 
+                  onClick={() => setShowAuthModal(true)}
+                  className="gap-2 rounded-full px-8 bg-primary hover:bg-primary/90"
+                >
+                  Validate My Idea <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => document.getElementById('success-stories')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="rounded-full px-8"
+                >
+                  See Success Stories
+                </Button>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="container mx-auto px-6 py-24 border-t">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-semibold mb-4">Add Some Texture to That Smooth Dome</h2>
-            <p className="text-secondary-foreground text-lg">
-              Tools so smart, they'll make your brain look like a topographical map
+      {/* Success Showcase */}
+      <section id="success-stories" className="container mx-auto px-6 py-24">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl font-semibold mb-4">Real Ideas. Real Success.</h2>
+            <p className="text-muted-foreground text-lg">
+              People like you turned their ideas into thriving businesses with SmoothBrains
             </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {features.map((feature, idx) => (
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {successStories.map((story, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
+                transition={{ delay: idx * 0.1, duration: 0.5 }}
                 viewport={{ once: true }}
               >
-                <Card className="h-full hover:shadow-sm transition-shadow">
-                  <CardContent className="p-8">
-                    <div className="flex items-start gap-4">
-                      <div className="p-2.5 bg-card-hover rounded-lg">
-                        <feature.icon className="h-5 w-5 text-foreground" />
+                <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/20">
+                  <div className={`h-2 bg-gradient-to-r ${story.color}`} />
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`p-3 rounded-lg bg-gradient-to-br ${story.color}`}>
+                        <story.icon className="h-6 w-6 text-white" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                        <p className="text-secondary-foreground leading-relaxed">
-                          {feature.description}
-                        </p>
+                      <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0">
+                        Score: {story.score}/100
+                      </Badge>
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">{story.idea}</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-secondary">
+                        <Check className="h-5 w-5" />
+                        <span className="font-medium">{story.outcome}</span>
                       </div>
+                      <p className="text-sm text-muted-foreground">
+                        {story.timeline}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -333,26 +394,101 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Motivation Callout */}
+      <section className="relative overflow-hidden py-24">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-warning opacity-10" />
+        <div className="container mx-auto px-6 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="max-w-4xl mx-auto text-center space-y-8"
+          >
+            <h2 className="text-5xl md:text-6xl font-bold leading-tight">
+              From an idea on a napkin<br />
+              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                to a funded startup
+              </span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              SmoothBrains helps you take the first step with confidence
+            </p>
+            <Button 
+              size="lg" 
+              onClick={() => setShowAuthModal(true)}
+              className="gap-2 rounded-full px-12 py-6 text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
+            >
+              Try SmoothBrains Free <Sparkles className="h-5 w-5" />
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How It Works */}
       <section className="container mx-auto px-6 py-24 border-t">
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-            <div>
-              <div className="text-5xl font-semibold mb-2">10K+</div>
-              <div className="text-sm text-secondary-foreground">Smooth Brains</div>
-            </div>
-            <div>
-              <div className="text-5xl font-semibold mb-2">50K+</div>
-              <div className="text-sm text-secondary-foreground">Wrinkles Added</div>
-            </div>
-            <div>
-              <div className="text-5xl font-semibold mb-2">0%</div>
-              <div className="text-sm text-secondary-foreground">Brain Cells Required</div>
-            </div>
-            <div>
-              <div className="text-5xl font-semibold mb-2">∞</div>
-              <div className="text-sm text-secondary-foreground">Smoothness Level</div>
-            </div>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-semibold mb-4">How It Works</h2>
+            <p className="text-muted-foreground text-lg">
+              Three simple steps to validate your next big idea
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {features.map((feature, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.15 }}
+                viewport={{ once: true }}
+                className="text-center"
+              >
+                <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4">
+                  <feature.icon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="font-semibold text-xl mb-2">{feature.title}</h3>
+                <p className="text-muted-foreground">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Community & Stats */}
+      <section className="container mx-auto px-6 py-24 border-t">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <h3 className="text-5xl font-bold mb-4">12,000+</h3>
+              <p className="text-xl text-muted-foreground">Ideas validated and counting</p>
+            </motion.div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { quote: "SmoothBrains gave me the confidence to quit my job and go all in", author: "Sarah K., SaaS Founder" },
+              { quote: "The validation data was spot-on. We raised $1.5M based on these insights", author: "Mike T., Tech Startup" },
+              { quote: "Finally, a tool that speaks entrepreneur, not corporate jargon", author: "Alex R., Creator Economy" }
+            ].map((testimonial, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <Card className="h-full bg-gradient-to-br from-card to-muted/20 border-2">
+                  <CardContent className="p-6">
+                    <Star className="h-8 w-8 text-warning mb-4" />
+                    <p className="text-foreground italic mb-4">&ldquo;{testimonial.quote}&rdquo;</p>
+                    <p className="text-sm text-muted-foreground font-medium">— {testimonial.author}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -413,20 +549,41 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Final CTA Section */}
       <section className="container mx-auto px-6 py-24 border-t">
         <div className="max-w-3xl mx-auto text-center space-y-8">
-          <h2 className="text-4xl font-semibold">Ready to evolve that smooth brain?</h2>
-            <p className="text-secondary-foreground text-lg">
-              Join thousands of fellow smoothies who went from zero wrinkles to venture capital
-            </p>
-          <Button 
-            size="lg" 
-            onClick={() => setShowAuthModal(true)}
-            className="gap-2 rounded-full px-8"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
           >
-            Get Started Free <ArrowRight className="h-4 w-4" />
-          </Button>
+            <h2 className="text-5xl font-bold mb-6">
+              Don't Just Dream Your Startup.
+              <span className="block bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mt-2">
+                Validate It.
+              </span>
+            </h2>
+            <p className="text-xl text-muted-foreground mb-8">
+              Join thousands of entrepreneurs who turned their ideas into reality
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <Button 
+                size="lg" 
+                onClick={() => setShowAuthModal(true)}
+                className="gap-2 rounded-full px-12 py-6 text-lg bg-primary hover:bg-primary/90"
+              >
+                Start Free <ArrowRight className="h-5 w-5" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => navigate('/pricing')}
+                className="rounded-full px-12 py-6 text-lg"
+              >
+                View Pricing
+              </Button>
+            </div>
+          </motion.div>
         </div>
       </section>
 
