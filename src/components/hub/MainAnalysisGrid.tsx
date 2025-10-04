@@ -217,7 +217,8 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
   ];
 
   // Only include tiles explicitly provided via props to avoid cross-tab duplication
-  const filteredMainTiles = mainTiles.filter(t => (tiles as any)[t.id] !== undefined);
+  // Only include tiles that are explicitly passed in the tiles prop (by checking if key exists)
+  const filteredMainTiles = mainTiles.filter(t => t.id in tiles);
   // In executive mode, only show first 4 of the filtered set
   const displayTiles = viewMode === "executive" ? filteredMainTiles.slice(0, 4) : filteredMainTiles;
 
