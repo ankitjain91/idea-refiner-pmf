@@ -1,5 +1,4 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -110,9 +109,7 @@ const App = () => {
                           <div className="app-bg-animated" aria-hidden="true" />
                           <div className="app-noise-layer" aria-hidden="true" />
                           <a href="#main" className="sr-only focus:not-sr-only focus-ring-custom absolute left-2 top-2 z-50 bg-background/80 backdrop-fade px-3 py-1 rounded-md text-sm">Skip to content</a>
-                          {/* Legacy toasters (will be phased out) */}
                           <Toaster />
-                          <Sonner />
                           {/* New global alert center */}
                           <GlobalAlertCenter position="top" />
                           <AuthGate>
