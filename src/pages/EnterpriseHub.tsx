@@ -448,20 +448,6 @@ export default function EnterpriseHub() {
           />
         )}
 
-        {/* 4. EXTENDED INSIGHTS GRID - Only in Deep Dive */}
-        {hasLoadedData && viewMode === "deep" && (
-          <ExtendedInsightsGrid
-            tiles={{
-              web_search: tiles.web_search,
-              reddit_sentiment: tiles.reddit_sentiment,
-              twitter_buzz: tiles.twitter_buzz,
-              amazon_reviews: tiles.amazon_reviews,
-              youtube_analytics: tiles.youtube_analytics,
-              risk_assessment: tiles.risk_assessment
-            }}
-            loading={loading}
-          />
-        )}
 
       </div>
 
