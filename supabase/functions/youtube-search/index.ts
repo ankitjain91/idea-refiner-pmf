@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Cache-Control': 'public, max-age=7200, s-maxage=7200',
+  'Cache-Control': 'public, max-age=21600, s-maxage=21600', // 6h cache
 }
 
 const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY');
@@ -15,142 +15,174 @@ serve(async (req) => {
   }
 
   try {
-    const { query, industry, geo, time_window, idea } = await req.json();
+    const { idea_text, idea, time_window = 'year', regionCode = 'US', relevanceLanguage = 'en' } = await req.json();
     
-    if (!idea && !query) {
-      throw new Error('No idea or query provided');
+    const searchIdea = idea_text || idea;
+    if (!searchIdea) {
+      throw new Error('No idea_text or idea provided');
     }
     
-    const searchQuery = idea || query;
-    console.log('[youtube-search] Processing request for idea:', searchQuery);
-    
-    // Build search query
-    const searchTerms = [searchQuery, industry].filter(Boolean).join(' ');
-    const keywords = searchTerms.toLowerCase().split(' ').filter(w => w.length > 3).slice(0, 3);
-    
-    console.log('[youtube-search] Using keywords:', keywords);
+    console.log('[youtube-search] Processing research for idea:', searchIdea);
     
     if (!YOUTUBE_API_KEY) {
-      console.warn('[youtube-search] YOUTUBE_API_KEY not configured, using fallback');
+      console.warn('[youtube-search] YOUTUBE_API_KEY not configured');
       throw new Error('YouTube API not configured');
     }
     
-    // Call YouTube Data API v3
-    const youtubeSearchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchTerms)}&type=video&maxResults=50&key=${YOUTUBE_API_KEY}`;
+    // 1. Query Expansion - extract keywords and create search variations
+    const keywords = searchIdea.toLowerCase().split(' ').filter(w => w.length > 3);
+    const coreKeywords = keywords.slice(0, 3);
     
-    console.log('[youtube-search] Fetching from YouTube API');
+    // Build queries
+    const broadQuery = searchIdea;
+    const reviewQuery = `${searchIdea} review OR comparison OR vs`;
     
-    const youtubeResponse = await fetch(youtubeSearchUrl);
+    console.log('[youtube-search] Queries:', { broadQuery, reviewQuery });
     
-    if (!youtubeResponse.ok) {
-      const errorText = await youtubeResponse.text();
-      console.error('[youtube-search] YouTube API error:', youtubeResponse.status, errorText);
-      throw new Error(`YouTube API error: ${youtubeResponse.status}`);
+    // Calculate publishedAfter based on time_window
+    let publishedAfter = '';
+    const now = new Date();
+    if (time_window === 'month') {
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      publishedAfter = monthAgo.toISOString();
+    } else if (time_window === 'year') {
+      const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      publishedAfter = yearAgo.toISOString();
     }
     
-    const youtubeData = await youtubeResponse.json();
-    const videos = youtubeData.items || [];
+    // 2. API Calls - search for videos
+    const searchParams = new URLSearchParams({
+      part: 'snippet',
+      type: 'video',
+      order: 'relevance',
+      maxResults: '50',
+      q: broadQuery,
+      regionCode,
+      relevanceLanguage,
+      key: YOUTUBE_API_KEY
+    });
     
-    console.log(`[youtube-search] Found ${videos.length} videos`);
+    if (publishedAfter) {
+      searchParams.append('publishedAfter', publishedAfter);
+    }
     
-    // Get video statistics for the first batch
-    const videoIds = videos.slice(0, 20).map((v: any) => v.id.videoId).join(',');
-    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?${searchParams}`;
+    console.log('[youtube-search] Fetching from YouTube Search API');
     
+    const searchResponse = await fetch(searchUrl);
+    if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
+      console.error('[youtube-search] Search API error:', searchResponse.status, errorText);
+      throw new Error(`YouTube Search API error: ${searchResponse.status}`);
+    }
+    
+    const searchData = await searchResponse.json();
+    const videos = searchData.items || [];
+    
+    // Deduplicate video IDs
+    const videoIds = [...new Set(videos.map((v: any) => v.id.videoId).filter(Boolean))];
+    console.log(`[youtube-search] Found ${videoIds.length} unique videos`);
+    
+    if (videoIds.length === 0) {
+      return new Response(JSON.stringify({
+        idea: searchIdea,
+        youtube_insights: [],
+        summary: 'No videos found for this idea'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Get video statistics (batch up to 50)
+    const statsParams = new URLSearchParams({
+      part: 'snippet,statistics',
+      id: videoIds.slice(0, 50).join(','),
+      key: YOUTUBE_API_KEY
+    });
+    
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?${statsParams}`;
     const statsResponse = await fetch(statsUrl);
     const statsData = await statsResponse.json();
     const videoStats = statsData.items || [];
     
-    // Analyze sentiment from titles and descriptions
-    const POSITIVE_WORDS = ['amazing', 'excellent', 'best', 'great', 'awesome', 'perfect', 'love', 'helpful', 'tutorial', 'guide'];
-    const NEGATIVE_WORDS = ['bad', 'worst', 'avoid', 'disappointing', 'terrible', 'scam', 'waste'];
+    console.log(`[youtube-search] Retrieved stats for ${videoStats.length} videos`);
     
-    let positiveCount = 0, negativeCount = 0, neutralCount = 0;
-    const channels = new Map<string, any>();
-    
-    videoStats.forEach((video: any) => {
-      const text = `${video.snippet.title} ${video.snippet.description}`.toLowerCase();
-      let score = 0;
+    // 3. Scoring and ranking
+    const scoredVideos = videoStats.map((video: any) => {
+      const title = video.snippet.title.toLowerCase();
+      const description = (video.snippet.description || '').toLowerCase();
+      const views = parseInt(video.statistics.viewCount || 0);
+      const likes = parseInt(video.statistics.likeCount || 0);
+      const comments = parseInt(video.statistics.commentCount || 0);
+      const publishedAt = new Date(video.snippet.publishedAt);
+      const ageInDays = (now.getTime() - publishedAt.getTime()) / (1000 * 60 * 60 * 24);
       
-      POSITIVE_WORDS.forEach(word => { if (text.includes(word)) score++; });
-      NEGATIVE_WORDS.forEach(word => { if (text.includes(word)) score--; });
+      // Keyword match score
+      let keywordScore = 0;
+      coreKeywords.forEach(kw => {
+        if (title.includes(kw)) keywordScore += 2;
+        if (description.includes(kw)) keywordScore += 1;
+      });
       
-      if (score > 0) positiveCount++;
-      else if (score < 0) negativeCount++;
-      else neutralCount++;
+      // Engagement score (normalized)
+      const engagementScore = Math.log(views + 1) + Math.log(likes + 1) * 0.5 + Math.log(comments + 1) * 0.3;
       
-      const channelTitle = video.snippet.channelTitle;
-      if (!channels.has(channelTitle)) {
-        channels.set(channelTitle, {
-          channel: channelTitle,
-          views: parseInt(video.statistics.viewCount || 0),
-          videos: 1
-        });
-      } else {
-        const ch = channels.get(channelTitle);
-        ch.views += parseInt(video.statistics.viewCount || 0);
-        ch.videos += 1;
-      }
+      // Recency boost (newer = higher)
+      const recencyBoost = Math.max(0, 1 - (ageInDays / 365));
+      
+      // Total relevance score (0-1)
+      const relevance = Math.min(1, (keywordScore * 0.4 + engagementScore * 0.01 + recencyBoost * 0.3) / 10);
+      
+      return {
+        videoId: video.id,
+        title: video.snippet.title,
+        channel: video.snippet.channelTitle,
+        views,
+        likes,
+        comments,
+        published_at: video.snippet.publishedAt,
+        relevance: Math.round(relevance * 100) / 100,
+        url: `https://youtu.be/${video.id}`,
+        thumbnail: video.snippet.thumbnails?.medium?.url || video.snippet.thumbnails?.default?.url
+      };
     });
     
-    const totalVideos = videoStats.length || 1;
-    const positivePercent = Math.round((positiveCount / totalVideos) * 100);
-    const negativePercent = Math.round((negativeCount / totalVideos) * 100);
-    const neutralPercent = 100 - positivePercent - negativePercent;
+    // Sort by relevance and take top 25
+    scoredVideos.sort((a, b) => b.relevance - a.relevance);
+    const topVideos = scoredVideos.slice(0, 25);
     
-    const totalViews = videoStats.reduce((sum: number, v: any) => sum + parseInt(v.statistics.viewCount || 0), 0);
-    const avgViews = Math.round(totalViews / totalVideos);
+    // Calculate summary stats
+    const totalViews = topVideos.reduce((sum, v) => sum + v.views, 0);
+    const totalLikes = topVideos.reduce((sum, v) => sum + v.likes, 0);
+    const avgRelevance = topVideos.reduce((sum, v) => sum + v.relevance, 0) / topVideos.length;
     
-    const topChannels = Array.from(channels.values())
-      .sort((a, b) => b.views - a.views)
-      .slice(0, 3)
-      .map(ch => ({
-        channel: ch.channel,
-        subs: 0, // Not available without additional API call
-        avg_views: Math.round(ch.views / ch.videos),
-        sentiment: positivePercent > negativePercent ? 'positive' : 'neutral'
-      }));
+    // Top channels by video count
+    const channelCounts = new Map<string, number>();
+    topVideos.forEach(v => {
+      channelCounts.set(v.channel, (channelCounts.get(v.channel) || 0) + 1);
+    });
+    const topChannels = Array.from(channelCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([channel, count]) => ({ channel, video_count: count }));
     
     const response = {
-      youtube_analytics: {
-        summary: `YouTube shows ${totalVideos} videos about "${searchTerms.slice(0, 80)}..." with ${totalViews.toLocaleString()} total views and ${positivePercent}% positive sentiment.`,
-        metrics: {
-          total_views: totalViews,
-          avg_engagement_rate: '6%', // This would require likes/comments calculation
-          overall_sentiment: { 
-            positive: positivePercent, 
-            neutral: neutralPercent, 
-            negative: negativePercent 
-          },
-          top_channels: topChannels,
-          trend_delta_views: totalViews > 1000000 ? '+32% vs prior 12 months' : 'Moderate activity'
-        },
-        clusters: [
-          {
-            cluster_id: 'tutorials_adoption',
-            title: 'Tutorials & Content',
-            insight: `${totalVideos} videos found with ${totalViews.toLocaleString()} total views, showing ${positivePercent > 60 ? 'strong' : 'moderate'} interest.`,
-            metrics: {
-              avg_views: avgViews,
-              avg_comments: Math.round(videoStats.reduce((sum: number, v: any) => sum + parseInt(v.statistics.commentCount || 0), 0) / totalVideos),
-              sentiment: { positive: positivePercent, neutral: neutralPercent, negative: negativePercent }
-            },
-            quotes: videoStats.slice(0, 2).map((v: any) => ({
-              text: v.snippet.title.substring(0, 100),
-              sentiment: positiveCount > negativeCount ? 'positive' : 'neutral'
-            })),
-            citations: [
-              { source: 'youtube.com', url: `https://youtube.com/results?search_query=${encodeURIComponent(searchTerms)}` }
-            ]
-          }
-        ],
-        charts: [],
-        visuals_ready: true,
-        confidence: totalVideos > 10 ? 'High' : 'Medium',
-        updatedAt: new Date().toISOString()
+      idea: searchIdea,
+      youtube_insights: topVideos,
+      summary: {
+        total_videos: topVideos.length,
+        total_views: totalViews,
+        total_likes: totalLikes,
+        avg_relevance: Math.round(avgRelevance * 100) / 100,
+        top_channels: topChannels,
+        time_window,
+        region: regionCode
+      },
+      meta: {
+        confidence: topVideos.length >= 10 ? 'High' : topVideos.length >= 5 ? 'Medium' : 'Low',
+        cached_until: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
       }
     };
-    
     
     return new Response(JSON.stringify(response), {
       headers: { 
@@ -162,21 +194,21 @@ serve(async (req) => {
     console.error('[youtube-search] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch YouTube data';
     
-    // Return graceful fallback with correct structure
     return new Response(JSON.stringify({
-      summary: 'Unable to fetch YouTube data',
-      metrics: {
+      idea: '',
+      youtube_insights: [],
+      summary: {
+        total_videos: 0,
         total_views: 0,
-        avg_engagement_rate: '0%',
-        overall_sentiment: { positive: 0, neutral: 0, negative: 0 },
+        total_likes: 0,
+        avg_relevance: 0,
         top_channels: [],
-        trend_delta_views: 'Unknown'
+        error: errorMessage
       },
-      clusters: [],
-      charts: [],
-      visuals_ready: false,
-      confidence: 'Low',
-      error: errorMessage
+      meta: {
+        confidence: 'Low',
+        error: errorMessage
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500

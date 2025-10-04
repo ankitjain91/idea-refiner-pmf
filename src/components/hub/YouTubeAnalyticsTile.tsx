@@ -4,190 +4,101 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, Youtube, Play, ThumbsUp, MessageSquare, Users, Eye, RefreshCw, Sparkles } from 'lucide-react';
+import { Youtube, Play, ThumbsUp, MessageSquare, Eye, RefreshCw, Sparkles, ExternalLink } from 'lucide-react';
 import { 
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  BarChart, Bar, Legend, Tooltip as RechartsTooltip, ScatterChart, 
-  Scatter, Cell, PieChart, Pie, Treemap
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip as RechartsTooltip, Cell
 } from 'recharts';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { TileAIChat } from './TileAIChat';
+import { formatDistanceToNow } from 'date-fns';
 
 interface YouTubeAnalyticsTileProps {
   idea: string;
 }
 
-interface YouTubeCluster {
-  cluster_id: string;
+interface YouTubeVideo {
+  videoId: string;
   title: string;
-  insight: string;
-  metrics: {
-    avg_views: number;
-    avg_comments: number;
-    sentiment: { positive: number; neutral: number; negative: number };
-  };
-  quotes: Array<{ text: string; sentiment: string }>;
-  citations: Array<{ source: string; url: string }>;
+  channel: string;
+  views: number;
+  likes: number;
+  comments: number;
+  published_at: string;
+  relevance: number;
+  url: string;
+  thumbnail?: string;
 }
 
-interface YouTubeAnalyticsData {
-  summary: string;
-  metrics: {
+interface YouTubeData {
+  idea: string;
+  youtube_insights: YouTubeVideo[];
+  summary: {
+    total_videos: number;
     total_views: number;
-    avg_engagement_rate: string;
-    overall_sentiment: { positive: number; neutral: number; negative: number };
-    top_channels: Array<{
-      channel: string;
-      subs: number;
-      avg_views: number;
-      sentiment: string;
-    }>;
-    trend_delta_views: string;
+    total_likes: number;
+    avg_relevance: number;
+    top_channels: Array<{ channel: string; video_count: number }>;
+    time_window: string;
+    region: string;
+    error?: string;
   };
-  clusters: YouTubeCluster[];
-  charts: Array<any>;
-  visuals_ready: boolean;
-  confidence: string;
+  meta: {
+    confidence: string;
+    cached_until: string;
+    error?: string;
+  };
 }
 
 export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
-  const [data, setData] = useState<YouTubeAnalyticsData | null>(null);
+  const [data, setData] = useState<YouTubeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('videos');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (forceNetwork = false) => {
     try {
       setLoading(true);
-      setIsRefreshing(false);
       setError(null);
       
-      // Use optimized queue with schema versioning for cache busting
       const response = await optimizedQueue.invokeFunction('youtube-search', {
-        query: idea,
-        idea: idea,
-        time_window: '12m',
-        schema_version: 'v1'
+        idea_text: idea,
+        time_window: 'year',
+        regionCode: 'US',
+        relevanceLanguage: 'en',
+        ...(forceNetwork && { _cache_bust: Date.now() })
       });
       
-      // Prefetch related video data in background
-      optimizedQueue.prefetchRelated('youtube-search', { query: idea, idea: idea, schema_version: 'v1' });
-      
-      // Normalize response structure
-      const payload = response?.youtube_analytics ? response.youtube_analytics : response;
-      
-      if (payload && payload.metrics && payload.metrics.overall_sentiment) {
-        setData(payload as YouTubeAnalyticsData);
-      } else {
-        // Generate synthetic data if structure is missing
-        setData(generateSyntheticData(idea));
+      if (response && response.youtube_insights) {
+        setData(response as YouTubeData);
+      } else if (response?.summary?.error) {
+        setError(response.summary.error);
       }
     } catch (err) {
-      console.error('Error fetching YouTube analytics:', err);
+      console.error('Error fetching YouTube data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      // Fallback to synthetic data
-      setData(generateSyntheticData(idea));
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     if (!idea) return;
-    fetchData();
+    fetchData(false);
   }, [idea]);
 
   const handleRefresh = async () => {
-    if (!isRefreshing) {
-      setIsRefreshing(true);
-      await fetchData();
-      setTimeout(() => setIsRefreshing(false), 500);
-    }
+    setIsRefreshing(true);
+    await fetchData(true);
   };
 
-  const generateSyntheticData = (ideaText: string): YouTubeAnalyticsData => {
-    const keywords = ideaText.toLowerCase().split(' ').filter(w => w.length > 4).slice(0, 3);
-    
-    return {
-      summary: `YouTube shows strong momentum for "${ideaText.slice(0, 50)}...", with 7.8M total views in the past 12 months and engagement rates averaging 6%. Tutorials and adoption stories dominate content themes.`,
-      metrics: {
-        total_views: 7800000 + Math.floor(Math.random() * 2000000),
-        avg_engagement_rate: '6%',
-        overall_sentiment: { 
-          positive: 64 + Math.floor(Math.random() * 10), 
-          neutral: 22 + Math.floor(Math.random() * 5), 
-          negative: 14 - Math.floor(Math.random() * 5) 
-        },
-        top_channels: [
-          { channel: 'TechExplained', subs: 450000, avg_views: 120000, sentiment: 'positive' },
-          { channel: 'StartupTalks', subs: 150000, avg_views: 40000, sentiment: 'neutral' },
-          { channel: 'DevTutorials', subs: 280000, avg_views: 85000, sentiment: 'positive' }
-        ],
-        trend_delta_views: '+32% vs prior 12 months'
-      },
-      clusters: [
-        {
-          cluster_id: 'tutorials_adoption',
-          title: 'Tutorials & Adoption Stories',
-          insight: 'Tutorial and walkthrough videos have collectively reached 3.1M views, showing strong user demand for hands-on adoption guidance.',
-          metrics: {
-            avg_views: 52000,
-            avg_comments: 180,
-            sentiment: { positive: 72, neutral: 18, negative: 10 }
-          },
-          quotes: [
-            { text: 'This tool saved us weeks of dev time', sentiment: 'positive' },
-            { text: 'Clear tutorial, implementing this tomorrow!', sentiment: 'positive' }
-          ],
-          citations: [
-            { source: 'youtube.com/watch?v=example1', url: '#' },
-            { source: 'youtube.com/watch?v=example2', url: '#' }
-          ]
-        },
-        {
-          cluster_id: 'comparisons',
-          title: 'Comparisons vs Competitors',
-          insight: 'Comparison videos generate high engagement (8% avg) as users evaluate alternatives in the market.',
-          metrics: {
-            avg_views: 38000,
-            avg_comments: 220,
-            sentiment: { positive: 55, neutral: 30, negative: 15 }
-          },
-          quotes: [
-            { text: 'Better pricing than alternatives', sentiment: 'positive' },
-            { text: 'Missing some enterprise features', sentiment: 'negative' }
-          ],
-          citations: [
-            { source: 'youtube.com/watch?v=example3', url: '#' },
-            { source: 'youtube.com/watch?v=example4', url: '#' }
-          ]
-        },
-        {
-          cluster_id: 'thought_leadership',
-          title: 'Thought Leadership & Analysis',
-          insight: 'Industry experts discuss strategic implications, driving 2.4M views with high-quality engagement.',
-          metrics: {
-            avg_views: 68000,
-            avg_comments: 145,
-            sentiment: { positive: 68, neutral: 25, negative: 7 }
-          },
-          quotes: [
-            { text: 'Game-changing approach to the problem', sentiment: 'positive' },
-            { text: 'The future of startup validation', sentiment: 'positive' }
-          ],
-          citations: [
-            { source: 'youtube.com/watch?v=example5', url: '#' },
-            { source: 'youtube.com/watch?v=example6', url: '#' }
-          ]
-        }
-      ],
-      charts: [],
-      visuals_ready: true,
-      confidence: 'High'
-    };
+  const formatViews = (views: number) => {
+    if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`;
+    if (views >= 1000) return `${(views / 1000).toFixed(1)}K`;
+    return views.toString();
   };
 
   if (loading) {
@@ -203,40 +114,27 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
     );
   }
 
-  if (!data) return null;
+  if (!data || error) {
+    return (
+      <Card className="col-span-full">
+        <CardContent className="p-8">
+          <div className="text-center text-muted-foreground">
+            {error || 'No YouTube data available'}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  // Prepare chart data with defensive checks
-  const sentiment = data.metrics?.overall_sentiment ?? { positive: 0, neutral: 0, negative: 0 };
-  const sentimentData = [
-    { name: 'Positive', value: sentiment.positive, color: 'hsl(var(--success))' },
-    { name: 'Neutral', value: sentiment.neutral, color: 'hsl(var(--muted))' },
-    { name: 'Negative', value: sentiment.negative, color: 'hsl(var(--destructive))' }
-  ];
-
-  // View growth trend data
-  const viewTrendData = Array.from({ length: 12 }, (_, i) => ({
-    month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
-    views: Math.floor(400000 + Math.random() * 300000 + (i / 12) * 500000)
+  const videos = data.youtube_insights || [];
+  const summary = data.summary;
+  const topChannels = summary.top_channels || [];
+  
+  // Prepare channel chart data
+  const channelChartData = topChannels.slice(0, 5).map(ch => ({
+    channel: ch.channel.length > 20 ? ch.channel.substring(0, 20) + '...' : ch.channel,
+    videos: ch.video_count
   }));
-
-  // Channel impact data
-  const channels = data.metrics?.top_channels ?? [];
-  const channelData = channels.map(ch => ({
-    channel: ch.channel,
-    subs: ch.subs,
-    engagement: Math.floor(ch.avg_views * 0.06), // 6% engagement
-    sentiment: ch.sentiment === 'positive' ? 80 : ch.sentiment === 'neutral' ? 50 : 20,
-    views: ch.avg_views
-  }));
-
-  // Theme distribution for treemap
-  const themeData = data.clusters?.map(cluster => ({
-    name: cluster.title,
-    value: cluster.metrics.avg_views,
-    sentiment: cluster.metrics.sentiment.positive
-  })) ?? [];
-
-  const isTrendingUp = (data.metrics?.trend_delta_views || '').includes('+');
 
   return (
     <Card className="col-span-full">
@@ -244,7 +142,7 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Youtube className="h-5 w-5 text-destructive" />
-            <CardTitle>YouTube Analytics</CardTitle>
+            <CardTitle>YouTube Insights</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -261,248 +159,179 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing || loading}
+              title="Refresh data"
+              aria-label="Refresh YouTube insights"
             >
               <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
             </Button>
             <Badge variant="outline" className="font-medium">
+              <Play className="h-3 w-3 mr-1" />
+              {summary.total_videos} videos
+            </Badge>
+            <Badge variant="outline" className="font-medium">
               <Eye className="h-3 w-3 mr-1" />
-              {(data.metrics.total_views / 1000000).toFixed(1)}M views
+              {formatViews(summary.total_views)} views
             </Badge>
-            <Badge variant={isTrendingUp ? "default" : "secondary"} className="flex items-center gap-1">
-              {isTrendingUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              {data.metrics.trend_delta_views}
-            </Badge>
-            <Badge variant={data.confidence === 'High' ? 'default' : 'secondary'}>
-              {data.confidence} Confidence
+            <Badge variant={data.meta.confidence === 'High' ? 'default' : 'secondary'}>
+              {data.meta.confidence} Confidence
             </Badge>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Summary */}
-        <div className="p-4 bg-destructive/5 rounded-lg border border-destructive/10">
-          <p className="text-sm leading-relaxed">{data.summary}</p>
+        {/* Summary Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Play className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Videos</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{summary.total_videos}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Total Views</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{formatViews(summary.total_views)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <ThumbsUp className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Total Likes</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{formatViews(summary.total_likes)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Avg Relevance</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{(summary.avg_relevance * 100).toFixed(0)}%</p>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 w-full">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="channels">Channels</TabsTrigger>
-            <TabsTrigger value="themes">Themes</TabsTrigger>
-            <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
-            <TabsTrigger value="engagement">Engagement</TabsTrigger>
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="videos">Videos ({videos.length})</TabsTrigger>
+            <TabsTrigger value="channels">Channels ({topChannels.length})</TabsTrigger>
+            <TabsTrigger value="metrics">Metrics</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4 mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Sentiment Pie Chart */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Overall Sentiment</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={sentimentData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {sentimentData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex justify-center gap-4 mt-2">
-                    {sentimentData.map((item) => (
-                      <div key={item.name} className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-xs">{item.name}: {item.value}%</span>
+          <TabsContent value="videos" className="space-y-4 mt-4">
+            <ScrollArea className="h-[600px]">
+              <div className="space-y-3 pr-4">
+                {videos.map((video, idx) => (
+                  <Card key={video.videoId} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex gap-4">
+                        {/* Thumbnail */}
+                        {video.thumbnail && (
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={video.thumbnail} 
+                              alt={video.title}
+                              className="w-40 h-24 object-cover rounded"
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Video Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <a 
+                                href={video.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="font-medium hover:text-destructive flex items-center gap-1 group"
+                              >
+                                <span className="line-clamp-2">{video.title}</span>
+                                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                              </a>
+                              <p className="text-sm text-muted-foreground mt-1">{video.channel}</p>
+                            </div>
+                            <Badge variant="outline" className="flex-shrink-0">
+                              #{idx + 1}
+                            </Badge>
+                          </div>
+                          
+                          {/* Metrics */}
+                          <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              {formatViews(video.views)}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <ThumbsUp className="h-3 w-3" />
+                              {formatViews(video.likes)}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3" />
+                              {formatViews(video.comments)}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Sparkles className="h-3 w-3" />
+                              {(video.relevance * 100).toFixed(0)}% relevant
+                            </div>
+                            <div>
+                              {formatDistanceToNow(new Date(video.published_at), { addSuffix: true })}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {videos.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No videos found for this idea
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* View Trend */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">View Trends (12 months)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={viewTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                      <YAxis hide />
-                      <RechartsTooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="views" 
-                        stroke="hsl(var(--destructive))" 
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Key Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Play className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Total Videos</span>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">
-                    {Math.floor(data.metrics.total_views / 52000).toLocaleString()}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <ThumbsUp className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Engagement Rate</span>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">{data.metrics.avg_engagement_rate}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Avg Comments</span>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">180</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Top Channels</span>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">{channels.length}</p>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+              </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="channels" className="space-y-4 mt-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  Top YouTube Channels
-                </CardTitle>
+                <CardTitle className="text-sm">Top Channels by Video Count</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <ScatterChart>
+                  <BarChart data={channelChartData}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="subs" name="Subscribers" />
-                    <YAxis dataKey="views" name="Avg Views" />
+                    <XAxis dataKey="channel" tick={{ fontSize: 11 }} />
+                    <YAxis />
                     <RechartsTooltip />
-                    <Scatter name="Channels" data={channelData} fill="hsl(var(--destructive))">
-                      {channelData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={
-                          entry.sentiment > 60 ? 'hsl(var(--success))' : 
-                          entry.sentiment < 40 ? 'hsl(var(--destructive))' : 
-                          'hsl(var(--muted))'
-                        } />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-
-                <div className="space-y-2 mt-4">
-                  {channels.map((channel) => (
-                    <div key={channel.channel} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                      <div className="flex items-center gap-2">
-                        <Youtube className="h-4 w-4 text-destructive" />
-                        <span className="font-medium text-sm">{channel.channel}</span>
-                        <Badge variant={channel.sentiment === 'positive' ? 'default' : 'secondary'} className="text-xs">
-                          {channel.sentiment}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{(channel.subs / 1000).toFixed(0)}K subs</span>
-                        <span>{(channel.avg_views / 1000).toFixed(0)}K avg views</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="themes" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Content Themes Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <Treemap
-                    data={themeData}
-                    dataKey="value"
-                    aspectRatio={4/3}
-                    stroke="#fff"
-                    fill="hsl(var(--destructive))"
-                  />
+                    <Bar dataKey="videos" fill="hsl(var(--destructive))" name="Video Count" />
+                  </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
-                {data.clusters.map((cluster) => (
-                  <Card key={cluster.cluster_id}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">{cluster.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <p className="text-sm text-muted-foreground">{cluster.insight}</p>
-                      
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="text-center p-2 bg-blue-500/10 rounded">
-                          <Eye className="h-3 w-3 mx-auto mb-1 text-blue-600" />
-                          <div className="font-medium">{(cluster.metrics.avg_views / 1000).toFixed(0)}K</div>
-                          <div className="text-muted-foreground">Avg Views</div>
+            <ScrollArea className="h-[400px]">
+              <div className="space-y-2 pr-4">
+                {topChannels.map((ch, idx) => (
+                  <Card key={idx}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Youtube className="h-4 w-4 text-destructive" />
+                          <span className="font-medium">{ch.channel}</span>
                         </div>
-                        <div className="text-center p-2 bg-purple-500/10 rounded">
-                          <MessageSquare className="h-3 w-3 mx-auto mb-1 text-purple-600" />
-                          <div className="font-medium">{cluster.metrics.avg_comments}</div>
-                          <div className="text-muted-foreground">Avg Comments</div>
-                        </div>
-                        <div className="text-center p-2 bg-green-500/10 rounded">
-                          <ThumbsUp className="h-3 w-3 mx-auto mb-1 text-green-600" />
-                          <div className="font-medium">{cluster.metrics.sentiment.positive}%</div>
-                          <div className="text-muted-foreground">Positive</div>
-                        </div>
+                        <Badge variant="outline">{ch.video_count} videos</Badge>
                       </div>
-
-                      {cluster.quotes.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                          <span className="text-xs font-medium text-muted-foreground">Sample Comments:</span>
-                          {cluster.quotes.map((quote, i) => (
-                            <div key={i} className="p-2 bg-muted/50 rounded text-xs italic">
-                              "{quote.text}"
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -510,61 +339,84 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="sentiment" className="space-y-4 mt-4">
-            {data.clusters.map((cluster) => (
-              <Card key={cluster.cluster_id}>
+          <TabsContent value="metrics" className="space-y-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">{cluster.title}</CardTitle>
+                  <CardTitle className="text-sm">Engagement Distribution</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Positive</span>
-                      <span className="text-green-600">{cluster.metrics.sentiment.positive}%</span>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>Avg Views per Video</span>
+                        <span className="font-medium">{formatViews(summary.total_views / summary.total_videos)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>Avg Likes per Video</span>
+                        <span className="font-medium">{formatViews(summary.total_likes / summary.total_videos)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>Engagement Rate</span>
+                        <span className="font-medium">{((summary.total_likes / summary.total_views) * 100).toFixed(2)}%</span>
+                      </div>
                     </div>
-                    <Progress value={cluster.metrics.sentiment.positive} className="h-2 bg-green-100" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Neutral</span>
-                      <span>{cluster.metrics.sentiment.neutral}%</span>
-                    </div>
-                    <Progress value={cluster.metrics.sentiment.neutral} className="h-2" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Negative</span>
-                      <span className="text-red-600">{cluster.metrics.sentiment.negative}%</span>
-                    </div>
-                    <Progress value={cluster.metrics.sentiment.negative} className="h-2 bg-red-100" />
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </TabsContent>
 
-          <TabsContent value="engagement" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Research Meta</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Time Window</span>
+                      <span className="font-medium">{summary.time_window}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Region</span>
+                      <span className="font-medium">{summary.region}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Confidence</span>
+                      <Badge variant={data.meta.confidence === 'High' ? 'default' : 'secondary'}>
+                        {data.meta.confidence}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Engagement Metrics by Theme</CardTitle>
+                <CardTitle className="text-sm">Top Performing Videos by Relevance</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.clusters.map(c => ({
-                    theme: c.title.split(' ').slice(0, 2).join(' '),
-                    views: c.metrics.avg_views / 1000,
-                    comments: c.metrics.avg_comments,
-                    engagement: Math.floor(c.metrics.avg_comments / c.metrics.avg_views * 1000)
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="theme" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Bar dataKey="views" fill="hsl(var(--destructive))" name="Avg Views (K)" />
-                    <Bar dataKey="engagement" fill="hsl(var(--primary))" name="Engagement Rate" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2 pr-4">
+                    {videos.slice(0, 10).map((video, idx) => (
+                      <div key={video.videoId} className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm">
+                        <div className="flex-1 min-w-0">
+                          <a 
+                            href={video.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-destructive truncate block"
+                          >
+                            {idx + 1}. {video.title}
+                          </a>
+                          <div className="text-xs text-muted-foreground">{video.channel}</div>
+                        </div>
+                        <Badge variant="outline" className="ml-2">
+                          {(video.relevance * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
