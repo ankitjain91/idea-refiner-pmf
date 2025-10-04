@@ -493,13 +493,6 @@ export default function EnterpriseHub() {
         evidenceStore={indices?.EVIDENCE_STORE || []}
         providerLog={indices?.PROVIDER_LOG || []}
       />
-
-      {/* LOADING STATUS INDICATOR */}
-      <LoadingStatusIndicator
-        show={loading}
-        tasks={loadingTasks || []}
-        currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
-      />
     </div>
   );
 }
