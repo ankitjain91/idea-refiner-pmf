@@ -11,20 +11,23 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare } from "lucide-react";
+import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
-import { ExtendedInsightsGrid } from "@/components/hub/ExtendedInsightsGrid";
-import { QuickStatsStrip } from "@/components/hub/QuickStatsStrip";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { createConversationSummary } from "@/utils/conversationUtils";
-import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
-import { DashboardLoader } from "@/components/engagement/DashboardLoader";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
-import { LoadingStatusIndicator } from "@/components/hub/LoadingStatusIndicator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 
 export default function EnterpriseHub() {
@@ -35,11 +38,20 @@ export default function EnterpriseHub() {
   const [currentIdea, setCurrentIdea] = useState("");
   const [conversationSummary, setConversationSummary] = useState("");
   const [sessionName, setSessionName] = useState("");
-  const [viewMode, setViewMode] = useState<"executive" | "deep">("executive");
+  const [activeTab, setActiveTab] = useState("overview");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [hasExistingAnalysis, setHasExistingAnalysis] = useState(false);
+  const [summaryExpanded, setSummaryExpanded] = useState(() => {
+    return localStorage.getItem('enterpriseHub_summaryExpanded') !== 'false';
+  });
+  const [advancedControlsOpen, setAdvancedControlsOpen] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout>();
+  
+  // Save summary expanded state
+  useEffect(() => {
+    localStorage.setItem('enterpriseHub_summaryExpanded', summaryExpanded.toString());
+  }, [summaryExpanded]);
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
@@ -230,37 +242,65 @@ export default function EnterpriseHub() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Conversation Summary Section */}
+      {/* Collapsible Conversation Summary Section */}
       {conversationSummary && (
-        <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-border">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <Brain className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-foreground mb-2">Idea Summary</h2>
-                <p className="text-base text-foreground/80 leading-relaxed">
-                  {conversationSummary}
-                </p>
-                {sessionName && (
-                  <Badge variant="secondary" className="mt-2">
-                    Session: {sessionName}
-                  </Badge>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.href = '/ideachat'}
-                className="gap-2"
+        <Collapsible
+          open={summaryExpanded}
+          onOpenChange={setSummaryExpanded}
+          className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-border"
+        >
+          <div className="container mx-auto px-4 py-3">
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full flex items-center justify-between hover:bg-primary/5 p-3 rounded-lg"
               >
-                <MessageSquare className="h-4 w-4" />
-                Refine Idea
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Brain className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-sm font-semibold text-foreground">Idea Summary</h2>
+                    {!summaryExpanded && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {conversationSummary.substring(0, 80)}...
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {sessionName && (
+                    <Badge variant="secondary" className="text-xs">
+                      {sessionName}
+                    </Badge>
+                  )}
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform",
+                    summaryExpanded && "rotate-180"
+                  )} />
+                </div>
               </Button>
-            </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <div className="flex items-start gap-4 pl-11">
+                <div className="flex-1">
+                  <p className="text-base text-foreground/80 leading-relaxed">
+                    {conversationSummary}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.href = '/ideachat'}
+                  className="gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Refine Idea
+                </Button>
+              </div>
+            </CollapsibleContent>
           </div>
-        </div>
+        </Collapsible>
       )}
       
       {/* Fallback if no summary yet */}
@@ -299,28 +339,10 @@ export default function EnterpriseHub() {
       )}
       
       {/* Top Controls Bar */}
-      <div className="sticky top-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border/50">
+      <div className="sticky top-0 z-40 backdrop-blur-lg bg-background/95 border-b border-border/50 shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button
-                onClick={() => setViewMode(viewMode === "executive" ? "deep" : "executive")}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                {viewMode === "executive" ? (
-                  <>
-                    <LayoutGrid className="h-4 w-4" />
-                    Deep Dive
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4" />
-                    Executive View
-                  </>
-                )}
-              </Button>
               <Button
                 onClick={() => setEvidenceOpen(!evidenceOpen)}
                 variant="outline"
@@ -328,73 +350,34 @@ export default function EnterpriseHub() {
               >
                 Evidence Explorer
               </Button>
+              
+              <Collapsible
+                open={advancedControlsOpen}
+                onOpenChange={setAdvancedControlsOpen}
+              >
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Settings className="h-4 w-4" />
+                    Advanced
+                    <ChevronDown className={cn(
+                      "h-3 w-3 transition-transform",
+                      advancedControlsOpen && "rotate-180"
+                    )} />
+                  </Button>
+                </CollapsibleTrigger>
+              </Collapsible>
             </div>
             
-            <div className="flex items-center gap-4">
-              {/* Mock Data Toggle */}
-              <div className={cn(
-                "flex items-center gap-2 px-3 py-1 rounded-lg border",
-                useMockData 
-                  ? "bg-amber-500/10 border-amber-500/30" 
-                  : "bg-emerald-500/10 border-emerald-500/30"
-              )}>
-                <Label htmlFor="mock-mode" className="text-xs font-medium cursor-pointer">
-                  {useMockData ? "Mock Data" : "Real Data"}
-                </Label>
-                <Switch
-                  id="mock-mode"
-                  checked={!useMockData}
-                  onCheckedChange={(checked) => {
-                    setUseMockData(!checked);
-                    if (checked) {
-                      toast.success("Switched to real data with API keys");
-                    } else {
-                      toast.warning("Switched to mock data mode");
-                    }
-                  }}
-                  className="scale-90"
-                />
-              </div>
-              
-              {/* Real-time Toggle */}
-              <div className={cn(
-                "flex items-center gap-2 px-3 py-1 rounded-lg border",
-                isRealTime 
-                  ? "bg-primary/10 border-primary/30" 
-                  : "bg-muted/50 border-border/50"
-              )}>
-                {isRealTime && (
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                )}
-                <Label htmlFor="realtime-mode" className="text-xs font-medium cursor-pointer">
-                  Realtime
-                </Label>
-                <Switch
-                  id="realtime-mode"
-                  checked={isRealTime}
-                  onCheckedChange={setIsRealTime}
-                  className="scale-90"
-                />
-              </div>
-              
-              {/* Cache Clear Button */}
-              <CacheClearButton 
-                variant="outline"
-                size="sm"
-                onCacheCleared={() => {
-                  console.log("Cache cleared, refreshing data...");
-                }}
-              />
-              
+            <div className="flex items-center gap-3">
               {lastFetchTime && (
                 <span className="text-xs text-muted-foreground">
-                  Last updated: {new Date(lastFetchTime).toLocaleTimeString()}
+                  Updated: {new Date(lastFetchTime).toLocaleTimeString()}
                 </span>
               )}
               <Button
                 onClick={handleRefresh}
                 disabled={loading}
-                variant="outline"
+                variant="default"
                 size="sm"
                 className="gap-2"
               >
@@ -403,52 +386,222 @@ export default function EnterpriseHub() {
               </Button>
             </div>
           </div>
+          
+          {/* Advanced Controls (Collapsible) */}
+          <Collapsible
+            open={advancedControlsOpen}
+            onOpenChange={setAdvancedControlsOpen}
+          >
+            <CollapsibleContent>
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30">
+                {/* Mock Data Toggle */}
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border",
+                  useMockData 
+                    ? "bg-amber-500/10 border-amber-500/30" 
+                    : "bg-emerald-500/10 border-emerald-500/30"
+                )}>
+                  <Label htmlFor="mock-mode" className="text-xs font-medium cursor-pointer">
+                    {useMockData ? "Mock Data" : "Real Data"}
+                  </Label>
+                  <Switch
+                    id="mock-mode"
+                    checked={!useMockData}
+                    onCheckedChange={(checked) => {
+                      setUseMockData(!checked);
+                      if (checked) {
+                        toast.success("Switched to real data");
+                      } else {
+                        toast.warning("Switched to mock data");
+                      }
+                    }}
+                    className="scale-90"
+                  />
+                </div>
+                
+                {/* Real-time Toggle */}
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border",
+                  isRealTime 
+                    ? "bg-primary/10 border-primary/30" 
+                    : "bg-muted/50 border-border/50"
+                )}>
+                  {isRealTime && (
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  )}
+                  <Label htmlFor="realtime-mode" className="text-xs font-medium cursor-pointer">
+                    Realtime
+                  </Label>
+                  <Switch
+                    id="realtime-mode"
+                    checked={isRealTime}
+                    onCheckedChange={setIsRealTime}
+                    className="scale-90"
+                  />
+                </div>
+                
+                {/* Cache Clear Button */}
+                <CacheClearButton 
+                  variant="outline"
+                  size="sm"
+                  onCacheCleared={() => {
+                    console.log("Cache cleared, refreshing data...");
+                  }}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-6 space-y-8">
+      {/* Main Content with Tabs */}
+      <div className="container mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="market">Market Analysis</TabsTrigger>
+            <TabsTrigger value="customer">Customer Research</TabsTrigger>
+            <TabsTrigger value="evidence">Evidence</TabsTrigger>
+          </TabsList>
 
-        {/* Dashboard loading is now handled by AsyncDashboardButton */}
-
-        {/* 1. HERO SECTION - Show immediately, with score loader if loading */}
-        <HeroSection 
-          pmfScore={tiles.pmf_score}
-          loading={loading}
-          onGetScore={handleGetScore}
-          hasData={hasLoadedData || hasExistingAnalysis || !!tiles.pmf_score}
-          loadingTasks={loadingTasks}
-          currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
-        />
-
-        {/* 2. ENHANCED MARKET SIZE ANALYSIS */}
-        {hasLoadedData && viewMode === "deep" && (
-          <div className="space-y-6">
-            <LazyWorldMap 
-              marketData={tiles.market_size}
+          {/* OVERVIEW TAB */}
+          <TabsContent value="overview" className="space-y-6">
+            <HeroSection 
+              pmfScore={tiles.pmf_score}
               loading={loading}
+              onGetScore={handleGetScore}
+              hasData={hasLoadedData || hasExistingAnalysis || !!tiles.pmf_score}
+              loadingTasks={loadingTasks}
+              currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
             />
-          </div>
-        )}
+            
+            {hasLoadedData && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <MainAnalysisGrid
+                  tiles={{
+                    market_size: tiles.market_size,
+                    competition: tiles.competition,
+                  }}
+                  loading={loading}
+                  viewMode="executive"
+                  onRefreshTile={refreshTile}
+                />
+              </div>
+            )}
+          </TabsContent>
 
-        {/* 3. MAIN ANALYSIS GRID - Load progressively, show tiles as they arrive */}
-        {hasLoadedData && (
-          <MainAnalysisGrid
-            tiles={{
-              market_size: tiles.market_size,
-              competition: tiles.competition,
-              sentiment: tiles.sentiment,
-              market_trends: tiles.market_trends,
-              google_trends: tiles.google_trends,
-              news_analysis: tiles.news_analysis
-            }}
-            loading={loading}
-            viewMode={viewMode}
-            onRefreshTile={refreshTile}
-          />
-        )}
+          {/* MARKET ANALYSIS TAB */}
+          <TabsContent value="market" className="space-y-6">
+            {hasLoadedData && (
+              <>
+                <LazyWorldMap 
+                  marketData={tiles.market_size}
+                  loading={loading}
+                />
+                
+                <Accordion type="multiple" defaultValue={["market-overview"]} className="space-y-4">
+                  <AccordionItem value="market-overview" className="border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <LayoutGrid className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Market Overview</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <MainAnalysisGrid
+                        tiles={{
+                          market_size: tiles.market_size,
+                          market_trends: tiles.market_trends,
+                        }}
+                        loading={loading}
+                        viewMode="deep"
+                        onRefreshTile={refreshTile}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
 
+                  <AccordionItem value="competition" className="border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Competition & Positioning</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <MainAnalysisGrid
+                        tiles={{
+                          competition: tiles.competition,
+                          google_trends: tiles.google_trends,
+                        }}
+                        loading={loading}
+                        viewMode="deep"
+                        onRefreshTile={refreshTile}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </>
+            )}
+          </TabsContent>
 
+          {/* CUSTOMER RESEARCH TAB */}
+          <TabsContent value="customer" className="space-y-6">
+            {hasLoadedData && (
+              <Accordion type="multiple" defaultValue={["sentiment"]} className="space-y-4">
+                <AccordionItem value="sentiment" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">Customer Intelligence</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <MainAnalysisGrid
+                      tiles={{
+                        sentiment: tiles.sentiment,
+                      }}
+                      loading={loading}
+                      viewMode="deep"
+                      onRefreshTile={refreshTile}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="news" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">Media & News</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <MainAnalysisGrid
+                      tiles={{
+                        news_analysis: tiles.news_analysis,
+                      }}
+                      loading={loading}
+                      viewMode="deep"
+                      onRefreshTile={refreshTile}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
+          </TabsContent>
+
+          {/* EVIDENCE TAB */}
+          <TabsContent value="evidence" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Evidence & Citations</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                View all data sources, citations, and evidence supporting the analysis.
+              </p>
+              <Button onClick={() => setEvidenceOpen(true)}>
+                Open Evidence Explorer
+              </Button>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}
