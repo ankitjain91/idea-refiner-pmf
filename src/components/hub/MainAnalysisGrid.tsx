@@ -7,10 +7,6 @@ import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
 import { MarketTrendsTile } from "./MarketTrendsTile";
 import { WebSearchTile } from "./WebSearchTile";
-import { SentimentTile } from "./SentimentTile";
-import { TwitterBuzzTile } from "./TwitterBuzzTile";
-import { YouTubeAnalyticsTile } from "./YouTubeAnalyticsTile";
-import { EnhancedRedditTile } from "./EnhancedRedditTile";
 
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
@@ -220,8 +216,10 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
     }
   ];
 
-  // In executive mode, only show first 4 tiles
-  const displayTiles = viewMode === "executive" ? mainTiles.slice(0, 4) : mainTiles;
+  // Only include tiles explicitly provided via props to avoid cross-tab duplication
+  const filteredMainTiles = mainTiles.filter(t => (tiles as any)[t.id] !== undefined);
+  // In executive mode, only show first 4 of the filtered set
+  const displayTiles = viewMode === "executive" ? filteredMainTiles.slice(0, 4) : filteredMainTiles;
 
   return (
     <div className="space-y-4">
