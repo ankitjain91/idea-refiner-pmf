@@ -72,26 +72,89 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
               ease: "easeInOut"
             }}
           />
-          
-          <div className="relative flex flex-col items-center justify-center space-y-8">
-            {/* Animated Brain with glow */}
+
+          {/* Floating particles */}
+          {[...Array(12)].map((_, i) => (
             <motion.div
-              className="relative"
-              animate={{ 
-                scale: [1, 1.05, 1],
+              key={i}
+              className="absolute w-1 h-1 bg-primary/30 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
               }}
-              transition={{ 
-                duration: 2,
+              animate={{
+                y: [0, -30, 0],
+                x: [0, Math.random() * 20 - 10, 0],
+                opacity: [0, 1, 0],
+                scale: [0, 1.5, 0],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
                 repeat: Infinity,
+                delay: Math.random() * 2,
                 ease: "easeInOut"
               }}
-            >
-              <div className="relative w-32 h-32">
+            />
+          ))}
+          
+          <div className="relative flex flex-col items-center justify-center space-y-8">
+            {/* Animated Brain with glow and orbit */}
+            <div className="relative">
+              <motion.div
+                className="relative w-32 h-32"
+                animate={{ 
+                  rotate: [0, 360],
+                }}
+                transition={{ 
+                  duration: 20,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              >
+                {/* Orbiting particles */}
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-2 h-2 bg-primary/60 rounded-full"
+                    style={{
+                      top: '50%',
+                      left: '50%',
+                      marginLeft: '-4px',
+                      marginTop: '-4px',
+                    }}
+                    animate={{
+                      x: [0, Math.cos((i * 120) * Math.PI / 180) * 60, 0],
+                      y: [0, Math.sin((i * 120) * Math.PI / 180) * 60, 0],
+                      scale: [1, 1.5, 1],
+                      opacity: [0.6, 1, 0.6],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      delay: i * 0.4,
+                      ease: "easeInOut"
+                    }}
+                  />
+                ))}
+              </motion.div>
+
+              {/* Brain icon with pulse */}
+              <motion.div
+                className="absolute inset-0"
+                animate={{ 
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
                 <motion.div
                   className="absolute inset-0 bg-primary/20 rounded-full blur-2xl"
                   animate={{ 
-                    scale: [1, 1.3, 1],
-                    opacity: [0.3, 0.6, 0.3]
+                    scale: [1, 1.4, 1],
+                    opacity: [0.3, 0.7, 0.3]
                   }}
                   transition={{ 
                     duration: 2,
@@ -100,26 +163,61 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
                   }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Brain className="h-20 w-20 text-primary" />
+                  <motion.div
+                    animate={{
+                      rotate: [0, 5, -5, 0],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Brain className="h-20 w-20 text-primary" />
+                  </motion.div>
                 </div>
-              </div>
-            </motion.div>
+
+                {/* Ring animation */}
+                <motion.div
+                  className="absolute inset-0 border-2 border-primary/30 rounded-full"
+                  animate={{
+                    scale: [1, 1.3, 1],
+                    opacity: [0, 0.5, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeOut"
+                  }}
+                />
+              </motion.div>
+            </div>
             
             {/* Title and description */}
             <div className="text-center space-y-3">
               <motion.h2 
                 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent"
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+                animate={{ 
+                  opacity: [0.8, 1, 0.8],
+                  y: 0,
+                }}
+                transition={{ 
+                  opacity: { duration: 2, repeat: Infinity },
+                  y: { delay: 0.2 }
+                }}
               >
                 Calculating Your Score
               </motion.h2>
               <motion.p 
                 className="text-lg text-muted-foreground"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ 
+                  delay: 0.4,
+                  duration: 3,
+                  repeat: Infinity 
+                }}
               >
                 {currentTask || "Analyzing market data and validating your idea"}
               </motion.p>
@@ -136,18 +234,63 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Analysis Progress</span>
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                    <span className="text-xl font-bold text-primary tabular-nums">
+                    <motion.div
+                      animate={{
+                        rotate: [0, 360],
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4 text-primary" />
+                    </motion.div>
+                    <motion.span 
+                      className="text-xl font-bold text-primary tabular-nums"
+                      animate={{
+                        scale: [1, 1.1, 1],
+                      }}
+                      transition={{
+                        duration: 0.5,
+                        repeat: Infinity,
+                        repeatType: "reverse"
+                      }}
+                    >
                       {Math.round(progress)}%
-                    </span>
+                    </motion.span>
                   </div>
                 </div>
                 
-                <Progress value={progress} className="h-3" />
+                <div className="relative">
+                  <Progress value={progress} className="h-3" />
+                  <motion.div
+                    className="absolute inset-0 h-3 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full"
+                    animate={{
+                      x: ['-100%', '200%'],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                  />
+                </div>
                 
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{completedCount} of {totalCount} complete</span>
-                  <span>{totalCount - completedCount} remaining</span>
+                  <motion.span
+                    animate={{ opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    {completedCount} of {totalCount} complete
+                  </motion.span>
+                  <motion.span
+                    animate={{ opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                  >
+                    {totalCount - completedCount} remaining
+                  </motion.span>
                 </div>
               </div>
 
@@ -157,12 +300,18 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
                   {loadingTasks.slice(0, 6).map((task, idx) => (
                     <motion.div
                       key={task.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.7 + (idx * 0.05) }}
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ 
+                        delay: 0.7 + (idx * 0.05),
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 15
+                      }}
+                      whileHover={{ scale: 1.02 }}
                       className={cn(
                         "flex items-center gap-2 p-2 rounded-lg border transition-all",
-                        task.status === "loading" && "bg-primary/10 border-primary/30 shadow-sm",
+                        task.status === "loading" && "bg-primary/10 border-primary/30 shadow-sm shadow-primary/20",
                         task.status === "complete" && "bg-success/5 border-success/20",
                         task.status === "error" && "bg-destructive/5 border-destructive/20",
                         task.status === "pending" && "bg-muted/30 border-border/30"
@@ -170,16 +319,36 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
                     >
                       <div className="flex-shrink-0">
                         {task.status === "pending" && (
-                          <div className="h-3 w-3 rounded-full border-2 border-muted" />
+                          <motion.div 
+                            className="h-3 w-3 rounded-full border-2 border-muted"
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          />
                         )}
                         {task.status === "loading" && (
-                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          >
+                            <Loader2 className="h-3 w-3 text-primary" />
+                          </motion.div>
                         )}
                         {task.status === "complete" && (
-                          <CheckCircle2 className="h-3 w-3 text-success" />
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                          >
+                            <CheckCircle2 className="h-3 w-3 text-success" />
+                          </motion.div>
                         )}
                         {task.status === "error" && (
-                          <AlertCircle className="h-3 w-3 text-destructive" />
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <AlertCircle className="h-3 w-3 text-destructive" />
+                          </motion.div>
                         )}
                       </div>
                       <span className={cn(
@@ -199,8 +368,13 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
             {/* Loading tip */}
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
+              animate={{ opacity: [0, 1, 1, 0] }}
+              transition={{ 
+                delay: 1.2,
+                duration: 4,
+                repeat: Infinity,
+                repeatDelay: 2
+              }}
               className="text-center"
             >
               <p className="text-sm text-muted-foreground italic">
@@ -209,19 +383,21 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
             </motion.div>
 
             {/* Animated dots */}
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
-                  className="w-2 h-2 rounded-full bg-primary"
+                  className="w-2.5 h-2.5 rounded-full bg-primary"
                   animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.3, 1, 0.3]
+                    scale: [1, 1.5, 1],
+                    opacity: [0.3, 1, 0.3],
+                    y: [0, -10, 0],
                   }}
                   transition={{
                     duration: 1.5,
                     repeat: Infinity,
-                    delay: i * 0.3
+                    delay: i * 0.3,
+                    ease: "easeInOut"
                   }}
                 />
               ))}
