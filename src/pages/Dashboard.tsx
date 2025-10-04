@@ -19,7 +19,9 @@ export default function Dashboard() {
       {/* Welcome Header */}
       <div className="border-b bg-card/50">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            Welcome, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+          </h1>
           <p className="text-muted-foreground">Track your performance and insights</p>
         </div>
       </div>
