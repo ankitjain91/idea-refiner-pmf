@@ -427,6 +427,17 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
   if (!data) return null;
 
+  const summaryText = typeof (data as any).summary === 'string'
+    ? (data as any).summary
+    : (() => {
+        const s: any = (data as any).summary || {};
+        const bits: string[] = [];
+        if (typeof s.total_posts_analyzed === 'number') bits.push(`${s.total_posts_analyzed} posts analyzed`);
+        if (Array.isArray(s.top_subreddits)) bits.push(`${s.top_subreddits.length} top subreddits`);
+        if (s.time_window) bits.push(`window: ${s.time_window}`);
+        return bits.length ? bits.join(' • ') : 'Reddit research summary';
+      })();
+
   return (
     <Card className={cn("h-full overflow-hidden animate-fade-in", className)}>
       <CardHeader className="pb-3">
@@ -458,7 +469,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
             </Badge>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">{data.summary}</p>
+        <p className="text-sm text-muted-foreground mt-2">{summaryText}</p>
       </CardHeader>
 
       <CardContent className="p-0">
