@@ -263,7 +263,20 @@ export function HeroSection({ pmfScore, loading, onGetScore, hasData, loadingTas
                   </div>
                 </div>
                 
-                <Progress value={progress} className="h-3" />
+                <div className="relative">
+                  <Progress value={progress} className="h-3" />
+                  <motion.div
+                    className="absolute inset-0 h-3 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full"
+                    animate={{
+                      x: ['-100%', '200%'],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                  />
+                </div>
                 
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <motion.span
