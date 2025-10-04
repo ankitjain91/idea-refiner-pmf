@@ -30,7 +30,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      navigate("/ideachat", { state: { showSessionPicker: true } });
+      navigate("/home");
     }
   }, [user, navigate]);
 
@@ -80,9 +80,9 @@ export default function AuthPage() {
         description: "Check your email to confirm your account.",
       });
       
-      console.log('[Auth] Sign up successful, navigating to /ideachat with showSessionPicker: true');
-      // Navigate to ideachat with session picker state
-      navigate("/ideachat", { state: { showSessionPicker: true } });
+      console.log('[Auth] Sign up successful, navigating to /home');
+      // Navigate to home page
+      navigate("/home");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -108,8 +108,8 @@ export default function AuthPage() {
 
       if (error) throw error;
 
-      console.log('[Auth] Sign in successful, navigating to /ideachat with showSessionPicker: true');
-      navigate("/ideachat", { state: { showSessionPicker: true } });
+      console.log('[Auth] Sign in successful, navigating to /home');
+      navigate("/home");
     } catch (error: any) {
       toast({
         title: "Error",

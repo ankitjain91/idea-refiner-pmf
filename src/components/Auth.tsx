@@ -21,8 +21,8 @@ export default function Auth() {
   
   // Handle successful authentication
   const handleAuthSuccess = () => {
-    // Just navigate, session creation will be handled by SessionContext
-    navigate('/ideachat', { replace: true });
+    // Navigate to home page
+    navigate('/home', { replace: true });
   };
   
   // Listen for auth state changes

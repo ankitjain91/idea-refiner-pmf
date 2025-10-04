@@ -163,9 +163,8 @@ export default function EnterpriseAuth() {
       }
 
       
-        // Navigate to dashboard after successful login
-        const from = '/dashboard';
-      navigate(from);
+        // Navigate to home page after successful login
+        navigate('/home');
     } catch (error) {
       if (error instanceof Error) {
         toast({
