@@ -38,13 +38,13 @@ All colors MUST be HSL.
     --popover-foreground: 222 47% 11%;
     --primary: 262 83% 58%;            /* Deep Violet #7C3AED */
     --primary-foreground: 0 0% 100%;
-    --secondary: 160 84% 39%;          /* Emerald Green #10B981 */
+    --secondary: 142 76% 36%;          /* Dark Emerald Green #059669 */
     --secondary-foreground: 0 0% 100%;
     --muted: 210 40% 96%;              /* Soft gray-blue */
     --muted-foreground: 215 16% 47%;   /* Subtle secondary text */
     --accent: 348 83% 47%;             /* Coral #FB7185 */
     --accent-foreground: 0 0% 100%;
-    --success: 160 84% 39%;            /* Emerald Green */
+    --success: 142 76% 36%;            /* Dark Emerald Green */
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;             /* Golden Amber #F59E0B */
     --warning-foreground: 222 47% 11%;
@@ -110,14 +110,14 @@ All colors MUST be HSL.
     --popover-foreground: 210 40% 98%;
     --primary: 262 83% 65%;            /* Bright Violet for dark */
     --primary-foreground: 0 0% 100%;
-    --secondary: 160 84% 45%;          /* Bright Emerald for dark */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 142 76% 45%;          /* Brighter Emerald for dark mode */
+    --secondary-foreground: 0 0% 5%;
     --muted: 217 33% 17%;              /* Subtle dark gray */
     --muted-foreground: 215 20% 65%;   /* Subtle secondary text */
     --accent: 348 83% 58%;             /* Bright Coral for dark */
     --accent-foreground: 0 0% 100%;
-    --success: 160 84% 45%;            /* Bright Emerald */
-    --success-foreground: 0 0% 100%;
+    --success: 142 76% 45%;            /* Brighter Emerald */
+    --success-foreground: 0 0% 5%;
     --warning: 38 92% 55%;             /* Bright Golden Amber */
     --warning-foreground: 0 0% 10%;
     --destructive: 348 83% 58%;        /* Bright Coral */
