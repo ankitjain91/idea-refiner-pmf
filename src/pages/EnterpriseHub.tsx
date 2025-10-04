@@ -457,12 +457,14 @@ export default function EnterpriseHub() {
       {/* Main Content with Tabs */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="market">Market Analysis</TabsTrigger>
-            <TabsTrigger value="customer">Customer Research</TabsTrigger>
-            <TabsTrigger value="evidence">Evidence</TabsTrigger>
-          </TabsList>
+          <div className="sticky top-[57px] z-30 bg-background/95 backdrop-blur-lg pb-4 -mx-4 px-4 mb-6 border-b border-border/50">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="market">Market Analysis</TabsTrigger>
+              <TabsTrigger value="customer">Customer Research</TabsTrigger>
+              <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* OVERVIEW TAB - Just PMF Score */}
           <TabsContent value="overview" className="space-y-6">
