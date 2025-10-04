@@ -85,7 +85,9 @@ function QuickStatCard({ title, icon: Icon, data, loading, accentColor }: QuickS
       )
     : [];
   
-  if (!stats || (Array.isArray(stats) && stats.length===0)) { return (<div className="rounded-2xl border p-4 text-sm opacity-70">No data yet — run your first analysis.</div>); }
+  if (!data || !data.metrics) { 
+    return (<div className="rounded-2xl border p-4 text-sm opacity-70">No data yet — run your first analysis.</div>); 
+  }
 
 return (
     <>
