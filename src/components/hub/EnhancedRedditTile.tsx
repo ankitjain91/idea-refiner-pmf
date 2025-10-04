@@ -121,7 +121,7 @@ export function EnhancedRedditTile({ idea, className }: Props) {
     );
   }
 
-  if (error || !data) {
+  if (error || !data || !data.summary || !data.posts) {
     return (
       <Card className={cn("h-full", className)}>
         <CardHeader>
@@ -135,6 +135,11 @@ export function EnhancedRedditTile({ idea, className }: Props) {
             <AlertCircle className="h-4 w-4" />
             <span className="text-sm">{error || 'No data available'}</span>
           </div>
+          {data && !data.summary && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Received: {JSON.stringify(Object.keys(data))}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -179,11 +184,11 @@ export function EnhancedRedditTile({ idea, className }: Props) {
           </p>
           <div className="flex flex-wrap gap-1">
             <span className="text-xs text-muted-foreground">Keywords:</span>
-            {data.summary.keywords_used.core.map(kw => (
+            {data.summary.keywords_used?.core?.map(kw => (
               <Badge key={kw} variant="secondary" className="text-xs">
                 {kw}
               </Badge>
-            ))}
+            )) || <span className="text-xs text-muted-foreground">No keywords</span>}
           </div>
         </div>
       </CardHeader>
@@ -399,27 +404,27 @@ export function EnhancedRedditTile({ idea, className }: Props) {
                 <div>
                   <h4 className="text-sm font-medium mb-2">Core Keywords</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.summary.keywords_used.core.map(kw => (
+                    {data.summary.keywords_used?.core?.map(kw => (
                       <Badge key={kw} variant="default">{kw}</Badge>
-                    ))}
+                    )) || <span className="text-xs text-muted-foreground">No keywords</span>}
                   </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2">Synonyms & Variants</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.summary.keywords_used.synonyms.map(kw => (
+                    {data.summary.keywords_used?.synonyms?.map(kw => (
                       <Badge key={kw} variant="secondary">{kw}</Badge>
-                    ))}
+                    )) || <span className="text-xs text-muted-foreground">No synonyms</span>}
                   </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2">Pain Phrases</h4>
                   <div className="flex flex-wrap gap-2">
-                    {data.summary.keywords_used.painPhrases.slice(0, 6).map(kw => (
+                    {data.summary.keywords_used?.painPhrases?.slice(0, 6).map(kw => (
                       <Badge key={kw} variant="outline" className="text-amber-500 border-amber-500">
                         {kw}
                       </Badge>
-                    ))}
+                    )) || <span className="text-xs text-muted-foreground">No pain phrases</span>}
                   </div>
                 </div>
               </div>
