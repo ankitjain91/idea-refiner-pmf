@@ -75,14 +75,14 @@ export default function LandingPage() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate(redirectPath || '/ideachat', { replace: true });
+        navigate(redirectPath || '/home', { replace: true });
       }
     };
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        navigate(redirectPath || '/ideachat', { replace: true });
+        navigate(redirectPath || '/home', { replace: true });
       }
     });
 
