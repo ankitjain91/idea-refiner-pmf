@@ -101,7 +101,6 @@ const EnhancedIdeaChatPage = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <AsyncDashboardButton />
             <div className="flex items-center gap-2">
               <Label htmlFor="auto-save" className="text-xs flex items-center gap-1 cursor-pointer">
                 <Save className="w-3 h-3" />
