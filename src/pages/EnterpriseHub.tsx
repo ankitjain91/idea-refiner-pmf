@@ -444,7 +444,7 @@ export default function EnterpriseHub() {
         )}
 
         {/* 3. MAIN ANALYSIS GRID - Load progressively, show tiles as they arrive */}
-        {loading && !tiles.market_size && !tiles.competition && !tiles.sentiment && !tiles.pmf_score ? (
+        {loading && !tiles.market_size && !tiles.competition && !tiles.sentiment ? (
           <DashboardLoader stage="tiles" />
         ) : (
           /* Show grid as soon as we have ANY data */
