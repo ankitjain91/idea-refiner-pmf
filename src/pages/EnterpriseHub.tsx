@@ -464,7 +464,7 @@ export default function EnterpriseHub() {
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
           </TabsList>
 
-          {/* OVERVIEW TAB */}
+          {/* OVERVIEW TAB - Just PMF Score */}
           <TabsContent value="overview" className="space-y-6">
             <HeroSection 
               pmfScore={tiles.pmf_score}
@@ -476,7 +476,7 @@ export default function EnterpriseHub() {
             />
           </TabsContent>
 
-          {/* MARKET ANALYSIS TAB */}
+          {/* MARKET ANALYSIS TAB - Market Size, Trends, Google Trends, Competition */}
           <TabsContent value="market" className="space-y-6">
             {hasLoadedData && (
               <>
@@ -503,7 +503,7 @@ export default function EnterpriseHub() {
             )}
           </TabsContent>
 
-          {/* CUSTOMER RESEARCH TAB */}
+          {/* CUSTOMER RESEARCH TAB - Sentiment, News */}
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
