@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -29,50 +29,52 @@ All colors MUST be HSL.
 /* ----------------------------- */
 @layer base {
   :root {
-    /* Apple-Inspired Light Mode - Minimal & Elegant */
+    /* SmoothBrains Light Mode - Vibrant & Premium */
     --background: 0 0% 100%;           /* Pure white #FFFFFF */
-    --foreground: 0 0% 9%;             /* Near black #171717 */
+    --foreground: 222 47% 11%;         /* Dark slate #1F2937 */
     --card: 0 0% 98%;                  /* Subtle gray card #FAFAFA */
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 211 30% 50%;            /* Muted blue accent */
+    --popover-foreground: 222 47% 11%;
+    --primary: 262 83% 58%;            /* Deep Violet #7C3AED */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;             /* Soft gray */
-    --secondary-foreground: 0 0% 20%;
-    --muted: 0 0% 97%;
-    --muted-foreground: 0 0% 45%;      /* Subtle secondary text */
-    --accent: 211 25% 55%;             /* Very subtle accent */
+    --secondary: 160 84% 39%;          /* Emerald Green #10B981 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96%;              /* Soft gray-blue */
+    --muted-foreground: 215 16% 47%;   /* Subtle secondary text */
+    --accent: 348 83% 47%;             /* Coral #FB7185 */
     --accent-foreground: 0 0% 100%;
-    --success: 142 40% 50%;            /* Muted success */
+    --success: 160 84% 39%;            /* Emerald Green */
     --success-foreground: 0 0% 100%;
-    --warning: 38 60% 55%;             /* Muted warning */
-    --warning-foreground: 0 0% 9%;
-    --destructive: 0 50% 58%;          /* Muted destructive */
+    --warning: 38 92% 50%;             /* Golden Amber #F59E0B */
+    --warning-foreground: 222 47% 11%;
+    --destructive: 348 83% 47%;        /* Coral for destructive */
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 92%;                /* Very subtle border */
-    --input: 0 0% 92%;
-    --ring: 211 25% 55%;
-    --radius: 0.5rem;
+    --border: 214 32% 91%;             /* Subtle border */
+    --input: 214 32% 91%;
+    --ring: 262 83% 58%;               /* Deep Violet */
+    --radius: 0.75rem;
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 9%;
-    --sidebar-primary: 211 30% 50%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 0 0% 20%;
-    --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 211 25% 55%;
-    /* Minimal Gradients - Subtle Only */
-    --gradient-primary: linear-gradient(135deg, hsl(211 30% 50% / 0.02), transparent);
-    --gradient-accent: linear-gradient(135deg, transparent, hsl(211 25% 55% / 0.015));
-    --gradient-google: linear-gradient(90deg, hsl(211 30% 50%), hsl(211 30% 48%));
-    --gradient-mesh: none;
-    /* Clean Shadows - No Glow */
-    --shadow-glow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-glow-primary: 0 2px 8px rgba(0, 113, 227, 0.12);
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 262 83% 58%;
+    /* Vibrant Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(348 83% 47%));
+    --gradient-accent: linear-gradient(135deg, hsl(160 84% 39%), hsl(38 92% 50%));
+    --gradient-google: linear-gradient(90deg, hsl(262 83% 58%), hsl(262 83% 65%));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(262 83% 58% / 0.08) 0px, transparent 50%),
+                     radial-gradient(at 80% 0%, hsl(160 84% 39% / 0.06) 0px, transparent 50%),
+                     radial-gradient(at 0% 50%, hsl(348 83% 47% / 0.05) 0px, transparent 50%);
+    /* Premium Shadows with Color */
+    --shadow-glow: 0 2px 8px rgba(124, 58, 237, 0.08);
+    --shadow-glow-primary: 0 4px 16px rgba(124, 58, 237, 0.15);
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-glass: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 8px 24px rgba(124, 58, 237, 0.12);
+    --shadow-glass: 0 4px 12px rgba(124, 58, 237, 0.08);
     /* Typography Scale */
     --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
     --text-sm: clamp(0.875rem, 0.85rem + 0.25vw, 1rem);
@@ -99,49 +101,51 @@ All colors MUST be HSL.
     --surface-glass-alt: 0 0% 98%;
   }
   .dark {
-    /* Apple-Inspired Dark Mode - Minimal & Elegant */
-    --background: 0 0% 4%;             /* Deep black #0A0A0A */
-    --foreground: 0 0% 94%;            /* Near white #F0F0F0 */
-    --card: 0 0% 7%;                   /* Dark card #121212 */
-    --card-foreground: 0 0% 94%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 94%;
-    --primary: 211 25% 62%;            /* Muted blue for dark */
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 12%;             /* Subtle dark gray */
-    --secondary-foreground: 0 0% 80%;
-    --muted: 0 0% 13%;
-    --muted-foreground: 0 0% 60%;      /* Subtle secondary text */
-    --accent: 211 20% 68%;             /* Very subtle accent */
-    --accent-foreground: 0 0% 10%;
-    --success: 142 35% 55%;            /* Muted success */
-    --success-foreground: 0 0% 10%;
-    --warning: 38 50% 60%;             /* Muted warning */
+    /* SmoothBrains Dark Mode - Vibrant & Premium */
+    --background: 0 0% 5%;             /* Rich dark #0D0D0D */
+    --foreground: 210 40% 98%;         /* Near white #F9FAFB */
+    --card: 0 0% 11%;                  /* Dark card #1C1C1C */
+    --card-foreground: 210 40% 98%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 262 83% 65%;            /* Bright Violet for dark */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 84% 45%;          /* Bright Emerald for dark */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 217 33% 17%;              /* Subtle dark gray */
+    --muted-foreground: 215 20% 65%;   /* Subtle secondary text */
+    --accent: 348 83% 58%;             /* Bright Coral for dark */
+    --accent-foreground: 0 0% 100%;
+    --success: 160 84% 45%;            /* Bright Emerald */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;             /* Bright Golden Amber */
     --warning-foreground: 0 0% 10%;
-    --destructive: 0 45% 62%;          /* Muted destructive */
+    --destructive: 348 83% 58%;        /* Bright Coral */
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 16%;                /* Very subtle border */
-    --input: 0 0% 16%;
-    --ring: 211 20% 68%;
-    --sidebar-background: 0 0% 4%;
-    --sidebar-foreground: 0 0% 94%;
-    --sidebar-primary: 211 25% 62%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 12%;
-    --sidebar-accent-foreground: 0 0% 80%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 211 20% 68%;
-    /* Minimal Gradients - Subtle Only */
-    --gradient-primary: linear-gradient(135deg, hsl(211 25% 62% / 0.02), transparent);
-    --gradient-accent: linear-gradient(135deg, transparent, hsl(211 20% 68% / 0.015));
-    --gradient-google: linear-gradient(90deg, hsl(211 25% 62%), hsl(211 25% 60%));
-    --gradient-mesh: none;
-    /* Clean Shadows - No Glow */
-    --shadow-glow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-glow-primary: 0 2px 8px rgba(0, 113, 227, 0.2);
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
-    --shadow-glass: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --border: 217 33% 20%;             /* Subtle border */
+    --input: 217 33% 20%;
+    --ring: 262 83% 65%;               /* Bright Violet */
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 262 83% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-ring: 262 83% 65%;
+    /* Vibrant Gradients for Dark */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 65%), hsl(348 83% 58%));
+    --gradient-accent: linear-gradient(135deg, hsl(160 84% 45%), hsl(38 92% 55%));
+    --gradient-google: linear-gradient(90deg, hsl(262 83% 65%), hsl(262 83% 72%));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(262 83% 65% / 0.12) 0px, transparent 50%),
+                     radial-gradient(at 80% 0%, hsl(160 84% 45% / 0.09) 0px, transparent 50%),
+                     radial-gradient(at 0% 50%, hsl(348 83% 58% / 0.08) 0px, transparent 50%);
+    /* Premium Shadows with Color */
+    --shadow-glow: 0 2px 8px rgba(124, 58, 237, 0.15);
+    --shadow-glow-primary: 0 4px 16px rgba(124, 58, 237, 0.25);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-hover: 0 8px 24px rgba(124, 58, 237, 0.18);
+    --shadow-glass: 0 4px 12px rgba(124, 58, 237, 0.15);
     --noise-opacity: 0;
     --glow-primary: 211 25% 62%;
     --glow-accent: 211 20% 68%;
@@ -164,9 +168,9 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Poppins', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.7;
     letter-spacing: -0.011em;
     font-weight: 400;
     position: relative;
@@ -440,7 +444,12 @@ All colors MUST be HSL.
   }
   
   .app-gradient-orbs {
-    display: none; /* Removed for minimal aesthetic */
+    position: fixed;
+    inset: 0;
+    background: var(--gradient-mesh);
+    pointer-events: none;
+    z-index: -1;
+    opacity: 1;
   }
   
   .glass-super-surface {
