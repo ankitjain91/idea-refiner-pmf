@@ -37,7 +37,6 @@ export default function EnterpriseHub() {
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [hasExistingAnalysis, setHasExistingAnalysis] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout>();
   
   // Update idea from current session
@@ -135,15 +134,6 @@ export default function EnterpriseHub() {
 
   const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime } = dataHub;
 
-  // Initial loading effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   // Set up real-time refresh
   useEffect(() => {
     if (isRealTime && refreshInterval > 0 && currentIdea && !useMockData) {
@@ -205,17 +195,6 @@ export default function EnterpriseHub() {
     }
     refresh();
   }, [refresh, currentIdea]);
-
-  // Show initial loading animation
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
-        <div className="container mx-auto px-4 py-20">
-          <DashboardLoader />
-        </div>
-      </div>
-    );
-  }
 
   // No idea state
   if (!currentIdea) {
