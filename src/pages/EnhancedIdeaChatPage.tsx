@@ -7,6 +7,7 @@ import { UserMenu } from '@/components/UserMenu';
 import { Loader2, FolderOpen, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DynamicStatusBar } from './DynamicStatusBar';
+import { AsyncDashboardButton } from '@/components/AsyncDashboardButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SessionPicker } from '@/components/SessionPicker';
 import { Switch } from '@/components/ui/switch';
@@ -101,6 +102,7 @@ const EnhancedIdeaChatPage = () => {
           </div>
           
           <div className="flex items-center gap-2">
+            <AsyncDashboardButton />
             <div className="flex items-center gap-2">
               <Label htmlFor="auto-save" className="text-xs flex items-center gap-1 cursor-pointer">
                 <Save className="w-3 h-3" />
