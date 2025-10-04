@@ -452,6 +452,11 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         hasFetchedRef.current = true;
         
+        // Dispatch event that tiles are loaded
+        window.dispatchEvent(new CustomEvent('dashboard-tiles-loaded', {
+          detail: { tiles, indices, timestamp: new Date().toISOString() }
+        }));
+        
         // Show cache performance
         const cachePerformance = Math.round((cacheStatsTracker.hits / (cacheStatsTracker.hits + cacheStatsTracker.misses)) * 100);
         
@@ -495,6 +500,11 @@ export function useOptimizedDataHub(input: DataHubInput) {
           lastFetchTime: new Date().toISOString(),
           cacheStats: { hits: 0, misses: 1, apiCalls: 50 } // Approximate
         });
+        
+        // Dispatch event that tiles are loaded (fallback path)
+        window.dispatchEvent(new CustomEvent('dashboard-tiles-loaded', {
+          detail: { tiles: data?.tiles || {}, timestamp: new Date().toISOString() }
+        }));
         
       } catch (fallbackError) {
         const errorMessage = fallbackError instanceof Error ? fallbackError.message : 'Failed to load data';

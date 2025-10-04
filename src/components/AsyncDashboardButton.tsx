@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Loader2, Sparkles, ArrowRight, Zap } from 'lucide-react';
@@ -9,6 +9,24 @@ type LoadState = 'idle' | 'loading' | 'loaded';
 export const AsyncDashboardButton = () => {
   const navigate = useNavigate();
   const [loadState, setLoadState] = useState<LoadState>('idle');
+  const [tilesLoaded, setTilesLoaded] = useState(false);
+
+  // Listen for dashboard data loading completion
+  useEffect(() => {
+    const handleDashboardReady = (event: CustomEvent) => {
+      console.log('[AsyncDashboardButton] Dashboard tiles loaded:', event.detail);
+      setTilesLoaded(true);
+      if (loadState === 'loading') {
+        setLoadState('loaded');
+      }
+    };
+
+    window.addEventListener('dashboard-tiles-loaded' as any, handleDashboardReady);
+    
+    return () => {
+      window.removeEventListener('dashboard-tiles-loaded' as any, handleDashboardReady);
+    };
+  }, [loadState]);
 
   const handleClick = async () => {
     if (loadState === 'loaded') {
@@ -21,18 +39,25 @@ export const AsyncDashboardButton = () => {
 
     // Start loading
     setLoadState('loading');
+    setTilesLoaded(false);
 
     try {
-      // Preload dashboard route and components asynchronously
-      await Promise.all([
-        // Simulate component preloading
-        new Promise(resolve => setTimeout(resolve, 800)),
-        // Preload Enterprise Hub page
-        import('@/pages/EnterpriseHub').catch(() => {}),
-      ]);
-
-      // Mark as loaded (don't navigate yet)
-      setLoadState('loaded');
+      // Start preloading the dashboard page in background
+      const preloadPromise = import('@/pages/EnterpriseHub').catch(() => {});
+      
+      // Create a hidden iframe to trigger dashboard data loading
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = '/dashboard';
+      document.body.appendChild(iframe);
+      
+      // Wait for preload to complete
+      await preloadPromise;
+      
+      // Keep loading state until tiles are loaded
+      // The 'dashboard-tiles-loaded' event will trigger the state change to 'loaded'
+      console.log('[AsyncDashboardButton] Waiting for tiles to load...');
+      
     } catch (error) {
       console.error('Failed to preload dashboard:', error);
       setLoadState('idle');

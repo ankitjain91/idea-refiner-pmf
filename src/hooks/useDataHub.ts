@@ -333,6 +333,11 @@ export function useDataHub(input: DataHubInput) {
       setState(newState);
       hasFetchedRef.current = true;
       
+      // Dispatch event that tiles are loaded
+      window.dispatchEvent(new CustomEvent('dashboard-tiles-loaded', {
+        detail: { tiles: synthesizedTiles, timestamp: fetchTime }
+      }));
+      
       // Cache the mock data
       const cacheKey = `datahub_mock_${btoa(input.idea).substring(0, 20)}`;
       localStorage.setItem(cacheKey, JSON.stringify({
@@ -415,6 +420,11 @@ export function useDataHub(input: DataHubInput) {
           });
           
           hasFetchedRef.current = true;
+          
+          // Dispatch event that tiles are loaded
+          window.dispatchEvent(new CustomEvent('dashboard-tiles-loaded', {
+            detail: { tiles: synthesizedTiles, timestamp: fetchTime }
+          }));
           
           // Cache the synthesized data
           const cacheKey = `datahub_real_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
