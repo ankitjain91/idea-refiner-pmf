@@ -78,10 +78,12 @@ function QuickStatCard({ title, icon: Icon, data, loading, accentColor }: QuickS
     return <Minus className="h-3 w-3 text-muted-foreground" />;
   };
   
-  // Create sparkline data (mock for now)
-  const sparklineData = Array.from({ length: 10 }, (_, i) => 
-    Math.max(0, Math.min(100, score + (Math.random() - 0.5) * 20))
-  );
+  // Create sparkline data (mock for now) - only if we have a valid score
+  const sparklineData = score !== null && score !== undefined 
+    ? Array.from({ length: 10 }, (_, i) => 
+        Math.max(0, Math.min(100, score + (Math.random() - 0.5) * 20))
+      )
+    : [];
   
   return (
     <>
@@ -103,11 +105,18 @@ function QuickStatCard({ title, icon: Icon, data, loading, accentColor }: QuickS
           </div>
           
           {loading ? (
-            <div className="h-8 bg-muted animate-pulse rounded" />
+            <div className="space-y-2">
+              <div className="h-8 bg-muted animate-pulse rounded" />
+              <div className="h-8 bg-muted animate-pulse rounded" />
+            </div>
+          ) : score === null || score === undefined ? (
+            <div className="py-4 text-center">
+              <p className="text-sm text-muted-foreground">No data yet</p>
+            </div>
           ) : (
             <>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-2xl font-bold">{score}</span>
+                <span className="text-2xl font-bold">{Math.round(score)}</span>
                 <span className="text-xs text-muted-foreground">/100</span>
               </div>
               
@@ -146,7 +155,7 @@ function QuickStatCard({ title, icon: Icon, data, loading, accentColor }: QuickS
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Current Score</p>
-                <p className="text-2xl font-bold">{score}/100</p>
+                <p className="text-2xl font-bold">{score !== null && score !== undefined ? Math.round(score) : 'N/A'}/100</p>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Trend</p>
