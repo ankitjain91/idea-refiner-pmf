@@ -22,7 +22,7 @@ import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
-import { DashboardLoader } from "@/components/engagement/DashboardLoader";
+
 
 export default function EnterpriseHub() {
   const { user } = useAuth();
@@ -413,10 +413,7 @@ export default function EnterpriseHub() {
           />
         )}
 
-        {/* Show funny loader only when initially loading and no data yet */}
-        {!hasLoadedData && !hasExistingAnalysis && !tiles.pmf_score && loading && (
-          <DashboardLoader stage="initial" />
-        )}
+        {/* Dashboard loading is now handled by AsyncDashboardButton */}
 
         {/* 1. HERO SECTION - Show immediately, with score loader if loading */}
         <HeroSection 
@@ -439,10 +436,7 @@ export default function EnterpriseHub() {
         {/* 3. MAIN ANALYSIS GRID - Load progressively, show tiles as they arrive */}
         {hasLoadedData && (
           <>
-            {/* Show tile loader only if we're loading and have no tile data yet */}
-            {loading && !tiles.market_size && !tiles.competition && !tiles.sentiment && (
-              <DashboardLoader stage="tiles" />
-            )}
+            {/* Tiles load progressively without separate loader */}
             
             {/* Show grid as soon as we have ANY data */}
             {(tiles.market_size || tiles.competition || tiles.sentiment || tiles.market_trends || tiles.google_trends || tiles.news_analysis) && (
