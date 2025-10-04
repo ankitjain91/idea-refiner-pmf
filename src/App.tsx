@@ -43,23 +43,24 @@ const RouteTransitionWrapper = () => {
       <Routes>
         <Route path="/logged-out" element={<LoggedOut />} />
         <Route path="/" element={<LandingPage />} />
-        <Route path="/logout" element={<Suspense fallback={null}><Logout /></Suspense>} />
-        <Route path="/documentation" element={<Suspense fallback={null}><Documentation /></Suspense>} />
-        <Route path="/hub" element={<ProtectedRoute><Suspense fallback={null}><AppLayout /><Hub /></Suspense></ProtectedRoute>} />
-        <Route path="/deep-dive" element={<Suspense fallback={null}><DeepDive /></Suspense>} />
+          <Route path="/logout" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Logout /></Suspense>} />
+          <Route path="/documentation" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Documentation /></Suspense>} />
+          {/* Hub now nested under shared layout for instant render */}
+          <Route path="/deep-dive" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><DeepDive /></Suspense>} />
         
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-          <Route path="/home" element={<Suspense fallback={null}><Dashboard /></Suspense>} />
-          <Route path="/dashboard" element={<Suspense fallback={null}><EnterpriseHub /></Suspense>} />
-          <Route path="/enterprisehub" element={<Suspense fallback={null}><EnterpriseHub /></Suspense>} />
-          <Route path="/ideachat" element={<Suspense fallback={null}><IdeaChat /></Suspense>} />
-          <Route path="/ideajournal" element={<Suspense fallback={null}><IdeaJournal /></Suspense>} />
-          <Route path="/settings" element={<Suspense fallback={null}><Settings /></Suspense>} />
-          <Route path="/pricing" element={<Suspense fallback={null}><Pricing /></Suspense>} />
-          <Route path="/subscription-success" element={<Suspense fallback={null}><Dashboard /></Suspense>} />
+          <Route path="/home" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Dashboard /></Suspense>} />
+          <Route path="/dashboard" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><EnterpriseHub /></Suspense>} />
+          <Route path="/enterprisehub" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><EnterpriseHub /></Suspense>} />
+          <Route path="/hub" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Hub /></Suspense>} />
+          <Route path="/ideachat" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><IdeaChat /></Suspense>} />
+          <Route path="/ideajournal" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><IdeaJournal /></Suspense>} />
+          <Route path="/settings" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Settings /></Suspense>} />
+          <Route path="/pricing" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Pricing /></Suspense>} />
+          <Route path="/subscription-success" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Dashboard /></Suspense>} />
         </Route>
-        <Route path="*" element={<Suspense fallback={null}><NotFound /></Suspense>} />
+        <Route path="*" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><NotFound /></Suspense>} />
       </Routes>
     </div>
   );
