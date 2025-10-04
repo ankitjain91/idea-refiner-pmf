@@ -28,6 +28,8 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export function LoadingStatusIndicator({ show, tasks, currentTask }: LoadingStatusIndicatorProps) {
+  console.log('[LoadingStatusIndicator] show:', show, 'tasks count:', tasks.length, 'currentTask:', currentTask);
+  
   if (!show || tasks.length === 0) return null;
 
   const completedCount = tasks.filter(t => t.status === "complete").length;

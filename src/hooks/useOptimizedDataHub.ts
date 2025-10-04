@@ -158,8 +158,17 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         // Fetch all tile data with deduplication
         const tilePromises = tileTypes.map(async (tileType) => {
-          // Special handling for market_size - use real-time service
-          if (tileType === 'market_size') {
+          try {
+            // Update task status to loading
+            setState(prev => ({
+              ...prev,
+              loadingTasks: prev.loadingTasks.map(t =>
+                t.id === tileType ? { ...t, status: "loading" as const } : t
+              )
+            }));
+
+            // Special handling for market_size - use real-time service
+            if (tileType === 'market_size') {
             const marketService = RealTimeMarketService.getInstance();
             const marketData = await marketService.fetchMarketSize(input.idea, forceRefresh);
             
@@ -221,6 +230,22 @@ export function useOptimizedDataHub(input: DataHubInput) {
                 SAM: marketData.SAM,
                 SOM: marketData.SOM
               });
+              
+              // Mark as complete
+              setState(prev => ({
+                ...prev,
+                loadingTasks: prev.loadingTasks.map(t =>
+                  t.id === tileType ? { ...t, status: "complete" as const } : t
+                )
+              }));
+            } else {
+              // Mark as error if no data
+              setState(prev => ({
+                ...prev,
+                loadingTasks: prev.loadingTasks.map(t =>
+                  t.id === tileType ? { ...t, status: "error" as const } : t
+                )
+              }));
             }
             return;
           }
@@ -249,6 +274,22 @@ export function useOptimizedDataHub(input: DataHubInput) {
               
               tiles[tileType] = tileData;
               console.log(`[OptimizedDataHub] ${tileType} platform data loaded`);
+              
+              // Mark as complete
+              setState(prev => ({
+                ...prev,
+                loadingTasks: prev.loadingTasks.map(t =>
+                  t.id === tileType ? { ...t, status: "complete" as const } : t
+                )
+              }));
+            } else {
+              // Mark as error if no data
+              setState(prev => ({
+                ...prev,
+                loadingTasks: prev.loadingTasks.map(t =>
+                  t.id === tileType ? { ...t, status: "error" as const } : t
+                )
+              }));
             }
             return;
           }
@@ -330,6 +371,24 @@ export function useOptimizedDataHub(input: DataHubInput) {
             };
             
             tiles[tileType] = tileData;
+            
+            // Mark as complete
+            setState(prev => ({
+              ...prev,
+              loadingTasks: prev.loadingTasks.map(t =>
+                t.id === tileType ? { ...t, status: "complete" as const } : t
+              )
+            }));
+          }
+          } catch (err) {
+            console.error(`[OptimizedDataHub] Error loading ${tileType}:`, err);
+            // Mark as error
+            setState(prev => ({
+              ...prev,
+              loadingTasks: prev.loadingTasks.map(t =>
+                t.id === tileType ? { ...t, status: "error" as const } : t
+              )
+            }));
           }
         });
         

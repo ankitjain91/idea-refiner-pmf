@@ -488,7 +488,7 @@ export default function EnterpriseHub() {
 
       {/* LOADING STATUS INDICATOR */}
       <LoadingStatusIndicator
-        show={loading && hasLoadedData}
+        show={loading}
         tasks={loadingTasks || []}
         currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
       />
