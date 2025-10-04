@@ -229,15 +229,6 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
         <Activity className="h-5 w-5 text-primary" />
         Main Analysis
       </h2>
-      
-      {/* Add Sentiment Tile */}
-      <div className="mb-6">
-        <SentimentTile 
-          idea={currentIdea} 
-          className="w-full"
-        />
-      </div>
-      
       <div className="grid grid-cols-1 gap-6">
         {displayTiles.map((tile) => {
           
@@ -356,21 +347,6 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             </div>
           );
         })}
-        
-        {/* Enhanced Reddit Research Tile */}
-        <div className="col-span-full">
-          <EnhancedRedditTile idea={currentIdea} />
-        </div>
-        
-        {/* Add Twitter Buzz Tile */}
-        <div className="col-span-full">
-          <TwitterBuzzTile idea={currentIdea} />
-        </div>
-        
-        {/* Add YouTube Analytics Tile */}
-        <div className="col-span-full">
-          <YouTubeAnalyticsTile idea={currentIdea} />
-        </div>
       </div>
     </div>
   );

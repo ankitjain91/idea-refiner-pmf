@@ -18,6 +18,10 @@ import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
+import { SentimentTile } from "@/components/hub/SentimentTile";
+import { EnhancedRedditTile } from "@/components/hub/EnhancedRedditTile";
+import { TwitterBuzzTile } from "@/components/hub/TwitterBuzzTile";
+import { YouTubeAnalyticsTile } from "@/components/hub/YouTubeAnalyticsTile";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -505,20 +509,23 @@ export default function EnterpriseHub() {
             )}
           </TabsContent>
 
-          {/* CUSTOMER RESEARCH TAB - Sentiment, News */}
+          {/* CUSTOMER RESEARCH TAB - Sentiment, News, Reddit, Twitter, YouTube */}
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Customer Insights</h3>
+                <SentimentTile idea={currentIdea} className="mb-6" />
                 <MainAnalysisGrid
                   tiles={{
-                    sentiment: tiles.sentiment,
                     news_analysis: tiles.news_analysis,
                   }}
                   loading={loading}
                   viewMode="deep"
                   onRefreshTile={refreshTile}
                 />
+                <EnhancedRedditTile idea={currentIdea} />
+                <TwitterBuzzTile idea={currentIdea} />
+                <YouTubeAnalyticsTile idea={currentIdea} />
               </div>
             )}
           </TabsContent>
