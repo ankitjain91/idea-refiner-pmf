@@ -137,7 +137,7 @@ const IdeaJournal = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-background via-primary/5 to-secondary/5">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
@@ -151,7 +151,9 @@ const IdeaJournal = () => {
               Back to Chat
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">Idea Journal</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                Idea Journal
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Manage your brainstorming sessions
               </p>

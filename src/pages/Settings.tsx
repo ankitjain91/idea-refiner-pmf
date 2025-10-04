@@ -209,7 +209,9 @@ export default function Settings() {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-              <h1 className="text-lg font-semibold">Settings</h1>
+              <h1 className="text-lg font-semibold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                Settings
+              </h1>
               <p className="text-xs text-muted-foreground">Manage your profile and subscription</p>
             </div>
           </div>
@@ -222,7 +224,7 @@ export default function Settings() {
             <UserMenu />
           </div>
         </div>
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-gradient-to-br from-background via-primary/5 to-secondary/5">
           <div className="container max-w-6xl mx-auto py-6 px-4 space-y-6">
             {(inlineError || inlineSuccess) && (
               <div className="space-y-2" role="status">
