@@ -217,50 +217,50 @@ export default function LandingPage() {
 
   const plans = [
     {
-      name: "Smooth Starter",
+      name: "Free",
       price: "$0",
-      period: "forever smooth",
-      description: "For brains with training wheels",
+      period: "month",
+      description: "Perfect for getting started",
       features: [
-        "3 wrinkle attempts per month",
-        "Basic brain massage analytics",
-        "Smooth brain support group",
-        "7-day embarrassment deletion"
+        "3 idea validations per month",
+        "Basic market analysis",
+        "Community support",
+        "7-day data retention"
       ],
-      cta: "Stay Smooth",
+      cta: "Get Started",
       variant: "outline" as const
     },
     {
-      name: "Wrinkle Pro",
+      name: "Pro",
       price: "$29",
-      period: "per brain fold",
-      description: "Get those gyri growing",
+      period: "month",
+      description: "For serious entrepreneurs",
       features: [
-        "Unlimited wrinkle generation",
-        "PhD-level brain grooves",
-        "Emergency wrinkle hotline",
-        "90-day genius retention",
-        "Direct cortex API access",
-        "Custom sulcus patterns"
+        "Unlimited idea validations",
+        "Advanced market insights",
+        "Priority support",
+        "90-day data retention",
+        "API access",
+        "Custom reports"
       ],
-      cta: "Get Wrinkly",
+      cta: "Upgrade to Pro",
       variant: "default" as const,
       popular: true
     },
     {
-      name: "Galaxy Brain",
-      price: "Your Soul",
-      period: "plus firstborn",
-      description: "Achieve peak wrinklage",
+      name: "Enterprise",
+      price: "Custom",
+      period: "contact us",
+      description: "For teams and agencies",
       features: [
-        "Infinite brain folds",
-        "Personal neuroscientist",
-        "Time travel to fix bad ideas",
-        "Telepathic contracts",
-        "Guaranteed VC funding",
-        "Your own TED talk"
+        "Unlimited everything",
+        "Dedicated account manager",
+        "White-label options",
+        "Team collaboration",
+        "Custom integrations",
+        "SLA guarantee"
       ],
-      cta: "Ascend Now",
+      cta: "Contact Sales",
       variant: "outline" as const
     }
   ];
@@ -497,9 +497,9 @@ export default function LandingPage() {
       <section className="container mx-auto px-6 py-24 border-t">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-semibold mb-4">Pricing smoother than your cerebellum</h2>
-            <p className="text-secondary-foreground text-lg">
-              Pick your wrinkle intensity level
+            <h2 className="text-4xl font-semibold mb-4">Choose Your Plan</h2>
+            <p className="text-muted-foreground text-lg">
+              Simple, transparent pricing for every stage
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -521,16 +521,16 @@ export default function LandingPage() {
                     <CardTitle className="text-2xl">{plan.name}</CardTitle>
                     <CardDescription className="text-base">{plan.description}</CardDescription>
                     <div className="mt-6">
-                      <span className="text-4xl font-semibold">{plan.price}</span>
-                      <span className="text-secondary-foreground ml-2">/{plan.period}</span>
+                      <span className="text-4xl font-semibold text-foreground">{plan.price}</span>
+                      <span className="text-muted-foreground ml-2">/{plan.period}</span>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <ul className="space-y-4">
                       {plan.features.map((feature, idx) => (
                         <li key={idx} className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-accent flex-shrink-0" />
-                          <span className="text-secondary-foreground">{feature}</span>
+                          <Check className="h-5 w-5 text-secondary flex-shrink-0" />
+                          <span className="text-foreground">{feature}</span>
                         </li>
                       ))}
                     </ul>
