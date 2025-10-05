@@ -33,7 +33,7 @@ export function RecentIdeas() {
         .eq('user_id', user.id)
         .eq('is_active', true)
         .order('last_accessed', { ascending: false, nullsFirst: false })
-        .limit(5);
+        .limit(3);
 
       if (data && !error) {
         setSessions(data);
