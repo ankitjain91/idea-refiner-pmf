@@ -60,7 +60,28 @@ export default function EnterpriseHub() {
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
-    // Always check localStorage first for immediate availability
+    // First, check for the canonical appIdea from Generate My Idea button
+    try {
+      const appIdeaRaw = localStorage.getItem("appIdea");
+      if (appIdeaRaw) {
+        const appIdeaData = JSON.parse(appIdeaRaw);
+        if (appIdeaData.summary) {
+          const cleanedSummary = cleanIdeaText(appIdeaData.summary);
+          setCurrentIdea(cleanedSummary);
+          setConversationSummary(cleanedSummary);
+          console.log("[EnterpriseHub] Using appIdea summary:", cleanedSummary.substring(0, 100));
+          
+          if (currentSession) {
+            setSessionName(currentSession.name || "Untitled Session");
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("[EnterpriseHub] Error parsing appIdea:", e);
+    }
+    
+    // Fallback to old keys if appIdea doesn't exist
     const rawStoredIdea = 
       localStorage.getItem("pmfCurrentIdea") ||
       localStorage.getItem("dashboardIdea") || 
@@ -68,50 +89,15 @@ export default function EnterpriseHub() {
       localStorage.getItem("userIdea") || 
       "";
     
-    // Clean the stored idea
     const storedIdea = cleanIdeaText(rawStoredIdea);
     
-    console.log("[EnterpriseHub] Checking all localStorage keys:", {
-      pmfCurrentIdea: localStorage.getItem("pmfCurrentIdea")?.substring(0, 50),
-      dashboardIdea: localStorage.getItem("dashboardIdea")?.substring(0, 50),
-      currentIdea: localStorage.getItem("currentIdea")?.substring(0, 50),
-      userIdea: localStorage.getItem("userIdea")?.substring(0, 50)
-    });
-    
-    // If we have a stored idea, use it immediately
     if (storedIdea) {
       setCurrentIdea(storedIdea);
-      // Using useIdeaContext for idea management
-      console.log("[EnterpriseHub] Using stored idea:", storedIdea.substring(0, 100));
+      setConversationSummary(storedIdea);
+      console.log("[EnterpriseHub] Using fallback idea:", storedIdea.substring(0, 100));
       
-      // Now check if we have a session to enhance with chat history
       if (currentSession) {
-        const { chatHistory, currentIdea: sessionIdea } = currentSession.data || {};
-        
-        // Create conversation summary if we have chat history
-        if (chatHistory && chatHistory.length > 0) {
-          const summary = createConversationSummary(chatHistory, sessionIdea || storedIdea);
-          const cleanedSummary = cleanIdeaText(summary);
-          setConversationSummary(cleanedSummary);
-          // Update localStorage with cleaned summary
-          if (cleanedSummary !== storedIdea) {
-            // Using useIdeaContext for idea management
-            setCurrentIdea(cleanedSummary);
-          }
-        } else {
-          setConversationSummary(storedIdea);
-        }
-        
-        // Update session with the stored idea if it doesn't have one
-        if (!sessionIdea && currentSession.data) {
-          currentSession.data.currentIdea = storedIdea;
-          saveCurrentSession();
-        }
-        
         setSessionName(currentSession.name || "Untitled Session");
-      } else {
-        // No session, just use the stored idea as summary
-        setConversationSummary(storedIdea);
       }
     } else if (currentSession?.data) {
       // No stored idea, try to get from session
@@ -126,14 +112,13 @@ export default function EnterpriseHub() {
         if (cleanedSummary) {
           setCurrentIdea(cleanedSummary);
           setConversationSummary(cleanedSummary);
-          // Using useIdeaContext for idea management
           console.log("[EnterpriseHub] Got idea from session:", cleanedSummary.substring(0, 100));
         }
       }
       
       setSessionName(currentSession.name || "Untitled Session");
     }
-  }, [currentSession, saveCurrentSession]);
+  }, [currentSession]);
   
   // Watch for session changes
   useEffect(() => {
