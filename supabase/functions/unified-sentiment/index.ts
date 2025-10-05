@@ -3,11 +3,10 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Cache-Control': 'public, max-age=3600, s-maxage=3600', // Cache for 1 hour
+  'Cache-Control': 'public, max-age=3600, s-maxage=3600',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -19,27 +18,63 @@ serve(async (req) => {
       throw new Error('No idea provided');
     }
 
-    console.log('[unified-sentiment] Processing idea:', idea.slice(0, 100) + '...');
+    console.log('[Unified Sentiment] Analyzing:', idea.substring(0, 100));
 
-    // Aggregate sentiment from multiple sources
-    const sentimentData = await analyzeUnifiedSentiment(idea, detailed);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Add ETag for cache validation
-    const etag = `"${btoa(JSON.stringify({ idea: idea.slice(0, 50), timestamp: Math.floor(Date.now() / 3600000) }))}"`;
+    // Call all real data sources in parallel
+    console.log('[Unified Sentiment] Fetching from Reddit, Twitter, YouTube, News...');
+    const [redditRes, twitterRes, youtubeRes, newsRes] = await Promise.all([
+      fetch(`${supabaseUrl}/functions/v1/reddit-sentiment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ idea, timeWindow: 'week' })
+      }).catch(err => { console.error('[Unified] Reddit error:', err); return null; }),
+
+      fetch(`${supabaseUrl}/functions/v1/twitter-search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ idea, time_window: 'week' })
+      }).catch(err => { console.error('[Unified] Twitter error:', err); return null; }),
+
+      fetch(`${supabaseUrl}/functions/v1/youtube-search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ idea_text: idea, time_window: 'week' })
+      }).catch(err => { console.error('[Unified] YouTube error:', err); return null; }),
+
+      fetch(`${supabaseUrl}/functions/v1/gdelt-news`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ idea })
+      }).catch(err => { console.error('[Unified] News error:', err); return null; })
+    ]);
+
+    // Parse all responses
+    const [reddit, twitter, youtube, news] = await Promise.all([
+      redditRes?.json().catch(() => null),
+      twitterRes?.json().catch(() => null),
+      youtubeRes?.json().catch(() => null),
+      newsRes?.json().catch(() => null)
+    ]);
+
+    console.log('[Unified] Data:', { reddit: !!reddit, twitter: !!twitter, youtube: !!youtube, news: !!news });
+
+    const sentimentData = aggregateRealSentiment(idea, reddit, twitter, youtube, news);
 
     return new Response(
       JSON.stringify({ sentiment: sentimentData }),
-      { 
-        headers: { 
-          ...corsHeaders, 
+      {
+        headers: {
+          ...corsHeaders,
           'Content-Type': 'application/json',
-          'ETag': etag,
-          'X-Cache-Status': 'MISS' 
-        } 
+          'X-Cache-Status': 'MISS'
+        }
       }
     );
   } catch (error) {
-    console.error('[unified-sentiment] Error:', error);
+    console.error('[Unified Sentiment] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -47,441 +82,189 @@ serve(async (req) => {
   }
 });
 
-async function analyzeUnifiedSentiment(idea: string, detailed: boolean) {
-  console.log('[unified-sentiment] Generating sentiment analysis for:', idea.slice(0, 100));
-  
-  // Extract keywords from the idea
-  const keywords = extractKeywords(idea);
-  
-  // Aggregate sentiment from different sources
-  const sourceData = aggregateSourceSentiment(idea, keywords);
-  
-  // Generate thematic clusters
-  const clusters = generateThematicClusters(idea, sourceData);
-  
+function aggregateRealSentiment(idea: string, reddit: any, twitter: any, youtube: any, news: any) {
+  const redditData = reddit?.data || reddit || {};
+  const twitterData = twitter?.data || twitter || {};
+  const youtubeData = youtube?.data || youtube || {};
+  const newsData = news?.data || news || {};
+
+  // Extract keywords
+  const keywords = new Set<string>();
+  if (redditData.themes) redditData.themes.forEach((t: string) => keywords.add(t));
+  if (twitterData.top_hashtags) twitterData.top_hashtags.forEach((h: string) => keywords.add(h.replace('#', '')));
+
+  // Build thematic clusters from real data
+  const clusters = [];
+
+  // Reddit cluster
+  if (redditData.totalPosts > 0) {
+    clusters.push({
+      theme: 'Community Discussion & Feedback',
+      insight: `${redditData.totalPosts} Reddit discussions analyzed with ${redditData.positive}% positive sentiment`,
+      sentiment: {
+        positive: redditData.positive || 0,
+        neutral: redditData.neutral || 0,
+        negative: redditData.negative || 0
+      },
+      quotes: redditData.samplePosts?.slice(0, 3).map((p: any) => ({
+        text: p.excerpt || p.body?.substring(0, 150) || p.title,
+        sentiment: p.sentiment || 'neutral',
+        source: 'reddit'
+      })) || [],
+      citations: redditData.samplePosts?.slice(0, 2).map((p: any) => ({
+        source: `r/${p.subreddit}`,
+        url: p.permalink || '#',
+        title: p.title
+      })) || []
+    });
+  }
+
+  // Twitter cluster
+  if (twitterData.total_tweets > 0) {
+    clusters.push({
+      theme: 'Social Media Buzz & Trends',
+      insight: `${twitterData.total_tweets} tweets analyzed with ${twitterData.top_hashtags?.length || 0} trending hashtags`,
+      sentiment: {
+        positive: twitterData.positive || 0,
+        neutral: twitterData.neutral || 0,
+        negative: twitterData.negative || 0
+      },
+      quotes: twitterData.sample_tweets?.slice(0, 3).map((t: any) => ({
+        text: t.text?.substring(0, 150) || '',
+        sentiment: t.sentiment || 'neutral',
+        source: 'twitter'
+      })) || [],
+      citations: twitterData.sample_tweets?.slice(0, 2).map((t: any) => ({
+        source: 'Twitter',
+        url: `https://twitter.com/i/web/status/${t.id}`,
+        title: `Tweet by @${t.author_username}`
+      })) || []
+    });
+  }
+
+  // YouTube cluster
+  if (youtubeData.youtube_insights?.length > 0) {
+    const videos = youtubeData.youtube_insights;
+    const avgRelevance = youtubeData.summary?.avg_relevance || 50;
+    clusters.push({
+      theme: 'Video Content & Engagement',
+      insight: `${videos.length} videos analyzed with average relevance of ${Math.round(avgRelevance)}%`,
+      sentiment: {
+        positive: Math.round(videos.filter((v: any) => v.relevance > 60).length / videos.length * 100),
+        neutral: Math.round(videos.filter((v: any) => v.relevance >= 40 && v.relevance <= 60).length / videos.length * 100),
+        negative: Math.round(videos.filter((v: any) => v.relevance < 40).length / videos.length * 100)
+      },
+      quotes: videos.slice(0, 3).map((v: any) => ({
+        text: v.title,
+        sentiment: v.relevance > 60 ? 'positive' : v.relevance < 40 ? 'negative' : 'neutral',
+        source: 'youtube'
+      })),
+      citations: videos.slice(0, 2).map((v: any) => ({
+        source: 'YouTube',
+        url: `https://youtube.com/watch?v=${v.video_id}`,
+        title: v.title
+      }))
+    });
+  }
+
+  // News cluster
+  if (newsData.articles?.length > 0) {
+    const articles = newsData.articles;
+    clusters.push({
+      theme: 'News Coverage & Media Analysis',
+      insight: `${articles.length} news articles analyzed from various sources`,
+      sentiment: {
+        positive: Math.round(articles.filter((a: any) => (a.sentiment_score || 0) > 0.2).length / articles.length * 100),
+        neutral: Math.round(articles.filter((a: any) => Math.abs(a.sentiment_score || 0) <= 0.2).length / articles.length * 100),
+        negative: Math.round(articles.filter((a: any) => (a.sentiment_score || 0) < -0.2).length / articles.length * 100)
+      },
+      quotes: articles.slice(0, 3).map((a: any) => ({
+        text: a.title,
+        sentiment: (a.sentiment_score || 0) > 0.2 ? 'positive' : (a.sentiment_score || 0) < -0.2 ? 'negative' : 'neutral',
+        source: 'news'
+      })),
+      citations: articles.slice(0, 2).map((a: any) => ({
+        source: a.source?.name || 'News',
+        url: a.url || '#',
+        title: a.title
+      }))
+    });
+  }
+
   // Calculate overall metrics
-  const metrics = calculateMetrics(sourceData, clusters);
-  
-  // Generate trend data
-  const trendData = generateTrendData();
-  
-  // Generate word clouds
-  const wordClouds = generateWordClouds(sourceData);
-  
-  // Generate chart data
-  const charts = generateChartData(clusters, metrics);
-  
-  // Generate summary
-  const summary = generateSummary(idea, metrics, clusters);
-  
-  // Determine confidence
-  const confidence = determineConfidence(sourceData, metrics);
-  
+  let totalPositive = 0, totalNeutral = 0, totalNegative = 0, totalVolume = 0;
+  clusters.forEach(c => {
+    const weight = c.sentiment.positive + c.sentiment.neutral + c.sentiment.negative;
+    if (weight > 0) {
+      totalPositive += c.sentiment.positive;
+      totalNeutral += c.sentiment.neutral;
+      totalNegative += c.sentiment.negative;
+      totalVolume += 1;
+    }
+  });
+
+  const overallDistribution = totalVolume > 0 ? {
+    positive: Math.round(totalPositive / totalVolume),
+    neutral: Math.round(totalNeutral / totalVolume),
+    negative: Math.round(totalNegative / totalVolume)
+  } : { positive: 0, neutral: 0, negative: 0 };
+
+  // Extract positive drivers and concerns
+  const positiveDrivers: string[] = [];
+  const concerns: string[] = [];
+
+  if (redditData.themes) positiveDrivers.push(...redditData.themes.slice(0, 2));
+  if (redditData.painPoints) concerns.push(...redditData.painPoints.slice(0, 2));
+  if (twitterData.top_hashtags) positiveDrivers.push(...twitterData.top_hashtags.slice(0, 2));
+
+  const metrics = {
+    overall_distribution: overallDistribution,
+    engagement_weighted_distribution: overallDistribution,
+    top_positive_drivers: positiveDrivers.slice(0, 4),
+    top_negative_concerns: concerns.slice(0, 4),
+    source_breakdown: {
+      reddit: redditData.totalPosts || 0,
+      twitter: twitterData.total_tweets || 0,
+      youtube: youtubeData.youtube_insights?.length || 0,
+      news: newsData.articles?.length || 0
+    },
+    trend_delta: `${overallDistribution.positive > 50 ? '+' : ''}${overallDistribution.positive - 50}% vs neutral`
+  };
+
+  const totalMentions = (redditData.totalPosts || 0) + (twitterData.total_tweets || 0) + 
+                       (youtubeData.youtube_insights?.length || 0) + (newsData.articles?.length || 0);
+
+  const summary = totalMentions > 0 
+    ? `Analyzed ${totalMentions} mentions across ${clusters.length} platforms. Sentiment is ${
+        overallDistribution.positive > 60 ? 'predominantly positive' :
+        overallDistribution.positive > 40 ? 'moderately positive' :
+        overallDistribution.negative > 40 ? 'concerning' : 'mixed'
+      }. ${clusters.length > 0 ? `Key focus: ${clusters[0].theme.toLowerCase()}.` : ''}`
+    : 'Limited data available for this idea.';
+
+  const confidence = Math.min(0.95, 0.3 + (clusters.length * 0.15) + (Math.min(totalMentions, 200) / 400));
+
   return {
     summary,
     metrics,
     clusters,
-    trend_data: trendData,
-    word_clouds: wordClouds,
-    charts,
+    trend_data: [],
+    word_clouds: {
+      positive: positiveDrivers.slice(0, 8).map(w => ({ text: w, value: 50 + Math.random() * 50 })),
+      negative: concerns.slice(0, 8).map(w => ({ text: w, value: 50 + Math.random() * 50 }))
+    },
+    charts: [
+      {
+        type: 'donut',
+        title: 'Overall Sentiment Distribution',
+        series: [
+          { name: 'Positive', value: overallDistribution.positive },
+          { name: 'Neutral', value: overallDistribution.neutral },
+          { name: 'Negative', value: overallDistribution.negative }
+        ]
+      }
+    ],
     visuals_ready: true,
     confidence
   };
-}
-
-function extractKeywords(idea: string): string[] {
-  const words = idea.toLowerCase().split(/\s+/);
-  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'that', 'this', 'it', 'with', 'as', 'be', 'are', 'is']);
-  return words
-    .filter(word => word.length > 3 && !stopWords.has(word))
-    .slice(0, 8);
-}
-
-function aggregateSourceSentiment(idea: string, keywords: string[]) {
-  // Simulate aggregating sentiment from different sources
-  // In production, this would pull from DATA_HUB indices
-  
-  const sources = ['reddit', 'twitter', 'news', 'blogs', 'forums'];
-  const sourceData: any = {};
-  
-  sources.forEach(source => {
-    // Generate realistic sentiment distribution for each source
-    const basePositive = 45 + Math.random() * 25;
-    const baseNegative = 10 + Math.random() * 15;
-    const baseNeutral = 100 - basePositive - baseNegative;
-    
-    sourceData[source] = {
-      positive: Math.round(basePositive),
-      neutral: Math.round(baseNeutral),
-      negative: Math.round(baseNegative),
-      volume: Math.floor(100 + Math.random() * 500),
-      engagement: Math.floor(1000 + Math.random() * 5000),
-      posts: generateSamplePosts(source, keywords)
-    };
-  });
-  
-  return sourceData;
-}
-
-function generateSamplePosts(source: string, keywords: string[]) {
-  // Generate sample posts for each source
-  const sentiments = ['positive', 'neutral', 'negative'];
-  const posts = [];
-  
-  for (let i = 0; i < 5; i++) {
-    const sentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
-    posts.push({
-      text: generatePostText(source, sentiment, keywords),
-      sentiment,
-      engagement: Math.floor(10 + Math.random() * 200),
-      timestamp: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString()
-    });
-  }
-  
-  return posts;
-}
-
-function generatePostText(source: string, sentiment: string, keywords: string[]) {
-  const templates = {
-    positive: {
-      reddit: [
-        `Just implemented ${keywords[0]} and the results are amazing! ROI in 2 months.`,
-        `${keywords[0]} ${keywords[1]} changed our workflow completely. Highly recommend!`,
-        `Game changer for our startup. ${keywords[0]} solved our biggest pain point.`
-      ],
-      twitter: [
-        `🚀 ${keywords[0]} is the future! Already seeing 30% improvement in efficiency #startup`,
-        `If you're not using ${keywords[0]} yet, you're missing out. Incredible results! 💯`,
-        `Just hit our targets thanks to ${keywords[0]}. Best decision we made this year!`
-      ],
-      news: [
-        `Industry experts praise ${keywords[0]} for innovative approach to ${keywords[1]}`,
-        `${keywords[0]} disrupts traditional market with 40% growth quarter-over-quarter`,
-        `Early adopters report significant success with ${keywords[0]} implementation`
-      ]
-    },
-    neutral: {
-      reddit: [
-        `Considering ${keywords[0]} for our team. Anyone have experience to share?`,
-        `${keywords[0]} seems interesting but need to see more real-world results.`,
-        `Mixed feelings about ${keywords[0]}. Some features great, others need work.`
-      ],
-      twitter: [
-        `Testing ${keywords[0]} this week. Will share results soon. #startup #tech`,
-        `${keywords[0]} has potential but needs better documentation IMO`,
-        `Interesting approach with ${keywords[0]}. Time will tell if it delivers.`
-      ],
-      news: [
-        `Market watches ${keywords[0]} development with cautious optimism`,
-        `${keywords[0]} enters competitive market with unique positioning`,
-        `Analysts divided on long-term prospects of ${keywords[0]}`
-      ]
-    },
-    negative: {
-      reddit: [
-        `${keywords[0]} pricing is too steep for small startups. Looking for alternatives.`,
-        `Had integration issues with ${keywords[0]}. Support was slow to respond.`,
-        `Not convinced ${keywords[0]} is worth the hype. Missing key features.`
-      ],
-      twitter: [
-        `Disappointed with ${keywords[0]}. Doesn't live up to the marketing promises.`,
-        `⚠️ Be careful with ${keywords[0]} - hidden costs and complex setup`,
-        `${keywords[0]} needs major improvements before it's enterprise-ready`
-      ],
-      news: [
-        `${keywords[0]} faces criticism over pricing and feature limitations`,
-        `Security concerns raised about ${keywords[0]} data handling practices`,
-        `Competitors challenge ${keywords[0]} market position with better offerings`
-      ]
-    }
-  };
-  
-  const sourceTemplates = templates[sentiment as keyof typeof templates][source as keyof typeof templates.positive] || templates[sentiment as keyof typeof templates].reddit;
-  return sourceTemplates[Math.floor(Math.random() * sourceTemplates.length)];
-}
-
-function generateThematicClusters(idea: string, sourceData: any) {
-  const themes = [
-    {
-      theme: 'Adoption & Implementation',
-      weight: 0.3,
-      sentimentBias: { positive: 0.7, neutral: 0.2, negative: 0.1 }
-    },
-    {
-      theme: 'Cost & ROI Analysis',
-      weight: 0.25,
-      sentimentBias: { positive: 0.4, neutral: 0.35, negative: 0.25 }
-    },
-    {
-      theme: 'Features & Innovation',
-      weight: 0.25,
-      sentimentBias: { positive: 0.65, neutral: 0.25, negative: 0.1 }
-    },
-    {
-      theme: 'Support & Documentation',
-      weight: 0.1,
-      sentimentBias: { positive: 0.45, neutral: 0.35, negative: 0.2 }
-    },
-    {
-      theme: 'Security & Compliance',
-      weight: 0.1,
-      sentimentBias: { positive: 0.4, neutral: 0.4, negative: 0.2 }
-    }
-  ];
-  
-  return themes.map(theme => {
-    const sentiment = {
-      positive: Math.round(theme.sentimentBias.positive * 100),
-      neutral: Math.round(theme.sentimentBias.neutral * 100),
-      negative: Math.round(theme.sentimentBias.negative * 100)
-    };
-    
-    const quotes = generateThemeQuotes(theme.theme, sentiment);
-    const citations = generateCitations(theme.theme);
-    
-    return {
-      theme: theme.theme,
-      insight: generateThemeInsight(idea, theme.theme, sentiment),
-      sentiment,
-      quotes,
-      citations
-    };
-  });
-}
-
-function generateThemeQuotes(theme: string, sentiment: any) {
-  const quotes = [];
-  
-  if (sentiment.positive > 50) {
-    quotes.push({
-      text: `Excellent results with ${theme.toLowerCase()}. Exceeded our expectations!`,
-      sentiment: 'positive' as const,
-      source: Math.random() > 0.5 ? 'reddit' : 'twitter'
-    });
-  }
-  
-  if (sentiment.negative > 20) {
-    quotes.push({
-      text: `Concerns about ${theme.toLowerCase()}. Needs improvement in key areas.`,
-      sentiment: 'negative' as const,
-      source: Math.random() > 0.5 ? 'forums' : 'news'
-    });
-  }
-  
-  quotes.push({
-    text: `Mixed experiences with ${theme.toLowerCase()}. Some wins, some challenges.`,
-    sentiment: 'neutral' as const,
-    source: 'blogs'
-  });
-  
-  return quotes.slice(0, 2);
-}
-
-function generateCitations(theme: string) {
-  const sources = [
-    { source: `reddit.com/r/startups/${theme.toLowerCase().replace(/\s+/g, '_')}`, url: '#' },
-    { source: `techcrunch.com/analysis/${theme.toLowerCase().replace(/\s+/g, '-')}`, url: '#' },
-    { source: `medium.com/@expert/${theme.toLowerCase().replace(/\s+/g, '-')}`, url: '#' }
-  ];
-  
-  return sources.slice(0, 2);
-}
-
-function generateThemeInsight(idea: string, theme: string, sentiment: any) {
-  const ideaShort = idea.slice(0, 40) + '...';
-  
-  const insights: Record<string, string> = {
-    'Adoption & Implementation': `Early adopters of ${ideaShort} report ${sentiment.positive > 60 ? 'smooth' : 'mixed'} implementation experiences with ${sentiment.positive}% positive feedback.`,
-    'Cost & ROI Analysis': `ROI discussions show ${sentiment.positive > 50 ? 'favorable' : 'cautious'} outlook with businesses ${sentiment.positive > 50 ? 'seeing returns within 3-6 months' : 'seeking clearer value propositions'}.`,
-    'Features & Innovation': `Community ${sentiment.positive > 60 ? 'praises innovative features' : 'requests additional functionality'} with ${sentiment.positive}% satisfaction rate.`,
-    'Support & Documentation': `User feedback on support is ${sentiment.positive > 50 ? 'generally positive' : 'mixed'}, with ${sentiment.negative > 20 ? 'room for improvement in response times' : 'quick resolution times'}.`,
-    'Security & Compliance': `Security discussions ${sentiment.positive > 50 ? 'express confidence' : 'raise concerns'} about data handling and compliance standards.`
-  };
-  
-  return insights[theme] || `Analysis shows ${sentiment.positive}% positive sentiment for ${theme.toLowerCase()}.`;
-}
-
-function calculateMetrics(sourceData: any, clusters: any[]) {
-  // Calculate overall sentiment distribution
-  let totalPositive = 0;
-  let totalNeutral = 0;
-  let totalNegative = 0;
-  let totalVolume = 0;
-  let totalEngagement = 0;
-  
-  Object.values(sourceData).forEach((source: any) => {
-    totalPositive += source.positive * source.volume;
-    totalNeutral += source.neutral * source.volume;
-    totalNegative += source.negative * source.volume;
-    totalVolume += source.volume;
-    totalEngagement += source.engagement;
-  });
-  
-  const overallDistribution = {
-    positive: Math.round(totalPositive / totalVolume),
-    neutral: Math.round(totalNeutral / totalVolume),
-    negative: Math.round(totalNegative / totalVolume)
-  };
-  
-  // Calculate engagement-weighted distribution
-  let engagementPositive = 0;
-  let engagementNeutral = 0;
-  let engagementNegative = 0;
-  
-  Object.values(sourceData).forEach((source: any) => {
-    engagementPositive += source.positive * source.engagement;
-    engagementNeutral += source.neutral * source.engagement;
-    engagementNegative += source.negative * source.engagement;
-  });
-  
-  const engagementWeighted = {
-    positive: Math.round(engagementPositive / totalEngagement),
-    neutral: Math.round(engagementNeutral / totalEngagement),
-    negative: Math.round(engagementNegative / totalEngagement)
-  };
-  
-  // Extract top drivers and concerns
-  const positiveDrivers = [
-    'adoption success',
-    'cost savings',
-    'innovation',
-    'ease of use',
-    'scalability'
-  ].slice(0, 4);
-  
-  const negativeConcerns = [
-    'pricing',
-    'integration complexity',
-    'support response',
-    'feature gaps',
-    'compliance'
-  ].slice(0, 4);
-  
-  // Source breakdown
-  const sourceBreakdown: any = {};
-  Object.entries(sourceData).forEach(([source, data]: [string, any]) => {
-    sourceBreakdown[source] = {
-      positive: data.positive,
-      neutral: data.neutral,
-      negative: data.negative
-    };
-  });
-  
-  // Calculate trend
-  const trendDelta = `+${Math.floor(5 + Math.random() * 10)}% positive vs last quarter`;
-  
-  return {
-    overall_distribution: overallDistribution,
-    engagement_weighted_distribution: engagementWeighted,
-    trend_delta: trendDelta,
-    top_positive_drivers: positiveDrivers,
-    top_negative_concerns: negativeConcerns,
-    source_breakdown: sourceBreakdown
-  };
-}
-
-function generateTrendData() {
-  const data = [];
-  const today = new Date();
-  
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(today);
-    date.setMonth(date.getMonth() - i);
-    
-    // Create realistic trend with slight positive momentum
-    const basePositive = 50 + (11 - i) * 0.8;
-    const variation = Math.random() * 10 - 5;
-    
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short' }),
-      positive: Math.round(basePositive + variation),
-      neutral: Math.round(25 + Math.random() * 5),
-      negative: Math.round(20 - (11 - i) * 0.3 + Math.random() * 5)
-    });
-  }
-  
-  return data;
-}
-
-function generateWordClouds(sourceData: any) {
-  // Extract keywords from posts
-  const positiveWords = [
-    { text: 'innovative', value: 85 + Math.random() * 15 },
-    { text: 'efficient', value: 80 + Math.random() * 15 },
-    { text: 'powerful', value: 75 + Math.random() * 15 },
-    { text: 'seamless', value: 70 + Math.random() * 15 },
-    { text: 'intuitive', value: 65 + Math.random() * 15 },
-    { text: 'scalable', value: 60 + Math.random() * 15 },
-    { text: 'reliable', value: 55 + Math.random() * 15 },
-    { text: 'game-changer', value: 85 + Math.random() * 10 }
-  ];
-  
-  const negativeWords = [
-    { text: 'expensive', value: 55 + Math.random() * 15 },
-    { text: 'complex', value: 50 + Math.random() * 15 },
-    { text: 'limited', value: 45 + Math.random() * 15 },
-    { text: 'slow', value: 40 + Math.random() * 15 },
-    { text: 'buggy', value: 35 + Math.random() * 15 },
-    { text: 'confusing', value: 35 + Math.random() * 15 },
-    { text: 'lacking', value: 30 + Math.random() * 15 },
-    { text: 'disappointing', value: 40 + Math.random() * 10 }
-  ];
-  
-  return {
-    positive: positiveWords.sort((a, b) => b.value - a.value),
-    negative: negativeWords.sort((a, b) => b.value - a.value)
-  };
-}
-
-function generateChartData(clusters: any[], metrics: any) {
-  return [
-    {
-      type: 'donut',
-      title: 'Overall Sentiment Distribution',
-      series: [
-        { name: 'Positive', value: metrics.overall_distribution.positive },
-        { name: 'Neutral', value: metrics.overall_distribution.neutral },
-        { name: 'Negative', value: metrics.overall_distribution.negative }
-      ]
-    },
-    {
-      type: 'bar',
-      title: 'Sentiment by Theme',
-      series: clusters.map(c => ({
-        theme: c.theme,
-        positive: c.sentiment.positive,
-        neutral: c.sentiment.neutral,
-        negative: c.sentiment.negative
-      }))
-    },
-    {
-      type: 'radar',
-      title: 'Source Sentiment Comparison',
-      series: Object.entries(metrics.source_breakdown).map(([source, data]: [string, any]) => ({
-        source,
-        sentiment: data.positive
-      }))
-    }
-  ];
-}
-
-function generateSummary(idea: string, metrics: any, clusters: any[]) {
-  const topCluster = clusters.reduce((prev, current) => 
-    current.sentiment.positive > prev.sentiment.positive ? current : prev
-  );
-  
-  const sentimentLevel = metrics.overall_distribution.positive > 65 ? 'strongly positive' :
-                        metrics.overall_distribution.positive > 50 ? 'moderately positive' :
-                        metrics.overall_distribution.positive > 35 ? 'mixed' : 'concerning';
-  
-  return `Sentiment around ${idea.slice(0, 50)}... is ${sentimentLevel}: ${metrics.overall_distribution.positive}% positive, ${metrics.overall_distribution.neutral}% neutral, and ${metrics.overall_distribution.negative}% negative. ${topCluster.theme} drives positive sentiment at ${topCluster.sentiment.positive}%. Key concerns include ${metrics.top_negative_concerns[0]} and ${metrics.top_negative_concerns[1]}. ${metrics.trend_delta}.`;
-}
-
-function determineConfidence(sourceData: any, metrics: any): 'High' | 'Moderate' | 'Low' {
-  const totalVolume = Object.values(sourceData).reduce((sum: number, source: any) => sum + source.volume, 0);
-  const consistency = Math.abs(metrics.overall_distribution.positive - metrics.engagement_weighted_distribution.positive);
-  
-  if (totalVolume > 1500 && consistency < 5) return 'High';
-  if (totalVolume > 750 && consistency < 10) return 'Moderate';
-  return 'Low';
 }
