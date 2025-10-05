@@ -822,49 +822,57 @@ export default function EnterpriseHub() {
                   </CardContent>
                 </Card>
 
-                {/* Reddit Research */}
-                <Collapsible>
-                  <Card className="border-border/50 bg-card/50">
-                    <CollapsibleTrigger className="w-full">
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <MessageSquare className="h-4 w-4 text-primary" />
-                            <CardTitle className="text-sm">Reddit Discussions</CardTitle>
-                          </div>
-                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        <EnhancedRedditTile idea={currentIdea} />
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
+                {/* Reddit Discussions Card */}
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'reddit', data: null })}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">Reddit Discussions</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        Research
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1 animate-fade-in">
+                      <p className="text-sm text-muted-foreground">Deep dive into community conversations, pain points & sentiment</p>
+                      <Button variant="ghost" size="sm" className="mt-1 w-full opacity-100 hover-scale">
+                        View Analysis
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                {/* Social Media Buzz */}
-                <Collapsible>
-                  <Card className="border-border/50 bg-card/50">
-                    <CollapsibleTrigger className="w-full">
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-primary" />
-                            <CardTitle className="text-sm">Social Media Buzz</CardTitle>
-                          </div>
-                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        <TwitterBuzzTile idea={currentIdea} />
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
+                {/* Social Media Buzz Card */}
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'twitter', data: null })}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">Social Media Buzz</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        Trending
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1 animate-fade-in">
+                      <p className="text-sm text-muted-foreground">Track Twitter conversations, influencers & trending hashtags</p>
+                      <Button variant="ghost" size="sm" className="mt-1 w-full opacity-100 hover-scale">
+                        View Buzz
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </TabsContent>
@@ -900,6 +908,10 @@ export default function EnterpriseHub() {
           </DialogHeader>
           {selectedTileDialog?.type === 'youtube_analytics' ? (
             <YouTubeAnalyticsTile idea={currentIdea} />
+          ) : selectedTileDialog?.type === 'reddit' ? (
+            <EnhancedRedditTile idea={currentIdea} />
+          ) : selectedTileDialog?.type === 'twitter' ? (
+            <TwitterBuzzTile idea={currentIdea} />
           ) : selectedTileDialog?.data ? (
             <DataHubTile
               title={selectedTileDialog.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
