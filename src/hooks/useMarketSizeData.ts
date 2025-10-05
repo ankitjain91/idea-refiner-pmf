@@ -81,82 +81,27 @@ export function useMarketSizeData(idea?: string) {
     setLoading(true);
     setError(null);
     
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Return mock data
-    const mockData: MarketSizeData = {
-      TAM: "$85.7B",
-      SAM: "$42.3B",
-      SOM: "$8.5B",
-      growth_rate: "24.5%",
-      regions: [
-        {
-          region: "North America",
-          TAM: "$35.2B",
-          SAM: "$18.5B",
-          SOM: "$3.7B",
-          growth: "22.8%",
-          confidence: "high"
-        },
-        {
-          region: "Europe",
-          TAM: "$28.4B",
-          SAM: "$14.2B",
-          SOM: "$2.8B",
-          growth: "21.3%",
-          confidence: "high"
-        },
-        {
-          region: "Asia Pacific",
-          TAM: "$18.6B",
-          SAM: "$7.8B",
-          SOM: "$1.6B",
-          growth: "32.4%",
-          confidence: "medium"
-        },
-        {
-          region: "Latin America",
-          TAM: "$3.5B",
-          SAM: "$1.8B",
-          SOM: "$0.4B",
-          growth: "28.9%",
-          confidence: "medium"
-        }
-      ],
-      confidence: "high",
-      explanation: "Market analysis based on comprehensive industry data showing strong growth potential across all regions, with particularly rapid expansion in Asia Pacific markets.",
-      citations: [
-        {
-          url: "https://example.com/market-report-2024",
-          title: "Global Market Intelligence Report 2024",
-          snippet: "The market is experiencing unprecedented growth driven by digital transformation..."
-        },
-        {
-          url: "https://example.com/industry-analysis",
-          title: "Industry Analysis & Trends",
-          snippet: "Key growth drivers include increased adoption of AI technologies..."
-        },
-        {
-          url: "https://example.com/regional-outlook",
-          title: "Regional Market Outlook",
-          snippet: "Asia Pacific region shows the highest growth potential with 32.4% CAGR..."
-        }
-      ],
-      charts: []
-    };
-    
-    setData(mockData);
-    
-    // Cache the mock data
-    localStorage.setItem('market_size_data', JSON.stringify({
-      idea: currentIdea,
-      data: mockData,
-      timestamp: Date.now()
-    }));
-    
-    console.log('Mock market data loaded:', mockData);
-    setLoading(false);
+    try {
+      const { data: result, error: functionError } = await supabase.functions.invoke('market-size-analysis', {
+        body: { idea: currentIdea }
+      });
+
+      if (functionError) {
+        console.error('Market size analysis error:', functionError);
+        setError(functionError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (result) {
+        setData(result);
+      }
+    } catch (err) {
+      console.error('Failed to fetch market data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch market data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
