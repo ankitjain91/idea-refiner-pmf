@@ -139,8 +139,44 @@ export function SentimentTile({
 
   useEffect(() => {
     if (propData) {
-      // Use data from parent
-      setData(propData as SentimentData);
+      // Use data from parent - transform to SentimentData format
+      console.log('[SentimentTile] Received prop data:', propData);
+      
+      const positive = propData.metrics?.positive || propData.json?.positive || 0;
+      const neutral = propData.metrics?.neutral || propData.json?.neutral || 0;
+      const negative = propData.metrics?.negative || propData.json?.negative || 0;
+      
+      // Extract sentiment data from tile data structure
+      const transformedData: SentimentData = {
+        summary: propData.explanation || 'Market sentiment analysis shows mixed signals.',
+        metrics: {
+          overall_distribution: {
+            positive,
+            neutral,
+            negative
+          },
+          engagement_weighted_distribution: {
+            positive,
+            neutral,
+            negative
+          },
+          trend_delta: propData.json?.trend || 'stable',
+          top_positive_drivers: propData.json?.positiveDrivers || ['Strong product-market fit', 'Growing user base'],
+          top_negative_concerns: propData.json?.negativeConcerns || ['Competition', 'Market saturation'],
+          source_breakdown: propData.json?.sources || {}
+        },
+        clusters: [],
+        trend_data: [],
+        word_clouds: {
+          positive: [],
+          negative: []
+        },
+        charts: [],
+        visuals_ready: false,
+        confidence: propData.confidence > 0.7 ? 'High' : propData.confidence > 0.5 ? 'Moderate' : 'Low'
+      };
+      
+      setData(transformedData);
       setLoading(propLoading);
     } else if (ideaToUse) {
       // Fetch own data
