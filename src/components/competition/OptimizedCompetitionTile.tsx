@@ -65,8 +65,25 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
 
   // Get the actual idea to use - with validation to filter out chat suggestions
   const getValidIdea = (): string => {
+    // Helper to parse appIdea JSON
+    const parseAppIdea = (): string | null => {
+      try {
+        const appIdea = localStorage.getItem('appIdea');
+        if (appIdea) {
+          const parsed = JSON.parse(appIdea);
+          return parsed.summary || parsed.idea || null;
+        }
+      } catch (e) {
+        // If JSON parsing fails, try to use it as plain string
+        const raw = localStorage.getItem('appIdea');
+        if (raw && raw.length > 30) return raw;
+      }
+      return null;
+    };
+
     const ideaSources = [
       idea,
+      parseAppIdea(),
       localStorage.getItem('dashboardIdea'),
       localStorage.getItem('pmfCurrentIdea'),
       localStorage.getItem('currentIdea'),
