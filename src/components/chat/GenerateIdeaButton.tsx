@@ -69,8 +69,8 @@ export const GenerateIdeaButton = ({ conversationHistory, disabled }: GenerateId
         variant={hasIdea ? "outline" : "default"}
         size="sm"
         className={cn(
-          "gap-2 transition-all duration-300 font-semibold",
-          !hasIdea && "bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:from-primary/90 hover:via-purple-600/90 hover:to-pink-600/90 shadow-lg hover:shadow-xl hover:scale-105 animate-gradient bg-[length:200%_200%] border-0"
+          "gap-2 transition-all duration-200",
+          !hasIdea && "bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg hover:shadow-primary/20"
         )}
       >
         {isGenerating ? (
@@ -78,7 +78,7 @@ export const GenerateIdeaButton = ({ conversationHistory, disabled }: GenerateId
         ) : (
           <Sparkles className="h-4 w-4" />
         )}
-        {hasIdea ? 'Update My Idea' : '✨ Lock In My Idea'}
+        {hasIdea ? 'Update My Idea' : 'Lock In My Idea'}
       </Button>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
