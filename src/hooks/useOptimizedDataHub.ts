@@ -502,6 +502,19 @@ export function useOptimizedDataHub(input: DataHubInput) {
                 confidence: 0.8,
                 dataQuality: 'high'
               };
+              
+              // Save idea to leaderboard when score is generated
+              const { saveIdeaToLeaderboard } = await import('@/utils/saveIdeaToLeaderboard');
+              const sessionName = localStorage.getItem('currentSessionName') || 'Untitled Session';
+              
+              await saveIdeaToLeaderboard({
+                idea: input.idea,
+                refinedIdea: input.idea,
+                pmfScore: pmfResp.score,
+                sessionName,
+                category: pmfResp.category || 'Uncategorized',
+                isPublic: true
+              });
             }
           } catch (e) {
             console.error('[OptimizedDataHub] PMF computation fallback failed:', e);

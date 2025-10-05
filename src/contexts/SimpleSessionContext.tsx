@@ -340,6 +340,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       });
       
+      // Remove old idea from leaderboard when resetting
+      const oldIdea = localStorage.getItem('currentIdea') || localStorage.getItem(LS_KEYS.userIdea);
+      if (oldIdea) {
+        const { removeIdeaFromLeaderboard } = await import('@/utils/saveIdeaToLeaderboard');
+        await removeIdeaFromLeaderboard(oldIdea);
+      }
+      
       // Trigger a custom event to reset the chat component
       window.dispatchEvent(new CustomEvent('session:reset'));
       
