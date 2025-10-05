@@ -74,7 +74,7 @@ export const GenerateIdeaButton = ({ conversationHistory, disabled }: GenerateId
         ) : (
           <Sparkles className="h-4 w-4" />
         )}
-        {hasIdea ? 'Regenerate Idea' : 'Generate My Idea'}
+        {hasIdea ? 'Update My Idea' : 'Lock In My Idea'}
       </Button>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
