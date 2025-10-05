@@ -17,12 +17,24 @@ export function useIdeaChatSession() {
   const [requireSessionSelection, setRequireSessionSelection] = useState(false);
   const sessionCreatedRef = useRef(false);
   
-  // Initialize session picker when user has no session
+  // Check for session ID in URL and load it
   useEffect(() => {
-    console.log('[IdeaChat] Session check:', { user, currentSession, sessionLoading, sessions: sessions?.length });
+    const params = new URLSearchParams(location.search);
+    const sessionIdFromUrl = params.get('session');
+    
+    console.log('[IdeaChat] URL check:', { sessionIdFromUrl, currentSession: currentSession?.id, sessionLoading });
+    
+    // If URL has a session ID and it's different from current, load it
+    if (sessionIdFromUrl && !sessionLoading && currentSession?.id !== sessionIdFromUrl) {
+      console.log('[IdeaChat] Loading session from URL:', sessionIdFromUrl);
+      loadSession(sessionIdFromUrl).then(() => {
+        setChatKey(k => k + 1);
+      });
+      return;
+    }
     
     // If user is authenticated and has no current session, show picker
-    if (user && !sessionLoading && !currentSession) {
+    if (user && !sessionLoading && !currentSession && !sessionIdFromUrl) {
       console.log('[IdeaChat] Showing session picker - no current session');
       setShowSessionPicker(true);
       setRequireSessionSelection(true);
@@ -36,7 +48,7 @@ export function useIdeaChatSession() {
       // Clear the state to prevent re-opening on refresh
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [user, currentSession, sessionLoading, location.state, location.pathname, navigate, sessions?.length]);
+  }, [user, currentSession, sessionLoading, location.search, location.state, location.pathname, navigate, sessions?.length, loadSession]);
   
   // Restore last conversation state if returning from dashboard
   useEffect(() => {
