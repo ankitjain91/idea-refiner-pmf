@@ -106,14 +106,8 @@ const SOURCE_ICONS = {
   forums: Hash
 };
 
-const CHART_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))'
-];
+
+const SENTIMENT_API_VERSION = 2;
 
 export function SentimentTile({ className }: SentimentTileProps) {
   const { currentIdea } = useIdeaContext();
@@ -145,11 +139,12 @@ export function SentimentTile({ className }: SentimentTileProps) {
 
     try {
       // Prefetch related sentiment data
-      optimizedQueue.prefetchRelated('unified-sentiment', { idea: currentIdea, detailed: true });
+      optimizedQueue.prefetchRelated('unified-sentiment', { idea: currentIdea, detailed: true, version: SENTIMENT_API_VERSION });
       
       const response = await optimizedQueue.invokeFunction('unified-sentiment', {
         idea: currentIdea,
-        detailed: true
+        detailed: true,
+        version: SENTIMENT_API_VERSION
       });
 
       if (response?.sentiment) {
@@ -162,6 +157,11 @@ export function SentimentTile({ className }: SentimentTileProps) {
           source_breakdown: {}
         };
 
+        // Treat nested error or empty payload as invalid and fallback
+        if (response.sentiment.error) {
+          throw new Error(response.sentiment.error);
+        }
+
         const normalized: SentimentData = {
           summary: response.sentiment.summary ?? '',
           metrics: { ...defaultMetrics, ...(response.sentiment.metrics ?? {}) },
@@ -172,6 +172,15 @@ export function SentimentTile({ className }: SentimentTileProps) {
           trend_data: response.sentiment.trend_data ?? [],
           word_clouds: response.sentiment.word_clouds ?? { positive: [], negative: [] },
         };
+
+        const looksEmpty =
+          (!normalized.clusters || normalized.clusters.length === 0) &&
+          (!normalized.charts || normalized.charts.length === 0) &&
+          (!normalized.trend_data || normalized.trend_data.length === 0);
+
+        if (looksEmpty) {
+          throw new Error('Empty sentiment payload');
+        }
 
         setData(normalized);
         if (normalized.clusters.length > 0) {
