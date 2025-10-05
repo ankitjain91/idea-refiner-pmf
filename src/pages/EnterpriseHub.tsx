@@ -61,11 +61,13 @@ export default function EnterpriseHub() {
   const updateIdeaFromSession = useCallback(() => {
     // First, check for the generated idea from GenerateIdeaButton (appIdea)
     let storedIdea = "";
+    let hasGeneratedIdea = false;
     try {
       const appIdeaData = localStorage.getItem("appIdea");
       if (appIdeaData) {
         const parsed = JSON.parse(appIdeaData);
         storedIdea = cleanIdeaText(parsed.summary || "");
+        hasGeneratedIdea = !!storedIdea;
         console.log("[EnterpriseHub] Using generated idea from appIdea:", storedIdea.substring(0, 100));
       }
     } catch (e) {
@@ -94,28 +96,34 @@ export default function EnterpriseHub() {
     // If we have a stored idea, use it immediately
     if (storedIdea) {
       setCurrentIdea(storedIdea);
-      // Using useIdeaContext for idea management
       console.log("[EnterpriseHub] Using stored idea:", storedIdea.substring(0, 100));
       
-      // Now check if we have a session to enhance with chat history
+      // If the idea was generated via the button, prefer it for the summary and skip chat-derived summary
+      if (hasGeneratedIdea) {
+        setConversationSummary(storedIdea);
+        if (currentSession?.data && !currentSession.data.currentIdea) {
+          currentSession.data.currentIdea = storedIdea;
+          saveCurrentSession();
+        }
+        setSessionName(currentSession?.name || "Untitled Session");
+        return; // Do not override with chat summary
+      }
+      
+      // Otherwise, enhance with chat history when available
       if (currentSession) {
         const { chatHistory, currentIdea: sessionIdea } = currentSession.data || {};
         
-        // Create conversation summary if we have chat history
         if (chatHistory && chatHistory.length > 0) {
           const summary = createConversationSummary(chatHistory, sessionIdea || storedIdea);
           const cleanedSummary = cleanIdeaText(summary);
           setConversationSummary(cleanedSummary);
-          // Update localStorage with cleaned summary
           if (cleanedSummary !== storedIdea) {
-            // Using useIdeaContext for idea management
             setCurrentIdea(cleanedSummary);
           }
         } else {
           setConversationSummary(storedIdea);
         }
         
-        // Update session with the stored idea if it doesn't have one
         if (!sessionIdea && currentSession.data) {
           currentSession.data.currentIdea = storedIdea;
           saveCurrentSession();
