@@ -513,14 +513,24 @@ What's your startup idea?`,
     checkPendingQuestion();
   }, [location, toast]); // Re-run when location changes
 
-  // Persist messages for authenticated users
+  // Persist messages for authenticated users and save to database immediately
   useEffect(() => {
     if (!anonymous && messages.length > 0) {
       localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(messages));
-      // Trigger session save
-      window.dispatchEvent(new Event('chat:activity'));
+      
+      // Save to database immediately after each message
+      const saveTimeout = setTimeout(async () => {
+        try {
+          await saveCurrentSession();
+          console.log('[EnhancedIdeaChat] Session saved immediately after message');
+        } catch (error) {
+          console.error('[EnhancedIdeaChat] Failed to save session:', error);
+        }
+      }, 100); // Small delay to batch rapid changes
+      
+      return () => clearTimeout(saveTimeout);
     }
-  }, [messages, anonymous]);
+  }, [messages, anonymous, saveCurrentSession]);
   
   // Persist current idea for authenticated users
   useEffect(() => {
@@ -1006,6 +1016,16 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
         setIsTyping(false);
         
+        // Immediately save session after bot response
+        if (!anonymous) {
+          try {
+            await saveCurrentSession();
+            console.log('[EnhancedIdeaChat] Session saved after bot response');
+          } catch (error) {
+            console.error('[EnhancedIdeaChat] Failed to save session after response:', error);
+          }
+        }
+        
       } catch (error: any) {
         console.error('Error:', error);
         setMessages(prev => prev.filter(msg => !msg.isTyping));
@@ -1291,6 +1311,16 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         // Remove typing indicator right before adding the real message
         setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
         setIsTyping(false);
+        
+        // Immediately save session after bot response
+        if (!anonymous) {
+          try {
+            await saveCurrentSession();
+            console.log('[EnhancedIdeaChat] Session saved after bot response');
+          } catch (error) {
+            console.error('[EnhancedIdeaChat] Failed to save session after response:', error);
+          }
+        }
       }
     } catch (error) {
       console.error('Error:', error);
