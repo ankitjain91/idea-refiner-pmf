@@ -125,14 +125,17 @@ export function SentimentTile({ className }: SentimentTileProps) {
   const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
-    if (currentIdea) {
-      fetchSentimentData();
-    }
+    fetchSentimentData();
   }, [currentIdea]);
 
   const fetchSentimentData = async () => {
     if (!currentIdea) {
-      setError('No idea provided');
+      const synthetic = generateSyntheticData('Your startup idea');
+      setData(synthetic);
+      if (synthetic.clusters.length > 0) {
+        setSelectedCluster(synthetic.clusters[0]);
+      }
+      setError(null);
       setLoading(false);
       return;
     }
