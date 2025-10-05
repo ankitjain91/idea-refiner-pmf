@@ -32,11 +32,33 @@ export const useIdeaContext = () => {
 
   const getIdea = (): string => {
     try {
+      // 1) Preferred: AI-generated idea summary
       const stored = localStorage.getItem(IDEA_KEY);
-      if (!stored) return '';
-      
-      const data: IdeaData = JSON.parse(stored);
-      return data.summary || '';
+      if (stored) {
+        const data: IdeaData = JSON.parse(stored);
+        if (data?.summary) return data.summary;
+      }
+
+      // 2) Fallback: sessionData persisted by the app (contains state.currentIdea)
+      const sessionDataRaw = localStorage.getItem('sessionData');
+      if (sessionDataRaw) {
+        try {
+          const session = JSON.parse(sessionDataRaw);
+          const fromState = session?.state?.currentIdea || session?.currentIdea;
+          if (typeof fromState === 'string' && fromState.trim().length > 0) {
+            return fromState.trim();
+          }
+        } catch {}
+      }
+
+      // 3) Legacy keys fallback for backwards compatibility
+      const legacyKeys = ['dashboardIdea', 'currentIdea', 'userIdea', 'ideaText'];
+      for (const key of legacyKeys) {
+        const val = localStorage.getItem(key);
+        if (val && val.trim().length > 0) return val.trim();
+      }
+
+      return '';
     } catch {
       return '';
     }
