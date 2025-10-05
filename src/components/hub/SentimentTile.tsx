@@ -525,34 +525,36 @@ export function SentimentTile({ className }: SentimentTileProps) {
                 )}
 
                 {/* Engagement weighted */}
-                <Card className="p-4">
-                  <h4 className="text-sm font-medium mb-3">Engagement-Weighted Sentiment</h4>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Positive', value: data.metrics.engagement_weighted_distribution.positive },
-                          { name: 'Neutral', value: data.metrics.engagement_weighted_distribution.neutral },
-                          { name: 'Negative', value: data.metrics.engagement_weighted_distribution.negative }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        <Cell fill={SENTIMENT_COLORS.positive} />
-                        <Cell fill={SENTIMENT_COLORS.neutral} />
-                        <Cell fill={SENTIMENT_COLORS.negative} />
-                      </Pie>
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Weighted by likes, shares, and engagement
-                  </p>
-                </Card>
+                {data.metrics?.engagement_weighted_distribution && (
+                  <Card className="p-4">
+                    <h4 className="text-sm font-medium mb-3">Engagement-Weighted Sentiment</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Positive', value: data.metrics.engagement_weighted_distribution.positive || 0 },
+                            { name: 'Neutral', value: data.metrics.engagement_weighted_distribution.neutral || 0 },
+                            { name: 'Negative', value: data.metrics.engagement_weighted_distribution.negative || 0 }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          <Cell fill={SENTIMENT_COLORS.positive} />
+                          <Cell fill={SENTIMENT_COLORS.neutral} />
+                          <Cell fill={SENTIMENT_COLORS.negative} />
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Weighted by likes, shares, and engagement
+                    </p>
+                  </Card>
+                )}
               </div>
 
               {/* Key drivers */}
@@ -625,9 +627,9 @@ export function SentimentTile({ className }: SentimentTileProps) {
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
                           <span>Positive</span>
-                          <span>{sentiment.positive}%</span>
+                          <span>{sentiment?.positive || 0}%</span>
                         </div>
-                        <Progress value={sentiment.positive} className="h-1.5" />
+                        <Progress value={sentiment?.positive || 0} className="h-1.5" />
                       </div>
                     </Card>
                   );
@@ -727,7 +729,7 @@ export function SentimentTile({ className }: SentimentTileProps) {
               )}
 
               {/* Word clouds */}
-              {data.word_clouds && (
+              {data.word_clouds?.positive && data.word_clouds?.negative && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card className="p-4">
                     <h4 className="text-sm font-medium mb-3 text-green-600 dark:text-green-400">Positive Keywords</h4>
