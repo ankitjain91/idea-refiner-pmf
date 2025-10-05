@@ -5,6 +5,7 @@
 
 export interface DataHubInput {
   idea: string;
+  session_id?: string | null;
   targetMarkets?: string[];
   audienceProfiles?: string[];
   geos?: string[];

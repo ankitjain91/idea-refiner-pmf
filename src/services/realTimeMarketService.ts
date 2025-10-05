@@ -86,7 +86,7 @@ export class RealTimeMarketService {
     return RealTimeMarketService.instance;
   }
   
-  async fetchMarketSize(idea: string, forceRefresh = false): Promise<MarketSizeData | null> {
+  async fetchMarketSize(idea: string, forceRefresh = false, sessionId: string | null = null): Promise<MarketSizeData | null> {
     const cacheKey = `market_${idea}`;
     
     // Check cache first unless force refresh

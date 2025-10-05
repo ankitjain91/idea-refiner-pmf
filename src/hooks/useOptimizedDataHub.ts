@@ -98,6 +98,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
       setState(prev => ({ ...prev, error: 'Missing idea' }));
       return;
     }
+
+    // Get session_id from SimpleSessionContext
+    const sessionId = input.session_id || null;
+    console.log('[OptimizedDataHub] Fetching with session_id:', sessionId);
     
     setState(prev => ({ ...prev, loading: true, error: null }));
     
@@ -196,7 +200,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
             // Special handling for market_size - use real-time service
             if (tileType === 'market_size') {
             const marketService = RealTimeMarketService.getInstance();
-            const marketData = await marketService.fetchMarketSize(input.idea, forceRefresh);
+            const marketData = await marketService.fetchMarketSize(input.idea, forceRefresh, sessionId);
             
             if (marketData) {
               cacheStatsTracker.misses++;

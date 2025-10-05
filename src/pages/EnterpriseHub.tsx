@@ -197,10 +197,29 @@ export default function EnterpriseHub() {
     };
   }, [updateIdeaFromSession]);
 
-  // Use the data hub hook with current idea
+  // Prevent dashboard from loading if no idea exists
+  if (!currentIdea) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="max-w-md p-8 text-center">
+          <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-semibold mb-2">No Idea Generated</h2>
+          <p className="text-muted-foreground mb-4">
+            Please generate an idea using the IdeaChat before accessing the dashboard.
+          </p>
+          <Button onClick={() => window.location.href = '/chat'}>
+            Go to IdeaChat
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // Use the data hub hook with current idea and session_id
   console.log('[EnterpriseHub] Using idea for data hub:', currentIdea?.substring(0, 100));
   const dataHub = useDataHubWrapper({
     idea: currentIdea,
+    session_id: currentSession?.id || null,
     targetMarkets: ["US", "EU", "APAC"],
     audienceProfiles: ["early_adopters", "enterprise"],
     geos: ["global"],
