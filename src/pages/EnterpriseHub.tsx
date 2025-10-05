@@ -59,18 +59,32 @@ export default function EnterpriseHub() {
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
-    // Always check localStorage first for immediate availability
-    const rawStoredIdea = 
-      localStorage.getItem("pmfCurrentIdea") ||
-      localStorage.getItem("dashboardIdea") || 
-      localStorage.getItem("currentIdea") || 
-      localStorage.getItem("userIdea") || 
-      "";
+    // First, check for the generated idea from GenerateIdeaButton (appIdea)
+    let storedIdea = "";
+    try {
+      const appIdeaData = localStorage.getItem("appIdea");
+      if (appIdeaData) {
+        const parsed = JSON.parse(appIdeaData);
+        storedIdea = cleanIdeaText(parsed.summary || "");
+        console.log("[EnterpriseHub] Using generated idea from appIdea:", storedIdea.substring(0, 100));
+      }
+    } catch (e) {
+      console.error("[EnterpriseHub] Error parsing appIdea:", e);
+    }
     
-    // Clean the stored idea
-    const storedIdea = cleanIdeaText(rawStoredIdea);
+    // If no generated idea, fall back to other stored ideas
+    if (!storedIdea) {
+      const rawStoredIdea = 
+        localStorage.getItem("pmfCurrentIdea") ||
+        localStorage.getItem("dashboardIdea") || 
+        localStorage.getItem("currentIdea") || 
+        localStorage.getItem("userIdea") || 
+        "";
+      storedIdea = cleanIdeaText(rawStoredIdea);
+    }
     
     console.log("[EnterpriseHub] Checking all localStorage keys:", {
+      appIdea: localStorage.getItem("appIdea")?.substring(0, 50),
       pmfCurrentIdea: localStorage.getItem("pmfCurrentIdea")?.substring(0, 50),
       dashboardIdea: localStorage.getItem("dashboardIdea")?.substring(0, 50),
       currentIdea: localStorage.getItem("currentIdea")?.substring(0, 50),
@@ -134,9 +148,21 @@ export default function EnterpriseHub() {
     }
   }, [currentSession, saveCurrentSession]);
   
-  // Watch for session changes
+  // Watch for session changes and idea updates
   useEffect(() => {
     updateIdeaFromSession();
+    
+    // Listen for idea:changed event from GenerateIdeaButton
+    const handleIdeaChanged = () => {
+      console.log("[EnterpriseHub] Idea changed event received");
+      updateIdeaFromSession();
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChanged);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChanged);
+    };
   }, [updateIdeaFromSession]);
 
   // Use the data hub hook with current idea
