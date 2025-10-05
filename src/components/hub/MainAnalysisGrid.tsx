@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
-import { OptimizedCompetitionTile } from "@/components/competition/OptimizedCompetitionTile";
+import { CompetitionAnalysis } from "@/components/competition/CompetitionAnalysis";
 import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
 import { MarketTrendsTile } from "./MarketTrendsTile";
@@ -298,16 +298,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
           if (tile.id === "competition") {
             return (
               <div key={tile.id} className={tile.span}>
-                <OptimizedCompetitionTile 
-                  idea={currentIdea} 
-                  initialData={sanitizeTileData(tiles.competition) || null}
-                  onRefresh={async () => {
-                    if (onRefreshTile) {
-                      toast.info('Refreshing competition data...');
-                      await onRefreshTile('competition');
-                    }
-                  }}
-                />
+                <CompetitionAnalysis idea={currentIdea} />
               </div>
             );
           }
