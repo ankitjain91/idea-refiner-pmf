@@ -179,3 +179,19 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
+  } catch (error) {
+    console.error('[competitive-landscape] Error:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        competitors: [],
+        marketConcentration: 'unknown',
+        barrierToEntry: 'unknown'
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+});
