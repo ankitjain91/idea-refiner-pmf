@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LiveIdeaFeed } from "@/components/hub/LiveIdeaFeed";
 
 const authSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -492,13 +491,6 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Live Feed Section */}
-      <section className="container mx-auto px-6 py-24 border-t">
-        <div className="max-w-5xl mx-auto">
-          <LiveIdeaFeed />
         </div>
       </section>
 

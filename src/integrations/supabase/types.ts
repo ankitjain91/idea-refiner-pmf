@@ -300,36 +300,6 @@ export type Database = {
         }
         Relationships: []
       }
-      idea_validations: {
-        Row: {
-          created_at: string | null
-          id: string
-          idea_text: string
-          metadata: Json | null
-          pmf_score: number | null
-          tam: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          idea_text: string
-          metadata?: Json | null
-          pmf_score?: number | null
-          tam?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          idea_text?: string
-          metadata?: Json | null
-          pmf_score?: number | null
-          tam?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       ideas: {
         Row: {
           category: string | null

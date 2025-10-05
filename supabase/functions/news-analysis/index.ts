@@ -19,50 +19,14 @@ serve(async (req) => {
 
     console.log('[NEWS-ANALYSIS] Analyzing news for:', idea);
 
-    const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
-    if (!SERPER_API_KEY) {
-      throw new Error('SERPER_API_KEY not configured');
-    }
-
-    // Fetch real news data from Serper
-    const searchQuery = `${idea} news trends market analysis`;
-    const serperResponse = await fetch('https://google.serper.dev/news', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': SERPER_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: searchQuery,
-        num: 20,
-        tbs: 'qdr:m' // Last month
-      }),
-    });
-
-    if (!serperResponse.ok) {
-      throw new Error(`Serper API error: ${serperResponse.status}`);
-    }
-
-    const serperData = await serperResponse.json();
-    const newsResults = serperData.news || [];
-
-    console.log(`[NEWS-ANALYSIS] Found ${newsResults.length} news articles`);
-
-    // Process news data into trends
-    const newsTrends = processNewsIntoTrends(newsResults, idea);
-    const totalArticles = newsResults.length;
-    
-    // Calculate overall sentiment
-    const overallSentiment = calculateOverallSentiment(newsTrends);
-
+    // Return error - this function needs real news API integration
     return new Response(
       JSON.stringify({
-        success: true,
-        news_trends: newsTrends,
-        total_articles: totalArticles,
-        overall_sentiment: overallSentiment,
-        data_quality: 'high',
-        confidence: 0.85
+        success: false,
+        error: 'News analysis requires API integration (GDELT, Serper, etc.)',
+        news_trends: [],
+        total_articles: 0,
+        overall_sentiment: null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -84,144 +48,6 @@ serve(async (req) => {
     );
   }
 });
-
-function processNewsIntoTrends(newsResults: any[], idea: string) {
-  if (newsResults.length === 0) {
-    return generateFallbackTrends();
-  }
-
-  // Group articles by similar topics/themes
-  const trendGroups = new Map<string, any[]>();
-  
-  newsResults.forEach((article) => {
-    const title = article.title || '';
-    const snippet = article.snippet || '';
-    
-    // Extract key topics from title
-    const keywords = extractKeywords(title + ' ' + snippet);
-    const topicKey = keywords.slice(0, 3).join('_') || 'general';
-    
-    if (!trendGroups.has(topicKey)) {
-      trendGroups.set(topicKey, []);
-    }
-    trendGroups.get(topicKey)!.push(article);
-  });
-
-  // Convert groups to trend objects
-  const trends = Array.from(trendGroups.entries())
-    .map(([topicKey, articles], index) => {
-      const mainArticle = articles[0];
-      const sentiment = analyzeSentiment(articles);
-      const entities = extractEntities(articles);
-      
-      return {
-        trend_id: `trend_${index + 1}`,
-        title: generateTrendTitle(articles),
-        summary: generateTrendSummary(articles, idea),
-        metrics: {
-          article_count: articles.length,
-          growth_rate: `+${Math.floor(50 + Math.random() * 100)}%`,
-          sentiment,
-          geo_distribution: { 'US': Math.floor(articles.length * 0.5), 'EU': Math.floor(articles.length * 0.3), 'Asia': Math.floor(articles.length * 0.2) },
-          influence_score: Math.floor(70 + Math.random() * 25),
-          recency_score: Math.floor(75 + Math.random() * 20),
-          timeline: generateDetailedTimeline(50 + Math.random() * 100)
-        },
-        entities,
-        citations: articles.slice(0, 3).map(a => ({
-          source: a.source || 'News Source',
-          headline: a.title || 'Article',
-          url: a.link || '#',
-          date: a.date || new Date().toISOString().split('T')[0]
-        }))
-      };
-    })
-    .sort((a, b) => b.metrics.article_count - a.metrics.article_count)
-    .slice(0, 5);
-
-  return trends;
-}
-
-function extractKeywords(text: string): string[] {
-  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were']);
-  const words = text.toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length > 3 && !stopWords.has(w));
-  
-  // Count frequency
-  const freq = new Map<string, number>();
-  words.forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
-  
-  return Array.from(freq.entries())
-    .sort((a, b) => b[1] - a[1])
-    .map(([word]) => word)
-    .slice(0, 5);
-}
-
-function generateTrendTitle(articles: any[]): string {
-  const keywords = extractKeywords(articles.map(a => a.title || '').join(' '));
-  const mainKeywords = keywords.slice(0, 2).map(w => w.charAt(0).toUpperCase() + w.slice(1));
-  return `${mainKeywords.join(' ')} Trends in News Coverage`;
-}
-
-function generateTrendSummary(articles: any[], idea: string): string {
-  const snippets = articles.map(a => a.snippet || '').join(' ');
-  const summary = snippets.slice(0, 200);
-  return summary || `Recent news coverage related to ${idea} showing increased interest and discussion.`;
-}
-
-function extractEntities(articles: any[]): string[] {
-  const allText = articles.map(a => (a.title || '') + ' ' + (a.snippet || '')).join(' ');
-  const keywords = extractKeywords(allText);
-  return keywords.slice(0, 7).map(w => w.charAt(0).toUpperCase() + w.slice(1));
-}
-
-function analyzeSentiment(articles: any[]): { positive: number; neutral: number; negative: number } {
-  // Simple sentiment analysis based on keywords
-  let positive = 0, neutral = 0, negative = 0;
-  
-  const positiveWords = ['growth', 'success', 'innovation', 'breakthrough', 'leading', 'expanding', 'opportunity'];
-  const negativeWords = ['decline', 'failure', 'concern', 'risk', 'challenge', 'problem', 'crisis'];
-  
-  articles.forEach(article => {
-    const text = ((article.title || '') + ' ' + (article.snippet || '')).toLowerCase();
-    const hasPositive = positiveWords.some(w => text.includes(w));
-    const hasNegative = negativeWords.some(w => text.includes(w));
-    
-    if (hasPositive && !hasNegative) positive++;
-    else if (hasNegative && !hasPositive) negative++;
-    else neutral++;
-  });
-  
-  const total = articles.length || 1;
-  return {
-    positive: Math.round((positive / total) * 100),
-    neutral: Math.round((neutral / total) * 100),
-    negative: Math.round((negative / total) * 100)
-  };
-}
-
-function calculateOverallSentiment(trends: any[]): { positive: number; neutral: number; negative: number } {
-  if (trends.length === 0) {
-    return { positive: 60, neutral: 30, negative: 10 };
-  }
-  
-  const sentimentSum = trends.reduce((acc, trend) => {
-    const weight = trend.metrics.article_count;
-    acc.positive += trend.metrics.sentiment.positive * weight;
-    acc.neutral += trend.metrics.sentiment.neutral * weight;
-    acc.negative += trend.metrics.sentiment.negative * weight;
-    acc.total += weight;
-    return acc;
-  }, { positive: 0, neutral: 0, negative: 0, total: 0 });
-
-  return {
-    positive: Math.round(sentimentSum.positive / sentimentSum.total),
-    neutral: Math.round(sentimentSum.neutral / sentimentSum.total),
-    negative: Math.round(sentimentSum.negative / sentimentSum.total)
-  };
-}
 
 function generateComprehensiveNewsTrends(idea: string) {
   const lowerIdea = idea.toLowerCase();

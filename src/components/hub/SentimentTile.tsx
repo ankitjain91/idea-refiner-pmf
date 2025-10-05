@@ -28,10 +28,6 @@ import { toast } from '@/hooks/use-toast';
 
 interface SentimentTileProps {
   className?: string;
-  data?: any; // Tile data from parent
-  idea?: string; // Idea from parent
-  loading?: boolean;
-  onRefresh?: () => void;
 }
 
 interface SentimentCluster {
@@ -119,13 +115,7 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))'
 ];
 
-export function SentimentTile({ 
-  className, 
-  data: propData, 
-  idea: propIdea, 
-  loading: propLoading = false,
-  onRefresh 
-}: SentimentTileProps) {
+export function SentimentTile({ className }: SentimentTileProps) {
   const { currentIdea } = useIdeaContext();
   const [data, setData] = useState<SentimentData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,58 +124,14 @@ export function SentimentTile({
   const [selectedCluster, setSelectedCluster] = useState<SentimentCluster | null>(null);
   const [showAIChat, setShowAIChat] = useState(false);
 
-  // Use prop data if available, otherwise fetch
-  const ideaToUse = propIdea || currentIdea;
-
   useEffect(() => {
-    if (propData) {
-      // Use data from parent - transform to SentimentData format
-      console.log('[SentimentTile] Received prop data:', propData);
-      
-      const positive = propData.metrics?.positive || propData.json?.positive || 0;
-      const neutral = propData.metrics?.neutral || propData.json?.neutral || 0;
-      const negative = propData.metrics?.negative || propData.json?.negative || 0;
-      
-      // Extract sentiment data from tile data structure
-      const transformedData: SentimentData = {
-        summary: propData.explanation || 'Market sentiment analysis shows mixed signals.',
-        metrics: {
-          overall_distribution: {
-            positive,
-            neutral,
-            negative
-          },
-          engagement_weighted_distribution: {
-            positive,
-            neutral,
-            negative
-          },
-          trend_delta: propData.json?.trend || 'stable',
-          top_positive_drivers: propData.json?.positiveDrivers || ['Strong product-market fit', 'Growing user base'],
-          top_negative_concerns: propData.json?.negativeConcerns || ['Competition', 'Market saturation'],
-          source_breakdown: propData.json?.sources || {}
-        },
-        clusters: [],
-        trend_data: [],
-        word_clouds: {
-          positive: [],
-          negative: []
-        },
-        charts: [],
-        visuals_ready: false,
-        confidence: propData.confidence > 0.7 ? 'High' : propData.confidence > 0.5 ? 'Moderate' : 'Low'
-      };
-      
-      setData(transformedData);
-      setLoading(propLoading);
-    } else if (ideaToUse) {
-      // Fetch own data
+    if (currentIdea) {
       fetchSentimentData();
     }
-  }, [propData, propLoading, ideaToUse]);
+  }, [currentIdea]);
 
   const fetchSentimentData = async () => {
-    if (!ideaToUse) {
+    if (!currentIdea) {
       setError('No idea provided');
       setLoading(false);
       return;
@@ -196,10 +142,10 @@ export function SentimentTile({
 
     try {
       // Prefetch related sentiment data
-      optimizedQueue.prefetchRelated('unified-sentiment', { idea: ideaToUse, detailed: true });
+      optimizedQueue.prefetchRelated('unified-sentiment', { idea: currentIdea, detailed: true });
       
       const response = await optimizedQueue.invokeFunction('unified-sentiment', {
-        idea: ideaToUse,
+        idea: currentIdea,
         detailed: true
       });
 
@@ -487,7 +433,7 @@ export function SentimentTile({
 
   if (!data) return null;
 
-  const sentimentTrend = data.metrics?.trend_delta?.startsWith?.('+') ? 'up' : 'down';
+  const sentimentTrend = data.metrics.trend_delta.startsWith('+') ? 'up' : 'down';
 
   return (
     <Card className={cn("h-full overflow-hidden", className)}>
@@ -536,171 +482,159 @@ export function SentimentTile({
             <TabsContent value="overview" className="px-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Overall sentiment donut */}
-                {data.metrics?.overall_distribution && (
-                  <Card className="p-4">
-                    <h4 className="text-sm font-medium mb-3">Overall Sentiment</h4>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Positive', value: data.metrics.overall_distribution.positive || 0 },
-                            { name: 'Neutral', value: data.metrics.overall_distribution.neutral || 0 },
-                            { name: 'Negative', value: data.metrics.overall_distribution.negative || 0 }
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          <Cell fill={SENTIMENT_COLORS.positive} />
-                          <Cell fill={SENTIMENT_COLORS.neutral} />
-                          <Cell fill={SENTIMENT_COLORS.negative} />
-                        </Pie>
-                        <RechartsTooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="flex justify-around text-xs mt-2">
-                      <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.positive }} />
-                        Positive {data.metrics.overall_distribution.positive || 0}%
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.neutral }} />
-                        Neutral {data.metrics.overall_distribution.neutral || 0}%
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.negative }} />
-                        Negative {data.metrics.overall_distribution.negative || 0}%
-                      </span>
-                    </div>
-                  </Card>
-                )}
+                <Card className="p-4">
+                  <h4 className="text-sm font-medium mb-3">Overall Sentiment</h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Positive', value: data.metrics.overall_distribution.positive },
+                          { name: 'Neutral', value: data.metrics.overall_distribution.neutral },
+                          { name: 'Negative', value: data.metrics.overall_distribution.negative }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        <Cell fill={SENTIMENT_COLORS.positive} />
+                        <Cell fill={SENTIMENT_COLORS.neutral} />
+                        <Cell fill={SENTIMENT_COLORS.negative} />
+                      </Pie>
+                      <RechartsTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex justify-around text-xs mt-2">
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.positive }} />
+                      Positive {data.metrics.overall_distribution.positive}%
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.neutral }} />
+                      Neutral {data.metrics.overall_distribution.neutral}%
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.negative }} />
+                      Negative {data.metrics.overall_distribution.negative}%
+                    </span>
+                  </div>
+                </Card>
 
                 {/* Engagement weighted */}
-                {data.metrics?.engagement_weighted_distribution && (
-                  <Card className="p-4">
-                    <h4 className="text-sm font-medium mb-3">Engagement-Weighted Sentiment</h4>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Positive', value: data.metrics.engagement_weighted_distribution.positive || 0 },
-                            { name: 'Neutral', value: data.metrics.engagement_weighted_distribution.neutral || 0 },
-                            { name: 'Negative', value: data.metrics.engagement_weighted_distribution.negative || 0 }
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          <Cell fill={SENTIMENT_COLORS.positive} />
-                          <Cell fill={SENTIMENT_COLORS.neutral} />
-                          <Cell fill={SENTIMENT_COLORS.negative} />
-                        </Pie>
-                        <RechartsTooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <p className="text-xs text-muted-foreground text-center mt-2">
-                      Weighted by likes, shares, and engagement
-                    </p>
-                  </Card>
-                )}
+                <Card className="p-4">
+                  <h4 className="text-sm font-medium mb-3">Engagement-Weighted Sentiment</h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Positive', value: data.metrics.engagement_weighted_distribution.positive },
+                          { name: 'Neutral', value: data.metrics.engagement_weighted_distribution.neutral },
+                          { name: 'Negative', value: data.metrics.engagement_weighted_distribution.negative }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        <Cell fill={SENTIMENT_COLORS.positive} />
+                        <Cell fill={SENTIMENT_COLORS.neutral} />
+                        <Cell fill={SENTIMENT_COLORS.negative} />
+                      </Pie>
+                      <RechartsTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Weighted by likes, shares, and engagement
+                  </p>
+                </Card>
               </div>
 
               {/* Key drivers */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data.metrics?.top_positive_drivers && data.metrics.top_positive_drivers.length > 0 && (
-                  <Card className="p-4">
-                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <ThumbsUp className="h-4 w-4 text-green-500" />
-                      Positive Drivers
-                    </h4>
-                    <div className="space-y-2">
-                      {data.metrics.top_positive_drivers.map((driver, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <ChevronRight className="h-3 w-3 text-green-500" />
-                          <span className="text-sm capitalize">{driver}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
+                <Card className="p-4">
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <ThumbsUp className="h-4 w-4 text-green-500" />
+                    Positive Drivers
+                  </h4>
+                  <div className="space-y-2">
+                    {data.metrics.top_positive_drivers.map((driver, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3 text-green-500" />
+                        <span className="text-sm capitalize">{driver}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
 
-                {data.metrics?.top_negative_concerns && data.metrics.top_negative_concerns.length > 0 && (
-                  <Card className="p-4">
-                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <ThumbsDown className="h-4 w-4 text-red-500" />
-                      Key Concerns
-                    </h4>
-                    <div className="space-y-2">
-                      {data.metrics.top_negative_concerns.map((concern, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <ChevronRight className="h-3 w-3 text-red-500" />
-                          <span className="text-sm capitalize">{concern}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
+                <Card className="p-4">
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <ThumbsDown className="h-4 w-4 text-red-500" />
+                    Key Concerns
+                  </h4>
+                  <div className="space-y-2">
+                    {data.metrics.top_negative_concerns.map((concern, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3 text-red-500" />
+                        <span className="text-sm capitalize">{concern}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
               </div>
             </TabsContent>
 
             <TabsContent value="sources" className="px-4 space-y-4">
               {/* Sentiment by source */}
-              {data.metrics?.source_breakdown && (
-                <>
-                  <Card className="p-4">
-                    <h4 className="text-sm font-medium mb-3">Sentiment by Source</h4>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => ({
-                        source,
-                        ...sentiment
-                      }))}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="source" />
-                        <YAxis />
-                        <RechartsTooltip />
-                        <Legend />
-                        <Bar dataKey="positive" stackId="a" fill={SENTIMENT_COLORS.positive} />
-                        <Bar dataKey="neutral" stackId="a" fill={SENTIMENT_COLORS.neutral} />
-                        <Bar dataKey="negative" stackId="a" fill={SENTIMENT_COLORS.negative} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Card>
+              <Card className="p-4">
+                <h4 className="text-sm font-medium mb-3">Sentiment by Source</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => ({
+                    source,
+                    ...sentiment
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="source" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Legend />
+                    <Bar dataKey="positive" stackId="a" fill={SENTIMENT_COLORS.positive} />
+                    <Bar dataKey="neutral" stackId="a" fill={SENTIMENT_COLORS.neutral} />
+                    <Bar dataKey="negative" stackId="a" fill={SENTIMENT_COLORS.negative} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
 
-                  {/* Source breakdown cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => {
-                      const Icon = SOURCE_ICONS[source as keyof typeof SOURCE_ICONS] || Globe;
-                      return (
-                        <Card key={source} className="p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="flex items-center gap-2 text-sm font-medium capitalize">
-                              <Icon className="h-4 w-4" />
-                              {source}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-xs">
-                              <span>Positive</span>
-                              <span>{sentiment?.positive || 0}%</span>
-                            </div>
-                            <Progress value={sentiment?.positive || 0} className="h-1.5" />
-                          </div>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+              {/* Source breakdown cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => {
+                  const Icon = SOURCE_ICONS[source as keyof typeof SOURCE_ICONS] || Globe;
+                  return (
+                    <Card key={source} className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="flex items-center gap-2 text-sm font-medium capitalize">
+                          <Icon className="h-4 w-4" />
+                          {source}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span>Positive</span>
+                          <span>{sentiment.positive}%</span>
+                        </div>
+                        <Progress value={sentiment.positive} className="h-1.5" />
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
             </TabsContent>
 
             <TabsContent value="themes" className="px-4 space-y-4">
-              {data.clusters?.map((cluster, idx) => (
+              {data.clusters.map((cluster, idx) => (
                 <Card 
                   key={idx} 
                   className={cn(
@@ -744,8 +678,8 @@ export function SentimentTile({
             </TabsContent>
 
             <TabsContent value="quotes" className="px-4 space-y-3">
-              {data.clusters?.flatMap(cluster => 
-                cluster.quotes?.map((quote, idx) => renderQuoteCard(quote, idx)) || []
+              {data.clusters.flatMap(cluster => 
+                cluster.quotes.map((quote, idx) => renderQuoteCard(quote, idx))
               )}
             </TabsContent>
 
@@ -791,7 +725,7 @@ export function SentimentTile({
               )}
 
               {/* Word clouds */}
-              {data.word_clouds?.positive && data.word_clouds?.negative && (
+              {data.word_clouds && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card className="p-4">
                     <h4 className="text-sm font-medium mb-3 text-green-600 dark:text-green-400">Positive Keywords</h4>

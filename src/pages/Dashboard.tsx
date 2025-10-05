@@ -11,7 +11,6 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { saveIdeaToLeaderboard } from "@/utils/saveIdeaToLeaderboard";
 import { useIdeaContext } from "@/hooks/useIdeaContext";
-import { LiveIdeaFeed } from "@/components/hub/LiveIdeaFeed";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -199,9 +198,6 @@ export default function Dashboard() {
 
         {/* Collaboration (Pro+) */}
         <CollaborationPanel />
-
-        {/* Live Idea Feed */}
-        <LiveIdeaFeed />
 
         {/* Support & Learning */}
         <Card className="border-primary/20">

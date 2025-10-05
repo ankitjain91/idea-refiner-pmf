@@ -21,7 +21,6 @@ import {
 } from 'recharts';
 import { formatMoney, formatPercent } from '@/utils/dataFormatting';
 import { supabase } from '@/integrations/supabase/client';
-import { recordIdeaValidation } from '@/utils/recordIdeaValidation';
 
 interface ExecutiveMarketSizeTileProps {
   idea?: string;
@@ -102,14 +101,6 @@ export function ExecutiveMarketSizeTile({
           tam: data.market_size.metrics.tam,
           confidence: data.market_size.confidence
         });
-        
-        // Record validation to live feed
-        recordIdeaValidation(
-          currentIdea,
-          undefined,
-          data.market_size.metrics.tam,
-          { confidence: data.market_size.confidence }
-        );
       }
     } catch (error) {
       console.error('[ExecutiveMarketSizeTile] Error fetching market data:', error);

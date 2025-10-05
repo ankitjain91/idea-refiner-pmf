@@ -10,7 +10,6 @@ import { getPMFInsights } from '@/lib/pmf-category';
 import { RealTimeMarketService } from '@/services/realTimeMarketService';
 import { formatMoney, formatPercent, sanitizeTileData } from '@/utils/dataFormatting';
 import { CACHE_DURATIONS } from '@/hooks/useCachedSWR';
-import { getCanonicalIdea } from '@/lib/idea-manager';
 
 interface DataHubState {
   indices: DataHubIndices | null;
@@ -95,16 +94,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
   }, []);
   
   const fetchDataHub = useCallback(async (forceRefresh = false) => {
-    // Use the idea from props (which comes from canonical source in EnterpriseHub)
-    // Or fallback to canonical idea if not provided
-    const ideaToUse = input.idea || getCanonicalIdea();
-    
-    if (!ideaToUse) {
+    if (!input.idea) {
       setState(prev => ({ ...prev, error: 'Missing idea' }));
       return;
     }
-    
-    console.log('[OptimizedDataHub] Using idea:', ideaToUse.substring(0, 100));
     
     setState(prev => ({ ...prev, loading: true, error: null }));
     
@@ -118,7 +111,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
       if (useMockData) {
         // Warn that mock data is being used when API keys are configured
         console.warn('⚠️ Using MOCK DATA despite API keys being configured. Toggle off mock data for real data.');
-        console.log('📊 Loading MOCK DATA for idea:', ideaToUse);
+        console.log('📊 Loading MOCK DATA for:', input.idea);
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Use the same mock data structure as before
@@ -138,7 +131,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
       } else {
         // Use optimized data loading
-        console.log('🚀 Loading OPTIMIZED DATA for idea:', ideaToUse);
+        console.log('🚀 Loading OPTIMIZED DATA for:', input.idea);
         
         const tileTypes = [
           'sentiment', 'market_trends', 'competition', 'user_engagement',
@@ -184,8 +177,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         // Clear cache if force refresh to ensure real API calls
         if (forceRefresh) {
-          console.log('🔄 Force refresh: Clearing cache for idea:', ideaToUse);
-          await cache.current.clearForIdea(ideaToUse);
+          console.log('🔄 Force refresh: Clearing cache for idea:', input.idea);
+          await cache.current.clearForIdea(input.idea);
         }
         
         // Fetch all tile data with deduplication
@@ -203,8 +196,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
             // Special handling for market_size - use real-time service
             if (tileType === 'market_size') {
             const marketService = RealTimeMarketService.getInstance();
-            // Use the idea passed from props
-            const marketData = await marketService.fetchMarketSize(ideaToUse, forceRefresh);
+            const marketData = await marketService.fetchMarketSize(input.idea, forceRefresh);
             
             if (marketData) {
               cacheStatsTracker.misses++;
@@ -286,8 +278,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
           
           // Handle platform-specific tiles
           if (['reddit', 'twitter', 'linkedin'].includes(tileType)) {
-            // Use the idea passed from props
-            const platformData = await optimizedService.current.getDataForPlatform(tileType, ideaToUse);
+            const platformData = await optimizedService.current.getDataForPlatform(tileType, input.idea);
             
             if (platformData) {
               cacheStatsTracker.misses++;
@@ -330,8 +321,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
           }
           
           // Use optimized service for other tiles
-          // Use the idea passed from props
-          const optimizedData = await optimizedService.current.getDataForTile(tileType, ideaToUse);
+          const optimizedData = await optimizedService.current.getDataForTile(tileType, input.idea);
           
           if (optimizedData) {
             // Track cache stats

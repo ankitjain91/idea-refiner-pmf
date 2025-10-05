@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCanonicalIdea } from "@/lib/idea-manager";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
@@ -33,7 +32,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { EnterpriseFreeSignals } from "@/components/hub/EnterpriseFreeSignals";
 
 
 export default function EnterpriseHub() {
@@ -59,22 +57,63 @@ export default function EnterpriseHub() {
     localStorage.setItem('enterpriseHub_summaryExpanded', summaryExpanded.toString());
   }, [summaryExpanded]);
   
-  // Update idea from current session - using canonical idea manager
+  // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
-    // Use the centralized idea manager for consistency
-    const canonicalIdea = getCanonicalIdea();
+    // Always check localStorage first for immediate availability
+    const rawStoredIdea = 
+      localStorage.getItem("pmfCurrentIdea") ||
+      localStorage.getItem("dashboardIdea") || 
+      localStorage.getItem("currentIdea") || 
+      localStorage.getItem("userIdea") || 
+      "";
     
-    if (canonicalIdea) {
-      const cleanedIdea = cleanIdeaText(canonicalIdea);
-      setCurrentIdea(cleanedIdea);
-      setConversationSummary(cleanedIdea);
-      console.log("[EnterpriseHub] Using canonical idea:", cleanedIdea.substring(0, 100));
+    // Clean the stored idea
+    const storedIdea = cleanIdeaText(rawStoredIdea);
+    
+    console.log("[EnterpriseHub] Checking all localStorage keys:", {
+      pmfCurrentIdea: localStorage.getItem("pmfCurrentIdea")?.substring(0, 50),
+      dashboardIdea: localStorage.getItem("dashboardIdea")?.substring(0, 50),
+      currentIdea: localStorage.getItem("currentIdea")?.substring(0, 50),
+      userIdea: localStorage.getItem("userIdea")?.substring(0, 50)
+    });
+    
+    // If we have a stored idea, use it immediately
+    if (storedIdea) {
+      setCurrentIdea(storedIdea);
+      // Using useIdeaContext for idea management
+      console.log("[EnterpriseHub] Using stored idea:", storedIdea.substring(0, 100));
       
+      // Now check if we have a session to enhance with chat history
       if (currentSession) {
+        const { chatHistory, currentIdea: sessionIdea } = currentSession.data || {};
+        
+        // Create conversation summary if we have chat history
+        if (chatHistory && chatHistory.length > 0) {
+          const summary = createConversationSummary(chatHistory, sessionIdea || storedIdea);
+          const cleanedSummary = cleanIdeaText(summary);
+          setConversationSummary(cleanedSummary);
+          // Update localStorage with cleaned summary
+          if (cleanedSummary !== storedIdea) {
+            // Using useIdeaContext for idea management
+            setCurrentIdea(cleanedSummary);
+          }
+        } else {
+          setConversationSummary(storedIdea);
+        }
+        
+        // Update session with the stored idea if it doesn't have one
+        if (!sessionIdea && currentSession.data) {
+          currentSession.data.currentIdea = storedIdea;
+          saveCurrentSession();
+        }
+        
         setSessionName(currentSession.name || "Untitled Session");
+      } else {
+        // No session, just use the stored idea as summary
+        setConversationSummary(storedIdea);
       }
     } else if (currentSession?.data) {
-      // No canonical idea, try to get from session as fallback
+      // No stored idea, try to get from session
       const { chatHistory, currentIdea: sessionIdea } = currentSession.data;
       
       if (sessionIdea || (chatHistory && chatHistory.length > 0)) {
@@ -86,24 +125,24 @@ export default function EnterpriseHub() {
         if (cleanedSummary) {
           setCurrentIdea(cleanedSummary);
           setConversationSummary(cleanedSummary);
+          // Using useIdeaContext for idea management
           console.log("[EnterpriseHub] Got idea from session:", cleanedSummary.substring(0, 100));
         }
       }
       
       setSessionName(currentSession.name || "Untitled Session");
     }
-  }, [currentSession]);
+  }, [currentSession, saveCurrentSession]);
   
   // Watch for session changes
   useEffect(() => {
     updateIdeaFromSession();
   }, [updateIdeaFromSession]);
 
-  // Use the data hub hook with current idea from canonical source
-  const canonicalIdea = getCanonicalIdea();
-  console.log('[EnterpriseHub] Using canonical idea for data hub:', canonicalIdea?.substring(0, 100));
+  // Use the data hub hook with current idea
+  console.log('[EnterpriseHub] Using idea for data hub:', currentIdea?.substring(0, 100));
   const dataHub = useDataHubWrapper({
-    idea: canonicalIdea || currentIdea, // Use canonical idea, fallback to currentIdea
+    idea: currentIdea,
     targetMarkets: ["US", "EU", "APAC"],
     audienceProfiles: ["early_adopters", "enterprise"],
     geos: ["global"],
@@ -433,7 +472,6 @@ export default function EnterpriseHub() {
 
           {/* OVERVIEW TAB - PMF Score + Global Market Map */}
           <TabsContent value="overview" className="space-y-6">
-            <EnterpriseFreeSignals idea={currentIdea} />
             <HeroSection 
               pmfScore={tiles.pmf_score}
               loading={loading}
@@ -474,13 +512,7 @@ export default function EnterpriseHub() {
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
-                <SentimentTile 
-                  className="mb-6"
-                  data={tiles.sentiment}
-                  idea={canonicalIdea}
-                  loading={loading}
-                  onRefresh={() => refreshTile('sentiment')}
-                />
+                <SentimentTile className="mb-6" />
                 <MainAnalysisGrid
                   tiles={{
                     news_analysis: tiles.news_analysis,

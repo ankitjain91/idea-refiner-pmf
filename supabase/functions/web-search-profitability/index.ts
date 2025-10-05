@@ -267,6 +267,44 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+          { 
+            title: 'LendingClub Business Loans', 
+            link: 'https://lendingclub.com/business', 
+            snippet: 'Get business loans from $5,000 to $500,000. Community-backed funding with transparent terms.'
+          },
+          { 
+            title: 'Funding Circle - Small Business Loans', 
+            link: 'https://fundingcircle.com', 
+            snippet: 'Peer-to-peer lending for small businesses. Over $10 billion funded. Competitive rates starting at 4.99%.'
+          },
+          { 
+            title: 'Kiva - Crowdfunded Microloans', 
+            link: 'https://kiva.org', 
+            snippet: '0% interest loans for entrepreneurs. Community voting on loan applications. 96% repayment rate.'
+          },
+          { 
+            title: 'P2P Lending Market Analysis 2024', 
+            link: 'https://marketresearch.com/p2p-lending', 
+            snippet: 'Market size $150B by 2024. Growth rate 28% CAGR. Key players and emerging trends.'
+          }
+        ],
+        ads: [
+          { title: 'Quick Business Loans', description: 'Get funded in 24 hours' },
+          { title: 'P2P Investment Platform', description: 'Earn 8-12% returns' }
+        ],
+        related_searches: [
+          { query: 'peer to peer lending rates' },
+          { query: 'best p2p lending platforms for investors' },
+          { query: 'small business crowdfunding platforms' },
+          { query: 'community lending platforms' }
+        ],
+        related_questions: [
+          { question: 'How much can I borrow from P2P lending?' },
+          { question: 'What are the risks of peer-to-peer lending?' },
+          { question: 'Which P2P platform has the best rates?' }
+        ]
+      };
+    }
 
     // Extract comprehensive data from SerpApi results
     organicResults = searchResults.organic_results || [];
