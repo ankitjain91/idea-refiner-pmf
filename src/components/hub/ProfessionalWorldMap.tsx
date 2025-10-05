@@ -425,25 +425,25 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
             </div>
 
 
-            {/* Enhanced hover tooltip */}
+            {/* Enhanced hover tooltip - Dark Theme */}
             <AnimatePresence>
               {hoveredRegion && (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute top-4 right-4 bg-background/98 backdrop-blur-xl border-2 border-primary/20 rounded-xl p-5 shadow-2xl max-w-sm"
+                  className="absolute top-4 right-4 bg-slate-900/98 backdrop-blur-xl border-2 border-slate-700/50 rounded-xl p-5 shadow-2xl max-w-sm"
                 >
                   <div className="space-y-4">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-lg flex items-center gap-2">
-                          <div className="p-1.5 rounded-lg bg-primary/10">
+                        <h3 className="font-bold text-lg flex items-center gap-2 text-white">
+                          <div className="p-1.5 rounded-lg bg-primary/20">
                             <MapPin className="h-4 w-4 text-primary" />
                           </div>
                           {hoveredRegion.name}
                         </h3>
-                        <Badge variant="secondary" className="text-xs gap-1">
+                        <Badge variant="secondary" className="text-xs gap-1 bg-slate-800 text-white border-slate-700">
                           <Sparkles className="h-3 w-3" />
                           {Math.round(hoveredRegion.confidence * 100)}%
                         </Badge>
@@ -452,59 +452,59 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                     
                     <div className="grid grid-cols-3 gap-3">
                       <motion.div 
-                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30"
                         whileHover={{ scale: 1.05 }}
                       >
-                        <p className="text-[10px] text-muted-foreground font-medium mb-1">TAM</p>
+                        <p className="text-[10px] text-slate-400 font-medium mb-1">TAM</p>
                         <p className="text-sm font-bold text-primary">{formatCurrency(hoveredRegion.tam)}</p>
                       </motion.div>
                       <motion.div 
-                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30"
                         whileHover={{ scale: 1.05 }}
                       >
-                        <p className="text-[10px] text-muted-foreground font-medium mb-1">SAM</p>
+                        <p className="text-[10px] text-slate-400 font-medium mb-1">SAM</p>
                         <p className="text-sm font-bold text-primary">{formatCurrency(hoveredRegion.sam)}</p>
                       </motion.div>
                       <motion.div 
-                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                        className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30"
                         whileHover={{ scale: 1.05 }}
                       >
-                        <p className="text-[10px] text-muted-foreground font-medium mb-1">SOM</p>
+                        <p className="text-[10px] text-slate-400 font-medium mb-1">SOM</p>
                         <p className="text-sm font-bold text-primary">{formatCurrency(hoveredRegion.som)}</p>
                       </motion.div>
                     </div>
                     
-                    <div className="space-y-2.5 pt-2 border-t border-border/50">
+                    <div className="space-y-2.5 pt-2 border-t border-slate-700/50">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400 flex items-center gap-1.5">
                           <TrendingUp className="h-3 w-3" />
                           Growth Rate
                         </span>
-                        <span className="font-bold text-sm text-green-500">{hoveredRegion.cagr}%</span>
+                        <span className="font-bold text-sm text-green-400">{hoveredRegion.cagr}%</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400 flex items-center gap-1.5">
                           <Activity className="h-3 w-3" />
                           Market Penetration
                         </span>
                         <div className="flex items-center gap-2">
                           <Progress value={hoveredRegion.marketPenetration * 100} className="h-1.5 w-16" />
-                          <span className="font-semibold text-xs">{Math.round(hoveredRegion.marketPenetration * 100)}%</span>
+                          <span className="font-semibold text-xs text-white">{Math.round(hoveredRegion.marketPenetration * 100)}%</span>
                         </div>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400 flex items-center gap-1.5">
                           <Users className="h-3 w-3" />
                           Population
                         </span>
-                        <span className="font-semibold text-xs">{formatNumber(hoveredRegion.demographics.population)}</span>
+                        <span className="font-semibold text-xs text-white">{formatNumber(hoveredRegion.demographics.population)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="text-xs text-slate-400 flex items-center gap-1.5">
                           <Globe2 className="h-3 w-3" />
                           Internet
                         </span>
-                        <span className="font-semibold text-xs">{Math.round(hoveredRegion.demographics.internetPenetration * 100)}%</span>
+                        <span className="font-semibold text-xs text-white">{Math.round(hoveredRegion.demographics.internetPenetration * 100)}%</span>
                       </div>
                     </div>
                   </div>
