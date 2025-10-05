@@ -1,0 +1,442 @@
+diff -ruN /mnt/data/stage1/idea-refiner-pmf-main/src/components/hub/DeepTile.tsx /mnt/data/stage2/idea-refiner-pmf-main/src/components/hub/DeepTile.tsx
+--- /mnt/data/stage1/idea-refiner-pmf-main/src/components/hub/DeepTile.tsx	2025-10-05 16:35:42.215002170 +0000
++++ /mnt/data/stage2/idea-refiner-pmf-main/src/components/hub/DeepTile.tsx	1970-01-01 00:00:00.000000000 +0000
+@@ -1,74 +0,0 @@
+-
+-import { useState } from "react";
+-import { Info, ChevronRight } from "lucide-react";
+-import { Card } from "@/components/ui/card";
+-import { Badge } from "@/components/ui/badge";
+-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+-
+-export function DeepTile({
+-  title, kpi, delta, conf, trend, summary, onDetails, children,
+-}: {
+-  title: string;
+-  kpi: { label: string; value: string };
+-  delta?: { value: string; dir: "up" | "down" | "flat" };
+-  conf?: "Low" | "Medium" | "High";
+-  trend?: number[];
+-  summary?: string[];
+-  onDetails?: () => Promise<JSX.Element>;
+-  children?: React.ReactNode;
+-}) {
+-  const [open, setOpen] = useState(false);
+-  const [panel, setPanel] = useState<JSX.Element | null>(null);
+-
+-  async function openDetails() {
+-    setOpen(true);
+-    if (onDetails) setPanel(await onDetails());
+-  }
+-
+-  return (
+-    <Card className="group relative p-4 rounded-2xl bg-white/5 border-white/10 hover:bg-white/[0.07] transition">
+-      <div className="flex items-start justify-between">
+-        <div className="space-y-1">
+-          <h3 className="text-base/6 text-white">{title}</h3>
+-          <div className="flex items-center gap-3">
+-            <div className="text-3xl font-semibold text-white">{kpi.value}</div>
+-            {delta && (
+-              <Badge variant="outline" className="text-xs">
+-                {delta.dir === "up" ? "▲" : delta.dir === "down" ? "▼" : "—"} {delta.value}
+-              </Badge>
+-            )}
+-            {conf && <Badge className="text-xs">{conf} confidence</Badge>}
+-          </div>
+-        </div>
+-        <button onClick={openDetails} className="flex items-center gap-1 text-sm text-white/80 hover:text-white">
+-          Details <ChevronRight className="w-4 h-4" />
+-        </button>
+-      </div>
+-
+-      {trend && (
+-        <div className="mt-3 h-8 w-full opacity-80">
+-          <svg viewBox={`0 0 ${trend.length-1} 10`} preserveAspectRatio="none" className="w-full h-full">
+-            <polyline fill="none" stroke="currentColor" strokeWidth="0.5"
+-              points={trend.map((v,i)=>`${i},${10 - Math.max(0, Math.min(10, (v / Math.max(...trend)) * 10))}`).join(" ")}/>
+-          </svg>
+-        </div>
+-      )}
+-      {children}
+-
+-      {summary && (
+-        <ul className="mt-3 text-sm text-white/80 list-disc list-inside space-y-1">
+-          {summary.slice(0, 4).map((s, i) => <li key={i}>{s}</li>)}
+-        </ul>
+-      )}
+-
+-      <Drawer open={open} onOpenChange={setOpen}>
+-        <DrawerContent className="p-6 bg-[#0B0D10] border-white/10">
+-          <div className="flex items-center gap-2 mb-4 text-white">
+-            <Info className="w-4 h-4" /> <h4 className="text-lg">{title} — Full analysis</h4>
+-          </div>
+-          {panel ?? <div className="text-white/70">Loading…</div>}
+-        </DrawerContent>
+-      </Drawer>
+-    </Card>
+-  );
+-}
+diff -ruN /mnt/data/stage1/idea-refiner-pmf-main/src/components/hub/EnterpriseFreeSignals.tsx /mnt/data/stage2/idea-refiner-pmf-main/src/components/hub/EnterpriseFreeSignals.tsx
+--- /mnt/data/stage1/idea-refiner-pmf-main/src/components/hub/EnterpriseFreeSignals.tsx	2025-10-05 16:35:42.215328589 +0000
++++ /mnt/data/stage2/idea-refiner-pmf-main/src/components/hub/EnterpriseFreeSignals.tsx	1970-01-01 00:00:00.000000000 +0000
+@@ -1,96 +0,0 @@
+-
+-import { useCallback, useEffect, useState } from "react";
+-import { createClient } from "@supabase/supabase-js";
+-import { DeepTile } from "./DeepTile";
+-import { toast } from "sonner";
+-
+-export function EnterpriseFreeSignals({ idea }: { idea: string }) {
+-  const [data, setData] = useState<any|null>(null);
+-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+-  const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+-  const supabase = createClient(supabaseUrl, supabaseAnon);
+-
+-  const load = useCallback(async () => {
+-    if (!idea) return;
+-    try {
+-      const { data, error } = await supabase.functions.invoke('free-signals', {
+-        body: { idea, tiles: ['sentiment','market','competitors'], horizonDays: 90 }
+-      });
+-      if (error) throw error;
+-      setData(data?.data || data);
+-    } catch (e:any) {
+-      console.error(e);
+-      toast.error(`Free data error: ${e.message || e}`);
+-    }
+-  }, [idea]);
+-
+-  useEffect(()=>{ load(); }, [load]);
+-
+-  if (!data) return null;
+-
+-  return (
+-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+-      <DeepTile
+-        title="User Sentiment & Buzz (Free)"
+-        kpi={{ label: "Net Sentiment", value: (data?.sentiment?.kpi != null ? (data.sentiment.kpi*100).toFixed(0)+'%' : '—') }}
+-        conf={data?.sentiment?.confidence}
+-        trend={data?.sentiment?.trend}
+-        summary={[
+-          `Sample: ${data?.sentiment?.sampleSize ?? 0}`,
+-          `Sources: ${data?.sentiment?.sources?.map((s:any)=>s.id).join(', ') || '—'}`,
+-          `Updated: ${new Date(data?.sentiment?.lastUpdated||Date.now()).toLocaleString()}`
+-        ]}
+-        onDetails={async () => {
+-          return (
+-            <div className="space-y-4 text-white/80">
+-              <p>Why this score: basic lexicon over Reddit/HN texts; Wikipedia pageviews show awareness trend.</p>
+-              <div className="text-sm opacity-80">
+-                <div>Sources: {data?.sentiment?.sources?.map((s:any)=>`${s.id} (${s.items})`).join(', ')}</div>
+-              </div>
+-            </div>
+-          )
+-        }}
+-      />
+-
+-      <DeepTile
+-        title="Market Proxies (World Bank, Free)"
+-        kpi={{ label: "Internet Users", value: (data?.market?.indicators?.internetUsersPct != null ? data.market.indicators.internetUsersPct.toFixed(1)+'%' : '—') }}
+-        conf={"High"}
+-        summary={[
+-          `R&D %GDP: ${data?.market?.indicators?.rdSpendPctGDP ?? '—'}`,
+-          `GDP growth: ${data?.market?.indicators?.gdpGrowthPct ?? '—'}`,
+-          `Updated: ${new Date(data?.market?.lastUpdated||Date.now()).toLocaleString()}`
+-        ]}
+-        onDetails={async () => {
+-          return (
+-            <div className="space-y-4 text-white/80">
+-              <p>World Bank series over the last decade. Use this to gauge macro suitability.</p>
+-            </div>
+-          )
+-        }}
+-      />
+-
+-      <DeepTile
+-        title="Competitor Heat (GitHub, Free)"
+-        kpi={{ label: "Top Repo Stars", value: (data?.competitors?.topRepos?.[0]?.stars != null ? String(data.competitors.topRepos[0].stars) : '—') }}
+-        conf={"Medium"}
+-        summary={[
+-          `Top: ${data?.competitors?.topRepos?.[0]?.name ?? '—'}`,
+-          `Repos: ${data?.competitors?.topRepos?.length ?? 0}`,
+-          `Updated: ${new Date(data?.competitors?.lastUpdated||Date.now()).toLocaleString()}`
+-        ]}
+-        onDetails={async () => {
+-          return (
+-            <div className="space-y-2 text-white/80">
+-              <ul className="list-disc list-inside">
+-                {(data?.competitors?.topRepos ?? []).map((r:any)=>(
+-                  <li key={r.url}><a className="underline" href={r.url} target="_blank" rel="noreferrer">{r.name}</a> — ★{r.stars}</li>
+-                ))}
+-              </ul>
+-            </div>
+-          )
+-        }}
+-      />
+-    </div>
+-  );
+-}
+diff -ruN /mnt/data/stage1/idea-refiner-pmf-main/src/contexts/DataModeContext.tsx /mnt/data/stage2/idea-refiner-pmf-main/src/contexts/DataModeContext.tsx
+--- /mnt/data/stage1/idea-refiner-pmf-main/src/contexts/DataModeContext.tsx	2025-10-05 16:35:01.885919700 +0000
++++ /mnt/data/stage2/idea-refiner-pmf-main/src/contexts/DataModeContext.tsx	2025-10-05 16:36:14.626911585 +0000
+@@ -12,8 +12,7 @@
+ export function DataModeProvider({ children }: { children: React.ReactNode }) {
+   const [useMockData, setUseMockData] = useState(() => {
+     // Force real data by default; ignore legacy stored true
+-    const stored = localStorage.getItem('useMockData');
+-    return stored !== null ? stored === 'true' : false;
++    const stored = false;
+   });
+   const { toast } = useToast();
+ 
+diff -ruN /mnt/data/stage1/idea-refiner-pmf-main/src/pages/EnterpriseHub.tsx /mnt/data/stage2/idea-refiner-pmf-main/src/pages/EnterpriseHub.tsx
+--- /mnt/data/stage1/idea-refiner-pmf-main/src/pages/EnterpriseHub.tsx	2025-10-05 16:35:42.216460313 +0000
++++ /mnt/data/stage2/idea-refiner-pmf-main/src/pages/EnterpriseHub.tsx	2025-10-05 16:36:14.628193156 +0000
+@@ -32,7 +32,6 @@
+   AccordionItem,
+   AccordionTrigger,
+ } from "@/components/ui/accordion";
+-import { EnterpriseFreeSignals } from "@/components/hub/EnterpriseFreeSignals";
+ 
+ 
+ export default function EnterpriseHub() {
+@@ -433,7 +432,7 @@
+           >
+             <CollapsibleContent>
+               <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30">
+-                {/* Mock Data Toggle */}
++                {/* Real Data Toggle */}
+                 <div className={cn(
+                   "flex items-center gap-2 px-3 py-1.5 rounded-lg border",
+                   useMockData 
+@@ -441,7 +440,7 @@
+                     : "bg-emerald-500/10 border-emerald-500/30"
+                 )}>
+                   <Label htmlFor="mock-mode" className="text-xs font-medium cursor-pointer">
+-                    {useMockData ? "Mock Data" : "Real Data"}
++                    {useMockData ? "Real Data" : "Real Data"}
+                   </Label>
+                   <Switch
+                     id="mock-mode"
+@@ -507,7 +506,6 @@
+ 
+           {/* OVERVIEW TAB - PMF Score + Global Market Map */}
+           <TabsContent value="overview" className="space-y-6">
+-            <EnterpriseFreeSignals idea={currentIdea} />
+             <HeroSection 
+               pmfScore={tiles.pmf_score}
+               loading={loading}
+diff -ruN /mnt/data/stage1/idea-refiner-pmf-main/supabase/functions/free-signals/index.ts /mnt/data/stage2/idea-refiner-pmf-main/supabase/functions/free-signals/index.ts
+--- /mnt/data/stage1/idea-refiner-pmf-main/supabase/functions/free-signals/index.ts	2025-10-05 16:35:42.213735587 +0000
++++ /mnt/data/stage2/idea-refiner-pmf-main/supabase/functions/free-signals/index.ts	1970-01-01 00:00:00.000000000 +0000
+@@ -1,210 +0,0 @@
+-
+-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+-
+-const corsHeaders = {
+-  "Access-Control-Allow-Origin": "*",
+-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+-};
+-
+-// Optional keys (increase limits)
+-const REDDIT_CLIENT_ID = Deno.env.get("REDDIT_CLIENT_ID");
+-const REDDIT_CLIENT_SECRET = Deno.env.get("REDDIT_CLIENT_SECRET");
+-const REDDIT_USER_AGENT = Deno.env.get("REDDIT_USER_AGENT") || "enterprisehub/1.0 (by u/you)";
+-const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN"); // optional
+-
+-type Req = {
+-  idea: string;
+-  tiles?: ("sentiment"|"market"|"competitors")[];
+-  horizonDays?: number;
+-  country?: string;
+-};
+-
+-function slugify(s: string) {
+-  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, "+");
+-}
+-
+-async function fetchHN(query: string, days: number) {
+-  const now = Math.floor(Date.now()/1000);
+-  const since = now - days*24*3600;
+-  const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story,comment&numericFilters=created_at_i>${since}`;
+-  const res = await fetch(url);
+-  return await res.json();
+-}
+-
+-async function redditToken() {
+-  if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) return null;
+-  const creds = btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`);
+-  const res = await fetch("https://www.reddit.com/api/v1/access_token", {
+-    method: "POST",
+-    headers: { "Authorization": `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded", "User-Agent": REDDIT_USER_AGENT },
+-    body: new URLSearchParams({ grant_type: "client_credentials" })
+-  });
+-  if (!res.ok) return null;
+-  const j = await res.json();
+-  return j.access_token as string;
+-}
+-
+-async function fetchReddit(query: string, days: number, token: string|null) {
+-  if (!token) {
+-    const url = `https://api.pushshift.io/reddit/search/submission/?q=${encodeURIComponent(query)}&after=${days}d&size=100`;
+-    const res = await fetch(url);
+-    const data = await res.json();
+-    return { mode: "pushshift", data };
+-  }
+-  const headers = { "Authorization": `Bearer ${token}`, "User-Agent": REDDIT_USER_AGENT };
+-  const url = `https://oauth.reddit.com/search?q=${encodeURIComponent(query)}&sort=relevance&t=year&limit=100&type=link`;
+-  const res = await fetch(url, { headers });
+-  const data = await res.json();
+-  return { mode: "reddit", data };
+-}
+-
+-async function fetchWikipediaPageviews(title: string, days: number) {
+-  const end = new Date();
+-  const start = new Date(end.getTime() - days*24*3600*1000);
+-  function fmt(d: Date){ return d.toISOString().slice(0,10).replace(/-/g,""); }
+-  const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/${encodeURIComponent(title)}/daily/${fmt(start)}/${fmt(end)}`;
+-  const res = await fetch(url);
+-  if (!res.ok) return { items: [] };
+-  return await res.json();
+-}
+-
+-async function fetchWorldBank(indicator: string, country = "USA", years = 10) {
+-  const end = new Date().getFullYear();
+-  const start = end - years;
+-  const url = `https://api.worldbank.org/v2/country/${country}/indicator/${indicator}?format=json&date=${start}:${end}`;
+-  const res = await fetch(url);
+-  const j = await res.json();
+-  return Array.isArray(j) ? j[1] : [];
+-}
+-
+-async function fetchGitHubRepos(keyword: string) {
+-  const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(keyword)}&sort=stars&order=desc&per_page=10`;
+-  const headers: Record<string,string> = { "Accept": "application/vnd.github+json" };
+-  if (GITHUB_TOKEN) headers["Authorization"] = `Bearer ${GITHUB_TOKEN}`;
+-  const res = await fetch(url, { headers });
+-  return await res.json();
+-}
+-
+-function basicSentiment(text: string): number {
+-  const pos = ["good","great","love","win","fast","awesome","amazing","easy","helpful","wow","solid","clean","reliable","beautiful"];
+-  const neg = ["bad","hate","slow","bug","issue","problem","hard","fail","crash","expensive","confusing","ugly"];
+-  const t = text.toLowerCase();
+-  let score = 0;
+-  for (const w of pos) if (t.includes(w)) score++;
+-  for (const w of neg) if (t.includes(w)) score--;
+-  return Math.max(-1, Math.min(1, score/5));
+-}
+-
+-function aggregateSentiment(texts: string[]) {
+-  const vals = texts.map(basicSentiment);
+-  const n = vals.length || 1;
+-  const mean = vals.reduce((a,b)=>a+b,0)/n;
+-  const conf = n >= 200 ? "High" : n >= 60 ? "Medium" : "Low";
+-  return { value: mean, sampleSize: n, conf };
+-}
+-
+-serve(async (req) => {
+-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+-
+-  try {
+-    const body: Req = await req.json();
+-    const idea = (body.idea || "").slice(0, 120);
+-    const tiles = body.tiles?.length ? body.tiles : ["sentiment","market","competitors"];
+-    const days = Math.min(Math.max(body.horizonDays ?? 90, 7), 365);
+-    const country = body.country || "USA";
+-
+-    if (!idea) throw new Error("idea is required");
+-    const query = slugify(idea);
+-
+-    const redditTok = await redditToken();
+-
+-    const tasks: Record<string, Promise<any>> = {};
+-    if (tiles.includes("sentiment")) {
+-      tasks["hn"] = fetchHN(query, days);
+-      tasks["reddit"] = fetchReddit(query, days, redditTok);
+-      tasks["wiki"] = fetchWikipediaPageviews(idea, Math.min(days, 60));
+-    }
+-    if (tiles.includes("market")) {
+-      tasks["wb_users"] = fetchWorldBank("IT.NET.USER.ZS", country, 10);
+-      tasks["wb_rd_gdp"] = fetchWorldBank("GB.XPD.RSDV.GD.ZS", country, 10);
+-      tasks["wb_gdp_growth"] = fetchWorldBank("NY.GDP.MKTP.KD.ZG", country, 10);
+-    }
+-    if (tiles.includes("competitors")) {
+-      tasks["github"] = fetchGitHubRepos(idea);
+-    }
+-
+-    const results = await Promise.all(Object.values(tasks));
+-    const keyed: Record<string, any> = {};
+-    Object.keys(tasks).forEach((k, i) => keyed[k] = results[i]);
+-
+-    const payload: Record<string, any> = {};
+-
+-    if (tiles.includes("sentiment")) {
+-      const hnHits = (keyed.hn?.hits || []) as any[];
+-      const hnTexts = hnHits.map((h) => `${h.title ?? ""} ${h.comment_text ?? ""}`.trim()).filter(Boolean);
+-      const redditItems = keyed.reddit?.data?.data?.children ?? keyed.reddit?.data?.data ?? [];
+-      const rdTexts = redditItems.map((i: any) => (i.data?.title || i.title || "") + " " + (i.data?.selftext || i.selftext || "")).filter(Boolean);
+-      const texts = [...hnTexts, ...rdTexts].slice(0, 1000);
+-      const agg = aggregateSentiment(texts);
+-      const wikiViews = (keyed.wiki?.items ?? []).map((d:any)=>d.views);
+-      const trend = wikiViews.slice(-30);
+-
+-      payload.sentiment = {
+-        kpi: agg.value,
+-        sampleSize: agg.sampleSize,
+-        confidence: agg.conf,
+-        trend,
+-        sources: [
+-          { id: "hn.algolia", items: hnHits.length },
+-          { id: keyed.reddit?.mode === "reddit" ? "reddit.oauth" : "pushshift", items: redditItems.length },
+-          { id: "wikipedia.pageviews", items: (keyed.wiki?.items ?? []).length }
+-        ],
+-        lastUpdated: new Date().toISOString()
+-      };
+-    }
+-
+-    if (tiles.includes("market")) {
+-      function lastVal(arr:any[]) {
+-        const v = arr?.find((x:any)=>x?.value!=null);
+-        return v?.value ?? null;
+-      }
+-      payload.market = {
+-        indicators: {
+-          internetUsersPct: lastVal(keyed.wb_users),
+-          rdSpendPctGDP: lastVal(keyed.wb_rd_gdp),
+-          gdpGrowthPct: lastVal(keyed.wb_gdp_growth),
+-        },
+-        series: {
+-          internetUsersPct: keyed.wb_users,
+-          rdSpendPctGDP: keyed.wb_rd_gdp,
+-          gdpGrowthPct: keyed.wb_gdp_growth,
+-        },
+-        sources: ["worldbank"],
+-        lastUpdated: new Date().toISOString()
+-      };
+-    }
+-
+-    if (tiles.includes("competitors")) {
+-      const repos = (keyed.github?.items ?? []).map((r:any)=>({
+-        name: r.full_name,
+-        stars: r.stargazers_count,
+-        url: r.html_url,
+-        updated_at: r.updated_at
+-      }));
+-      payload.competitors = {
+-        topRepos: repos,
+-        sources: ["github"],
+-        lastUpdated: new Date().toISOString()
+-      };
+-    }
+-
+-    return new Response(JSON.stringify({ ok: true, data: payload }), {
+-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+-    });
+-  } catch (e) {
+-    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
+-      status: 400,
+-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+-    });
+-  }
+-});
