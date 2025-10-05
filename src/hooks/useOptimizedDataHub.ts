@@ -507,9 +507,21 @@ export function useOptimizedDataHub(input: DataHubInput) {
               const { saveIdeaToLeaderboard } = await import('@/utils/saveIdeaToLeaderboard');
               const sessionName = localStorage.getItem('currentSessionName') || 'Untitled Session';
               
+              // Get AI-generated summary from useIdeaContext
+              const aiSummary = localStorage.getItem('appIdea');
+              let ideaSummary = input.idea;
+              if (aiSummary) {
+                try {
+                  const parsed = JSON.parse(aiSummary);
+                  ideaSummary = parsed.summary || input.idea;
+                } catch (e) {
+                  console.error('Failed to parse AI summary:', e);
+                }
+              }
+              
               await saveIdeaToLeaderboard({
                 idea: input.idea,
-                refinedIdea: input.idea,
+                refinedIdea: ideaSummary, // Use AI-generated summary here
                 pmfScore: pmfResp.score,
                 sessionName,
                 category: pmfResp.category || 'Uncategorized',

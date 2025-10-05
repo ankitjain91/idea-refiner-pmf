@@ -43,9 +43,21 @@ export default function Dashboard() {
       }
       
       if (pmfScore > 0) {
+        // Get AI-generated summary from useIdeaContext
+        const aiSummary = localStorage.getItem('appIdea');
+        let ideaSummary = currentIdea;
+        if (aiSummary) {
+          try {
+            const parsed = JSON.parse(aiSummary);
+            ideaSummary = parsed.summary || currentIdea;
+          } catch (e) {
+            console.error('Failed to parse AI summary:', e);
+          }
+        }
+        
         await saveIdeaToLeaderboard({
           idea: currentIdea,
-          refinedIdea: currentIdea,
+          refinedIdea: ideaSummary, // Use AI-generated summary here
           pmfScore,
           sessionName,
           category,
