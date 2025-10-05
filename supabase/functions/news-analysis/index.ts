@@ -19,32 +19,30 @@ serve(async (req) => {
 
     console.log('[NEWS-ANALYSIS] Analyzing news for:', idea);
 
-    // Generate comprehensive mock news trends data
-    // In production, this would aggregate from GDELT, Serper, and other news sources
-    const newsTrends = generateComprehensiveNewsTrends(idea);
-
+    // Return error - this function needs real news API integration
     return new Response(
       JSON.stringify({
-        success: true,
-        ...newsTrends,
-        timestamp: new Date().toISOString()
+        success: false,
+        error: 'News analysis requires API integration (GDELT, Serper, etc.)',
+        news_trends: [],
+        total_articles: 0,
+        overall_sentiment: null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[NEWS-ANALYSIS] Error:', error);
     
-    // Return mock data even on error to ensure UI displays something
     return new Response(
       JSON.stringify({ 
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        news_trends: generateFallbackTrends(),
+        news_trends: [],
         total_articles: 0,
-        overall_sentiment: { positive: 50, neutral: 30, negative: 20 }
+        overall_sentiment: null
       }),
       { 
-        status: 200, // Return 200 with error flag instead of 500 to prevent UI breaks
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

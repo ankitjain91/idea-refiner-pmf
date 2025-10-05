@@ -165,81 +165,17 @@ serve(async (req) => {
       }
     }
 
-    // Fallback: Generate realistic competitors based on the idea
-    console.log('[competitive-landscape] Using intelligent fallback for idea:', idea);
-    
-    // Extract key terms from the idea for better competitor names
-    const ideaTerms = idea.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !['with', 'that', 'this', 'from', 'have', 'will', 'what', 'when', 'where'].includes(w));
-    const mainTerm = ideaTerms[0] || 'solution';
-    const sector = ideaTerms[1] || 'tech';
-    
-    // Generate realistic competitor names based on the idea
-    const competitorTemplates = [
-      { name: `Tesla`, marketShare: 28, valuation: '$850B', fundingStage: 'Public', strength: 'strong' as const },
-      { name: `Rivian`, marketShare: 18, valuation: '$27B', fundingStage: 'Public', strength: 'strong' as const },
-      { name: `Lucid Motors`, marketShare: 15, valuation: '$12B', fundingStage: 'Public', strength: 'moderate' as const },
-      { name: `Polestar`, marketShare: 12, valuation: '$8B', fundingStage: 'Series D', strength: 'moderate' as const },
-      { name: `Canoo`, marketShare: 8, valuation: '$600M', fundingStage: 'Series C', strength: 'weak' as const },
-      { name: `Arrival`, marketShare: 6, valuation: '$400M', fundingStage: 'Series B', strength: 'weak' as const },
-    ];
-    
-    // If idea mentions specific companies or tech, try to be more relevant
-    const hasEV = idea.toLowerCase().includes('tesla') || idea.toLowerCase().includes('fsd') || idea.toLowerCase().includes('electric') || idea.toLowerCase().includes('vehicle');
-    const hasAI = idea.toLowerCase().includes('ai') || idea.toLowerCase().includes('machine') || idea.toLowerCase().includes('learning');
-    
-    let topCompetitors: Competitor[];
-    
-    if (hasEV) {
-      // EV/Auto specific competitors
-      topCompetitors = [
-        { name: 'Tesla', url: 'https://tesla.com', marketShare: 28, valuation: '$850B', fundingStage: 'Public', strength: 'strong' },
-        { name: 'Waymo', url: 'https://waymo.com', marketShare: 18, valuation: '$175B', fundingStage: 'Subsidiary', strength: 'strong' },
-        { name: 'Cruise', url: 'https://getcruise.com', marketShare: 15, valuation: '$30B', fundingStage: 'Subsidiary', strength: 'moderate' },
-        { name: 'Rivian', url: 'https://rivian.com', marketShare: 12, valuation: '$27B', fundingStage: 'Public', strength: 'moderate' },
-        { name: 'Lucid Motors', url: 'https://lucidmotors.com', marketShare: 8, valuation: '$12B', fundingStage: 'Public', strength: 'weak' },
-        { name: 'Aurora', url: 'https://aurora.tech', marketShare: 6, valuation: '$3.1B', fundingStage: 'Public', strength: 'weak' },
-      ];
-    } else if (hasAI) {
-      // AI specific competitors
-      topCompetitors = [
-        { name: 'OpenAI', url: 'https://openai.com', marketShare: 25, valuation: '$157B', fundingStage: 'Series', strength: 'strong' },
-        { name: 'Anthropic', url: 'https://anthropic.com', marketShare: 18, valuation: '$18B', fundingStage: 'Series C', strength: 'strong' },
-        { name: 'Cohere', url: 'https://cohere.ai', marketShare: 15, valuation: '$5.5B', fundingStage: 'Series C', strength: 'moderate' },
-        { name: 'Stability AI', url: 'https://stability.ai', marketShare: 12, valuation: '$1B', fundingStage: 'Series B', strength: 'moderate' },
-        { name: 'Hugging Face', url: 'https://huggingface.co', marketShare: 10, valuation: '$4.5B', fundingStage: 'Series D', strength: 'weak' },
-        { name: 'Inflection AI', url: 'https://inflection.ai', marketShare: 8, valuation: '$4B', fundingStage: 'Series B', strength: 'weak' },
-      ];
-    } else {
-      // Generic tech competitors based on idea
-      topCompetitors = competitorTemplates.slice(0, 6).map((template, i) => ({
-        ...template,
-        name: i === 0 ? `${mainTerm.charAt(0).toUpperCase() + mainTerm.slice(1)} Leader` :
-              i === 1 ? `${sector.charAt(0).toUpperCase() + sector.slice(1)} Pro` :
-              i === 2 ? `Next ${mainTerm.charAt(0).toUpperCase() + mainTerm.slice(1)}` :
-              i === 3 ? `Smart ${sector.charAt(0).toUpperCase() + sector.slice(1)}` :
-              i === 4 ? `${mainTerm.charAt(0).toUpperCase() + mainTerm.slice(1)} Plus` :
-              `Quick ${sector.charAt(0).toUpperCase() + sector.slice(1)}`,
-        url: `https://example${i + 1}.com`
-      }));
-    }
-
-    const marketConcentration = concentrationFromShares(topCompetitors.map(c => c.marketShare));
-    const barrierToEntry = barrierFromCount(topCompetitors.length);
-
-    const competitiveAnalysis = {
-      topCompetitors,
-      marketConcentration,
-      barrierToEntry,
-    };
-
-    return new Response(JSON.stringify({ success: true, data: competitiveAnalysis }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Competitive landscape error:', error);
+    // Return error instead of mock data
+    console.error('[competitive-landscape] API unavailable or rate limited');
     return new Response(
-      JSON.stringify({ error: 'Failed to analyze competitive landscape' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: 'Competitive data temporarily unavailable. Please try again in a moment.',
+        competitors: [],
+        marketConcentration: 'unknown',
+        barrierToEntry: 'unknown'
+      }),
+      { 
+        status: 200, // 200 with error to avoid CORS issues
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
-  }
-});

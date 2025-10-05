@@ -37,11 +37,12 @@ serve(async (req) => {
     const hasSearchAPI = BRAVE_API_KEY || SERPER_API_KEY || TAVILY_API_KEY;
     
     if (!hasSearchAPI) {
-      console.log('[search-batch] No API keys available - returning mock data');
+      console.log('[search-batch] No API keys available');
       return new Response(
         JSON.stringify({ 
-          success: true, 
-          results: generateMockResults(typesToSearch, actualIdea)
+          success: false, 
+          error: 'Search API unavailable. Please configure API keys.',
+          results: {}
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

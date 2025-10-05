@@ -23,15 +23,17 @@ serve(async (req) => {
       )
     }
 
-    // Simulate funding activity tracking
-    const fundingActivity = {
-      deals: Math.floor(Math.random() * 20) + 5, // 5-25 deals
-      totalAmount: `$${(Math.random() * 500 + 50).toFixed(1)}M`, // $50-550M
-      lastDeal: `${Math.floor(Math.random() * 30) + 1} days ago`
-    }
-
+    // Return error - needs real funding data API (Crunchbase, PitchBook, etc.)
     return new Response(
-      JSON.stringify({ success: true, data: fundingActivity }),
+      JSON.stringify({ 
+        success: false,
+        error: 'Funding tracking requires API integration (Crunchbase, PitchBook)',
+        data: {
+          deals: 0,
+          totalAmount: '$0',
+          lastDeal: null
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

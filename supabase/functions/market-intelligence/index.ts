@@ -20,26 +20,13 @@ serve(async (req) => {
       )
     }
 
-    // Simulate market intelligence analysis
-    const marketIntelligence = {
-      keyTrends: [
-        `AI integration in ${idea} market`,
-        `Increased demand for automation`,
-        `Remote-first solution adoption`,
-        `Sustainability focus driving change`
-      ],
-      disruptors: [
-        `Machine learning advancements`,
-        `New regulatory frameworks`,
-        `Changing consumer behavior`
-      ],
-      marketMaturity: Math.random() > 0.5 ? 'growth' : 'mature',
-      technologyAdoption: Math.floor(Math.random() * 40) + 60, // 60-100%
-      regulatoryRisk: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
-    }
-
+    // Return error - needs real market intelligence API
     return new Response(
-      JSON.stringify({ success: true, data: marketIntelligence }),
+      JSON.stringify({ 
+        success: false,
+        error: 'Market intelligence requires API integration',
+        data: null
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

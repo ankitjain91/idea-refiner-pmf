@@ -305,15 +305,15 @@ serve(async (req) => {
           console.log('[Market Size Analysis] Successfully synthesized with Groq');
         } catch (parseError) {
           console.error('[Market Size Analysis] Failed to parse Groq response:', parseError);
-          analysisResult = generateFallbackAnalysis(actualIdea, marketDataPoints, citations);
+          analysisResult = { error: 'Market analysis temporarily unavailable', market_size: null };
         }
       } else {
         console.error('[Market Size Analysis] Groq API error:', groqResponse.status);
-        analysisResult = generateFallbackAnalysis(actualIdea, marketDataPoints, citations);
+        analysisResult = { error: 'Market analysis temporarily unavailable', market_size: null };
       }
     } else {
-      console.log('[Market Size Analysis] No Groq key, using fallback');
-      analysisResult = generateFallbackAnalysis(actualIdea, [], []);
+      console.log('[Market Size Analysis] No Groq key');
+      analysisResult = { error: 'AI service unavailable', market_size: null };
     }
 
     console.log('[Market Size Analysis] Complete:', {
@@ -338,10 +338,10 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false,
         error: error instanceof Error ? error.message : 'Market analysis failed',
-        market_size: generateFallbackAnalysis('', [], []).market_size
+        market_size: null
       }),
       {
-        status: 500,
+        status: 200, // Return 200 with error to avoid CORS
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );

@@ -48,39 +48,26 @@ serve(async (req) => {
 });
 
 async function analyzeUnifiedSentiment(idea: string, detailed: boolean) {
-  // Extract key terms for analysis
-  const keywords = extractKeywords(idea);
-  
-  // Simulate aggregating sentiment from multiple sources
-  const sourceData = await aggregateSourceSentiment(idea, keywords);
-  
-  // Generate thematic clusters
-  const clusters = generateThematicClusters(idea, sourceData);
-  
-  // Calculate overall metrics
-  const metrics = calculateMetrics(sourceData, clusters);
-  
-  // Generate trend data
-  const trendData = generateTrendData();
-  
-  // Generate word clouds
-  const wordClouds = generateWordClouds(sourceData);
-  
-  // Create visualization data
-  const charts = generateChartData(clusters, metrics);
-  
-  // Generate executive summary
-  const summary = generateSummary(idea, metrics, clusters);
-
+  // Return error - needs real sentiment API integration
   return {
-    summary,
-    metrics,
-    clusters,
-    trend_data: trendData,
-    word_clouds: wordClouds,
-    charts,
-    visuals_ready: true,
-    confidence: determineConfidence(sourceData, metrics)
+    error: 'Sentiment analysis requires API integration (Reddit, Twitter, News APIs)',
+    summary: 'Sentiment data unavailable',
+    metrics: {
+      overall_score: 0,
+      confidence: 0,
+      total_mentions: 0,
+      sentiment_distribution: {
+        positive: 0,
+        neutral: 0,
+        negative: 0
+      }
+    },
+    clusters: [],
+    trend_data: [],
+    word_clouds: [],
+    charts: [],
+    visuals_ready: false,
+    confidence: 'Low'
   };
 }
 

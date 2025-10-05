@@ -78,13 +78,13 @@ serve(async (req) => {
       { stage: 'Paid Users', count: engagementData.paid, rate: Math.round((engagementData.paid / engagementData.active) * 100) }
     ];
     
-    // Cohort retention (simulated based on engagement)
+    // Return error - needs real analytics integration
     const retentionData = {
-      week1: 100,
-      week2: 65,
-      week4: 45,
-      week8: 35,
-      week12: 30
+      week1: 0,
+      week2: 0,
+      week4: 0,
+      week8: 0,
+      week12: 0
     };
     
     // Identify biggest drop
@@ -95,26 +95,18 @@ serve(async (req) => {
     }, { stage: '', dropRate: 0 });
     
     const response = {
+      error: 'User engagement tracking requires analytics integration (Google Analytics, Mixpanel, etc.)',
       updatedAt: new Date().toISOString(),
       metrics: [
-        { name: 'Conversion Rate', value: Math.round((engagementData.paid / engagementData.visitors) * 100), unit: '%', confidence: 0.6 },
-        { name: 'Active Users', value: engagementData.active, confidence: 0.5 },
-        { name: 'Churn Rate', value: 5, unit: '%', confidence: 0.5 },
-        { name: 'LTV/CAC', value: 3.2, confidence: 0.4 }
+        { name: 'Conversion Rate', value: 0, unit: '%', confidence: 0 },
+        { name: 'Active Users', value: 0, confidence: 0 },
+        { name: 'Churn Rate', value: 0, unit: '%', confidence: 0 },
+        { name: 'LTV/CAC', value: 0, confidence: 0 }
       ],
-      funnel: funnelData,
+      funnel: [],
       retention: retentionData,
-      engagement_sources: [
-        { source: 'Organic Search', percentage: 35 },
-        { source: 'Social Media', percentage: 30 },
-        { source: 'Direct', percentage: 20 },
-        { source: 'Referral', percentage: 15 }
-      ],
-      profitLink: {
-        biggest_drop: biggestDrop,
-        optimization_potential: Math.round(engagementData.paid * 0.3), // 30% improvement potential
-        revenue_impact: Math.round(engagementData.paid * 0.3 * 99 * 12) // Annual revenue impact
-      }
+      engagement_sources: [],
+      profitLink: null
     };
     
     return new Response(JSON.stringify(response), {

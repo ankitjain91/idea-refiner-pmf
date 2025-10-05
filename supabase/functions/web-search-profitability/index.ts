@@ -253,17 +253,20 @@ serve(async (req) => {
       }
     }
 
-    // Use mock data if no API is available
+    // Return error if no API is available
     if (!searchResults) {
-      console.log('[web-search-profitability] No API keys available - using mock data');
-      // Enhanced mock data for development
-      searchResults = {
-        organic_results: [
-          { 
-            title: 'Best P2P Lending Platforms 2024', 
-            link: 'https://example.com/best-p2p-lending', 
-            snippet: 'Compare top peer-to-peer lending platforms. Rates from 5.99% APR. Fund local businesses with community voting features.'
-          },
+      console.log('[web-search-profitability] No API keys available');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Search API unavailable - configure Serper or Brave API key',
+          metrics: [],
+          items: [],
+          competitors: [],
+          warnings: ['API key required for real profitability analysis']
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
           { 
             title: 'LendingClub Business Loans', 
             link: 'https://lendingclub.com/business', 
