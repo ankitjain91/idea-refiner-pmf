@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { LS_KEYS } from '@/lib/storage-keys';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { UserMenu } from '@/components/UserMenu';
 import { Loader2, FolderOpen, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,10 @@ import EnhancedIdeaChat from '@/components/EnhancedIdeaChat';
 
 const EnhancedIdeaChatPage = () => {
   const { user, loading: authLoading, initialized } = useAuth();
-  const { currentSession, saving, setAutoSaveEnabled, autoSaveEnabled } = useSession();
+  const { currentSession, saving, setAutoSaveEnabled, autoSaveEnabled, loadSession } = useSession();
   const [showSessionPicker, setShowSessionPicker] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Always redirect to login modal if not logged in - no anonymous sessions allowed
   useEffect(() => {
@@ -30,15 +31,24 @@ const EnhancedIdeaChatPage = () => {
     }
   }, [initialized, authLoading, user, navigate]);
 
-  // Show session picker when needed, but allow user to close it
+  // Load session from URL param and manage picker
   useEffect(() => {
-    if (!authLoading && user && !currentSession && !saving) {
+    const params = new URLSearchParams(location.search);
+    const sid = params.get('session');
+
+    if (user && sid && currentSession?.id !== sid) {
+      loadSession(sid);
+      setShowSessionPicker(false);
+      return;
+    }
+
+    if (!authLoading && user && !currentSession && !saving && !sid) {
       // Show picker but allow closing
       setShowSessionPicker(true);
     } else if (currentSession) {
       setShowSessionPicker(false);
     }
-  }, [authLoading, user, currentSession, saving]);
+  }, [authLoading, user, currentSession, saving, location.search, loadSession]);
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
     // Get full conversation history for dashboard context

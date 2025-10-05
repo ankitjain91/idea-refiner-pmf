@@ -415,21 +415,27 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .from('brainstorming_sessions')
         .select('*')
         .eq('id', sessionId)
+        .eq('is_active', true)
         .single();
 
       if (error) throw error;
 
+      const rawState: any = (data.state as any) || {};
+      const sessionData: SessionData = {
+        chatHistory: Array.isArray(rawState.chatHistory) ? rawState.chatHistory : [],
+        currentIdea: typeof rawState.currentIdea === 'string' ? rawState.currentIdea : '',
+        analysisData: rawState.analysisData ?? {},
+        pmfScore: typeof rawState.pmfScore === 'number' ? rawState.pmfScore : 0,
+        analysisCompleted: !!rawState.analysisCompleted,
+        wrinklePoints: typeof rawState.wrinklePoints === 'number' ? rawState.wrinklePoints : undefined,
+        lastActivity: rawState.lastActivity || data.updated_at,
+        dashboardData: rawState.dashboardData ?? {}
+      };
+
       const session: BrainstormingSession = {
         id: data.id,
         name: data.name,
-        data: (data.state as any) || {
-          chatHistory: [],
-          currentIdea: '',
-          analysisData: {},
-          pmfScore: 0,
-          analysisCompleted: false,
-          lastActivity: data.updated_at
-        },
+        data: sessionData,
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id,
@@ -495,17 +501,20 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Now restore session data to localStorage
       // Store in both locations for compatibility
-      localStorage.setItem('chatHistory', JSON.stringify(session.data.chatHistory));
-      localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(session.data.chatHistory));
+      const restoredChat = Array.isArray(session.data.chatHistory) ? session.data.chatHistory : [];
+      localStorage.setItem('chatHistory', JSON.stringify(restoredChat));
+      localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(restoredChat));
       
       // Only restore idea and analysis data if they actually exist in the session
-      if (session.data.currentIdea) {
-        localStorage.setItem(LS_KEYS.userIdea, session.data.currentIdea);
-        localStorage.setItem('currentIdea', session.data.currentIdea);
+      const restoredIdea = typeof session.data.currentIdea === 'string' ? session.data.currentIdea : '';
+      const restoredAnalysis = session.data.analysisData ?? {};
+      if (restoredIdea) {
+        localStorage.setItem(LS_KEYS.userIdea, restoredIdea);
+        localStorage.setItem('currentIdea', restoredIdea);
         // Store in session-specific key
-        localStorage.setItem(`session_${sessionId}_idea`, session.data.currentIdea);
-        if (session.data.analysisData) {
-          localStorage.setItem(`session_${sessionId}_metadata`, JSON.stringify({ refined: session.data.currentIdea }));
+        localStorage.setItem(`session_${sessionId}_idea`, restoredIdea);
+        if (Object.keys(restoredAnalysis).length > 0) {
+          localStorage.setItem(`session_${sessionId}_metadata`, JSON.stringify({ refined: restoredIdea }));
         }
       }
       
