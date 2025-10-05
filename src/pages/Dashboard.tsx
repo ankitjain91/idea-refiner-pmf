@@ -7,22 +7,31 @@ import { BookOpen, HelpCircle, MessageSquare, Badge as BadgeIcon, BarChart3, Tre
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { subscription, usage } = useSubscription();
   const { user } = useAuth();
   const isPro = subscription.tier === 'pro' || subscription.tier === 'enterprise';
   const limits = SUBSCRIPTION_TIERS[subscription.tier].features;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Welcome Header */}
-      <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-            Welcome, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
-          </h1>
-          <p className="text-muted-foreground">Track your performance and insights</p>
+      <div className="border-b bg-gradient-to-r from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-sm">
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/20">
+              <BarChart3 className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient">
+                Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}!
+              </h1>
+              <p className="text-muted-foreground text-lg">Here's an overview of your SmoothBrains journey</p>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -32,83 +41,98 @@ export default function Dashboard() {
 
         {/* User Stats - Prominent Display */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ideas Validated</CardTitle>
-              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10">
-                <BarChart3 className="h-4 w-4 text-primary" />
+          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-primary/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Ideas Validated</CardTitle>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 group-hover:scale-110 transition-transform">
+                <BarChart3 className="h-5 w-5 text-primary" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{usage.ideas_used}</div>
-              <p className="text-xs text-muted-foreground">
-                of {limits.ideasPerMonth === -1 ? '∞' : limits.ideasPerMonth} available
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-1">
+                {usage.ideas_used}
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                of {limits.ideasPerMonth === -1 ? 'unlimited' : limits.ideasPerMonth} this month
               </p>
-              <div className="mt-2 h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
                 <div 
-                  className="h-full bg-gradient-to-r from-primary to-accent transition-all" 
+                  className="h-full bg-gradient-to-r from-primary via-accent to-primary transition-all duration-500 rounded-full" 
                   style={{ width: limits.ideasPerMonth === -1 ? '100%' : `${Math.min(100, (usage.ideas_used / limits.ideasPerMonth) * 100)}%` }}
                 />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-secondary">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">AI Credits Used</CardTitle>
-              <div className="p-2 rounded-lg bg-gradient-to-br from-secondary/20 to-secondary/10">
-                <TrendingUp className="h-4 w-4 text-secondary" />
+          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-secondary/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+              <CardTitle className="text-sm font-medium text-muted-foreground">AI Credits Used</CardTitle>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 group-hover:scale-110 transition-transform">
+                <TrendingUp className="h-5 w-5 text-secondary" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-secondary to-warning bg-clip-text text-transparent">{usage.ai_credits_used}</div>
-              <p className="text-xs text-muted-foreground">
-                of {limits.aiCreditsPerMonth.toLocaleString()} available
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-bold bg-gradient-to-r from-secondary via-accent to-secondary bg-clip-text text-transparent mb-1">
+                {usage.ai_credits_used.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                of {limits.aiCreditsPerMonth.toLocaleString()} this month
               </p>
-              <div className="mt-2 h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
                 <div 
-                  className="h-full bg-gradient-to-r from-secondary to-warning transition-all" 
+                  className="h-full bg-gradient-to-r from-secondary via-accent to-warning transition-all duration-500 rounded-full" 
                   style={{ width: `${Math.min(100, (usage.ai_credits_used / limits.aiCreditsPerMonth) * 100)}%` }}
                 />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-warning">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Exports</CardTitle>
-              <div className="p-2 rounded-lg bg-gradient-to-br from-warning/20 to-warning/10">
-                <DollarSign className="h-4 w-4 text-warning" />
+          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-warning/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-warning/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Exports</CardTitle>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-warning/20 to-warning/10 group-hover:scale-110 transition-transform">
+                <DollarSign className="h-5 w-5 text-warning" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-warning to-accent bg-clip-text text-transparent">{usage.exports_used}</div>
-              <p className="text-xs text-muted-foreground">
-                of {limits.exportsPerMonth === -1 ? '∞' : limits.exportsPerMonth} available
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-bold bg-gradient-to-r from-warning via-accent to-warning bg-clip-text text-transparent mb-1">
+                {usage.exports_used}
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                of {limits.exportsPerMonth === -1 ? 'unlimited' : limits.exportsPerMonth} this month
               </p>
-              <div className="mt-2 h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
                 <div 
-                  className="h-full bg-gradient-to-r from-warning to-accent transition-all" 
+                  className="h-full bg-gradient-to-r from-warning via-accent to-warning transition-all duration-500 rounded-full" 
                   style={{ width: limits.exportsPerMonth === -1 ? '100%' : `${Math.min(100, (usage.exports_used / limits.exportsPerMonth) * 100)}%` }}
                 />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-accent">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
-              <div className="p-2 rounded-lg bg-gradient-to-br from-accent/20 to-accent/10">
-                <Users className="h-4 w-4 text-accent" />
+          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-accent/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Current Plan</CardTitle>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 group-hover:scale-110 transition-transform">
+                <Users className="h-5 w-5 text-accent" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold capitalize bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-bold capitalize bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent mb-1">
                 {SUBSCRIPTION_TIERS[subscription.tier].name}
               </div>
-              <p className="text-xs text-muted-foreground">{SUBSCRIPTION_TIERS[subscription.tier].price}</p>
+              <p className="text-sm text-muted-foreground mb-3">{SUBSCRIPTION_TIERS[subscription.tier].price}</p>
               {!isPro && (
-                <Button variant="outline" size="sm" className="mt-2 w-full hover:bg-gradient-to-r hover:from-primary hover:to-accent hover:text-white transition-all">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary hover:to-accent hover:text-primary-foreground border-primary/30 transition-all"
+                  onClick={() => navigate('/pricing')}
+                >
                   Upgrade Plan
                 </Button>
               )}

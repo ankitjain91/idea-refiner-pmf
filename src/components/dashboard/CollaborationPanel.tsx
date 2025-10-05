@@ -32,14 +32,9 @@ export function CollaborationPanel() {
           <CardDescription>Recent activity</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 opacity-40">
-            <div className="p-3 rounded border border-border/40">
-              <p className="text-sm">Alex updated "AI SaaS Tool"</p>
-              <p className="text-xs text-muted-foreground">2 hours ago</p>
-            </div>
-            <div className="p-3 rounded border border-border/40">
-              <p className="text-sm">Jordan commented on "Mobile App"</p>
-              <p className="text-xs text-muted-foreground">5 hours ago</p>
+          <div className="text-center py-8 space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Team collaboration features will be available after upgrading
             </div>
           </div>
         </CardContent>
