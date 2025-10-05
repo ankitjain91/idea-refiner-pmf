@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import { DeepTile } from "./DeepTile";
 import { toast } from "sonner";
 
 export function EnterpriseFreeSignals({ idea }: { idea: string }) {
   const [data, setData] = useState<any|null>(null);
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
-  const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseAnon);
 
   const load = useCallback(async () => {
     if (!idea) return;
