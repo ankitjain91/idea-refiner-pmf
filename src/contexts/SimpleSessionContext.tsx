@@ -512,6 +512,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const restoredChat = Array.isArray(session.data.chatHistory) ? session.data.chatHistory : [];
       localStorage.setItem('chatHistory', JSON.stringify(restoredChat));
       localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(restoredChat));
+      // Also store in a session-scoped key to avoid cross-session collisions
+      localStorage.setItem(`session_${sessionId}_messages`, JSON.stringify(restoredChat));
       
       // Only restore idea and analysis data if they actually exist in the session
       const restoredIdea = typeof session.data.currentIdea === 'string' ? session.data.currentIdea : '';

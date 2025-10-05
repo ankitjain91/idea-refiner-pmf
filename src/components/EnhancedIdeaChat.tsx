@@ -90,7 +90,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   
   const [messages, setMessages] = useState<Message[]>(() => {
     if (!anonymous) {
-      const stored = localStorage.getItem('enhancedIdeaChatMessages');
+      const sid = localStorage.getItem('currentSessionId');
+      const sessionKey = sid ? `session_${sid}_messages` : 'enhancedIdeaChatMessages';
+      const stored = localStorage.getItem(sessionKey) || localStorage.getItem('enhancedIdeaChatMessages');
       if (stored) {
         try {
           return JSON.parse(stored);
@@ -198,7 +200,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   // Listen for session changes and restore conversation
   useEffect(() => {
     const handleSessionLoad = () => {
-      const stored = localStorage.getItem('enhancedIdeaChatMessages');
+      const sid = localStorage.getItem('currentSessionId');
+      const sessionKey = sid ? `session_${sid}_messages` : 'enhancedIdeaChatMessages';
+      const stored = localStorage.getItem(sessionKey) || localStorage.getItem('enhancedIdeaChatMessages');
       if (stored) {
         try {
           const parsedMessages = JSON.parse(stored);
@@ -516,7 +520,11 @@ What's your startup idea?`,
   // Persist messages for authenticated users and save to database immediately
   useEffect(() => {
     if (!anonymous && messages.length > 0) {
-      localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(messages));
+      const sid = localStorage.getItem('currentSessionId');
+      const sessionKey = sid ? `session_${sid}_messages` : 'enhancedIdeaChatMessages';
+      try {
+        localStorage.setItem(sessionKey, JSON.stringify(messages));
+      } catch {}
       
       // Save to database immediately after each message
       const saveTimeout = setTimeout(async () => {
