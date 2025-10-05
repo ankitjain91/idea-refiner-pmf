@@ -72,8 +72,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Welcome Header */}
-      <div className="border-b bg-gradient-to-r from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-sm">
-        <div className="container mx-auto px-4 py-12">
+      <div className="border-b bg-gradient-to-r from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-sm h-[89px] flex items-center">
+        <div className="container mx-auto px-4">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/20">
               <BarChart3 className="h-8 w-8 text-primary" />
