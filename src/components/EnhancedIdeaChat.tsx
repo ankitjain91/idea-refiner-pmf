@@ -524,6 +524,7 @@ What's your startup idea?`,
       const sessionKey = sid ? `session_${sid}_messages` : 'enhancedIdeaChatMessages';
       try {
         localStorage.setItem(sessionKey, JSON.stringify(messages));
+        localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(messages)); // keep generic key in sync for DB saves
       } catch {}
       
       // Save to database immediately after each message
@@ -1548,7 +1549,7 @@ const ChatMessageItem = useMemo(() => {
       'smoothBrainsScore',
       
       // Session related  
-      'currentSessionId',
+      // Keep currentSessionId - we are resetting within the same session
       'currentSession',
       
       // User progress
@@ -1589,18 +1590,16 @@ const ChatMessageItem = useMemo(() => {
       ]).flat()
     ];
     
-    // Clear all localStorage keys that match patterns
     const allKeys = Object.keys(localStorage);
+    const sid = localStorage.getItem('currentSessionId');
     allKeys.forEach(key => {
-      // Remove if it matches any of our patterns
-      if (keysToRemove.some(pattern => key.includes(pattern)) ||
-          key.includes('pmf') ||
-          key.includes('idea') ||
-          key.includes('session') ||
-          key.includes('tile_cache') ||
-          key.includes('tile_last_refresh') ||
-          key.includes('analysis') ||
-          key.includes('wrinkle')) {
+      const isSessionScoped = sid ? key.startsWith(`session_${sid}_`) : false;
+      const matchesPattern = keysToRemove.some(pattern => key.includes(pattern)) ||
+        key.includes('pmf') || key.includes('idea') || key.includes('tile_cache') ||
+        key.includes('tile_last_refresh') || key.includes('analysis') || key.includes('wrinkle');
+
+      // Only remove session_* keys for the CURRENT session; do not touch other sessions
+      if (isSessionScoped || (!key.startsWith('session_') && matchesPattern)) {
         try {
           localStorage.removeItem(key);
         } catch (err) {

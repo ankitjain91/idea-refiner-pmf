@@ -120,9 +120,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Get current session data from localStorage and component state
   const getCurrentSessionData = useCallback((): SessionData => {
     try {
-      // Try to get EnhancedIdeaChat messages first (main chat interface)
-      const enhancedMessages = localStorage.getItem('enhancedIdeaChatMessages');
-      let chatHistory = [];
+      // Prefer session-scoped chat history when available
+      const sid = localStorage.getItem('currentSessionId');
+      const sessionMessagesKey = sid ? `session_${sid}_messages` : null;
+      const enhancedMessages = (sessionMessagesKey && localStorage.getItem(sessionMessagesKey)) || localStorage.getItem('enhancedIdeaChatMessages');
+      let chatHistory = [] as any[];
       
       if (enhancedMessages) {
         chatHistory = JSON.parse(enhancedMessages);
@@ -131,8 +133,16 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
       }
       
-      // Get current idea from centralized source
-      const currentIdea = getIdea();
+      // Current idea: prefer session-scoped idea, then stored per-app idea keys
+      let currentIdea = '';
+      const sessionIdeaKey = sid ? `session_${sid}_idea` : null;
+      const sessionIdea = sessionIdeaKey ? localStorage.getItem(sessionIdeaKey) : null;
+      if (sessionIdea) {
+        currentIdea = sessionIdea;
+      } else {
+        currentIdea = localStorage.getItem(LS_KEYS.userIdea) || localStorage.getItem('currentIdea') || '';
+      }
+      
       const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
       const pmfScore = parseInt(localStorage.getItem(LS_KEYS.pmfScore) || '0');
       const analysisData = JSON.parse(localStorage.getItem(LS_KEYS.ideaMetadata) || '{}');
