@@ -15,6 +15,9 @@ interface CompetitorData {
   valuation?: string;
   fundingStage?: string;
   strength: 'strong' | 'moderate' | 'weak';
+  founded?: string;
+  strengths?: string[];
+  weaknesses?: string[];
 }
 
 interface CompetitionAPIResponse {
@@ -221,7 +224,7 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
 
         {/* Competitors List */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Identified Competitors</h3>
+          <h3 className="text-sm font-medium mb-3">Identified Competitors ({data.topCompetitors.length})</h3>
           <ScrollArea className="h-[500px] pr-4">
             <div className="space-y-3">
               {data.topCompetitors.map((competitor, idx) => (
@@ -244,7 +247,7 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
                           rel="noopener noreferrer"
                           className="text-xs text-primary hover:underline inline-flex items-center gap-1 mb-2"
                         >
-                          View source <ExternalLink className="h-3 w-3" />
+                          View website <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>
@@ -254,7 +257,7 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-3">
                     {competitor.valuation && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Valuation</p>
@@ -267,7 +270,38 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
                         <p className="font-medium">{competitor.fundingStage}</p>
                       </div>
                     )}
+                    {competitor.founded && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Founded</p>
+                        <p className="font-medium">{competitor.founded}</p>
+                      </div>
+                    )}
                   </div>
+
+                  {(competitor.strengths?.length || competitor.weaknesses?.length) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t">
+                      {competitor.strengths && competitor.strengths.length > 0 && (
+                        <div className="bg-green-500/5 rounded-md p-3">
+                          <p className="font-medium text-green-600 dark:text-green-400 text-xs mb-2">Strengths</p>
+                          <ul className="space-y-1 text-sm">
+                            {competitor.strengths.map((s, i) => (
+                              <li key={i} className="text-muted-foreground">• {s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {competitor.weaknesses && competitor.weaknesses.length > 0 && (
+                        <div className="bg-red-500/5 rounded-md p-3">
+                          <p className="font-medium text-red-600 dark:text-red-400 text-xs mb-2">Weaknesses</p>
+                          <ul className="space-y-1 text-sm">
+                            {competitor.weaknesses.map((w, i) => (
+                              <li key={i} className="text-muted-foreground">• {w}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
