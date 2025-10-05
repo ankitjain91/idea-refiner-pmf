@@ -559,86 +559,94 @@ export function SentimentTile({ className }: SentimentTileProps) {
 
               {/* Key drivers */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-4">
-                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    <ThumbsUp className="h-4 w-4 text-green-500" />
-                    Positive Drivers
-                  </h4>
-                  <div className="space-y-2">
-                    {data.metrics.top_positive_drivers.map((driver, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <ChevronRight className="h-3 w-3 text-green-500" />
-                        <span className="text-sm capitalize">{driver}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
+                {data.metrics?.top_positive_drivers && data.metrics.top_positive_drivers.length > 0 && (
+                  <Card className="p-4">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <ThumbsUp className="h-4 w-4 text-green-500" />
+                      Positive Drivers
+                    </h4>
+                    <div className="space-y-2">
+                      {data.metrics.top_positive_drivers.map((driver, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <ChevronRight className="h-3 w-3 text-green-500" />
+                          <span className="text-sm capitalize">{driver}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
 
-                <Card className="p-4">
-                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    <ThumbsDown className="h-4 w-4 text-red-500" />
-                    Key Concerns
-                  </h4>
-                  <div className="space-y-2">
-                    {data.metrics.top_negative_concerns.map((concern, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <ChevronRight className="h-3 w-3 text-red-500" />
-                        <span className="text-sm capitalize">{concern}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
+                {data.metrics?.top_negative_concerns && data.metrics.top_negative_concerns.length > 0 && (
+                  <Card className="p-4">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <ThumbsDown className="h-4 w-4 text-red-500" />
+                      Key Concerns
+                    </h4>
+                    <div className="space-y-2">
+                      {data.metrics.top_negative_concerns.map((concern, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <ChevronRight className="h-3 w-3 text-red-500" />
+                          <span className="text-sm capitalize">{concern}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="sources" className="px-4 space-y-4">
               {/* Sentiment by source */}
-              <Card className="p-4">
-                <h4 className="text-sm font-medium mb-3">Sentiment by Source</h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => ({
-                    source,
-                    ...sentiment
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="source" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Bar dataKey="positive" stackId="a" fill={SENTIMENT_COLORS.positive} />
-                    <Bar dataKey="neutral" stackId="a" fill={SENTIMENT_COLORS.neutral} />
-                    <Bar dataKey="negative" stackId="a" fill={SENTIMENT_COLORS.negative} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
+              {data.metrics?.source_breakdown && (
+                <>
+                  <Card className="p-4">
+                    <h4 className="text-sm font-medium mb-3">Sentiment by Source</h4>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => ({
+                        source,
+                        ...sentiment
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="source" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Legend />
+                        <Bar dataKey="positive" stackId="a" fill={SENTIMENT_COLORS.positive} />
+                        <Bar dataKey="neutral" stackId="a" fill={SENTIMENT_COLORS.neutral} />
+                        <Bar dataKey="negative" stackId="a" fill={SENTIMENT_COLORS.negative} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Card>
 
-              {/* Source breakdown cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => {
-                  const Icon = SOURCE_ICONS[source as keyof typeof SOURCE_ICONS] || Globe;
-                  return (
-                    <Card key={source} className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="flex items-center gap-2 text-sm font-medium capitalize">
-                          <Icon className="h-4 w-4" />
-                          {source}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span>Positive</span>
-                          <span>{sentiment?.positive || 0}%</span>
-                        </div>
-                        <Progress value={sentiment?.positive || 0} className="h-1.5" />
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
+                  {/* Source breakdown cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {Object.entries(data.metrics.source_breakdown).map(([source, sentiment]) => {
+                      const Icon = SOURCE_ICONS[source as keyof typeof SOURCE_ICONS] || Globe;
+                      return (
+                        <Card key={source} className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="flex items-center gap-2 text-sm font-medium capitalize">
+                              <Icon className="h-4 w-4" />
+                              {source}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span>Positive</span>
+                              <span>{sentiment?.positive || 0}%</span>
+                            </div>
+                            <Progress value={sentiment?.positive || 0} className="h-1.5" />
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="themes" className="px-4 space-y-4">
-              {data.clusters.map((cluster, idx) => (
+              {data.clusters?.map((cluster, idx) => (
                 <Card 
                   key={idx} 
                   className={cn(
@@ -682,8 +690,8 @@ export function SentimentTile({ className }: SentimentTileProps) {
             </TabsContent>
 
             <TabsContent value="quotes" className="px-4 space-y-3">
-              {data.clusters.flatMap(cluster => 
-                cluster.quotes.map((quote, idx) => renderQuoteCard(quote, idx))
+              {data.clusters?.flatMap(cluster => 
+                cluster.quotes?.map((quote, idx) => renderQuoteCard(quote, idx)) || []
               )}
             </TabsContent>
 
