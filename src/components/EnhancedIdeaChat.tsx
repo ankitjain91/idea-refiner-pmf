@@ -195,6 +195,40 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const { toast } = useToast();
   const location = useLocation();
   
+  // Listen for session changes and restore conversation
+  useEffect(() => {
+    const handleSessionLoad = () => {
+      const stored = localStorage.getItem('enhancedIdeaChatMessages');
+      if (stored) {
+        try {
+          const parsedMessages = JSON.parse(stored);
+          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+            console.log('[EnhancedIdeaChat] Restoring messages from loaded session:', parsedMessages.length);
+            setMessages(parsedMessages);
+            
+            // Also restore other session data
+            const restoredIdea = localStorage.getItem('currentIdea') || '';
+            const restoredWrinkles = localStorage.getItem('wrinklePoints');
+            
+            if (restoredIdea) setCurrentIdea(restoredIdea);
+            if (restoredWrinkles) setWrinklePoints(parseInt(restoredWrinkles) || 0);
+          }
+        } catch (e) {
+          console.error('[EnhancedIdeaChat] Error restoring session messages:', e);
+        }
+      }
+    };
+    
+    // Listen for session load events
+    window.addEventListener('storage', handleSessionLoad);
+    window.addEventListener('session:loaded', handleSessionLoad);
+    
+    return () => {
+      window.removeEventListener('storage', handleSessionLoad);
+      window.removeEventListener('session:loaded', handleSessionLoad);
+    };
+  }, []);
+  
   // Effects
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {
