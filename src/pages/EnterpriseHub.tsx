@@ -172,7 +172,7 @@ export default function EnterpriseHub() {
     }
   }, [isRealTime, refreshInterval, currentIdea, refresh, useMockData]);
   
-  // Check if we have existing analysis data
+  // Check if we have existing analysis data OR auto-start loading
   useEffect(() => {
     const checkExistingData = () => {
       // Check if we have any tile data already
@@ -192,10 +192,18 @@ export default function EnterpriseHub() {
         setHasLoadedData(true);
         setHasExistingAnalysis(true);
       }
+      
+      // CRITICAL: Auto-start loading when we have an idea, even if no cached data
+      // This ensures tiles start loading immediately on dashboard navigation
+      if (currentIdea && !hasLoadedData && !loading) {
+        console.log('[EnterpriseHub] Auto-starting data load for:', currentIdea.substring(0, 50));
+        setHasLoadedData(true);
+        // The hooks already auto-fetch, we just need to show the UI
+      }
     };
     
     checkExistingData();
-  }, [tiles, currentIdea]);
+  }, [tiles, currentIdea, hasLoadedData, loading]);
   
   // Custom refresh that also updates the idea from session
   const handleRefresh = useCallback(async () => {
