@@ -13,7 +13,7 @@ export default function PublicLeaderboard() {
       <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
               <Brain className="h-5 w-5 text-foreground" />
               <span className="font-semibold text-base">SmoothBrains</span>
             </div>
