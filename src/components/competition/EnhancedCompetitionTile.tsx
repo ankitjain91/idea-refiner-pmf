@@ -129,32 +129,12 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
     }
 
     console.log('[EnhancedCompetitionTile] Received initialData:', initialData);
-    // Convert the tile data to competition data format
-    if (initialData.metrics?.competitors || initialData.json?.competitors) {
-      const competitorsData = initialData.metrics?.competitors || initialData.json?.competitors || [];
-      setData({
-        competitors: competitorsData,
-        marketConcentration: initialData.metrics?.marketConcentration || 'Medium',
-        entryBarriers: initialData.metrics?.entryBarriers || 'Moderate',
-        differentiationOpportunities: initialData.metrics?.opportunities || [],
-        competitiveLandscape: initialData.metrics?.landscape || {
-          directCompetitors: 3,
-          indirectCompetitors: 5,
-          substitutes: 2
-        },
-        analysis: initialData.metrics?.analysis || {
-          threat: 'medium',
-          opportunities: [],
-          recommendations: []
-        }
-      });
-      setIsCollapsed(false);
-      setHasBeenExpanded(true);
-      processedInitialOnceRef.current = true;
-    } else {
-      // Fallback to mock data if structure doesn't match (only once)
-      processedInitialOnceRef.current = true;
-      loadMockData();
+    // Try to load real data instead of processing potentially stale initialData
+    processedInitialOnceRef.current = true;
+    
+    // Always fetch fresh data instead of using cached initialData
+    if (currentIdea) {
+      loadCompetitionData();
     }
   }, [initialData, data, circuitOpen]);
   
@@ -257,12 +237,12 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
       
     } catch (err) {
       console.error('[Competition] Error fetching data:', err);
-      await loadMockData(); // Fallback to mock data
+      setError(`Failed to load competition data: ${err.message}`);
       setRetryCount((r) => {
         const next = r + 1;
         if (next >= MAX_RETRIES && !circuitOpen) {
           setCircuitOpen(true);
-          toast({ title: 'Circuit breaker activated', description: 'Too many failed attempts. Using mock data.' });
+          toast({ title: 'Too many retries', description: 'Please try refreshing manually.' });
         }
         return next;
       });
