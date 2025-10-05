@@ -753,7 +753,25 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
       
-      // For authenticated users, check if we have a stored session (from before refresh)
+      // PRIORITY 1: Check URL for session parameter (takes precedence over localStorage)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlSessionId = urlParams.get('session');
+      
+      if (urlSessionId) {
+        console.log('[SessionContext] URL session parameter found:', urlSessionId);
+        // URL session takes priority - update localStorage to match
+        localStorage.setItem('currentSessionId', urlSessionId);
+        try {
+          await loadSession(urlSessionId);
+          console.log('[SessionContext] Successfully loaded session from URL');
+          return;
+        } catch (error) {
+          console.error('[SessionContext] Failed to load URL session:', error);
+          // Continue to fallback logic
+        }
+      }
+      
+      // PRIORITY 2: For authenticated users, check if we have a stored session (from before refresh)
       const storedSessionId = localStorage.getItem('currentSessionId');
       console.log('[SessionContext] Checking for stored session ID:', storedSessionId);
       
