@@ -520,10 +520,11 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Building2 className="h-5 w-5 text-primary" />
                 Competition Analysis
-                {isUsingFallback && (
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    Simulated Data
-                  </Badge>
+                {loading && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Loading...</span>
+                  </div>
                 )}
                 {isCollapsed ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
