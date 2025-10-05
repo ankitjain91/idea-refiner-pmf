@@ -7,11 +7,11 @@ import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
+import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings, Globe2, DollarSign, Building2, Search, TrendingUp, Newspaper, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
@@ -482,48 +482,247 @@ export default function EnterpriseHub() {
             />
             
             {hasLoadedData && (
-              <LazyWorldMap 
-                marketData={tiles.market_size}
-                loading={loading}
-              />
+              <Collapsible defaultOpen={false}>
+                <Card className="border-border/50 bg-card/50">
+                  <CollapsibleTrigger className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Globe2 className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="text-left">
+                            <CardTitle className="text-base">Global Market Overview</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">Click to explore regional opportunities</p>
+                          </div>
+                        </div>
+                        <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform" />
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <LazyWorldMap 
+                        marketData={tiles.market_size}
+                        loading={loading}
+                      />
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             )}
           </TabsContent>
 
-          {/* MARKET ANALYSIS TAB - Market Size, Trends, Google Trends, Competition */}
+          {/* MARKET ANALYSIS TAB - Compact tiles that expand */}
           <TabsContent value="market" className="space-y-6">
             {hasLoadedData && (
-              <div className="space-y-4">
-                <MainAnalysisGrid
-                  tiles={{
-                    market_size: tiles.market_size,
-                    market_trends: tiles.market_trends,
-                    google_trends: tiles.google_trends,
-                    competition: tiles.competition,
-                  }}
-                  loading={loading}
-                  viewMode="deep"
-                  onRefreshTile={refreshTile}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Market Size Tile */}
+                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">Market Size</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {tiles.market_size?.confidence ? `${Math.round(tiles.market_size.confidence * 100)}%` : 'N/A'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {tiles.market_size?.metrics?.tam ? `$${(tiles.market_size.metrics.tam / 1000000000).toFixed(1)}B` : 'Calculating...'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {tiles.market_size?.explanation || 'Loading market analysis...'}
+                    </p>
+                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Competition Tile */}
+                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">Competition</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {tiles.competition?.confidence ? `${Math.round(tiles.competition.confidence * 100)}%` : 'N/A'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {tiles.competition?.metrics?.total_competitors || 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {tiles.competition?.explanation || 'Loading competitive analysis...'}
+                    </p>
+                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Google Trends Tile */}
+                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">Search Interest</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {tiles.google_trends?.confidence ? `${Math.round(tiles.google_trends.confidence * 100)}%` : 'N/A'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {tiles.google_trends?.metrics?.interest || 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {tiles.google_trends?.explanation || 'Loading search trends...'}
+                    </p>
+                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Market Trends Tile */}
+                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">Market Trends</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {tiles.market_trends?.confidence ? `${Math.round(tiles.market_trends.confidence * 100)}%` : 'N/A'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {tiles.market_trends?.metrics?.growthRate ? `${tiles.market_trends.metrics.growthRate}%` : 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {tiles.market_trends?.explanation || 'Loading trend analysis...'}
+                    </p>
+                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </TabsContent>
 
-          {/* CUSTOMER RESEARCH TAB - Sentiment, News, Reddit, Twitter, YouTube */}
+          {/* CUSTOMER RESEARCH TAB - Compact overview cards */}
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
-              <div className="space-y-4">
-                <SentimentTile idea={currentIdea} className="mb-6" />
-                <MainAnalysisGrid
-                  tiles={{
-                    news_analysis: tiles.news_analysis,
-                  }}
-                  loading={loading}
-                  viewMode="deep"
-                  onRefreshTile={refreshTile}
-                />
-                <EnhancedRedditTile idea={currentIdea} />
-                <TwitterBuzzTile idea={currentIdea} />
-                <YouTubeAnalyticsTile idea={currentIdea} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Sentiment Card */}
+                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">Sentiment Analysis</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {tiles.sentiment?.confidence ? `${Math.round(tiles.sentiment.confidence * 100)}%` : 'N/A'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-green-500">
+                      {tiles.sentiment?.metrics?.positive ? `${tiles.sentiment.metrics.positive}%` : 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {tiles.sentiment?.explanation || 'Loading sentiment data...'}
+                    </p>
+                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* News Analysis Card */}
+                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Newspaper className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">News Analysis</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {tiles.news_analysis?.confidence ? `${Math.round(tiles.news_analysis.confidence * 100)}%` : 'N/A'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {tiles.news_analysis?.metrics?.articles || 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {tiles.news_analysis?.explanation || 'Loading news coverage...'}
+                    </p>
+                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Reddit Research */}
+                <Collapsible>
+                  <Card className="border-border/50 bg-card/50">
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4 text-primary" />
+                            <CardTitle className="text-sm">Reddit Discussions</CardTitle>
+                          </div>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0">
+                        <EnhancedRedditTile idea={currentIdea} />
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+
+                {/* Social Media Buzz */}
+                <Collapsible>
+                  <Card className="border-border/50 bg-card/50">
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-primary" />
+                            <CardTitle className="text-sm">Social Media Buzz</CardTitle>
+                          </div>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0">
+                        <TwitterBuzzTile idea={currentIdea} />
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               </div>
             )}
           </TabsContent>
