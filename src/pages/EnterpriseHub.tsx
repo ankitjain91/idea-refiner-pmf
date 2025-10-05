@@ -762,6 +762,45 @@ export default function EnterpriseHub() {
                   </CardContent>
                 </Card>
 
+                {/* YouTube Analysis Card */}
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'youtube_analytics', data: tiles.youtube_analytics })}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium">YouTube Analysis</CardTitle>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {tiles.youtube_analytics?.confidence ? `${Math.round(tiles.youtube_analytics.confidence * 100)}%` : 'N/A'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loading && !tiles.youtube_analytics ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold">
+                          {tiles.youtube_analytics?.metrics?.total_views || tiles.youtube_analytics?.metrics?.views || 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {tiles.youtube_analytics?.explanation || 'Loading YouTube data...'}
+                        </p>
+                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Details
+                        </Button>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Reddit Research */}
                 <Collapsible>
                   <Card className="border-border/50 bg-card/50">
@@ -846,6 +885,7 @@ export default function EnterpriseHub() {
                     selectedTileDialog.type === 'google_trends' ? Search :
                     selectedTileDialog.type === 'market_trends' ? TrendingUp :
                     selectedTileDialog.type === 'sentiment' ? MessageSquare :
+                    selectedTileDialog.type === 'youtube_analytics' ? Activity :
                     Newspaper}
               data={selectedTileDialog.data}
               loading={false}
@@ -855,8 +895,9 @@ export default function EnterpriseHub() {
             />
           ) : (
             <div className="py-12 text-center text-muted-foreground">
-              <p>No data available for this tile yet.</p>
-              <p className="text-sm mt-2">Try refreshing the analysis or wait for data to load.</p>
+              <Activity className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
+              <p className="font-medium">Loading tile data...</p>
+              <p className="text-sm mt-2">Fetching analysis for this tile.</p>
             </div>
           )}
         </DialogContent>
