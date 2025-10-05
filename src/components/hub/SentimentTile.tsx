@@ -482,45 +482,47 @@ export function SentimentTile({ className }: SentimentTileProps) {
             <TabsContent value="overview" className="px-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Overall sentiment donut */}
-                <Card className="p-4">
-                  <h4 className="text-sm font-medium mb-3">Overall Sentiment</h4>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Positive', value: data.metrics.overall_distribution.positive },
-                          { name: 'Neutral', value: data.metrics.overall_distribution.neutral },
-                          { name: 'Negative', value: data.metrics.overall_distribution.negative }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        <Cell fill={SENTIMENT_COLORS.positive} />
-                        <Cell fill={SENTIMENT_COLORS.neutral} />
-                        <Cell fill={SENTIMENT_COLORS.negative} />
-                      </Pie>
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex justify-around text-xs mt-2">
-                    <span className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.positive }} />
-                      Positive {data.metrics.overall_distribution.positive}%
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.neutral }} />
-                      Neutral {data.metrics.overall_distribution.neutral}%
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.negative }} />
-                      Negative {data.metrics.overall_distribution.negative}%
-                    </span>
-                  </div>
-                </Card>
+                {data.metrics?.overall_distribution && (
+                  <Card className="p-4">
+                    <h4 className="text-sm font-medium mb-3">Overall Sentiment</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Positive', value: data.metrics.overall_distribution.positive || 0 },
+                            { name: 'Neutral', value: data.metrics.overall_distribution.neutral || 0 },
+                            { name: 'Negative', value: data.metrics.overall_distribution.negative || 0 }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          <Cell fill={SENTIMENT_COLORS.positive} />
+                          <Cell fill={SENTIMENT_COLORS.neutral} />
+                          <Cell fill={SENTIMENT_COLORS.negative} />
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="flex justify-around text-xs mt-2">
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.positive }} />
+                        Positive {data.metrics.overall_distribution.positive || 0}%
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.neutral }} />
+                        Neutral {data.metrics.overall_distribution.neutral || 0}%
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded" style={{ backgroundColor: SENTIMENT_COLORS.negative }} />
+                        Negative {data.metrics.overall_distribution.negative || 0}%
+                      </span>
+                    </div>
+                  </Card>
+                )}
 
                 {/* Engagement weighted */}
                 <Card className="p-4">
