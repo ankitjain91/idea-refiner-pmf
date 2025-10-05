@@ -225,10 +225,14 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
 
         {/* Competitors List */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Top Competitors</h3>
+          <h3 className="text-sm font-medium mb-3">
+            Top Competitors (Ranked by Market Share) - {data.topCompetitors.length} Total
+          </h3>
           <ScrollArea className="h-[600px] pr-4">
             <div className="space-y-4">
-              {data.topCompetitors.map((competitor, idx) => (
+              {[...data.topCompetitors]
+                .sort((a, b) => b.marketShare - a.marketShare)
+                .map((competitor, idx) => (
                 <div
                   key={idx}
                   className="p-5 rounded-lg border bg-card/50 hover:bg-accent/5 transition-colors space-y-4"
@@ -237,6 +241,7 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <span className="text-2xl font-bold text-muted-foreground">#{idx + 1}</span>
                         <h4 className="font-bold text-lg">{competitor.name}</h4>
                         <Badge variant="outline" className={getStrengthColor(competitor.strength)}>
                           {competitor.strength.toUpperCase()}
