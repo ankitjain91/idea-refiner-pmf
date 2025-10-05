@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
-import { useSession } from '@/contexts/SimpleSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,6 @@ import {
   Plus, 
   Trash2, 
   Edit2, 
-  Copy, 
   MessageSquare, 
   Calendar,
   BarChart3,
@@ -20,45 +18,88 @@ import {
   Search,
   Sparkles,
   ChartBar,
-  ExternalLink
+  TrendingUp
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { UserMenu } from '@/components/UserMenu';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AnalysisSession {
+  id: string;
+  session_name: string;
+  idea: string;
+  pmf_score: number;
+  updated_at: string;
+  last_accessed: string | null;
+  is_active: boolean;
+  created_at: string;
+}
 
 const IdeaJournal = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { 
-    sessions, 
-    loading, 
-    loadSessions, 
-    createSession, 
-    loadSession, 
-    deleteSession,
-    renameSession,
-    duplicateSession
-  } = useSession();
-  
+  const [sessions, setSessions] = useState<AnalysisSession[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newSessionName, setNewSessionName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const loadSessions = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('analysis_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('last_accessed', { ascending: false, nullsFirst: false });
+
+      if (data && !error) {
+        setSessions(data);
+      }
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       loadSessions();
     }
-  }, [user, loadSessions]);
+  }, [user]);
 
   const handleCreateSession = async () => {
-    if (!newSessionName.trim()) return;
+    if (!newSessionName.trim() || !user) return;
     
     setIsCreating(true);
     try {
-      await createSession(newSessionName.trim());
+      const { data, error } = await supabase
+        .from('analysis_sessions')
+        .insert({
+          user_id: user.id,
+          session_name: newSessionName.trim(),
+          idea: '',
+          pmf_score: 0,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
       setNewSessionName('');
+      await loadSessions();
+      
+      if (data) {
+        navigate(`/ideachat?session=${data.id}`);
+      }
     } catch (error) {
       console.error('Error creating session:', error);
     } finally {
@@ -67,28 +108,24 @@ const IdeaJournal = () => {
   };
 
   const handleLoadSession = async (sessionId: string) => {
-    try {
-      await loadSession(sessionId);
-      navigate('/ideachat');
-    } catch (error) {
-      console.error('Error loading session:', error);
-    }
+    navigate(`/ideachat?session=${sessionId}`);
   };
 
   const handleLoadDashboard = async (sessionId: string) => {
-    try {
-      await loadSession(sessionId);
-      navigate('/hub');
-    } catch (error) {
-      console.error('Error loading session:', error);
-    }
+    navigate(`/hub?session=${sessionId}`);
   };
 
   const handleDeleteSession = async (sessionId: string) => {
     if (!confirm('Are you sure you want to delete this session?')) return;
     
     try {
-      await deleteSession(sessionId);
+      const { error } = await supabase
+        .from('analysis_sessions')
+        .update({ is_active: false })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+      await loadSessions();
     } catch (error) {
       console.error('Error deleting session:', error);
     }
@@ -98,19 +135,18 @@ const IdeaJournal = () => {
     if (!editName.trim()) return;
     
     try {
-      await renameSession(sessionId, editName.trim());
+      const { error } = await supabase
+        .from('analysis_sessions')
+        .update({ session_name: editName.trim() })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+      
       setEditingSession(null);
       setEditName('');
+      await loadSessions();
     } catch (error) {
       console.error('Error renaming session:', error);
-    }
-  };
-
-  const handleDuplicateSession = async (sessionId: string) => {
-    try {
-      await duplicateSession(sessionId);
-    } catch (error) {
-      console.error('Error duplicating session:', error);
     }
   };
 
@@ -128,7 +164,8 @@ const IdeaJournal = () => {
   };
 
   const filteredSessions = sessions.filter(session =>
-    session.name.toLowerCase().includes(searchQuery.toLowerCase())
+    session.session_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    session.idea.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (!user) {
@@ -315,27 +352,24 @@ const IdeaJournal = () => {
                             </div>
                           ) : (
                             <>
-                              <h3 className="font-medium truncate">{session.name}</h3>
-                              {session.data.currentIdea && (
+                              <div className="flex items-center gap-2 mb-1">
+                                <MessageSquare className="h-4 w-4 text-primary" />
+                                <h3 className="font-medium truncate">{session.session_name}</h3>
+                              </div>
+                              {session.idea && (
                                 <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                                  {session.data.currentIdea}
+                                  {session.idea}
                                 </p>
                               )}
                               <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true })}
+                                  {formatDistanceToNow(new Date(session.last_accessed || session.updated_at), { addSuffix: true })}
                                 </span>
-                                {session.data.chatHistory && session.data.chatHistory.length > 0 && (
-                                  <span className="flex items-center gap-1">
-                                    <MessageSquare className="h-3 w-3" />
-                                    {session.data.chatHistory.length}
-                                  </span>
-                                )}
-                                {session.data.analysisCompleted && (
-                                  <Badge variant="default" className="text-xs">
-                                    <BarChart3 className="h-3 w-3 mr-1" />
-                                    Analyzed
+                                {session.pmf_score > 0 && (
+                                  <Badge variant={session.pmf_score >= 70 ? 'default' : 'secondary'} className="text-xs gap-1">
+                                    <TrendingUp className="h-3 w-3" />
+                                    PMF: {session.pmf_score}
                                   </Badge>
                                 )}
                               </div>
@@ -356,7 +390,7 @@ const IdeaJournal = () => {
                           >
                             <MessageSquare className="h-4 w-4" />
                           </Button>
-                          {session.data.analysisCompleted && (
+                          {session.pmf_score > 0 && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -375,22 +409,11 @@ const IdeaJournal = () => {
                             variant="ghost"
                             onClick={(e) => {
                               e.stopPropagation();
-                              startEditing(session.id, session.name);
+                              startEditing(session.id, session.session_name);
                             }}
                             title="Rename session"
                           >
                             <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDuplicateSession(session.id);
-                            }}
-                            title="Duplicate session"
-                          >
-                            <Copy className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
