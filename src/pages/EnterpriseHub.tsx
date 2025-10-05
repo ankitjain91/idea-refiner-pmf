@@ -99,10 +99,11 @@ export default function EnterpriseHub() {
     updateIdeaFromSession();
   }, [updateIdeaFromSession]);
 
-  // Use the data hub hook with current idea
-  console.log('[EnterpriseHub] Using idea for data hub:', currentIdea?.substring(0, 100));
+  // Use the data hub hook with current idea from canonical source
+  const canonicalIdea = getCanonicalIdea();
+  console.log('[EnterpriseHub] Using canonical idea for data hub:', canonicalIdea?.substring(0, 100));
   const dataHub = useDataHubWrapper({
-    idea: currentIdea,
+    idea: canonicalIdea || currentIdea, // Use canonical idea, fallback to currentIdea
     targetMarkets: ["US", "EU", "APAC"],
     audienceProfiles: ["early_adopters", "enterprise"],
     geos: ["global"],
