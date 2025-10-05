@@ -149,6 +149,29 @@ serve(async (req) => {
       const wikiViews = (keyed.wiki?.items ?? []).map((d:any)=>d.views);
       const trend = wikiViews.slice(-30);
 
+      // Collect up to 5 sample items
+      const samples: Array<{ source: 'hn'|'reddit'; title: string; url: string }> = [];
+      hnHits.slice(0, 3).forEach((h) => {
+        if (h.title) {
+          samples.push({
+            source: 'hn',
+            title: h.title,
+            url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`
+          });
+        }
+      });
+      redditItems.slice(0, 2).forEach((i: any) => {
+        const title = i.data?.title || i.title;
+        const permalink = i.data?.permalink || i.permalink;
+        if (title && permalink) {
+          samples.push({
+            source: 'reddit',
+            title,
+            url: `https://reddit.com${permalink}`
+          });
+        }
+      });
+
       payload.sentiment = {
         kpi: agg.value,
         sampleSize: agg.sampleSize,
@@ -159,6 +182,7 @@ serve(async (req) => {
           { id: keyed.reddit?.mode === "reddit" ? "reddit.oauth" : "pushshift", items: redditItems.length },
           { id: "wikipedia.pageviews", items: (keyed.wiki?.items ?? []).length }
         ],
+        samples: samples.slice(0, 5),
         lastUpdated: new Date().toISOString()
       };
     }
