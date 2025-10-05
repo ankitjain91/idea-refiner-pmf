@@ -32,6 +32,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { EnterpriseFreeSignals } from "@/components/hub/EnterpriseFreeSignals";
 
 
 export default function EnterpriseHub() {
@@ -472,6 +473,7 @@ export default function EnterpriseHub() {
 
           {/* OVERVIEW TAB - PMF Score + Global Market Map */}
           <TabsContent value="overview" className="space-y-6">
+            <EnterpriseFreeSignals idea={currentIdea} />
             <HeroSection 
               pmfScore={tiles.pmf_score}
               loading={loading}
