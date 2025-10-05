@@ -95,10 +95,21 @@ export function ExecutiveMarketSizeTile({
 
       if (error) throw error;
 
+      console.log('[ExecutiveMarketSizeTile] RAW API RESPONSE - ALL DATA:', JSON.stringify(data, null, 2));
+      
       if (data?.market_size) {
         setMarketData(data.market_size);
-        console.log('[ExecutiveMarketSizeTile] Market data loaded:', {
+        console.log('[ExecutiveMarketSizeTile] Market data loaded - ALL FIELDS:', {
           tam: data.market_size.metrics.tam,
+          sam: data.market_size.metrics.sam,
+          som: data.market_size.metrics.som,
+          growth_rate_cagr: data.market_size.metrics.growth_rate_cagr,
+          regional_split: data.market_size.metrics.regional_split,
+          segment_split: data.market_size.metrics.segment_split,
+          drivers: data.market_size.metrics.drivers,
+          constraints: data.market_size.metrics.constraints,
+          citations: data.market_size.citations,
+          charts: data.market_size.charts?.map((c: any) => ({ type: c.type, title: c.title, seriesCount: c.series?.length })),
           confidence: data.market_size.confidence
         });
       }
@@ -298,9 +309,9 @@ export function ExecutiveMarketSizeTile({
                 <DollarSign className="h-3 w-3 text-primary" />
               </div>
               <p className="text-xl font-bold">{marketData.metrics.tam}</p>
-              {hoveredMetric === 'tam' && (
-                <p className="text-xs text-muted-foreground mt-1">Total Addressable Market</p>
-              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {hoveredMetric === 'tam' ? 'Total Addressable Market' : `≈ $${parseValue(marketData.metrics.tam).toFixed(1)}B`}
+              </p>
             </div>
 
             <div 
@@ -313,9 +324,9 @@ export function ExecutiveMarketSizeTile({
                 <Target className="h-3 w-3 text-secondary" />
               </div>
               <p className="text-xl font-bold">{marketData.metrics.sam}</p>
-              {hoveredMetric === 'sam' && (
-                <p className="text-xs text-muted-foreground mt-1">Serviceable Available Market</p>
-              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {hoveredMetric === 'sam' ? 'Serviceable Available Market' : `≈ $${parseValue(marketData.metrics.sam).toFixed(1)}B`}
+              </p>
             </div>
 
             <div 
@@ -328,9 +339,9 @@ export function ExecutiveMarketSizeTile({
                 <Zap className="h-3 w-3 text-accent" />
               </div>
               <p className="text-xl font-bold">{marketData.metrics.som}</p>
-              {hoveredMetric === 'som' && (
-                <p className="text-xs text-muted-foreground mt-1">Serviceable Obtainable Market</p>
-              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {hoveredMetric === 'som' ? 'Serviceable Obtainable Market' : `≈ $${parseValue(marketData.metrics.som).toFixed(1)}B`}
+              </p>
             </div>
           </div>
 
