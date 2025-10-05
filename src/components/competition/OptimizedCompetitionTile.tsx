@@ -63,11 +63,42 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
   const dashboardService = useRef(OptimizedDashboardService.getInstance());
   const { useMockData } = useDataMode();
 
-  // Get the actual idea to use
-  const currentIdea = idea || 
-    localStorage.getItem('dashboardIdea') || 
-    localStorage.getItem('currentIdea') || 
-    '';
+  // Get the actual idea to use - with validation to filter out chat suggestions
+  const getValidIdea = (): string => {
+    const ideaSources = [
+      idea,
+      localStorage.getItem('dashboardIdea'),
+      localStorage.getItem('pmfCurrentIdea'),
+      localStorage.getItem('currentIdea'),
+      localStorage.getItem('userIdea')
+    ];
+    
+    for (const ideaCandidate of ideaSources) {
+      if (!ideaCandidate) continue;
+      
+      const cleaned = ideaCandidate.trim();
+      
+      // Skip if it's a chat suggestion/question
+      const isChatSuggestion = 
+        cleaned.length < 30 ||
+        cleaned.startsWith('What') ||
+        cleaned.startsWith('How') ||
+        cleaned.startsWith('Why') ||
+        cleaned.includes('would you') ||
+        cleaned.includes('could you') ||
+        cleaned.includes('?');
+      
+      if (!isChatSuggestion) {
+        console.log('[Competition] Using valid idea:', cleaned.substring(0, 100));
+        return cleaned;
+      }
+    }
+    
+    console.warn('[Competition] No valid startup idea found');
+    return '';
+  };
+  
+  const currentIdea = getValidIdea();
 
   // Normalization helpers to map Groq extraction to tile shape
   const toCompetitors = (raw: any): Competitor[] => {

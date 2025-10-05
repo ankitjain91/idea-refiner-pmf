@@ -74,15 +74,37 @@ export default function EnterpriseHub() {
       console.error("[EnterpriseHub] Error parsing appIdea:", e);
     }
     
-    // If no generated idea, fall back to other stored ideas
+    // If no generated idea, fall back to other stored ideas (with validation)
     if (!storedIdea) {
-      const rawStoredIdea = 
-        localStorage.getItem("pmfCurrentIdea") ||
-        localStorage.getItem("dashboardIdea") || 
-        localStorage.getItem("currentIdea") || 
-        localStorage.getItem("userIdea") || 
-        "";
-      storedIdea = cleanIdeaText(rawStoredIdea);
+      const ideaSources = [
+        localStorage.getItem("pmfCurrentIdea"),
+        localStorage.getItem("dashboardIdea"),
+        localStorage.getItem("currentIdea"),
+        localStorage.getItem("userIdea")
+      ];
+      
+      // Find the first valid idea that's not a chat suggestion
+      for (const rawIdea of ideaSources) {
+        if (!rawIdea) continue;
+        
+        const cleaned = cleanIdeaText(rawIdea);
+        
+        // Skip if it's a chat suggestion/question
+        const isChatSuggestion = 
+          cleaned.length < 30 ||
+          cleaned.startsWith('What') ||
+          cleaned.startsWith('How') ||
+          cleaned.startsWith('Why') ||
+          cleaned.includes('would you') ||
+          cleaned.includes('could you') ||
+          cleaned.includes('?');
+        
+        if (!isChatSuggestion && cleaned.length > 0) {
+          storedIdea = cleaned;
+          console.log("[EnterpriseHub] Using validated idea:", storedIdea.substring(0, 100));
+          break;
+        }
+      }
     }
     
     console.log("[EnterpriseHub] Checking all localStorage keys:", {

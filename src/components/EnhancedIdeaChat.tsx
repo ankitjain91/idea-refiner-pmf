@@ -550,16 +550,31 @@ What's your startup idea?`,
   // Persist current idea for authenticated users
   useEffect(() => {
     if (!anonymous && currentIdea) {
-      console.log('Persisting current idea:', currentIdea);
-      localStorage.setItem('currentIdea', currentIdea);
-      localStorage.setItem(LS_KEYS.userIdea, currentIdea);
-      const sid = localStorage.getItem('currentSessionId');
-      if (sid) {
-        localStorage.setItem(`session_${sid}_idea`, currentIdea);
+      // Validate that this is a real startup idea, not a chat suggestion
+      const isChatSuggestion = 
+        currentIdea.length < 30 ||
+        currentIdea.startsWith('What') ||
+        currentIdea.startsWith('How') ||
+        currentIdea.startsWith('Why') ||
+        currentIdea.includes('would you') ||
+        currentIdea.includes('could you') ||
+        currentIdea.includes('?');
+      
+      if (!isChatSuggestion) {
+        console.log('Persisting validated startup idea:', currentIdea);
+        localStorage.setItem('currentIdea', currentIdea);
+        localStorage.setItem(LS_KEYS.userIdea, currentIdea);
+        localStorage.setItem('dashboardIdea', currentIdea);
+        const sid = localStorage.getItem('currentSessionId');
+        if (sid) {
+          localStorage.setItem(`session_${sid}_idea`, currentIdea);
+        }
+        localStorage.setItem('ideaText', currentIdea);
+        // Trigger session save
+        window.dispatchEvent(new Event('chat:activity'));
+      } else {
+        console.log('Skipping persistence - detected chat suggestion:', currentIdea.substring(0, 50));
       }
-      localStorage.setItem('ideaText', currentIdea); // Also save as ideaText
-      // Trigger session save
-      window.dispatchEvent(new Event('chat:activity'));
     }
   }, [currentIdea, anonymous]);
   
@@ -1080,15 +1095,30 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       generateIdeaSummaryName(ideaPreview);
       
       // Save the idea text to localStorage for dashboard
-      console.log('Saving idea to localStorage:', { 
-        ideaText: messageText, 
-        currentIdea: ideaPreview,
-        userIdea: ideaPreview 
-      });
+      // BUT: Don't save chat suggestions or questions as the main idea
+      const isChatSuggestion = 
+        ideaPreview.length < 30 ||
+        ideaPreview.startsWith('What') ||
+        ideaPreview.startsWith('How') ||
+        ideaPreview.startsWith('Why') ||
+        ideaPreview.includes('would you') ||
+        ideaPreview.includes('could you') ||
+        ideaPreview.includes('?');
       
-      localStorage.setItem('ideaText', messageText);
-      localStorage.setItem('currentIdea', ideaPreview);
-      localStorage.setItem('userIdea', ideaPreview); // Also save as userIdea for compatibility
+      if (!isChatSuggestion) {
+        console.log('Saving validated startup idea to localStorage:', { 
+          ideaText: messageText, 
+          currentIdea: ideaPreview,
+          userIdea: ideaPreview 
+        });
+        
+        localStorage.setItem('ideaText', messageText);
+        localStorage.setItem('currentIdea', ideaPreview);
+        localStorage.setItem('userIdea', ideaPreview);
+        localStorage.setItem('dashboardIdea', ideaPreview); // Ensure dashboard gets the right idea
+      } else {
+        console.log('Skipping idea save - detected chat suggestion/question:', ideaPreview.substring(0, 50));
+      }
 
     }
 
@@ -1897,15 +1927,30 @@ User submission: """${messageText}"""`;
         generateIdeaSummaryName(ideaPreview);
         
         // Save the idea text to localStorage for dashboard
-        console.log('Saving idea to localStorage (validation approved):', { 
-          ideaText: messageText, 
-          currentIdea: ideaPreview,
-          userIdea: ideaPreview 
-        });
+        // BUT: Don't save chat suggestions or questions as the main idea
+        const isChatSuggestion = 
+          ideaPreview.length < 30 ||
+          ideaPreview.startsWith('What') ||
+          ideaPreview.startsWith('How') ||
+          ideaPreview.startsWith('Why') ||
+          ideaPreview.includes('would you') ||
+          ideaPreview.includes('could you') ||
+          ideaPreview.includes('?');
         
-        localStorage.setItem('ideaText', messageText);
-        localStorage.setItem('currentIdea', ideaPreview);
-        localStorage.setItem('userIdea', ideaPreview); // Also save as userIdea for compatibility
+        if (!isChatSuggestion) {
+          console.log('Saving validated startup idea to localStorage (validation approved):', { 
+            ideaText: messageText, 
+            currentIdea: ideaPreview,
+            userIdea: ideaPreview 
+          });
+          
+          localStorage.setItem('ideaText', messageText);
+          localStorage.setItem('currentIdea', ideaPreview);
+          localStorage.setItem('userIdea', ideaPreview);
+          localStorage.setItem('dashboardIdea', ideaPreview);
+        } else {
+          console.log('Skipping idea save - detected chat suggestion/question:', ideaPreview.substring(0, 50));
+        }
       } catch (e) {
         console.error('Idea validation failed, falling back to heuristic only.', e);
         if (isIdeaDescription(messageText)) {
@@ -1917,15 +1962,30 @@ User submission: """${messageText}"""`;
           generateIdeaSummaryName(ideaPreview);
           
           // Save the idea text to localStorage for dashboard
-          console.log('Saving idea to localStorage (fallback):', { 
-            ideaText: messageText, 
-            currentIdea: ideaPreview,
-            userIdea: ideaPreview 
-          });
+          // BUT: Don't save chat suggestions or questions as the main idea
+          const isChatSuggestion = 
+            ideaPreview.length < 30 ||
+            ideaPreview.startsWith('What') ||
+            ideaPreview.startsWith('How') ||
+            ideaPreview.startsWith('Why') ||
+            ideaPreview.includes('would you') ||
+            ideaPreview.includes('could you') ||
+            ideaPreview.includes('?');
           
-          localStorage.setItem('ideaText', messageText);
-          localStorage.setItem('currentIdea', ideaPreview);
-          localStorage.setItem('userIdea', ideaPreview); // Also save as userIdea for compatibility
+          if (!isChatSuggestion) {
+            console.log('Saving validated startup idea to localStorage (fallback):', { 
+              ideaText: messageText, 
+              currentIdea: ideaPreview,
+              userIdea: ideaPreview 
+            });
+            
+            localStorage.setItem('ideaText', messageText);
+            localStorage.setItem('currentIdea', ideaPreview);
+            localStorage.setItem('userIdea', ideaPreview);
+            localStorage.setItem('dashboardIdea', ideaPreview);
+          } else {
+            console.log('Skipping idea save - detected chat suggestion/question:', ideaPreview.substring(0, 50));
+          }
         } else {
           const fallbackGate: Message = {
             id: `bot-fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

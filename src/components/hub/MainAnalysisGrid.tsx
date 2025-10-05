@@ -35,10 +35,41 @@ interface MainAnalysisGridProps {
 
 export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTile }: MainAnalysisGridProps) {
   const { currentSession } = useSession();
-  const currentIdea = localStorage.getItem('dashboardIdea') || 
-                     currentSession?.data?.currentIdea || 
-                     localStorage.getItem('currentIdea') || 
-                     localStorage.getItem('userIdea') || '';
+  
+  // Get valid startup idea, filtering out chat suggestions
+  const getValidIdea = (): string => {
+    const ideaSources = [
+      localStorage.getItem('dashboardIdea'),
+      localStorage.getItem('pmfCurrentIdea'),
+      currentSession?.data?.currentIdea,
+      localStorage.getItem('currentIdea'),
+      localStorage.getItem('userIdea')
+    ];
+    
+    for (const ideaCandidate of ideaSources) {
+      if (!ideaCandidate) continue;
+      
+      const cleaned = ideaCandidate.trim();
+      
+      // Skip if it's a chat suggestion/question
+      const isChatSuggestion = 
+        cleaned.length < 30 ||
+        cleaned.startsWith('What') ||
+        cleaned.startsWith('How') ||
+        cleaned.startsWith('Why') ||
+        cleaned.includes('would you') ||
+        cleaned.includes('could you') ||
+        cleaned.includes('?');
+      
+      if (!isChatSuggestion) {
+        return cleaned;
+      }
+    }
+    
+    return '';
+  };
+  
+  const currentIdea = getValidIdea();
   
   // State to manage tile data loading
   const [tileData, setTileData] = useState<Record<string, TileData | null>>({});
