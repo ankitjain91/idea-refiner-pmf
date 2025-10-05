@@ -432,7 +432,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute top-4 right-4 bg-background/98 backdrop-blur-xl border-2 border-primary/20 rounded-xl p-5 shadow-2xl max-w-sm"
+                  className="absolute top-4 right-4 bg-background/90 dark:bg-background/85 backdrop-blur-2xl border-2 border-primary/40 rounded-xl p-5 shadow-2xl max-w-sm ring-1 ring-black/20 dark:ring-white/10"
                 >
                   <div className="space-y-4">
                     <div>
