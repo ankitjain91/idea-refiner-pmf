@@ -392,7 +392,15 @@ export function SentimentTile({ className }: SentimentTileProps) {
     );
   };
 
-  const renderWordCloud = (words: Array<{ text: string; value: number }>, color: string) => {
+  const renderWordCloud = (words: Array<{ text: string; value: number }> | undefined, color: string) => {
+    if (!words || !Array.isArray(words) || words.length === 0) {
+      return (
+        <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+          No keyword data available
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-wrap gap-2 justify-center p-4">
         {words.map((word, idx) => (
