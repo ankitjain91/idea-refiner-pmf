@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/accordion";
 
 
+// Enterprise Hub - Dashboard for comprehensive market analysis
 export default function EnterpriseHub() {
   const { user } = useAuth();
   const { currentSession, saveCurrentSession } = useSession();
