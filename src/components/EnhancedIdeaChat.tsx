@@ -74,6 +74,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const navigate = useNavigate();
   // State management
   const { currentSession, saveCurrentSession } = useSession();
+  const ideaContext = useIdeaContext(); // Hook must be called at component level
   const [anonymous, setAnonymous] = useState(false);
   const isDefaultSessionName = !currentSession?.name;
   const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
@@ -1568,10 +1569,7 @@ const ChatMessageItem = useMemo(() => {
   const resetChatHandler = useCallback(async () => {
     console.log('[EnhancedIdeaChat] Resetting chat - clearing idea from everywhere');
     
-    // Import useIdeaContext at component level
-    const { useIdeaContext } = await import('@/hooks/useIdeaContext');
-    // Get functions from context
-    const ideaContext = useIdeaContext();
+    // Clear idea using the hook properly
     const currentIdeaText = ideaContext.getIdea();
     
     // Clear idea from database and localStorage using useIdeaContext
@@ -1710,7 +1708,7 @@ const ChatMessageItem = useMemo(() => {
     setAnonymous(false);
     setOffTopicAttempts(0);
     onReset?.();
-  }, [onReset, fetchRandomIdeas, anonymous]);
+  }, [onReset, fetchRandomIdeas, anonymous, ideaContext]);
   
   // Add retry handler for failed messages
   const retryMessageHandler = useCallback((failedMessage: Message) => {
