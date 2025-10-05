@@ -49,8 +49,10 @@ interface RedditResearchData {
 }
 
 interface Props {
-  idea: string;
+  data: RedditResearchData | null;
+  loading?: boolean;
   className?: string;
+  onRefresh?: () => void;
 }
 
 const SENTIMENT_COLORS = {
@@ -59,46 +61,16 @@ const SENTIMENT_COLORS = {
   negative: '#ef4444'
 };
 
-export function EnhancedRedditTile({ idea, className }: Props) {
-  const [data, setData] = useState<RedditResearchData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function EnhancedRedditTile({ data, loading = false, className, onRefresh }: Props) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchData = async () => {
-    if (!idea) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await optimizedQueue.invokeFunction('reddit-research', {
-        idea_text: idea,
-        time_window: 'year'
-      });
-      
-      if (response?.error) {
-        throw new Error(response.error);
-      }
-      
-      setData(response);
-    } catch (err) {
-      console.error('[EnhancedRedditTile] Error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch Reddit data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [idea]);
-
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchData();
-    setTimeout(() => setIsRefreshing(false), 500);
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true);
+      await onRefresh();
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
   };
 
   if (loading) {
@@ -121,7 +93,7 @@ export function EnhancedRedditTile({ idea, className }: Props) {
     );
   }
 
-  if (error || !data || !data.summary || !data.posts) {
+  if (!data || !data.summary || !data.posts) {
     return (
       <Card className={cn("h-full", className)}>
         <CardHeader>
@@ -131,9 +103,9 @@ export function EnhancedRedditTile({ idea, className }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 text-destructive">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">{error || 'No data available'}</span>
+            <span className="text-sm">No Reddit data available for this idea</span>
           </div>
           {data && !data.summary && (
             <div className="mt-2 text-xs text-muted-foreground">

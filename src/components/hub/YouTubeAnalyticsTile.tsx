@@ -14,7 +14,9 @@ import { TileAIChat } from './TileAIChat';
 import { formatDistanceToNow } from 'date-fns';
 
 interface YouTubeAnalyticsTileProps {
-  idea: string;
+  data: YouTubeData | null;
+  loading?: boolean;
+  onRefresh?: () => void;
 }
 
 interface YouTubeVideo {
@@ -50,50 +52,59 @@ interface YouTubeData {
   };
 }
 
-export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
-  const [data, setData] = useState<YouTubeData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function YouTubeAnalyticsTile({ data, loading = false, onRefresh }: YouTubeAnalyticsTileProps) {
   const [activeTab, setActiveTab] = useState('videos');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
 
-  const fetchData = async (forceNetwork = false) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await optimizedQueue.invokeFunction('youtube-search', {
-        idea_text: idea,
-        time_window: 'year',
-        regionCode: 'US',
-        relevanceLanguage: 'en',
-        ...(forceNetwork && { _cache_bust: Date.now() })
-      });
-      
-      if (response && response.youtube_insights) {
-        setData(response as YouTubeData);
-      } else if (response?.summary?.error) {
-        setError(response.summary.error);
-      }
-    } catch (err) {
-      console.error('Error fetching YouTube data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+  const handleRefresh = async () => {
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true);
+      await onRefresh();
+      setTimeout(() => setIsRefreshing(false), 500);
     }
   };
 
-  useEffect(() => {
-    if (!idea) return;
-    fetchData(false);
-  }, [idea]);
+  const error = data?.summary?.error || data?.meta?.error;
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchData(true);
-  };
+  if (loading) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Youtube className="h-5 w-5 text-red-500" />
+            YouTube Analytics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 bg-muted animate-pulse rounded" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !data || !data.youtube_insights) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Youtube className="h-5 w-5 text-red-500" />
+            YouTube Analytics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-sm">{error || 'No YouTube data available for this idea'}</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const formatViews = (views: number | undefined) => {
     if (!views || isNaN(views)) return '0';
@@ -424,13 +435,6 @@ export function YouTubeAnalyticsTile({ idea }: YouTubeAnalyticsTileProps) {
         </Tabs>
       </CardContent>
       
-      <TileAIChat
-        open={showAIChat}
-        onOpenChange={setShowAIChat}
-        tileData={data as any}
-        tileTitle="YouTube Analytics"
-        idea={idea}
-      />
     </Card>
   );
 }

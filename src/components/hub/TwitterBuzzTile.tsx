@@ -12,7 +12,9 @@ import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { TileAIChat } from './TileAIChat';
 
 interface TwitterBuzzTileProps {
-  idea: string;
+  data: TwitterBuzzData | null;
+  loading?: boolean;
+  onRefresh?: () => void;
 }
 
 interface TwitterCluster {
@@ -41,68 +43,62 @@ interface TwitterBuzzData {
   confidence: string;
 }
 
-export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
-  const [data, setData] = useState<TwitterBuzzData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function TwitterBuzzTile({ data, loading = false, onRefresh }: TwitterBuzzTileProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
 
-  const fetchData = async (forceNetwork = false) => {
-    try {
-      setLoading(true);
-      setIsRefreshing(false);
-      setError(null);
-      
-      // Use optimized queue for caching (add schema_version to bypass stale cache)
-      const response = await optimizedQueue.invokeFunction('twitter-search', {
-        query: idea,
-        idea: idea,
-        time_window: '90d',
-        schema_version: 'v2',
-        _cache_bust: forceNetwork ? Date.now() : undefined
-      });
-      
-      // Prefetch related social data in background
-      optimizedQueue.prefetchRelated('twitter-search', { query: idea, idea: idea, schema_version: 'v2' });
-      
-      // Normalize payload shape
-      const payload = response?.twitter_buzz ? response.twitter_buzz : response;
-      
-      // Check if this is an error response (rate limit, config issue, etc.)
-      if (payload?.error) {
-        setError(payload.error);
-        // Still set the data so we can show the error state with helpful message
-        setData(payload as TwitterBuzzData);
-      } else if (payload && payload.metrics && payload.metrics.overall_sentiment) {
-        setData(payload as TwitterBuzzData);
-      } else {
-        // Generate synthetic data if structure is missing or outdated
-        setData(generateSyntheticData(idea));
-      }
-    } catch (err) {
-      console.error('Error fetching Twitter buzz data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      // Fallback to synthetic data
-      setData(generateSyntheticData(idea));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!idea) return;
-    fetchData(false);
-  }, [idea]);
-
   const handleRefresh = async () => {
-    if (!isRefreshing) {
+    if (onRefresh && !isRefreshing) {
       setIsRefreshing(true);
-      await fetchData(true);
+      await onRefresh();
       setTimeout(() => setIsRefreshing(false), 500);
     }
   };
+
+  // Check if we have error data
+  const error = data?.metrics?.total_tweets === 0 ? 'No Twitter data available' : null;
+
+  if (loading) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Twitter className="h-5 w-5 text-blue-500" />
+            Twitter Buzz Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 bg-muted animate-pulse rounded" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !data || !data.metrics) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Twitter className="h-5 w-5 text-blue-500" />
+            Twitter Buzz Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-sm">{error || 'No Twitter data available for this idea'}</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Use the passed data directly - no need to fetch
 
   const generateSyntheticData = (ideaText: string): TwitterBuzzData => {
     const keywords = ideaText.toLowerCase().split(' ').filter(w => w.length > 4).slice(0, 3);
@@ -614,13 +610,6 @@ export function TwitterBuzzTile({ idea }: TwitterBuzzTileProps) {
         </Tabs>
       </CardContent>
       
-      <TileAIChat
-        open={showAIChat}
-        onOpenChange={setShowAIChat}
-        tileData={data as any}
-        tileTitle="Twitter/X Buzz"
-        idea={idea}
-      />
     </Card>
   );
 }

@@ -521,9 +521,21 @@ export default function EnterpriseHub() {
                   viewMode="deep"
                   onRefreshTile={refreshTile}
                 />
-                <EnhancedRedditTile idea={currentIdea} />
-                <TwitterBuzzTile idea={currentIdea} />
-                <YouTubeAnalyticsTile idea={currentIdea} />
+                <EnhancedRedditTile 
+                  data={tiles.reddit_sentiment?.json || null} 
+                  loading={loading}
+                  onRefresh={() => refreshTile('reddit_sentiment')}
+                />
+                <TwitterBuzzTile 
+                  data={tiles.twitter_buzz?.json || null}
+                  loading={loading}
+                  onRefresh={() => refreshTile('twitter_buzz')}
+                />
+                <YouTubeAnalyticsTile 
+                  data={tiles.youtube_analytics?.json || null}
+                  loading={loading}
+                  onRefresh={() => refreshTile('youtube_analytics')}
+                />
               </div>
             )}
           </TabsContent>
