@@ -912,7 +912,7 @@ export default function EnterpriseHub() {
             <EnhancedRedditTile idea={currentIdea} />
           ) : selectedTileDialog?.type === 'twitter' ? (
             <TwitterBuzzTile idea={currentIdea} />
-          ) : selectedTileDialog?.data ? (
+) : selectedTileDialog?.type ? (
             <DataHubTile
               title={selectedTileDialog.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               Icon={selectedTileDialog.type === 'market_size' ? DollarSign : 
@@ -922,8 +922,8 @@ export default function EnterpriseHub() {
                     selectedTileDialog.type === 'sentiment' ? MessageSquare :
                     selectedTileDialog.type === 'youtube_analytics' ? Activity :
                     Newspaper}
-              data={selectedTileDialog.data}
-              loading={!selectedTileDialog.data}
+              data={(tiles as any)?.[selectedTileDialog.type]}
+              loading={!((tiles as any)?.[selectedTileDialog.type])}
               expanded={true}
               tileType={selectedTileDialog.type}
               className="border-0 shadow-none"
