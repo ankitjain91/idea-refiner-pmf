@@ -244,11 +244,12 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
             recommendations: ['Differentiate with AI-powered workflows', 'Target a narrow ICP first', 'Build integrations early']
           }
         });
+        setIsCollapsed(false); // Auto-expand when data loads
         setRetryCount(0);
         setCircuitOpen(false);
         toast({
           title: 'Competition Analysis Updated',
-          description: 'Live competitor data loaded',
+          description: `${competitors.length} competitors found`,
         });
       } else {
         throw new Error('No competitors found');
@@ -510,10 +511,10 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
 
         {!isCollapsed && (
           <CardContent className="p-4">
-          <Tabs defaultValue="overview" className="h-full">
+          <Tabs defaultValue="competitors" className="h-full">
             <TabsList className="grid grid-cols-4 w-full mb-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="competitors">Competitors</TabsTrigger>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
               <TabsTrigger value="strategy">Strategy</TabsTrigger>
             </TabsList>
