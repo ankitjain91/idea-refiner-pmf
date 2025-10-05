@@ -205,12 +205,22 @@ export function DataTile({
           return fallbackData as TileData;
         }
         
-        // Default handling for other tile types
-        const fallbackData = await optimizedQueue.invokeFunction(fallbackFunction, { 
-          query: filters?.idea_keywords?.join(' ') || 'startup', 
-          filters,
-          tileType 
-        });
+        // Default handling for other tile types with correct payload shape per function
+        const ideaText = filters?.idea_keywords?.join(' ') || (typeof window !== 'undefined' ? (localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '') || 'startup';
+        let payload: any;
+        switch (fallbackFunction) {
+          case 'google-trends':
+          case 'market-trends':
+            payload = { idea: ideaText, filters, tileType };
+            break;
+          case 'web-search':
+            payload = { idea_keywords: ideaText, filters, tileType };
+            break;
+          default:
+            payload = { query: ideaText, filters, tileType };
+        }
+
+        const fallbackData = await optimizedQueue.invokeFunction(fallbackFunction, payload);
         
         // Transform fallback data to match TileData structure
         return transformFallbackData(tileType, fallbackData);

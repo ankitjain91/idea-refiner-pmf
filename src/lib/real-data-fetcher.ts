@@ -54,7 +54,7 @@ export class RealDataFetcher {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.supabaseKey}`
         },
-        body: JSON.stringify({ keyword, geo, timeframe })
+        body: JSON.stringify({ idea: keyword, geo, timeframe })
       });
 
       if (!response.ok) {

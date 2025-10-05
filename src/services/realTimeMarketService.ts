@@ -264,7 +264,7 @@ export class RealTimeMarketService {
     try {
       // Parallel calls to multiple real-time data sources
       const [trendsData, socialData, newsData, fundingData] = await Promise.allSettled([
-        supabase.functions.invoke('google-trends', { body: { query: idea } }),
+        supabase.functions.invoke('google-trends', { body: { idea: idea } }),
         supabase.functions.invoke('social-sentiment', { body: { query: idea } }),
         supabase.functions.invoke('news-analysis', { body: { idea, time_window: 'last_7_days' } }),
         supabase.functions.invoke('funding-tracker', { body: { sector: idea } })
