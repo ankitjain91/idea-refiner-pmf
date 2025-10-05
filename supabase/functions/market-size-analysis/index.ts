@@ -70,19 +70,20 @@ serve(async (req) => {
       fundingIndex = data_hub.FUNDING_INDEX || {};
       evidenceStore = data_hub.EVIDENCE_STORE || [];
     } else {
-      // Fetch from database cache if available
+      // Fetch from database cache if available - KEY BY IDEA
       console.log('[Market Size Analysis] Fetching from database cache');
+      const ideaCacheKey = actualIdea.slice(0, 100); // Use first 100 chars as cache key
       const { data: cachedData } = await supabase
         .from('dashboard_data')
         .select('*')
-        .eq('idea', actualIdea)
+        .eq('idea_text', ideaCacheKey)
         .in('tile_type', ['market_intelligence', 'web_search', 'news_trends', 'funding_tracker'])
         .order('created_at', { ascending: false })
         .limit(10);
 
       if (cachedData?.length) {
         cachedData.forEach((item: any) => {
-          const json = item.json || {};
+          const json = item.data || {};
           switch (item.tile_type) {
             case 'market_intelligence':
               marketIntelligence = json;
@@ -185,22 +186,22 @@ serve(async (req) => {
                   "market_size": {
                     "summary": "One paragraph executive summary with TAM, SAM, SOM and why it matters for the idea",
                     "metrics": {
-                      "tam": "$5.1B",
-                      "sam": "$2.2B", 
-                      "som": "$480M",
-                      "growth_rate_cagr": "18%",
+                      "tam": "FORMAT: $X.XB or $XXM",
+                      "sam": "FORMAT: $X.XB or $XXM", 
+                      "som": "FORMAT: $X.XB or $XXM",
+                      "growth_rate_cagr": "XX%",
                       "regional_split": {
-                        "NA": "$1.6B",
-                        "EMEA": "$1.3B",
-                        "APAC": "$1.7B",
-                        "LATAM": "$0.5B"
+                        "NA": "$X.XB",
+                        "EMEA": "$X.XB",
+                        "APAC": "$X.XB",
+                        "LATAM": "$X.XB"
                       },
                       "segment_split": {
-                        "Enterprise": "$3.2B",
-                        "SMB": "$1.9B"
+                        "Enterprise": "$X.XB",
+                        "SMB": "$X.XB"
                       },
-                      "drivers": ["Cloud adoption", "Cost efficiency", "API integrations"],
-                      "constraints": ["Regulatory hurdles", "Integration complexity", "Competition"]
+                      "drivers": ["Specific driver 1", "Specific driver 2", "Specific driver 3"],
+                      "constraints": ["Specific constraint 1", "Specific constraint 2", "Specific constraint 3"]
                     },
                     "charts": [
                       {
@@ -226,18 +227,21 @@ serve(async (req) => {
                     ],
                     "citations": [],
                     "visuals_ready": true,
-                    "confidence": "High"
+                    "confidence": "High" | "Medium" | "Low"
                   }
                 }
                 
                 Rules:
-                - TAM = Total Addressable Market (100% market capture)
+                - TAM = Total Addressable Market (100% market capture) - MUST vary based on the specific idea and data
                 - SAM = 30-45% of TAM (serviceable portion)
                 - SOM = 5-15% of SAM (realistic capture in 3-5 years)
+                - CRITICAL: Calculate TAM based on actual market data points provided, NOT templated values
+                - Use market intelligence, search results, and funding data to determine realistic market sizes
+                - If no data available, use conservative industry estimates specific to the idea domain
                 - Provide derivation logic in summary
                 - Regional splits must sum to TAM
-                - Be conservative but realistic
-                - Include specific drivers and constraints relevant to the idea`
+                - Be conservative but realistic and SPECIFIC to this idea
+                - Include specific drivers and constraints relevant to THIS idea's domain`
             },
             {
               role: 'user',

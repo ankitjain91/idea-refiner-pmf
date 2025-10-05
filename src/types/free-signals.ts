@@ -4,7 +4,7 @@ export interface FreeSignalsSentiment {
   confidence: "Low" | "Medium" | "High";
   trend: number[];
   sources: { id: string; items: number }[];
-  samples?: Array<{ source: 'hn'|'reddit'; title: string; url: string }>;
+  samples?: Array<{ source: 'hn'|'reddit'|'twitter'|'youtube'; title: string; url: string }>;
   lastUpdated: string;
 }
 export interface FreeSignalsMarket {

@@ -84,6 +84,28 @@ async function fetchGitHubRepos(keyword: string) {
   return await res.json();
 }
 
+async function fetchTwitter(query: string) {
+  const TWITTER_BEARER = Deno.env.get("TWITTER_BEARER_TOKEN");
+  if (!TWITTER_BEARER) return { data: [] };
+  try {
+    const url = `https://api.x.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=10`;
+    const res = await fetch(url, { headers: { "Authorization": `Bearer ${TWITTER_BEARER}` } });
+    if (!res.ok) return { data: [] };
+    return await res.json();
+  } catch { return { data: [] }; }
+}
+
+async function fetchYouTube(query: string) {
+  const YOUTUBE_KEY = Deno.env.get("YOUTUBE_API_KEY");
+  if (!YOUTUBE_KEY) return { items: [] };
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=10&key=${YOUTUBE_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) return { items: [] };
+    return await res.json();
+  } catch { return { items: [] }; }
+}
+
 function basicSentiment(text: string): number {
   const pos = ["good","great","love","win","fast","awesome","amazing","easy","helpful","wow","solid","clean","reliable","beautiful"];
   const neg = ["bad","hate","slow","bug","issue","problem","hard","fail","crash","expensive","confusing","ugly"];
@@ -123,6 +145,9 @@ serve(async (req) => {
       tasks["hn"] = fetchHN(query, days);
       tasks["reddit"] = fetchReddit(query, days, redditTok);
       tasks["wiki"] = fetchWikipediaPageviews(idea, Math.min(days, 60));
+      // Add Twitter and YouTube
+      tasks["twitter"] = fetchTwitter(query);
+      tasks["youtube"] = fetchYouTube(query);
     }
     if (tiles.includes("market")) {
       tasks["wb_users"] = fetchWorldBank("IT.NET.USER.ZS", country, 10);
@@ -144,14 +169,19 @@ serve(async (req) => {
       const hnTexts = hnHits.map((h) => `${h.title ?? ""} ${h.comment_text ?? ""}`.trim()).filter(Boolean);
       const redditItems = keyed.reddit?.data?.data?.children ?? keyed.reddit?.data?.data ?? [];
       const rdTexts = redditItems.map((i: any) => (i.data?.title || i.title || "") + " " + (i.data?.selftext || i.selftext || "")).filter(Boolean);
-      const texts = [...hnTexts, ...rdTexts].slice(0, 1000);
+      const twitterTweets = (keyed.twitter?.data || []) as any[];
+      const twitterTexts = twitterTweets.map((t: any) => t.text || "").filter(Boolean);
+      const youtubeVideos = (keyed.youtube?.items || []) as any[];
+      const youtubeTexts = youtubeVideos.map((v: any) => `${v.snippet?.title || ""} ${v.snippet?.description || ""}`.trim()).filter(Boolean);
+      
+      const texts = [...hnTexts, ...rdTexts, ...twitterTexts, ...youtubeTexts].slice(0, 1000);
       const agg = aggregateSentiment(texts);
       const wikiViews = (keyed.wiki?.items ?? []).map((d:any)=>d.views);
       const trend = wikiViews.slice(-30);
 
       // Collect up to 5 sample items
-      const samples: Array<{ source: 'hn'|'reddit'; title: string; url: string }> = [];
-      hnHits.slice(0, 3).forEach((h) => {
+      const samples: Array<{ source: 'hn'|'reddit'|'twitter'|'youtube'; title: string; url: string }> = [];
+      hnHits.slice(0, 2).forEach((h) => {
         if (h.title) {
           samples.push({
             source: 'hn',
@@ -160,7 +190,7 @@ serve(async (req) => {
           });
         }
       });
-      redditItems.slice(0, 2).forEach((i: any) => {
+      redditItems.slice(0, 1).forEach((i: any) => {
         const title = i.data?.title || i.title;
         const permalink = i.data?.permalink || i.permalink;
         if (title && permalink) {
@@ -168,6 +198,24 @@ serve(async (req) => {
             source: 'reddit',
             title,
             url: `https://reddit.com${permalink}`
+          });
+        }
+      });
+      twitterTweets.slice(0, 1).forEach((t: any) => {
+        if (t.text && t.id) {
+          samples.push({
+            source: 'twitter',
+            title: t.text.slice(0, 100) + (t.text.length > 100 ? '...' : ''),
+            url: `https://twitter.com/i/web/status/${t.id}`
+          });
+        }
+      });
+      youtubeVideos.slice(0, 1).forEach((v: any) => {
+        if (v.snippet?.title && v.id?.videoId) {
+          samples.push({
+            source: 'youtube',
+            title: v.snippet.title,
+            url: `https://youtube.com/watch?v=${v.id.videoId}`
           });
         }
       });
@@ -180,9 +228,11 @@ serve(async (req) => {
         sources: [
           { id: "hn.algolia", items: hnHits.length },
           { id: keyed.reddit?.mode === "reddit" ? "reddit.oauth" : "pushshift", items: redditItems.length },
+          { id: "twitter", items: twitterTweets.length },
+          { id: "youtube", items: youtubeVideos.length },
           { id: "wikipedia.pageviews", items: (keyed.wiki?.items ?? []).length }
         ],
-        samples: samples.slice(0, 5),
+        samples: samples.slice(0, 6),
         lastUpdated: new Date().toISOString()
       };
     }
