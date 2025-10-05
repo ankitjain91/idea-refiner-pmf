@@ -7,16 +7,15 @@ import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings, Globe2, DollarSign, Building2, Search, TrendingUp, Newspaper, Activity } from "lucide-react";
+import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
-import { DataHubTile } from "@/components/hub/DataHubTile";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { SentimentTile } from "@/components/hub/SentimentTile";
@@ -27,8 +26,6 @@ import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Accordion,
   AccordionContent,
@@ -53,7 +50,6 @@ export default function EnterpriseHub() {
     return localStorage.getItem('enterpriseHub_summaryExpanded') !== 'false';
   });
   const [advancedControlsOpen, setAdvancedControlsOpen] = useState(false);
-  const [selectedTileDialog, setSelectedTileDialog] = useState<{ type: string; data: any } | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   
   // Save summary expanded state
@@ -172,7 +168,7 @@ export default function EnterpriseHub() {
     }
   }, [isRealTime, refreshInterval, currentIdea, refresh, useMockData]);
   
-  // Check if we have existing analysis data OR auto-start loading
+  // Check if we have existing analysis data
   useEffect(() => {
     const checkExistingData = () => {
       // Check if we have any tile data already
@@ -192,18 +188,10 @@ export default function EnterpriseHub() {
         setHasLoadedData(true);
         setHasExistingAnalysis(true);
       }
-      
-      // CRITICAL: Auto-start loading when we have an idea, even if no cached data
-      // This ensures tiles start loading immediately on dashboard navigation
-      if (currentIdea && !hasLoadedData && !loading) {
-        console.log('[EnterpriseHub] Auto-starting data load for:', currentIdea.substring(0, 50));
-        setHasLoadedData(true);
-        // The hooks already auto-fetch, we just need to show the UI
-      }
     };
     
     checkExistingData();
-  }, [tiles, currentIdea, hasLoadedData, loading]);
+  }, [tiles, currentIdea]);
   
   // Custom refresh that also updates the idea from session
   const handleRefresh = useCallback(async () => {
@@ -225,20 +213,6 @@ export default function EnterpriseHub() {
     }
     refresh();
   }, [refresh, currentIdea]);
-  
-  // Keep dialog tile data in sync and trigger fetch when opened
-  useEffect(() => {
-    if (!selectedTileDialog?.type) return;
-    const t = (tiles as any)?.[selectedTileDialog.type];
-    // Sync latest tile data into dialog
-    if (t && t !== selectedTileDialog.data) {
-      setSelectedTileDialog(prev => (prev && prev.type === selectedTileDialog.type) ? { ...prev, data: t } : prev);
-    }
-    // Trigger fetch if missing (non-YouTube types are loaded via data hub)
-    if (!t && selectedTileDialog.type !== 'youtube_analytics') {
-      try { refreshTile?.(selectedTileDialog.type); } catch (_) {}
-    }
-  }, [tiles, selectedTileDialog, refreshTile]);
   
   // Show full-page loading state when loading and no data loaded yet
   if (loading && !hasLoadedData) {
@@ -508,371 +482,48 @@ export default function EnterpriseHub() {
             />
             
             {hasLoadedData && (
-              <Collapsible defaultOpen={false}>
-                <Card className="border-border/50 bg-card/50">
-                  <CollapsibleTrigger className="w-full">
-                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Globe2 className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="text-left">
-                            <CardTitle className="text-base">Global Market Overview</CardTitle>
-                            <p className="text-xs text-muted-foreground mt-0.5">Click to explore regional opportunities</p>
-                          </div>
-                        </div>
-                        <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform" />
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      <LazyWorldMap 
-                        marketData={tiles.market_size}
-                        loading={loading}
-                      />
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
+              <LazyWorldMap 
+                marketData={tiles.market_size}
+                loading={loading}
+              />
             )}
           </TabsContent>
 
-          {/* MARKET ANALYSIS TAB - Compact tiles that expand */}
+          {/* MARKET ANALYSIS TAB - Market Size, Trends, Google Trends, Competition */}
           <TabsContent value="market" className="space-y-6">
             {hasLoadedData && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Market Size Tile */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'market_size', data: tiles.market_size })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">Market Size</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {tiles.market_size?.confidence ? `${Math.round(tiles.market_size.confidence * 100)}%` : 'N/A'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {!tiles.market_size ? (
-                      <div className="space-y-2 animate-fade-in">
-                        <Skeleton className="h-8 w-24" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {tiles.market_size?.metrics?.tam
-                            ? `$${(tiles.market_size.metrics.tam / 1e9).toFixed(1)}B`
-                            : tiles.market_size?.json?.TAM || '—'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tiles.market_size?.explanation || 'Loading market analysis...'}
-                        </p>
-                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Competition Tile */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'competition', data: tiles.competition })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">Competition</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {tiles.competition?.confidence ? `${Math.round(tiles.competition.confidence * 100)}%` : 'N/A'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {!tiles.competition ? (
-                      <div className="space-y-2 animate-fade-in">
-                        <Skeleton className="h-8 w-16" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {(() => {
-                            const m: any = tiles.competition?.metrics || {};
-                            const numeric = m.total_competitors || m.competitors || parseInt((m.players || '').toString(), 10);
-                            return numeric || m.players || '—';
-                          })()}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tiles.competition?.explanation || 'Loading competitive analysis...'}
-                        </p>
-                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Google Trends Tile */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'google_trends', data: tiles.google_trends })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Search className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">Search Interest</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {tiles.google_trends?.confidence ? `${Math.round(tiles.google_trends.confidence * 100)}%` : 'N/A'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {!tiles.google_trends ? (
-                      <div className="space-y-2 animate-fade-in">
-                        <Skeleton className="h-8 w-16" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {(tiles.google_trends as any)?.interest || tiles.google_trends?.metrics?.interest || tiles.google_trends?.metrics?.score || tiles.google_trends?.json?.interest_score || '—'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tiles.google_trends?.explanation || 'Loading search trends...'}
-                        </p>
-                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Market Trends Tile */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'market_trends', data: tiles.market_trends })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">Market Trends</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {tiles.market_trends?.confidence ? `${Math.round(tiles.market_trends.confidence * 100)}%` : 'N/A'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {!tiles.market_trends ? (
-                      <div className="space-y-2 animate-fade-in">
-                        <Skeleton className="h-8 w-20" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {((tiles.market_trends as any)?.growthRate || tiles.market_trends?.metrics?.growthRate) ? `${(tiles.market_trends as any)?.growthRate || tiles.market_trends?.metrics?.growthRate}%` : '—'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tiles.market_trends?.explanation || 'Loading trend analysis...'}
-                        </p>
-                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
+              <div className="space-y-4">
+                <MainAnalysisGrid
+                  tiles={{
+                    market_size: tiles.market_size,
+                    market_trends: tiles.market_trends,
+                    google_trends: tiles.google_trends,
+                    competition: tiles.competition,
+                  }}
+                  loading={loading}
+                  viewMode="deep"
+                  onRefreshTile={refreshTile}
+                />
               </div>
             )}
           </TabsContent>
 
-          {/* CUSTOMER RESEARCH TAB - Compact overview cards */}
+          {/* CUSTOMER RESEARCH TAB - Sentiment, News, Reddit, Twitter, YouTube */}
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Sentiment Card */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'sentiment', data: tiles.sentiment })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">Sentiment Analysis</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {tiles.sentiment?.confidence ? `${Math.round(tiles.sentiment.confidence * 100)}%` : 'N/A'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {!tiles.sentiment ? (
-                      <div className="space-y-2 animate-fade-in">
-                        <Skeleton className="h-8 w-20" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-2xl font-bold text-green-500">
-                          {(() => {
-                            const p = tiles.sentiment?.metrics?.positive;
-                            if (p == null) return '—';
-                            const s = String(p);
-                            return s.endsWith('%') ? s : `${s}%`;
-                          })()}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tiles.sentiment?.explanation || 'Loading sentiment data...'}
-                        </p>
-                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* News Analysis Card */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'news_analysis', data: tiles.news_analysis })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Newspaper className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">News Analysis</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {tiles.news_analysis?.confidence ? `${Math.round(tiles.news_analysis.confidence * 100)}%` : 'N/A'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {!tiles.news_analysis ? (
-                      <div className="space-y-2 animate-fade-in">
-                        <Skeleton className="h-8 w-16" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {tiles.news_analysis?.metrics?.articles || tiles.news_analysis?.metrics?.mentions || (tiles.news_analysis as any)?.total_articles || '—'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tiles.news_analysis?.explanation || 'Loading news coverage...'}
-                        </p>
-                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* YouTube Analysis Card */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'youtube_analytics', data: tiles.youtube_analytics })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">YouTube Analysis</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {tiles.youtube_analytics?.confidence ? `${Math.round(tiles.youtube_analytics.confidence * 100)}%` : 'N/A'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {/* We fetch YouTube data on demand in dialog. Show hint here. */}
-                    <div className="space-y-1 animate-fade-in">
-                      <p className="text-sm text-muted-foreground">Open to analyze YouTube videos, views, channels</p>
-                      <Button variant="ghost" size="sm" className="mt-1 w-full opacity-100 hover-scale">
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Reddit Discussions Card */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'reddit', data: null })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">Reddit Discussions</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Research
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-1 animate-fade-in">
-                      <p className="text-sm text-muted-foreground">Deep dive into community conversations, pain points & sentiment</p>
-                      <Button variant="ghost" size="sm" className="mt-1 w-full opacity-100 hover-scale">
-                        View Analysis
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Social Media Buzz Card */}
-                <Card 
-                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
-                  onClick={() => setSelectedTileDialog({ type: 'twitter', data: null })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-medium">Social Media Buzz</CardTitle>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Trending
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-1 animate-fade-in">
-                      <p className="text-sm text-muted-foreground">Track Twitter conversations, influencers & trending hashtags</p>
-                      <Button variant="ghost" size="sm" className="mt-1 w-full opacity-100 hover-scale">
-                        View Buzz
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="space-y-4">
+                <SentimentTile idea={currentIdea} className="mb-6" />
+                <MainAnalysisGrid
+                  tiles={{
+                    news_analysis: tiles.news_analysis,
+                  }}
+                  loading={loading}
+                  viewMode="deep"
+                  onRefreshTile={refreshTile}
+                />
+                <EnhancedRedditTile idea={currentIdea} />
+                <TwitterBuzzTile idea={currentIdea} />
+                <YouTubeAnalyticsTile idea={currentIdea} />
               </div>
             )}
           </TabsContent>
@@ -891,53 +542,6 @@ export default function EnterpriseHub() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Tile Details Dialog */}
-      <Dialog open={!!selectedTileDialog} onOpenChange={() => setSelectedTileDialog(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedTileDialog?.type === 'market_size' && <DollarSign className="h-5 w-5 text-primary" />}
-              {selectedTileDialog?.type === 'competition' && <Building2 className="h-5 w-5 text-primary" />}
-              {selectedTileDialog?.type === 'google_trends' && <Search className="h-5 w-5 text-primary" />}
-              {selectedTileDialog?.type === 'market_trends' && <TrendingUp className="h-5 w-5 text-primary" />}
-              {selectedTileDialog?.type === 'sentiment' && <MessageSquare className="h-5 w-5 text-primary" />}
-              {selectedTileDialog?.type === 'news_analysis' && <Newspaper className="h-5 w-5 text-primary" />}
-              {selectedTileDialog?.type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-            </DialogTitle>
-          </DialogHeader>
-          {selectedTileDialog?.type === 'youtube_analytics' ? (
-            <YouTubeAnalyticsTile idea={currentIdea} />
-          ) : selectedTileDialog?.type === 'reddit' ? (
-            <EnhancedRedditTile idea={currentIdea} />
-          ) : selectedTileDialog?.type === 'twitter' ? (
-            <TwitterBuzzTile idea={currentIdea} />
-) : selectedTileDialog?.type ? (
-            <DataHubTile
-              title={selectedTileDialog.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-              Icon={selectedTileDialog.type === 'market_size' ? DollarSign : 
-                    selectedTileDialog.type === 'competition' ? Building2 :
-                    selectedTileDialog.type === 'google_trends' ? Search :
-                    selectedTileDialog.type === 'market_trends' ? TrendingUp :
-                    selectedTileDialog.type === 'sentiment' ? MessageSquare :
-                    selectedTileDialog.type === 'youtube_analytics' ? Activity :
-                    Newspaper}
-              data={(tiles as any)?.[selectedTileDialog.type]}
-              loading={!((tiles as any)?.[selectedTileDialog.type])}
-              expanded={true}
-              tileType={selectedTileDialog.type}
-              className="border-0 shadow-none"
-              onRefresh={() => refreshTile?.(selectedTileDialog.type)}
-            />
-          ) : (
-            <div className="py-12 text-center text-muted-foreground">
-              <Activity className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
-              <p className="font-medium">Loading tile data...</p>
-              <p className="text-sm mt-2">Fetching analysis for this tile.</p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}
       <EvidenceExplorer

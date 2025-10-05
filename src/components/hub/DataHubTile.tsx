@@ -57,23 +57,13 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
     return styles[tileType] || styles.default;
   };
   
-  // Auto-expand when data becomes available or when explicitly expanded
+  // Auto-expand when data becomes available
   React.useEffect(() => {
-    if (expanded !== undefined) {
-      setIsCollapsed(!expanded);
-      if (expanded) {
-        setHasBeenExpanded(true);
-        if (onRefresh && !data) {
-          setIsFirstLoad(true);
-          try { onRefresh(); } catch {}
-          setTimeout(() => setIsFirstLoad(false), 3000);
-        }
-      }
-    } else if (data && isCollapsed && !hasBeenExpanded) {
+    if (data && isCollapsed && !hasBeenExpanded) {
       setIsCollapsed(false);
       setHasBeenExpanded(true);
     }
-  }, [data, expanded, onRefresh]);
+  }, [data]);
   
   // Debug logging for sentiment data
   React.useEffect(() => {
