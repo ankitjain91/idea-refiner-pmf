@@ -261,12 +261,24 @@ serve(async (req) => {
         const groqData = await groqResponse.json();
         let content = groqData.choices[0]?.message?.content || '';
         
+        console.log('[Market Size Analysis] Raw Groq response length:', content.length);
+        
         // Clean up response
         content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         
         try {
           const parsed = JSON.parse(content);
           analysisResult = parsed as MarketSizeOutput;
+          
+          console.log('[Market Size Analysis] Parsed successfully:', {
+            tam: analysisResult.market_size.metrics.tam,
+            sam: analysisResult.market_size.metrics.sam,
+            som: analysisResult.market_size.metrics.som,
+            drivers_count: analysisResult.market_size.metrics.drivers.length,
+            constraints_count: analysisResult.market_size.metrics.constraints.length,
+            regional_split_keys: Object.keys(analysisResult.market_size.metrics.regional_split),
+            segment_split_keys: Object.keys(analysisResult.market_size.metrics.segment_split)
+          });
           
           // Add citations
           analysisResult.market_size.citations = citations.slice(0, 5);
@@ -319,11 +331,17 @@ serve(async (req) => {
       analysisResult = { error: 'AI service unavailable', market_size: null };
     }
 
-    console.log('[Market Size Analysis] Complete:', {
-      tam: analysisResult.market_size.metrics.tam,
-      sam: analysisResult.market_size.metrics.sam,
-      som: analysisResult.market_size.metrics.som,
-      confidence: analysisResult.market_size.confidence
+    console.log('[Market Size Analysis] Complete - Final output:', {
+      success: true,
+      has_market_size: !!analysisResult.market_size,
+      tam: analysisResult.market_size?.metrics?.tam,
+      sam: analysisResult.market_size?.metrics?.sam,
+      som: analysisResult.market_size?.metrics?.som,
+      confidence: analysisResult.market_size?.confidence,
+      drivers: analysisResult.market_size?.metrics?.drivers?.length,
+      constraints: analysisResult.market_size?.metrics?.constraints?.length,
+      citations: analysisResult.market_size?.citations?.length,
+      charts: analysisResult.market_size?.charts?.length
     });
 
     return new Response(
