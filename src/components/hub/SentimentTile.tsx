@@ -150,9 +150,29 @@ export function SentimentTile({ className }: SentimentTileProps) {
       });
 
       if (response?.sentiment) {
-        setData(response.sentiment);
-        if (response.sentiment.clusters?.length > 0) {
-          setSelectedCluster(response.sentiment.clusters[0]);
+        const defaultMetrics = {
+          overall_distribution: { positive: 0, neutral: 0, negative: 0 },
+          engagement_weighted_distribution: { positive: 0, neutral: 0, negative: 0 },
+          trend_delta: '0%',
+          top_positive_drivers: [],
+          top_negative_concerns: [],
+          source_breakdown: {}
+        };
+
+        const normalized: SentimentData = {
+          summary: response.sentiment.summary ?? '',
+          metrics: { ...defaultMetrics, ...(response.sentiment.metrics ?? {}) },
+          clusters: response.sentiment.clusters ?? [],
+          charts: response.sentiment.charts ?? [],
+          visuals_ready: response.sentiment.visuals_ready ?? true,
+          confidence: (response.sentiment.confidence as any) ?? 'Moderate',
+          trend_data: response.sentiment.trend_data ?? [],
+          word_clouds: response.sentiment.word_clouds ?? { positive: [], negative: [] },
+        };
+
+        setData(normalized);
+        if (normalized.clusters.length > 0) {
+          setSelectedCluster(normalized.clusters[0]);
         }
       } else {
         // Generate synthetic data for demonstration
@@ -433,7 +453,7 @@ export function SentimentTile({ className }: SentimentTileProps) {
 
   if (!data) return null;
 
-  const sentimentTrend = data.metrics.trend_delta?.startsWith('+') ? 'up' : 'down';
+  const sentimentTrend = data.metrics?.trend_delta?.startsWith('+') ? 'up' : 'down';
 
   return (
     <Card className={cn("h-full overflow-hidden", className)}>
