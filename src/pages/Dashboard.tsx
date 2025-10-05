@@ -147,7 +147,7 @@ export default function Dashboard() {
         <CollaborationPanel />
 
         {/* Support & Learning */}
-        <Card>
+        <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <HelpCircle className="h-5 w-5 text-primary" />
@@ -157,17 +157,29 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button variant="outline" className="justify-start gap-2">
+              <Button 
+                variant="outline" 
+                className="justify-start gap-2 hover:border-primary/50"
+                onClick={() => navigate('/documentation')}
+              >
                 <BookOpen className="h-4 w-4" />
-                How It Works
+                Documentation
               </Button>
-              <Button variant="outline" className="justify-start gap-2">
+              <Button 
+                variant="outline" 
+                className="justify-start gap-2 hover:border-primary/50"
+                onClick={() => navigate('/documentation#faq')}
+              >
                 <MessageSquare className="h-4 w-4" />
                 FAQs
               </Button>
-              <Button variant="outline" className="justify-start gap-2 relative">
+              <Button 
+                variant="outline" 
+                className="justify-start gap-2 relative hover:border-primary/50"
+                onClick={() => window.open('mailto:support@smoothbrains.ai', '_blank')}
+              >
                 <HelpCircle className="h-4 w-4" />
-                Support
+                Contact Support
                 {isPro && (
                   <span className="absolute -top-1 -right-1">
                     <BadgeIcon className="h-4 w-4 text-primary fill-primary" />
@@ -176,10 +188,12 @@ export default function Dashboard() {
               </Button>
             </div>
             {isPro && (
-              <p className="text-xs text-muted-foreground mt-4 flex items-center gap-2">
-                <BadgeIcon className="h-3 w-3 text-primary" />
-                Priority support included with your plan
-              </p>
+              <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                <p className="text-xs text-foreground flex items-center gap-2">
+                  <BadgeIcon className="h-3 w-3 text-primary" />
+                  <span className="font-medium">Priority support</span> - Get faster responses with your {SUBSCRIPTION_TIERS[subscription.tier].name} plan
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
