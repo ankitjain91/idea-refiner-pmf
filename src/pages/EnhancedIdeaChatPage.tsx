@@ -67,7 +67,7 @@ const EnhancedIdeaChatPage = () => {
     
     // Store analysis data for dashboard access
     localStorage.setItem(LS_KEYS.userIdea, idea);
-    localStorage.setItem('dashboardIdea', conversationSummary); // Full conversation for dashboard
+    // Note: Using useIdeaContext.generateIdea() instead for AI-powered summary
     localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
     localStorage.setItem(LS_KEYS.ideaMetadata, JSON.stringify(metadata || {}));
     

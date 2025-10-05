@@ -80,7 +80,7 @@ export default function EnterpriseHub() {
     // If we have a stored idea, use it immediately
     if (storedIdea) {
       setCurrentIdea(storedIdea);
-      localStorage.setItem("dashboardIdea", storedIdea);
+      // Using useIdeaContext for idea management
       console.log("[EnterpriseHub] Using stored idea:", storedIdea.substring(0, 100));
       
       // Now check if we have a session to enhance with chat history
@@ -94,7 +94,7 @@ export default function EnterpriseHub() {
           setConversationSummary(cleanedSummary);
           // Update localStorage with cleaned summary
           if (cleanedSummary !== storedIdea) {
-            localStorage.setItem("dashboardIdea", cleanedSummary);
+            // Using useIdeaContext for idea management
             setCurrentIdea(cleanedSummary);
           }
         } else {
@@ -125,7 +125,7 @@ export default function EnterpriseHub() {
         if (cleanedSummary) {
           setCurrentIdea(cleanedSummary);
           setConversationSummary(cleanedSummary);
-          localStorage.setItem("dashboardIdea", cleanedSummary);
+          // Using useIdeaContext for idea management
           console.log("[EnterpriseHub] Got idea from session:", cleanedSummary.substring(0, 100));
         }
       }

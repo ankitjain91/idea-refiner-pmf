@@ -34,6 +34,7 @@ import { LS_KEYS } from '@/lib/storage-keys';
 import { backgroundProcessor } from '@/lib/background-processor';
 import { AsyncDashboardButton } from '@/components/AsyncDashboardButton';
 import { GenerateIdeaButton } from './chat/GenerateIdeaButton';
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 
 // Import refactored components and utilities
 import { Message, SuggestionItem } from './chat/types';
@@ -696,7 +697,16 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
   };
 
   // No longer generating shortened idea names - storing full idea as-is
-  const generateIdeaSummaryName = async (idea: string) => {
+  const generateIdeaSummaryName = async (idea: string, messages?: any[]) => {
+    // If we have messages, generate AI summary first
+    if (messages && messages.length > 0) {
+      try {
+        const { generateIdea } = useIdeaContext();
+        await generateIdea(messages);
+      } catch (error) {
+        console.error('Failed to generate AI summary:', error);
+      }
+    }
     // We're now storing the full idea without shortening
     setIdeaSummaryName(idea);
     localStorage.setItem('ideaSummaryName', idea);

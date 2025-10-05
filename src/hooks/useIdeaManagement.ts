@@ -3,6 +3,7 @@ import { useSession } from '@/contexts/SimpleSessionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { extractKeywords } from '@/utils/ideaUtils';
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 
 export interface IdeaFilters {
   idea_keywords: string[];
@@ -19,6 +20,7 @@ export interface IdeaConfirmation {
 
 export function useIdeaManagement() {
   const { currentSession } = useSession();
+  const { updateIdea: updateIdeaContext } = useIdeaContext();
   const [filters, setFilters] = useState<IdeaFilters>({
     idea_keywords: [],
     industry: '',
@@ -238,8 +240,8 @@ export function useIdeaManagement() {
     if (kws.length) {
       // Persist idea across ALL relevant storage keys
       const persistEverywhere = () => {
-        // Primary dashboard storage
-        localStorage.setItem('dashboardIdea', idea);
+        // Primary dashboard storage - use AI-generated summary
+        updateIdeaContext(idea);
         
         // All possible idea keys for maximum compatibility
         localStorage.setItem('userIdea', idea);

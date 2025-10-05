@@ -929,7 +929,7 @@ export default function ChatGPTStyleChat({
       localStorage.setItem(LS_KEYS.analysisCompleted, 'true');
       localStorage.setItem(LS_KEYS.pmfScore, String(pmfScore));
       localStorage.setItem(LS_KEYS.userIdea, primaryIdea || currentIdea); // Use the actual idea that was analyzed
-      localStorage.setItem('dashboardIdea', conversationSummary); // Summarized conversation for dashboard
+      // Note: Using useIdeaContext.generateIdea() instead for AI-powered summary
       localStorage.setItem(LS_KEYS.userAnswers, JSON.stringify(brief));
       setAnalysisCompletedFlag(true);
       
