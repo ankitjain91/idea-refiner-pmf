@@ -103,6 +103,7 @@ function aggregateSentiment(texts: string[]) {
 }
 
 serve(async (req) => {
+  console.log('[free-signals] Request received');
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
