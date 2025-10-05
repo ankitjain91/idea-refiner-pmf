@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Loader2, 
   Plus, 
@@ -18,12 +19,14 @@ import {
   Search,
   Sparkles,
   ChartBar,
-  TrendingUp
+  TrendingUp,
+  Trophy
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { UserMenu } from '@/components/UserMenu';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/integrations/supabase/client';
+import IdeasLeaderboard from '@/components/social/IdeasLeaderboard';
 
 interface AnalysisSession {
   id: string;
@@ -203,9 +206,20 @@ const IdeaJournal = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8 max-w-4xl">
-        {/* Create New Session or Show Sessions */}
-        <div className="space-y-6">
+      <div className="container mx-auto px-6 py-8 max-w-6xl">
+        <Tabs defaultValue="sessions" className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+            <TabsTrigger value="sessions" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              My Sessions
+            </TabsTrigger>
+            <TabsTrigger value="leaderboard" className="gap-2">
+              <Trophy className="h-4 w-4" />
+              Leaderboard
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sessions" className="space-y-6">
           {/* Create New Session Button/Form */}
           <div className="relative min-h-[100px] transition-all duration-500 ease-\[cubic-bezier(0.32,0.72,0,1)\]">
             {!isCreating ? (
@@ -440,7 +454,12 @@ const IdeaJournal = () => {
               </CardContent>
             </Card>
           )}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="leaderboard">
+            <IdeasLeaderboard />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
