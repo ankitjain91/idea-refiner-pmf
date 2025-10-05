@@ -78,7 +78,19 @@ serve(async (req) => {
 
     const BRAVE_API_KEY = Deno.env.get('BRAVE_SEARCH_API_KEY');
     if (!BRAVE_API_KEY) {
-      console.warn('[competitive-landscape] BRAVE_SEARCH_API_KEY not set; returning simulated data');
+      console.error('[competitive-landscape] BRAVE_SEARCH_API_KEY not set');
+      return new Response(
+        JSON.stringify({ 
+          error: 'BRAVE_SEARCH_API_KEY is not configured. Please add it in Supabase Edge Function secrets.',
+          competitors: [],
+          marketConcentration: 'unknown',
+          barrierToEntry: 'unknown'
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Try Brave API first
