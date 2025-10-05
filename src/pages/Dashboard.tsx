@@ -10,18 +10,20 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { saveIdeaToLeaderboard } from "@/utils/saveIdeaToLeaderboard";
+import { useIdeaContext } from "@/hooks/useIdeaContext";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { subscription, usage } = useSubscription();
   const { user } = useAuth();
+  const { getIdea } = useIdeaContext();
   const isPro = subscription.tier === 'pro' || subscription.tier === 'enterprise';
   const limits = SUBSCRIPTION_TIERS[subscription.tier].features;
 
   // Update leaderboard when dashboard loads
   useEffect(() => {
     const updateLeaderboard = async () => {
-      const currentIdea = localStorage.getItem('currentIdea');
+      const currentIdea = getIdea();
       const sessionData = localStorage.getItem('sessionData');
       const sessionName = localStorage.getItem('currentSessionName') || 'Untitled Session';
       
