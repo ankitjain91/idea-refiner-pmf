@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,14 +68,17 @@ export const GenerateIdeaButton = ({ conversationHistory, disabled }: GenerateId
         disabled={disabled || isGenerating || conversationHistory.length === 0}
         variant={hasIdea ? "outline" : "default"}
         size="sm"
-        className="gap-2"
+        className={cn(
+          "gap-2 transition-all duration-300 font-semibold",
+          !hasIdea && "bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:from-primary/90 hover:via-purple-600/90 hover:to-pink-600/90 shadow-lg hover:shadow-xl hover:scale-105 animate-gradient bg-[length:200%_200%] border-0"
+        )}
       >
         {isGenerating ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <Sparkles className="h-4 w-4" />
         )}
-        {hasIdea ? 'Update My Idea' : 'Lock In My Idea'}
+        {hasIdea ? 'Update My Idea' : '✨ Lock In My Idea'}
       </Button>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
