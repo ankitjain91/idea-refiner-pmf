@@ -10,6 +10,7 @@ import { getPMFInsights } from '@/lib/pmf-category';
 import { RealTimeMarketService } from '@/services/realTimeMarketService';
 import { formatMoney, formatPercent, sanitizeTileData } from '@/utils/dataFormatting';
 import { CACHE_DURATIONS } from '@/hooks/useCachedSWR';
+import { getCanonicalIdea } from '@/lib/idea-manager';
 
 interface DataHubState {
   indices: DataHubIndices | null;
@@ -94,10 +95,15 @@ export function useOptimizedDataHub(input: DataHubInput) {
   }, []);
   
   const fetchDataHub = useCallback(async (forceRefresh = false) => {
-    if (!input.idea) {
+    // CRITICAL: Always use the canonical idea from the single source of truth
+    const canonicalIdea = getCanonicalIdea();
+    
+    if (!canonicalIdea) {
       setState(prev => ({ ...prev, error: 'Missing idea' }));
       return;
     }
+    
+    console.log('[OptimizedDataHub] Using canonical idea:', canonicalIdea.substring(0, 100));
     
     setState(prev => ({ ...prev, loading: true, error: null }));
     
@@ -111,7 +117,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
       if (useMockData) {
         // Warn that mock data is being used when API keys are configured
         console.warn('⚠️ Using MOCK DATA despite API keys being configured. Toggle off mock data for real data.');
-        console.log('📊 Loading MOCK DATA for:', input.idea);
+        console.log('📊 Loading MOCK DATA for canonical idea:', canonicalIdea);
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Use the same mock data structure as before
@@ -130,8 +136,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
         });
         
       } else {
-        // Use optimized data loading
-        console.log('🚀 Loading OPTIMIZED DATA for:', input.idea);
+        // Use optimized data loading with canonical idea
+        console.log('🚀 Loading OPTIMIZED DATA for canonical idea:', canonicalIdea);
         
         const tileTypes = [
           'sentiment', 'market_trends', 'competition', 'user_engagement',
@@ -177,8 +183,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         // Clear cache if force refresh to ensure real API calls
         if (forceRefresh) {
-          console.log('🔄 Force refresh: Clearing cache for idea:', input.idea);
-          await cache.current.clearForIdea(input.idea);
+          console.log('🔄 Force refresh: Clearing cache for canonical idea:', canonicalIdea);
+          await cache.current.clearForIdea(canonicalIdea);
         }
         
         // Fetch all tile data with deduplication
@@ -196,7 +202,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
             // Special handling for market_size - use real-time service
             if (tileType === 'market_size') {
             const marketService = RealTimeMarketService.getInstance();
-            const marketData = await marketService.fetchMarketSize(input.idea, forceRefresh);
+            // CRITICAL: Use canonical idea for market size
+            const marketData = await marketService.fetchMarketSize(canonicalIdea, forceRefresh);
             
             if (marketData) {
               cacheStatsTracker.misses++;
@@ -278,7 +285,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
           
           // Handle platform-specific tiles
           if (['reddit', 'twitter', 'linkedin'].includes(tileType)) {
-            const platformData = await optimizedService.current.getDataForPlatform(tileType, input.idea);
+            // CRITICAL: Use canonical idea for platform data
+            const platformData = await optimizedService.current.getDataForPlatform(tileType, canonicalIdea);
             
             if (platformData) {
               cacheStatsTracker.misses++;
@@ -320,8 +328,9 @@ export function useOptimizedDataHub(input: DataHubInput) {
             return;
           }
           
-          // Use optimized service for other tiles
-          const optimizedData = await optimizedService.current.getDataForTile(tileType, input.idea);
+          // Use optimized service for other tiles with canonical idea
+          // CRITICAL: Use canonical idea for all tile data
+          const optimizedData = await optimizedService.current.getDataForTile(tileType, canonicalIdea);
           
           if (optimizedData) {
             // Track cache stats

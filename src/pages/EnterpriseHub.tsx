@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getCanonicalIdea } from "@/lib/idea-manager";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
@@ -58,49 +59,22 @@ export default function EnterpriseHub() {
     localStorage.setItem('enterpriseHub_summaryExpanded', summaryExpanded.toString());
   }, [summaryExpanded]);
   
-  // Update idea from current session
+  // Update idea from current session - using canonical idea manager
   const updateIdeaFromSession = useCallback(() => {
-    // First, check for the canonical appIdea from Generate My Idea button
-    try {
-      const appIdeaRaw = localStorage.getItem("appIdea");
-      if (appIdeaRaw) {
-        const appIdeaData = JSON.parse(appIdeaRaw);
-        if (appIdeaData.summary) {
-          const cleanedSummary = cleanIdeaText(appIdeaData.summary);
-          setCurrentIdea(cleanedSummary);
-          setConversationSummary(cleanedSummary);
-          console.log("[EnterpriseHub] Using appIdea summary:", cleanedSummary.substring(0, 100));
-          
-          if (currentSession) {
-            setSessionName(currentSession.name || "Untitled Session");
-          }
-          return;
-        }
-      }
-    } catch (e) {
-      console.error("[EnterpriseHub] Error parsing appIdea:", e);
-    }
+    // Use the centralized idea manager for consistency
+    const canonicalIdea = getCanonicalIdea();
     
-    // Fallback to old keys if appIdea doesn't exist
-    const rawStoredIdea = 
-      localStorage.getItem("pmfCurrentIdea") ||
-      localStorage.getItem("dashboardIdea") || 
-      localStorage.getItem("currentIdea") || 
-      localStorage.getItem("userIdea") || 
-      "";
-    
-    const storedIdea = cleanIdeaText(rawStoredIdea);
-    
-    if (storedIdea) {
-      setCurrentIdea(storedIdea);
-      setConversationSummary(storedIdea);
-      console.log("[EnterpriseHub] Using fallback idea:", storedIdea.substring(0, 100));
+    if (canonicalIdea) {
+      const cleanedIdea = cleanIdeaText(canonicalIdea);
+      setCurrentIdea(cleanedIdea);
+      setConversationSummary(cleanedIdea);
+      console.log("[EnterpriseHub] Using canonical idea:", cleanedIdea.substring(0, 100));
       
       if (currentSession) {
         setSessionName(currentSession.name || "Untitled Session");
       }
     } else if (currentSession?.data) {
-      // No stored idea, try to get from session
+      // No canonical idea, try to get from session as fallback
       const { chatHistory, currentIdea: sessionIdea } = currentSession.data;
       
       if (sessionIdea || (chatHistory && chatHistory.length > 0)) {
