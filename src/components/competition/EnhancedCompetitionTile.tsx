@@ -71,12 +71,53 @@ export function EnhancedCompetitionTile({ idea, initialData, onRefresh }: Enhanc
   const MAX_RETRIES = 5;
   const processedInitialOnceRef = React.useRef(false);
   
-  // Get the actual idea to use
-  const currentIdea = idea || 
-    localStorage.getItem('dashboardIdea') || 
-    localStorage.getItem('currentIdea') || 
-    localStorage.getItem('userIdea') || 
-    '';
+  // Get the actual idea to use (prefer AI-generated appIdea)
+  const getValidIdea = (): string => {
+    // Helper to parse appIdea JSON
+    const parseAppIdea = (): string | null => {
+      try {
+        const appIdea = localStorage.getItem('appIdea');
+        if (appIdea) {
+          const parsed = JSON.parse(appIdea);
+          return parsed.summary || parsed.idea || null;
+        }
+      } catch (e) {
+        const raw = localStorage.getItem('appIdea');
+        if (raw && raw.length > 30) return raw;
+      }
+      return null;
+    };
+
+    const ideaSources = [
+      idea,
+      parseAppIdea(),
+      localStorage.getItem('dashboardIdea'),
+      localStorage.getItem('currentIdea'),
+      localStorage.getItem('userIdea'),
+    ];
+
+    for (const candidate of ideaSources) {
+      if (!candidate) continue;
+      const cleaned = candidate.trim();
+      const isChatSuggestion =
+        cleaned.length < 30 ||
+        cleaned.startsWith('What') ||
+        cleaned.startsWith('How') ||
+        cleaned.startsWith('Why') ||
+        cleaned.includes('would you') ||
+        cleaned.includes('could you') ||
+        cleaned.includes('?');
+      if (!isChatSuggestion) {
+        console.log('[Competition] Using valid idea:', cleaned.substring(0, 100));
+        return cleaned;
+      }
+    }
+
+    console.warn('[Competition] No valid startup idea found');
+    return '';
+  };
+  
+  const currentIdea = getValidIdea();
     
   // Process initial data when it arrives (only once)
   React.useEffect(() => {
