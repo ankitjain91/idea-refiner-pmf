@@ -26,10 +26,10 @@ export default function Dashboard() {
               <BarChart3 className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient">
+              <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
                 Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}!
               </h1>
-              <p className="text-muted-foreground text-lg">Here's an overview of your SmoothBrains journey</p>
+              <p className="text-muted-foreground text-sm">Here's an overview of your SmoothBrains journey</p>
             </div>
           </div>
         </div>
