@@ -32,36 +32,51 @@ export default function IdeasLeaderboard() {
   const loadIdeas = async () => {
     setLoading(true);
     try {
-      // Fetch public ideas with pmf_score > 0, join with profiles for owner info
-      const { data, error } = await supabase
+      // Fetch public ideas with pmf_score > 0
+      const { data: ideasData, error: ideasError } = await supabase
         .from('ideas')
-        .select(`
-          id,
-          original_idea,
-          refined_idea,
-          pmf_score,
-          category,
-          created_at,
-          user_id,
-          profiles!inner(display_name, full_name)
-        `)
+        .select('id, original_idea, refined_idea, pmf_score, category, created_at, user_id')
         .eq('is_public', true)
         .gt('pmf_score', 0)
         .order('pmf_score', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (ideasError) throw ideasError;
 
-      // Transform data
-      const ideas: IdeaWithOwner[] = (data || []).map((item: any) => ({
-        id: item.id,
-        original_idea: item.original_idea,
-        refined_idea: item.refined_idea,
-        pmf_score: item.pmf_score,
-        category: item.category || 'Uncategorized',
-        created_at: item.created_at,
-        owner_name: item.profiles?.display_name || item.profiles?.full_name || 'Anonymous',
-      }));
+      if (!ideasData || ideasData.length === 0) {
+        setCategories([]);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(ideasData.map(idea => idea.user_id))];
+
+      // Fetch profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, full_name')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id to profile
+      const profilesMap = new Map(
+        (profilesData || []).map(profile => [profile.user_id, profile])
+      );
+
+      // Transform and merge data
+      const ideas: IdeaWithOwner[] = ideasData.map((item) => {
+        const profile = profilesMap.get(item.user_id);
+        return {
+          id: item.id,
+          original_idea: item.original_idea,
+          refined_idea: item.refined_idea,
+          pmf_score: item.pmf_score,
+          category: item.category || 'Uncategorized',
+          created_at: item.created_at,
+          owner_name: profile?.display_name || profile?.full_name || 'Anonymous',
+        };
+      });
 
       // Group by category
       const grouped = ideas.reduce((acc, idea) => {
