@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, User, Clock, Trash2, Edit2, Copy, Sparkles, Shuffle, Info, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface SessionPickerProps {
   open: boolean;
@@ -30,6 +31,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
     renameSession,
     duplicateSession
   } = useSession();
+  const { toast } = useToast();
   
   const [newSessionName, setNewSessionName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -77,9 +79,24 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({ open, onSessionSel
   const handleLoadSession = async (sessionId: string) => {
     try {
       await loadSession(sessionId);
+      
+      // Get the loaded session details
+      const loadedSession = sessions.find(s => s.id === sessionId);
+      const messageCount = loadedSession?.data?.chatHistory?.length || 0;
+      
+      toast({
+        title: "Session Loaded",
+        description: `"${loadedSession?.name || 'Session'}" restored with ${messageCount} message${messageCount !== 1 ? 's' : ''}`,
+      });
+      
       onSessionSelected();
     } catch (error) {
       console.error('Error loading session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load session. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
