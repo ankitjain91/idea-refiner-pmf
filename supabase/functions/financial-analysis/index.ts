@@ -37,7 +37,7 @@ interface FinancialAnalysis {\n  marketSize: {\n    TAM: { value: number; label:
     const userMessage = `Analyze financials for: "${idea}". Business model: ${businessModel || 'SaaS'}. Target market: ${targetMarket || 'B2B'}. Ensure numeric values are realistic. If uncertain, estimate conservatively.`;
 
     const body = {
-      model: 'mixtral-8x7b-32768',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: promptSystem },
         { role: 'user', content: userMessage }
