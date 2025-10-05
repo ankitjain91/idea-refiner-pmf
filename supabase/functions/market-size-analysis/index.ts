@@ -185,22 +185,22 @@ serve(async (req) => {
                   "market_size": {
                     "summary": "One paragraph executive summary with TAM, SAM, SOM and why it matters for the idea",
                     "metrics": {
-                      "tam": "$5.1B",
-                      "sam": "$2.2B", 
-                      "som": "$480M",
-                      "growth_rate_cagr": "18%",
+                      "tam": "Use format like $X.XB or $XXXM based on actual analysis",
+                      "sam": "30-45% of TAM", 
+                      "som": "5-15% of SAM",
+                      "growth_rate_cagr": "XX%",
                       "regional_split": {
-                        "NA": "$1.6B",
-                        "EMEA": "$1.3B",
-                        "APAC": "$1.7B",
-                        "LATAM": "$0.5B"
+                        "NA": "Based on data",
+                        "EMEA": "Based on data",
+                        "APAC": "Based on data",
+                        "LATAM": "Based on data"
                       },
                       "segment_split": {
-                        "Enterprise": "$3.2B",
-                        "SMB": "$1.9B"
+                        "Enterprise": "Based on data",
+                        "SMB": "Based on data"
                       },
-                      "drivers": ["Cloud adoption", "Cost efficiency", "API integrations"],
-                      "constraints": ["Regulatory hurdles", "Integration complexity", "Competition"]
+                      "drivers": ["List key market drivers from data"],
+                      "constraints": ["List key market constraints from data"]
                     },
                     "charts": [
                       {
@@ -230,14 +230,16 @@ serve(async (req) => {
                   }
                 }
                 
-                Rules:
-                - TAM = Total Addressable Market (100% market capture)
-                - SAM = 30-45% of TAM (serviceable portion)
-                - SOM = 5-15% of SAM (realistic capture in 3-5 years)
+                CRITICAL Rules:
+                - NEVER use placeholder or example values
+                - Calculate TAM based on the actual market data points provided
+                - SAM = 30-45% of TAM (serviceable portion based on idea scope)
+                - SOM = 5-15% of SAM (realistic capture in 3-5 years based on competition)
                 - Provide derivation logic in summary
                 - Regional splits must sum to TAM
-                - Be conservative but realistic
-                - Include specific drivers and constraints relevant to the idea`
+                - Be conservative but realistic based on PROVIDED DATA
+                - Include specific drivers and constraints relevant to the idea
+                - If data is insufficient, use lower confidence but still provide estimates`
             },
             {
               role: 'user',
@@ -246,7 +248,8 @@ serve(async (req) => {
                 Market Data Points: ${JSON.stringify(marketDataPoints.slice(0, 10))}
                 Funding Activity: ${JSON.stringify(fundingIndex)}
                 
-                Provide transparent TAM/SAM/SOM with clear derivations and regional breakdowns.`
+                IMPORTANT: Calculate TAM, SAM, SOM based on the actual data provided above. Do NOT use placeholder values.
+                Provide transparent TAM/SAM/SOM with clear derivations and regional breakdowns specific to this idea.`
             }
           ],
           temperature: 0.3,
