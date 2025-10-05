@@ -3,6 +3,8 @@
 // The above directives suppress local TS errors in non-Deno tooling; Supabase deploy uses Deno runtime types.
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { cachedLLMCall } from '../_shared/llm-cache.ts';
 
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 
@@ -24,6 +26,12 @@ serve(async (req: Request) => {
     const requestId = crypto.randomUUID();
     const start = Date.now();
     const { idea, businessModel, targetMarket } = await req.json();
+    
+    // Initialize Supabase client for caching
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     if (!idea || typeof idea !== 'string') {
       return new Response(JSON.stringify({ error: 'Idea is required' }), { status: 400, headers: corsHeaders });
@@ -46,29 +54,36 @@ interface FinancialAnalysis {\n  marketSize: {\n    TAM: { value: number; label:
       temperature: 0.4
     };
 
-    const aiResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-        'x-request-id': requestId,
+    // Use cached LLM call with 24hr TTL
+    const financialData = await cachedLLMCall(
+      supabase,
+      {
+        model: body.model,
+        prompt: `${promptSystem}\n\n${userMessage}`,
+        parameters: { max_tokens: body.max_tokens, temperature: body.temperature },
+        ttlMinutes: 1440 // 24 hours
       },
-      body: JSON.stringify(body)
-    });
+      async () => {
+        console.log(`[financial-analysis] (${requestId}) Making fresh Groq API call`);
+        const aiResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+            'x-request-id': requestId,
+          },
+          body: JSON.stringify(body)
+        });
 
-    if (!aiResp.ok) {
-      const text = await aiResp.text();
-      console.error(`[financial-analysis] (${requestId}) Upstream non-200:`, aiResp.status, text.slice(0,500));
-      throw new Error(`Upstream AI error ${aiResp.status}`);
-    }
+        if (!aiResp.ok) {
+          const text = await aiResp.text();
+          console.error(`[financial-analysis] (${requestId}) Upstream non-200:`, aiResp.status, text.slice(0,500));
+          throw new Error(`Upstream AI error ${aiResp.status}`);
+        }
 
-    let financialData: any;
-    try {
-      financialData = await aiResp.json();
-    } catch (e) {
-      console.error(`[financial-analysis] (${requestId}) JSON parse fail of upstream response`);
-      throw new Error('Invalid upstream JSON');
-    }
+        return await aiResp.json();
+      }
+    );
 
     if (financialData.error) {
       console.error(`[financial-analysis] (${requestId}) Upstream returned error object:`, financialData.error);

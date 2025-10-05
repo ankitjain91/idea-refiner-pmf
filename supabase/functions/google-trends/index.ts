@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requestQueue } from "../_shared/request-queue.ts";
 
 const corsHeaders = {
@@ -20,6 +21,30 @@ serve(async (req) => {
     }
 
     console.log('[google-trends] Processing idea:', idea);
+    
+    // Check database cache first (24 hour TTL)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    const cacheKey = `google_trends_${idea.substring(0, 100)}`;
+    const { data: cached } = await supabase
+      .from('api_cache')
+      .select('data')
+      .eq('cache_key', cacheKey)
+      .gte('expires_at', new Date().toISOString())
+      .single();
+      
+    if (cached?.data) {
+      console.log('[google-trends] Cache HIT');
+      return new Response(
+        JSON.stringify(cached.data),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('[google-trends] Cache MISS - fetching fresh data');
 
     // Extract keywords from idea
     const keywords = extractKeywords(idea);
@@ -44,6 +69,18 @@ serve(async (req) => {
 
     // Process and enhance the data
     const processedData = processTrendsData(trendsData || {}, keywords, idea);
+
+    // Cache the result for 24 hours
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    
+    await supabase.from('api_cache').upsert({
+      cache_key: cacheKey,
+      data: processedData,
+      expires_at: expiresAt.toISOString()
+    });
+    
+    console.log('[google-trends] Cached result for 24h');
 
     return new Response(
       JSON.stringify(processedData),
