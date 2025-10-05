@@ -25,9 +25,9 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY not configured');
     }
 
-    // Filter and format messages for Groq
+    // Filter and format messages for Groq - only actual conversation, no suggestions
     const conversationText = messages
-      .filter((m: any) => !m.isTyping && m.content)
+      .filter((m: any) => !m.isTyping && m.content && (m.type === 'user' || m.type === 'assistant'))
       .map((m: any) => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n\n');
 
