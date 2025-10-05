@@ -123,13 +123,15 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Prefer session-scoped chat history when available
       const sid = localStorage.getItem('currentSessionId');
       const sessionMessagesKey = sid ? `session_${sid}_messages` : null;
-      const enhancedMessages = (sessionMessagesKey && localStorage.getItem(sessionMessagesKey)) || localStorage.getItem('enhancedIdeaChatMessages');
       let chatHistory = [] as any[];
       
-      if (enhancedMessages) {
-        chatHistory = JSON.parse(enhancedMessages);
+      if (sessionMessagesKey) {
+        const enhancedMessages = localStorage.getItem(sessionMessagesKey);
+        if (enhancedMessages) {
+          chatHistory = JSON.parse(enhancedMessages);
+        }
       } else {
-        // Fallback to legacy chatHistory
+        // Fallback to legacy chatHistory (no active session)
         chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
       }
       
@@ -520,9 +522,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Now restore session data to localStorage
       // Store in both locations for compatibility
       const restoredChat = Array.isArray(session.data.chatHistory) ? session.data.chatHistory : [];
-      localStorage.setItem('chatHistory', JSON.stringify(restoredChat));
-      localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(restoredChat));
-      // Also store in a session-scoped key to avoid cross-session collisions
+      // Store in a session-scoped key to avoid cross-session collisions
       localStorage.setItem(`session_${sessionId}_messages`, JSON.stringify(restoredChat));
       
       // Only restore idea and analysis data if they actually exist in the session

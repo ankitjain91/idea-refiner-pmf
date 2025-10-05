@@ -83,7 +83,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   // Restore state from localStorage for authenticated sessions
   const [currentIdea, setCurrentIdea] = useState<string>(() => {
     if (!anonymous) {
-      return localStorage.getItem('currentIdea') || '';
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) {
+        return localStorage.getItem(`session_${sid}_idea`) || '';
+      }
+      return '';
     }
     return '';
   });
@@ -91,13 +95,14 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const [messages, setMessages] = useState<Message[]>(() => {
     if (!anonymous) {
       const sid = localStorage.getItem('currentSessionId');
-      const sessionKey = sid ? `session_${sid}_messages` : 'enhancedIdeaChatMessages';
-      const stored = localStorage.getItem(sessionKey) || localStorage.getItem('enhancedIdeaChatMessages');
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch (e) {
-          console.error('Error parsing stored messages:', e);
+      if (sid) {
+        const stored = localStorage.getItem(`session_${sid}_messages`);
+        if (stored) {
+          try {
+            return JSON.parse(stored);
+          } catch (e) {
+            console.error('Error parsing stored messages:', e);
+          }
         }
       }
     }
@@ -201,8 +206,8 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   useEffect(() => {
     const handleSessionLoad = () => {
       const sid = localStorage.getItem('currentSessionId');
-      const sessionKey = sid ? `session_${sid}_messages` : 'enhancedIdeaChatMessages';
-      const stored = localStorage.getItem(sessionKey) || localStorage.getItem('enhancedIdeaChatMessages');
+      if (!sid) return;
+      const stored = localStorage.getItem(`session_${sid}_messages`);
       if (stored) {
         try {
           const parsedMessages = JSON.parse(stored);
@@ -269,8 +274,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     if (currentSession?.name && messages.length === 0) {
       // For authenticated users, check if there are stored messages to restore
       if (!anonymous) {
-        const storedMessages = localStorage.getItem('enhancedIdeaChatMessages');
-        const storedIdea = localStorage.getItem('currentIdea');
+        const sid = localStorage.getItem('currentSessionId');
+        const storedMessages = sid ? localStorage.getItem(`session_${sid}_messages`) : null;
+        const storedIdea = sid ? localStorage.getItem(`session_${sid}_idea`) : null;
         const storedWrinkles = localStorage.getItem('wrinklePoints');
         const storedPMFAnalysis = localStorage.getItem('pmfAnalysisData');
         
@@ -521,11 +527,11 @@ What's your startup idea?`,
   useEffect(() => {
     if (!anonymous && messages.length > 0) {
       const sid = localStorage.getItem('currentSessionId');
-      const sessionKey = sid ? `session_${sid}_messages` : 'enhancedIdeaChatMessages';
-      try {
-        localStorage.setItem(sessionKey, JSON.stringify(messages));
-        localStorage.setItem('enhancedIdeaChatMessages', JSON.stringify(messages)); // keep generic key in sync for DB saves
-      } catch {}
+      if (sid) {
+        try {
+          localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
+        } catch {}
+      }
       
       // Save to database immediately after each message
       const saveTimeout = setTimeout(async () => {
@@ -547,6 +553,10 @@ What's your startup idea?`,
       console.log('Persisting current idea:', currentIdea);
       localStorage.setItem('currentIdea', currentIdea);
       localStorage.setItem(LS_KEYS.userIdea, currentIdea);
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) {
+        localStorage.setItem(`session_${sid}_idea`, currentIdea);
+      }
       localStorage.setItem('ideaText', currentIdea); // Also save as ideaText
       // Trigger session save
       window.dispatchEvent(new Event('chat:activity'));

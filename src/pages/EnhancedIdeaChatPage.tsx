@@ -52,7 +52,8 @@ const EnhancedIdeaChatPage = () => {
 
   const handleAnalysisReady = (idea: string, metadata: any) => {
     // Get full conversation history for dashboard context
-    const storedMessages = localStorage.getItem('enhancedIdeaChatMessages');
+    const sid = localStorage.getItem('currentSessionId');
+    const storedMessages = sid ? localStorage.getItem(`session_${sid}_messages`) : null;
     let conversationSummary = idea;
     
     if (storedMessages) {

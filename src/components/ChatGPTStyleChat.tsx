@@ -466,7 +466,8 @@ export default function ChatGPTStyleChat({
   // Listen for external session load trigger (from sidebar navigation) to rehydrate chat & focus input
   useEffect(() => {
     const handleSessionLoaded = () => {
-      const raw = localStorage.getItem('chatHistory');
+      const sid = localStorage.getItem('currentSessionId');
+      const raw = sid ? localStorage.getItem(`session_${sid}_messages`) : null;
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
@@ -483,8 +484,8 @@ export default function ChatGPTStyleChat({
           chatRestoredRef.current = true;
         } catch {}
       }
-      const idea = localStorage.getItem('userIdea');
-      if (idea) setCurrentIdea(prev => prev || idea);
+      const sidIdea = sid ? localStorage.getItem(`session_${sid}_idea`) : null;
+      if (sidIdea) setCurrentIdea(prev => prev || sidIdea);
       requestAnimationFrame(() => inputRef.current?.focus());
     };
     window.addEventListener('session:loaded', handleSessionLoaded);
@@ -503,7 +504,10 @@ export default function ChatGPTStyleChat({
         metadata: m.metadata,
         pmfAnalysis: m.pmfAnalysis,
       }));
-      localStorage.setItem('chatHistory', JSON.stringify(serializable));
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) {
+        localStorage.setItem(`session_${sid}_messages`, JSON.stringify(serializable));
+      }
     }
   }, [messages]);
 
@@ -527,7 +531,8 @@ export default function ChatGPTStyleChat({
         chatRestoredRef.current = true;
       } catch {}
     } else if (!alreadyMeaningful && !chatRestoredRef.current) {
-      const raw = localStorage.getItem('chatHistory');
+      const sid = localStorage.getItem('currentSessionId');
+      const raw = sid ? localStorage.getItem(`session_${sid}_messages`) : null;
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
@@ -573,7 +578,8 @@ export default function ChatGPTStyleChat({
   useEffect(() => {
     if (initializedRef.current) return;
     // If no existing chat history, create a brainstorming intro message
-    const restored = localStorage.getItem('chatHistory');
+    const sid = localStorage.getItem('currentSessionId');
+    const restored = sid ? localStorage.getItem(`session_${sid}_messages`) : null;
     if (!restored && messages.length === 0) {
       const welcomeMessage: Message = {
         id: `msg-welcome-${Date.now()}`,
@@ -692,6 +698,7 @@ export default function ChatGPTStyleChat({
       if (sessionId) {
         keysToRemove.push(
           `session_${sessionId}_idea`,
+          `session_${sessionId}_messages`,
           `session_${sessionId}_metadata`,
           `session_${sessionId}_conversation`,
           `session_${sessionId}_answers`,
@@ -733,11 +740,9 @@ export default function ChatGPTStyleChat({
       // Also clear any keys with dynamic prefixes
       const allKeys = Object.keys(localStorage);
       allKeys.forEach(key => {
-        if (key.includes('session_') || 
-            key.includes('analysis_') || 
-            key.includes('pmf') ||
-            key.includes('idea') ||
-            key.includes('conversation')) {
+        const isCurrentSessionScoped = sessionId ? key.startsWith(`session_${sessionId}_`) : false;
+        const matchesGlobalPattern = key.includes('analysis_') || key.includes('pmf') || key.includes('idea') || key.includes('conversation');
+        if (isCurrentSessionScoped || (!key.startsWith('session_') && matchesGlobalPattern)) {
           try {
             localStorage.removeItem(key);
           } catch {}
