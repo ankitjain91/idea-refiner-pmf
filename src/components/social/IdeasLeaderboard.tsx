@@ -37,8 +37,7 @@ export default function IdeasLeaderboard() {
         .from('ideas')
         .select('id, original_idea, refined_idea, pmf_score, category, created_at, user_id')
         .eq('is_public', true)
-        .gt('pmf_score', 0)
-        .order('pmf_score', { ascending: false })
+        .order('pmf_score', { ascending: false, nullsFirst: false })
         .limit(100);
 
       if (ideasError) throw ideasError;
