@@ -366,7 +366,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                             exit={{ opacity: 0, y: -5 }}
                             className="absolute top-6 whitespace-nowrap"
                           >
-                            <span className="text-[11px] px-2 py-1 rounded-md bg-background/95 backdrop-blur-sm text-foreground shadow-lg border border-border/50 font-medium">
+                            <span className="text-[11px] px-2 py-1 rounded-md bg-slate-900/95 backdrop-blur-sm text-white shadow-lg border border-slate-700/50 font-medium">
                               {m.name}
                             </span>
                           </motion.div>
@@ -378,16 +378,16 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                         <motion.div
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="absolute top-12 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-xl border border-border/50 min-w-[120px]"
+                          className="absolute top-12 bg-slate-900/95 backdrop-blur-sm rounded-lg p-2 shadow-xl border border-slate-700/50 min-w-[120px]"
                         >
                           <div className="text-[10px] space-y-1">
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Growth:</span>
-                              <span className="font-semibold text-green-500">{region.cagr}%</span>
+                              <span className="text-slate-400">Growth:</span>
+                              <span className="font-semibold text-green-400">{region.cagr}%</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">SOM:</span>
-                              <span className="font-semibold">{formatCurrency(region.som)}</span>
+                              <span className="text-slate-400">SOM:</span>
+                              <span className="font-semibold text-white">{formatCurrency(region.som)}</span>
                             </div>
                           </div>
                         </motion.div>
