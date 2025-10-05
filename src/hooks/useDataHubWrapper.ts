@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+
 import { useFeatureFlags } from '@/contexts/FeatureFlagContext';
 import { useDataHub } from './useDataHub';
 import { useOptimizedDataHub } from './useOptimizedDataHub';
@@ -11,12 +11,15 @@ import { DataHubInput } from '@/lib/data-hub-orchestrator';
 export function useDataHubWrapper(input: DataHubInput) {
   const { flags } = useFeatureFlags();
 
-  // Freeze the choice on first render to keep hook order stable across renders
-  const useOptimizedRef = useRef<boolean | null>(null);
-  if (useOptimizedRef.current === null) {
-    useOptimizedRef.current = !!flags.useOptimizedDataLoading;
-  }
+  // Call both hooks unconditionally to keep hook order stable
+  // Gate the inactive one by passing an empty idea so it becomes a no-op
+  const optimizedResult = useOptimizedDataHub(
+    flags.useOptimizedDataLoading ? input : { ...input, idea: '' }
+  );
+  const standardResult = useDataHub(
+    flags.useOptimizedDataLoading ? { ...input, idea: '' } : input
+  );
 
-  // Call only one hook consistently for this component lifecycle
-  return useOptimizedRef.current ? useOptimizedDataHub(input) : useDataHub(input);
+  // Return based on the flag; both have been called so hook order never changes
+  return flags.useOptimizedDataLoading ? optimizedResult : standardResult;
 }
