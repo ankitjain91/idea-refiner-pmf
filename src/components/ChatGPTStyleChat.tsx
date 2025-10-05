@@ -702,16 +702,11 @@ export default function ChatGPTStyleChat({
         // Clear from database if authenticated
         if (user && currentSession && !currentSession.is_anonymous) {
           try {
-            // Update the session in database to clear idea-related data
+            // Update the session state in database to clear idea-related data
             const { error } = await supabase
-              .from('analysis_sessions')
+              .from('brainstorming_sessions')
               .update({
-                idea: '',
-                refinements: null,
-                metadata: null,
-                pmf_score: 0,
-                insights: null,
-                user_answers: null,
+                state: { currentIdea: '', pmfScore: 0 },
                 updated_at: new Date().toISOString()
               })
               .eq('id', sessionId)

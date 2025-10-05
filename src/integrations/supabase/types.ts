@@ -100,6 +100,7 @@ export type Database = {
           activity_log: Json
           created_at: string
           id: string
+          is_active: boolean | null
           last_accessed: string
           name: string
           state: Json
@@ -110,6 +111,7 @@ export type Database = {
           activity_log?: Json
           created_at?: string
           id?: string
+          is_active?: boolean | null
           last_accessed?: string
           name: string
           state?: Json
@@ -120,6 +122,7 @@ export type Database = {
           activity_log?: Json
           created_at?: string
           id?: string
+          is_active?: boolean | null
           last_accessed?: string
           name?: string
           state?: Json

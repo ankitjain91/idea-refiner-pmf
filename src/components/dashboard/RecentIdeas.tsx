@@ -10,9 +10,8 @@ import { formatDistanceToNow } from "date-fns";
 
 interface SessionItem {
   id: string;
-  session_name: string;
-  idea: string;
-  pmf_score: number;
+  name: string;
+  state: any;
   updated_at: string;
   last_accessed: string | null;
 }
@@ -28,8 +27,8 @@ export function RecentIdeas() {
     
     const fetchSessions = async () => {
       const { data, error } = await supabase
-        .from('analysis_sessions')
-        .select('id, session_name, idea, pmf_score, updated_at, last_accessed')
+        .from('brainstorming_sessions')
+        .select('id, name, state, updated_at, last_accessed')
         .eq('user_id', user.id)
         .eq('is_active', true)
         .order('last_accessed', { ascending: false, nullsFirst: false })
@@ -88,9 +87,11 @@ export function RecentIdeas() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <MessageSquare className="h-4 w-4 text-primary shrink-0" />
-                    <h4 className="font-medium text-sm truncate">{session.session_name}</h4>
+                    <h4 className="font-medium text-sm truncate">{session.name}</h4>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{session.idea}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                    {session.state?.currentIdea || 'No idea yet'}
+                  </p>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
@@ -99,10 +100,12 @@ export function RecentIdeas() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={session.pmf_score >= 70 ? 'default' : 'secondary'} className="gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    {session.pmf_score}
-                  </Badge>
+                  {session.state?.pmfScore > 0 && (
+                    <Badge variant={session.state.pmfScore >= 70 ? 'default' : 'secondary'} className="gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      {session.state.pmfScore}
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}

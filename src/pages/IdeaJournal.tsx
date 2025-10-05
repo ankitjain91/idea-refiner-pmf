@@ -27,9 +27,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface AnalysisSession {
   id: string;
-  session_name: string;
-  idea: string;
-  pmf_score: number;
+  name: string;
+  state: any;
   updated_at: string;
   last_accessed: string | null;
   is_active: boolean;
@@ -53,7 +52,7 @@ const IdeaJournal = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('analysis_sessions')
+        .from('brainstorming_sessions')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
@@ -81,12 +80,12 @@ const IdeaJournal = () => {
     setIsCreating(true);
     try {
       const { data, error } = await supabase
-        .from('analysis_sessions')
+        .from('brainstorming_sessions')
         .insert({
           user_id: user.id,
-          session_name: newSessionName.trim(),
-          idea: '',
-          pmf_score: 0,
+          name: newSessionName.trim(),
+          state: { currentIdea: '', pmfScore: 0 },
+          activity_log: [],
           is_active: true
         })
         .select()
@@ -120,7 +119,7 @@ const IdeaJournal = () => {
     
     try {
       const { error } = await supabase
-        .from('analysis_sessions')
+        .from('brainstorming_sessions')
         .update({ is_active: false })
         .eq('id', sessionId);
 
@@ -136,8 +135,8 @@ const IdeaJournal = () => {
     
     try {
       const { error } = await supabase
-        .from('analysis_sessions')
-        .update({ session_name: editName.trim() })
+        .from('brainstorming_sessions')
+        .update({ name: editName.trim() })
         .eq('id', sessionId);
 
       if (error) throw error;
@@ -164,8 +163,8 @@ const IdeaJournal = () => {
   };
 
   const filteredSessions = sessions.filter(session =>
-    session.session_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    session.idea.toLowerCase().includes(searchQuery.toLowerCase())
+    session.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (session.state?.currentIdea || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (!user) {
@@ -354,11 +353,11 @@ const IdeaJournal = () => {
                             <>
                               <div className="flex items-center gap-2 mb-1">
                                 <MessageSquare className="h-4 w-4 text-primary" />
-                                <h3 className="font-medium truncate">{session.session_name}</h3>
+                                <h3 className="font-medium truncate">{session.name}</h3>
                               </div>
-                              {session.idea && (
+                              {session.state?.currentIdea && (
                                 <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                                  {session.idea}
+                                  {session.state.currentIdea}
                                 </p>
                               )}
                               <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
@@ -366,10 +365,10 @@ const IdeaJournal = () => {
                                   <Calendar className="h-3 w-3" />
                                   {formatDistanceToNow(new Date(session.last_accessed || session.updated_at), { addSuffix: true })}
                                 </span>
-                                {session.pmf_score > 0 && (
-                                  <Badge variant={session.pmf_score >= 70 ? 'default' : 'secondary'} className="text-xs gap-1">
+                                {session.state?.pmfScore > 0 && (
+                                  <Badge variant={session.state.pmfScore >= 70 ? 'default' : 'secondary'} className="text-xs gap-1">
                                     <TrendingUp className="h-3 w-3" />
-                                    PMF: {session.pmf_score}
+                                    PMF: {session.state.pmfScore}
                                   </Badge>
                                 )}
                               </div>
@@ -390,7 +389,7 @@ const IdeaJournal = () => {
                           >
                             <MessageSquare className="h-4 w-4" />
                           </Button>
-                          {session.pmf_score > 0 && (
+                          {session.state?.pmfScore > 0 && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -409,7 +408,7 @@ const IdeaJournal = () => {
                             variant="ghost"
                             onClick={(e) => {
                               e.stopPropagation();
-                              startEditing(session.id, session.session_name);
+                              startEditing(session.id, session.name);
                             }}
                             title="Rename session"
                           >
