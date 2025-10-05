@@ -122,6 +122,20 @@ export function SentimentTile({ className }: SentimentTileProps) {
     fetchSentimentData();
   }, [currentIdea]);
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[SentimentTile] idea:changed event received, refetching data');
+      fetchSentimentData();
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, []);
+
   const fetchSentimentData = async () => {
     if (!currentIdea) {
       const synthetic = generateSyntheticData('Your startup idea');

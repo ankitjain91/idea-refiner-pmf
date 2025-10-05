@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -85,6 +85,22 @@ export function NewsTrendsTile({ data, loading, className, onRefresh }: NewsTren
   };
 
   const GEO_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[NewsTrendsTile] idea:changed event received');
+      if (onRefresh) {
+        onRefresh();
+      }
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, [onRefresh]);
 
   // Helper functions - moved before useMemo
   const generateMockTimeline = () => {

@@ -1566,6 +1566,20 @@ const ChatMessageItem = useMemo(() => {
   return React.memo(Item, (prev, next) => prev.message === next.message);
 }, []);
   const resetChatHandler = useCallback(async () => {
+    console.log('[EnhancedIdeaChat] Resetting chat - clearing idea from everywhere');
+    
+    // Import useIdeaContext at component level
+    const { useIdeaContext } = await import('@/hooks/useIdeaContext');
+    // Get functions from context
+    const ideaContext = useIdeaContext();
+    const currentIdeaText = ideaContext.getIdea();
+    
+    // Clear idea from database and localStorage using useIdeaContext
+    if (currentIdeaText) {
+      console.log('[EnhancedIdeaChat] Clearing idea:', currentIdeaText.substring(0, 100));
+      await ideaContext.clearIdea();
+    }
+    
     // Clear ALL persisted state - both generic and session-specific
     const keysToRemove = [
       // Chat and idea related

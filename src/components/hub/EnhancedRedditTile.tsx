@@ -73,6 +73,22 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
     }
   };
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[EnhancedRedditTile] idea:changed event received');
+      if (onRefresh) {
+        handleRefresh();
+      }
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, [onRefresh]);
+
   if (loading) {
     return (
       <Card className={cn("h-full", className)}>

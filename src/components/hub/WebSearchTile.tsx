@@ -142,6 +142,20 @@ export function WebSearchTile({ idea, className }: WebSearchTileProps) {
     return () => clearInterval(interval);
   }, [idea]);
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[WebSearchTile] idea:changed event received, refetching data');
+      fetchWebSearchData();
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, []);
+
   const getConfidenceBadgeVariant = (confidence: string) => {
     switch (confidence) {
       case 'High': return 'default';

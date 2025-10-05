@@ -73,6 +73,20 @@ export function SimpleGoogleTrendsTile({ className }: SimpleGoogleTrendsTileProp
     }
   }, [currentIdea]);
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[SimpleGoogleTrendsTile] idea:changed event received, refetching data');
+      fetchGoogleTrendsData();
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, []);
+
   const getTrendIcon = (trend?: string | number) => {
     if (typeof trend === 'number') {
       if (trend > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;

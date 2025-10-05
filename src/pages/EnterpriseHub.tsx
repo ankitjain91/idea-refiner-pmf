@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";

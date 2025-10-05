@@ -418,6 +418,21 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
     }
   }, [isCollapsed, currentIdea]);
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[OptimizedCompetitionTile] idea:changed event received, refetching data');
+      dataFetchedRef.current = false;
+      fetchCompetitionData(true);
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, []);
+
   // Get fallback data
   const getFallbackData = (): CompetitionData => ({
     competitors: [

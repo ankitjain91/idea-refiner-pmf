@@ -142,6 +142,20 @@ export function SimpleNewsTile({ className }: SimpleNewsTileProps) {
     }
   }, [currentIdea]);
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[SimpleNewsTile] idea:changed event received, refetching data');
+      fetchNewsData();
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, []);
+
   const getSentimentColor = (sentiment: string | number) => {
     if (typeof sentiment === 'string' && sentiment.includes('+')) {
       return 'text-green-500';

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { saveIdeaToLeaderboard, removeIdeaFromLeaderboard } from '@/utils/saveIdeaToLeaderboard';
 
 const IDEA_KEY = 'appIdea';
 
@@ -11,16 +12,23 @@ interface IdeaData {
 export const useIdeaContext = () => {
   const [hasIdea, setHasIdea] = useState(false);
   const [currentIdea, setCurrentIdea] = useState<string>('');
+  const [version, setVersion] = useState(0); // Force re-render counter
 
   useEffect(() => {
     checkIdea();
     
-    window.addEventListener('storage', checkIdea);
-    window.addEventListener('idea:changed', checkIdea);
+    const handleIdeaChange = () => {
+      console.log('[useIdeaContext] idea:changed event received');
+      setVersion(v => v + 1); // Increment to force re-render
+      checkIdea();
+    };
+    
+    window.addEventListener('storage', handleIdeaChange);
+    window.addEventListener('idea:changed', handleIdeaChange);
     
     return () => {
-      window.removeEventListener('storage', checkIdea);
-      window.removeEventListener('idea:changed', checkIdea);
+      window.removeEventListener('storage', handleIdeaChange);
+      window.removeEventListener('idea:changed', handleIdeaChange);
     };
   }, []);
 
@@ -65,6 +73,8 @@ export const useIdeaContext = () => {
   };
 
   const generateIdea = async (conversationHistory: any[]): Promise<string> => {
+    console.log('[useIdeaContext] Generating idea from conversation');
+    
     // Call Groq edge function to generate smart summary
     const { data, error } = await supabase.functions.invoke('groq-conversation-summary', {
       body: { messages: conversationHistory }
@@ -76,18 +86,38 @@ export const useIdeaContext = () => {
     }
 
     const summary = data.summary;
+    console.log('[useIdeaContext] Idea summary generated:', summary.substring(0, 100));
     
     const ideaData: IdeaData = {
       summary,
       generatedAt: Date.now()
     };
     
+    // Save to localStorage
     localStorage.setItem(IDEA_KEY, JSON.stringify(ideaData));
+    console.log('[useIdeaContext] Idea saved to localStorage');
+    
+    // Save to database
+    try {
+      const pmfScore = parseInt(localStorage.getItem('pmfScore') || '0');
+      const result = await saveIdeaToLeaderboard({
+        idea: summary,
+        refinedIdea: summary,
+        pmfScore: pmfScore,
+        category: 'Uncategorized',
+        isPublic: true
+      });
+      console.log('[useIdeaContext] Idea saved to database:', result);
+    } catch (dbError) {
+      console.error('[useIdeaContext] Error saving to database:', dbError);
+      // Don't fail the whole operation if DB save fails
+    }
     
     // Cleanup old keys
     cleanupOldKeys();
     
     // Dispatch event
+    console.log('[useIdeaContext] Dispatching idea:changed event');
     window.dispatchEvent(new Event('idea:changed'));
     
     checkIdea();
@@ -105,9 +135,29 @@ export const useIdeaContext = () => {
     checkIdea();
   };
 
-  const clearIdea = () => {
+  const clearIdea = async () => {
+    console.log('[useIdeaContext] Clearing idea from system');
+    
+    // Get current idea before clearing
+    const currentIdeaText = getIdea();
+    
+    // Remove from database if exists
+    if (currentIdeaText && currentIdeaText.length > 0) {
+      try {
+        console.log('[useIdeaContext] Removing idea from database:', currentIdeaText.substring(0, 100));
+        await removeIdeaFromLeaderboard(currentIdeaText);
+        console.log('[useIdeaContext] Idea removed from database');
+      } catch (dbError) {
+        console.error('[useIdeaContext] Error removing from database:', dbError);
+        // Don't fail the whole operation if DB remove fails
+      }
+    }
+    
+    // Clear localStorage
     localStorage.removeItem(IDEA_KEY);
     cleanupOldKeys();
+    
+    console.log('[useIdeaContext] Dispatching idea:changed event after clear');
     window.dispatchEvent(new Event('idea:changed'));
     checkIdea();
   };
@@ -132,6 +182,7 @@ export const useIdeaContext = () => {
   return {
     hasIdea,
     currentIdea,
+    version, // Export version for components to detect changes
     getIdea,
     generateIdea,
     updateIdea,

@@ -56,6 +56,22 @@ export function TwitterBuzzTile({ data, loading = false, onRefresh }: TwitterBuz
     }
   };
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[TwitterBuzzTile] idea:changed event received');
+      if (onRefresh) {
+        handleRefresh();
+      }
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, [onRefresh]);
+
   // Check if we have error data
   const error = data?.metrics?.total_tweets === 0 ? 'No Twitter data available' : null;
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,22 @@ export function GoogleTrendsTile({ data, loading, className, onRefresh }: Google
       setTimeout(() => setIsRefreshing(false), 500);
     }
   };
+
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[GoogleTrendsTile] idea:changed event received');
+      if (onRefresh) {
+        handleRefresh();
+      }
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, [onRefresh]);
 
   if (loading) {
     return (

@@ -65,6 +65,22 @@ export function YouTubeAnalyticsTile({ data, loading = false, onRefresh }: YouTu
     }
   };
 
+  // Listen for idea:changed event
+  useEffect(() => {
+    const handleIdeaChange = () => {
+      console.log('[YouTubeAnalyticsTile] idea:changed event received');
+      if (onRefresh) {
+        handleRefresh();
+      }
+    };
+    
+    window.addEventListener('idea:changed', handleIdeaChange);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChange);
+    };
+  }, [onRefresh]);
+
   const error = data?.summary?.error || data?.meta?.error;
 
   if (loading) {
