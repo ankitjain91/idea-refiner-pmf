@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 import {
   Heart, TrendingUp, TrendingDown, MessageSquare, 
   ThumbsUp, ThumbsDown, AlertCircle, Quote, Activity,
@@ -26,7 +27,6 @@ import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { toast } from '@/hooks/use-toast';
 
 interface SentimentTileProps {
-  idea: string;
   className?: string;
 }
 
@@ -115,7 +115,8 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))'
 ];
 
-export function SentimentTile({ idea, className }: SentimentTileProps) {
+export function SentimentTile({ className }: SentimentTileProps) {
+  const { currentIdea } = useIdeaContext();
   const [data, setData] = useState<SentimentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,13 +125,13 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
   const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
-    if (idea) {
+    if (currentIdea) {
       fetchSentimentData();
     }
-  }, [idea]);
+  }, [currentIdea]);
 
   const fetchSentimentData = async () => {
-    if (!idea) {
+    if (!currentIdea) {
       setError('No idea provided');
       setLoading(false);
       return;
@@ -141,10 +142,10 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
 
     try {
       // Prefetch related sentiment data
-      optimizedQueue.prefetchRelated('unified-sentiment', { idea, detailed: true });
+      optimizedQueue.prefetchRelated('unified-sentiment', { idea: currentIdea, detailed: true });
       
       const response = await optimizedQueue.invokeFunction('unified-sentiment', {
-        idea,
+        idea: currentIdea,
         detailed: true
       });
 
@@ -155,13 +156,13 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
         }
       } else {
         // Generate synthetic data for demonstration
-        setData(generateSyntheticData(idea));
+        setData(generateSyntheticData(currentIdea));
       }
     } catch (err) {
       console.error('Error fetching sentiment data:', err);
       setError('Failed to fetch sentiment data');
       // Use synthetic data as fallback
-      setData(generateSyntheticData(idea));
+      setData(generateSyntheticData(currentIdea));
     } finally {
       setLoading(false);
     }
@@ -748,7 +749,7 @@ export function SentimentTile({ idea, className }: SentimentTileProps) {
         onOpenChange={setShowAIChat}
         tileData={data as any}
         tileTitle="Market Sentiment"
-        idea={idea}
+        idea={currentIdea}
       />
     </Card>
   );

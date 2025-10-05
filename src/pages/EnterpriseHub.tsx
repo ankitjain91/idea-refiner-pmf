@@ -512,7 +512,7 @@ export default function EnterpriseHub() {
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
-                <SentimentTile idea={currentIdea} className="mb-6" />
+                <SentimentTile className="mb-6" />
                 <MainAnalysisGrid
                   tiles={{
                     news_analysis: tiles.news_analysis,

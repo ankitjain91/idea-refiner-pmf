@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 import { 
   Newspaper, 
   TrendingUp, 
@@ -54,11 +55,11 @@ interface NewsTrend {
 }
 
 interface SimpleNewsTileProps {
-  idea: string;
   className?: string;
 }
 
-export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
+export function SimpleNewsTile({ className }: SimpleNewsTileProps) {
+  const { currentIdea } = useIdeaContext();
   const [loading, setLoading] = useState(false);
   const [trends, setTrends] = useState<NewsTrend[]>([]);
   const [totalArticles, setTotalArticles] = useState(0);
@@ -68,7 +69,7 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
   const [showAIChat, setShowAIChat] = useState(false);
 
   const fetchNewsData = async () => {
-    if (!idea) {
+    if (!currentIdea) {
       setError('No idea configured');
       return;
     }
@@ -77,10 +78,10 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
     setError(null);
     
     try {
-      console.log('[SimpleNewsTile] Fetching news for:', idea);
+      console.log('[SimpleNewsTile] Fetching news for:', currentIdea);
       
       // Call the news-analysis edge function
-      const response = await optimizedQueue.invokeFunction('news-analysis', { idea });
+      const response = await optimizedQueue.invokeFunction('news-analysis', { idea: currentIdea });
 
       console.log('[SimpleNewsTile] Full response:', {
         hasResponse: !!response,
@@ -136,21 +137,10 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
 
   // Initial fetch
   useEffect(() => {
-    if (idea) {
+    if (currentIdea) {
       fetchNewsData();
     }
-  }, [idea]);
-
-  // Auto-refresh every 15 minutes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (idea && !loading) {
-        fetchNewsData();
-      }
-    }, 15 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [idea, loading]);
+  }, [currentIdea]);
 
   const getSentimentColor = (sentiment: string | number) => {
     if (typeof sentiment === 'string' && sentiment.includes('+')) {
@@ -369,7 +359,7 @@ export function SimpleNewsTile({ idea, className }: SimpleNewsTileProps) {
         onOpenChange={setShowAIChat}
         tileData={{ trends, totalArticles, overallSentiment } as any}
         tileTitle="News Trends Analysis"
-        idea={idea}
+        idea={currentIdea}
       />
     </Card>
   );

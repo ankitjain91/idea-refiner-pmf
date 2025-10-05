@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 import { 
   TrendingUp, TrendingDown, Minus, Search, 
   RefreshCw, Globe, Clock, Hash, MapPin, 
@@ -33,18 +34,18 @@ import {
 } from "recharts";
 
 interface SimpleGoogleTrendsTileProps {
-  idea: string;
   className?: string;
 }
 
-export function SimpleGoogleTrendsTile({ idea, className }: SimpleGoogleTrendsTileProps) {
+export function SimpleGoogleTrendsTile({ className }: SimpleGoogleTrendsTileProps) {
+  const { currentIdea } = useIdeaContext();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   const fetchGoogleTrendsData = async () => {
-    if (!idea) {
+    if (!currentIdea) {
       setError("No idea provided");
       setLoading(false);
       return;
@@ -54,7 +55,7 @@ export function SimpleGoogleTrendsTile({ idea, className }: SimpleGoogleTrendsTi
     setError(null);
 
     try {
-      const trendsData = await optimizedQueue.invokeFunction('google-trends', { idea });
+      const trendsData = await optimizedQueue.invokeFunction('google-trends', { idea: currentIdea });
       
       setData(trendsData?.google_trends || trendsData);
     } catch (err) {
@@ -67,12 +68,10 @@ export function SimpleGoogleTrendsTile({ idea, className }: SimpleGoogleTrendsTi
   };
 
   useEffect(() => {
-    fetchGoogleTrendsData();
-    
-    // Auto-refresh every 30 minutes
-    const interval = setInterval(fetchGoogleTrendsData, 30 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [idea]);
+    if (currentIdea) {
+      fetchGoogleTrendsData();
+    }
+  }, [currentIdea]);
 
   const getTrendIcon = (trend?: string | number) => {
     if (typeof trend === 'number') {

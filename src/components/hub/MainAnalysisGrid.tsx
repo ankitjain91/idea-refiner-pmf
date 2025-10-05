@@ -268,7 +268,6 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <SimpleGoogleTrendsTile 
-                  idea={currentIdea}
                   className="h-full"
                 />
               </div>
@@ -279,7 +278,6 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <SimpleNewsTile 
-                  idea={currentIdea}
                   className="h-full"
                 />
               </div>
