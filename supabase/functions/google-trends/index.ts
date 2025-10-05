@@ -52,10 +52,22 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('[google-trends] Error:', error);
+    
+    // Always return CORS headers on errors
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        google_trends: {
+          keywords: [],
+          summary: 'Data temporarily unavailable',
+          metrics: {},
+          charts: {},
+          visuals_ready: false,
+          confidence: 'Low'
+        }
+      }),
       { 
-        status: 500,
+        status: 200, // Return 200 with error inside to avoid CORS preflight issues
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

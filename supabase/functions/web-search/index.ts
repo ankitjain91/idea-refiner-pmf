@@ -158,9 +158,23 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('[WebSearch] Error:', error);
+    
+    // Always return CORS headers on errors
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        web_search: {
+          summary: 'Data temporarily unavailable',
+          clusters: [],
+          charts: [],
+          visuals_ready: false,
+          confidence: 'Low'
+        }
+      }),
+      { 
+        status: 200, // Return 200 with error inside to avoid CORS preflight issues
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
