@@ -57,7 +57,7 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
   const [selectedCompetitor, setSelectedCompetitor] = useState<Competitor | null>(null);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(!initialData);
-  const [currentView, setCurrentView] = useState<'overview' | 'landscape' | 'analysis' | 'opportunities'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'competitors' | 'landscape' | 'analysis' | 'opportunities'>('competitors');
   const { toast } = useToast();
   const dataFetchedRef = useRef(false);
   const dashboardService = useRef(OptimizedDashboardService.getInstance());
@@ -606,12 +606,77 @@ export function OptimizedCompetitionTile({ idea, className, initialData, onRefre
                 
                 {data.competitors.length > 0 && (
                   <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-5">
+                      <TabsTrigger value="competitors">Competitors</TabsTrigger>
                       <TabsTrigger value="overview">Overview</TabsTrigger>
                       <TabsTrigger value="landscape">Landscape</TabsTrigger>
                       <TabsTrigger value="analysis">Analysis</TabsTrigger>
                       <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
                     </TabsList>
+
+                  <TabsContent value="competitors" className="mt-4">
+                    <ScrollArea className="h-[400px] pr-4">
+                      <div className="space-y-3">
+                        {data.competitors.map((comp, idx) => (
+                          <div 
+                            key={idx} 
+                            className="border border-border/50 rounded-lg p-4 hover:bg-accent/5 hover:border-accent/30 cursor-pointer transition-all duration-200"
+                            onClick={() => setSelectedCompetitor(comp)}
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="font-semibold text-base">{comp.name}</p>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`${getStrengthVariant(comp.strength)} border-current`}
+                                  >
+                                    {comp.strength.toUpperCase()}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Founded {comp.founded} • {comp.funding}
+                                </p>
+                              </div>
+                              <div className="text-right ml-4">
+                                <p className="text-2xl font-bold text-primary">{comp.marketShare}</p>
+                                <p className="text-xs text-muted-foreground">market share</p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="bg-green-500/5 rounded-md p-2">
+                                <p className="font-medium text-green-600 dark:text-green-400 text-xs mb-1">Strengths:</p>
+                                <p className="text-sm line-clamp-2">{comp.strengths.join(', ')}</p>
+                              </div>
+                              <div className="bg-red-500/5 rounded-md p-2">
+                                <p className="font-medium text-red-600 dark:text-red-400 text-xs mb-1">Weaknesses:</p>
+                                <p className="text-sm line-clamp-2">{comp.weaknesses.join(', ')}</p>
+                              </div>
+                            </div>
+
+                            {comp.url && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="mt-3 h-7 text-xs gap-1.5 w-full justify-center" 
+                                asChild
+                              >
+                                <a 
+                                  href={comp.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  View Website <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
 
                   <TabsContent value="overview" className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
