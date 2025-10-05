@@ -560,8 +560,8 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading && !tiles.market_size ? (
-                      <div className="space-y-2">
+                    {!tiles.market_size ? (
+                      <div className="space-y-2 animate-fade-in">
                         <Skeleton className="h-8 w-24" />
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4" />
@@ -569,7 +569,9 @@ export default function EnterpriseHub() {
                     ) : (
                       <>
                         <p className="text-2xl font-bold">
-                          {tiles.market_size?.metrics?.tam ? `$${(tiles.market_size.metrics.tam / 1000000000).toFixed(1)}B` : 'Calculating...'}
+                          {tiles.market_size?.metrics?.tam
+                            ? `$${(tiles.market_size.metrics.tam / 1e9).toFixed(1)}B`
+                            : tiles.market_size?.json?.TAM || '—'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tiles.market_size?.explanation || 'Loading market analysis...'}
@@ -599,8 +601,8 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading && !tiles.competition ? (
-                      <div className="space-y-2">
+                    {!tiles.competition ? (
+                      <div className="space-y-2 animate-fade-in">
                         <Skeleton className="h-8 w-16" />
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4" />
@@ -608,7 +610,11 @@ export default function EnterpriseHub() {
                     ) : (
                       <>
                         <p className="text-2xl font-bold">
-                          {tiles.competition?.metrics?.total_competitors || 'N/A'}
+                          {(() => {
+                            const m: any = tiles.competition?.metrics || {};
+                            const numeric = m.total_competitors || m.competitors || parseInt((m.players || '').toString(), 10);
+                            return numeric || m.players || '—';
+                          })()}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tiles.competition?.explanation || 'Loading competitive analysis...'}
@@ -638,8 +644,8 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading && !tiles.google_trends ? (
-                      <div className="space-y-2">
+                    {!tiles.google_trends ? (
+                      <div className="space-y-2 animate-fade-in">
                         <Skeleton className="h-8 w-16" />
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4" />
@@ -647,7 +653,7 @@ export default function EnterpriseHub() {
                     ) : (
                       <>
                         <p className="text-2xl font-bold">
-                          {tiles.google_trends?.metrics?.interest || 'N/A'}
+                          {(tiles.google_trends as any)?.interest || tiles.google_trends?.metrics?.interest || tiles.google_trends?.metrics?.score || tiles.google_trends?.json?.interest_score || '—'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tiles.google_trends?.explanation || 'Loading search trends...'}
@@ -677,8 +683,8 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading && !tiles.market_trends ? (
-                      <div className="space-y-2">
+                    {!tiles.market_trends ? (
+                      <div className="space-y-2 animate-fade-in">
                         <Skeleton className="h-8 w-20" />
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4" />
@@ -686,7 +692,7 @@ export default function EnterpriseHub() {
                     ) : (
                       <>
                         <p className="text-2xl font-bold">
-                          {tiles.market_trends?.metrics?.growthRate ? `${tiles.market_trends.metrics.growthRate}%` : 'N/A'}
+                          {((tiles.market_trends as any)?.growthRate || tiles.market_trends?.metrics?.growthRate) ? `${(tiles.market_trends as any)?.growthRate || tiles.market_trends?.metrics?.growthRate}%` : '—'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tiles.market_trends?.explanation || 'Loading trend analysis...'}
@@ -723,8 +729,8 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading && !tiles.sentiment ? (
-                      <div className="space-y-2">
+                    {!tiles.sentiment ? (
+                      <div className="space-y-2 animate-fade-in">
                         <Skeleton className="h-8 w-20" />
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4" />
@@ -732,7 +738,12 @@ export default function EnterpriseHub() {
                     ) : (
                       <>
                         <p className="text-2xl font-bold text-green-500">
-                          {tiles.sentiment?.metrics?.positive ? `${tiles.sentiment.metrics.positive}%` : 'N/A'}
+                          {(() => {
+                            const p = tiles.sentiment?.metrics?.positive;
+                            if (p == null) return '—';
+                            const s = String(p);
+                            return s.endsWith('%') ? s : `${s}%`;
+                          })()}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tiles.sentiment?.explanation || 'Loading sentiment data...'}
@@ -762,8 +773,8 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading && !tiles.news_analysis ? (
-                      <div className="space-y-2">
+                    {!tiles.news_analysis ? (
+                      <div className="space-y-2 animate-fade-in">
                         <Skeleton className="h-8 w-16" />
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4" />
@@ -771,7 +782,7 @@ export default function EnterpriseHub() {
                     ) : (
                       <>
                         <p className="text-2xl font-bold">
-                          {tiles.news_analysis?.metrics?.articles || 'N/A'}
+                          {tiles.news_analysis?.metrics?.articles || tiles.news_analysis?.metrics?.mentions || (tiles.news_analysis as any)?.total_articles || '—'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                           {tiles.news_analysis?.explanation || 'Loading news coverage...'}
@@ -801,25 +812,13 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading && !tiles.youtube_analytics ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-8 w-20" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-2xl font-bold">
-                          {tiles.youtube_analytics?.metrics?.total_views || tiles.youtube_analytics?.metrics?.views || 'N/A'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {tiles.youtube_analytics?.explanation || 'Loading YouTube data...'}
-                        </p>
-                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details
-                        </Button>
-                      </>
-                    )}
+                    {/* We fetch YouTube data on demand in dialog. Show hint here. */}
+                    <div className="space-y-1 animate-fade-in">
+                      <p className="text-sm text-muted-foreground">Open to analyze YouTube videos, views, channels</p>
+                      <Button variant="ghost" size="sm" className="mt-1 w-full opacity-100 hover-scale">
+                        View Details
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
