@@ -462,13 +462,39 @@ export function useDataHub(input: DataHubInput) {
     }
   }, [input, toast, useMockData, user?.id]);
   
-  // Auto-fetch on mount
+  // Auto-fetch on mount only if idea changed or no data exists
   useEffect(() => {
-    if (input.idea && !hasFetchedRef.current) {
-      console.log('🚀 Initial DATA_HUB fetch for:', input.idea.substring(0, 50));
-      // Force refresh if no cached essential tiles
-      fetchDataHub(false);
-    }
+    const loadDataForIdea = async () => {
+      if (!input.idea) return;
+      
+      // Check if we already have data for this idea in state
+      const hasDataInState = Object.keys(state.tiles).length > 0;
+      
+      // Check if the idea has changed
+      const lastIdeaKey = 'lastFetchedIdea';
+      const lastIdea = localStorage.getItem(lastIdeaKey);
+      const ideaChanged = lastIdea !== input.idea;
+      
+      // Only fetch if:
+      // 1. We don't have data in state AND haven't fetched yet
+      // 2. OR the idea has changed
+      if ((!hasDataInState && !hasFetchedRef.current) || ideaChanged) {
+        console.log('🚀 Initial DATA_HUB fetch for:', input.idea.substring(0, 50), {
+          hasDataInState,
+          hasFetched: hasFetchedRef.current,
+          ideaChanged
+        });
+        
+        // Store the current idea as last fetched
+        localStorage.setItem(lastIdeaKey, input.idea);
+        
+        await fetchDataHub(false);
+      } else {
+        console.log('⚡ Skipping fetch - data already loaded for:', input.idea.substring(0, 50));
+      }
+    };
+    
+    loadDataForIdea();
   }, [input.idea]);
   
   const refresh = useCallback(() => {
