@@ -61,12 +61,19 @@ export function DataHubTile({ title, tileType = "default", data, Icon, loading, 
   React.useEffect(() => {
     if (expanded !== undefined) {
       setIsCollapsed(!expanded);
-      if (expanded) setHasBeenExpanded(true);
+      if (expanded) {
+        setHasBeenExpanded(true);
+        if (onRefresh && !data) {
+          setIsFirstLoad(true);
+          try { onRefresh(); } catch {}
+          setTimeout(() => setIsFirstLoad(false), 3000);
+        }
+      }
     } else if (data && isCollapsed && !hasBeenExpanded) {
       setIsCollapsed(false);
       setHasBeenExpanded(true);
     }
-  }, [data, expanded]);
+  }, [data, expanded, onRefresh]);
   
   // Debug logging for sentiment data
   React.useEffect(() => {

@@ -218,6 +218,20 @@ export default function EnterpriseHub() {
     refresh();
   }, [refresh, currentIdea]);
   
+  // Keep dialog tile data in sync and trigger fetch when opened
+  useEffect(() => {
+    if (!selectedTileDialog?.type) return;
+    const t = (tiles as any)?.[selectedTileDialog.type];
+    // Sync latest tile data into dialog
+    if (t && t !== selectedTileDialog.data) {
+      setSelectedTileDialog(prev => (prev && prev.type === selectedTileDialog.type) ? { ...prev, data: t } : prev);
+    }
+    // Trigger fetch if missing (non-YouTube types are loaded via data hub)
+    if (!t && selectedTileDialog.type !== 'youtube_analytics') {
+      try { refreshTile?.(selectedTileDialog.type); } catch (_) {}
+    }
+  }, [tiles, selectedTileDialog, refreshTile]);
+  
   // Show full-page loading state when loading and no data loaded yet
   if (loading && !hasLoadedData) {
     return <DashboardLoadingState tasks={loadingTasks || []} currentTask={loadingTasks?.find(t => t.status === "loading")?.label} />;
@@ -877,7 +891,9 @@ export default function EnterpriseHub() {
               {selectedTileDialog?.type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </DialogTitle>
           </DialogHeader>
-          {selectedTileDialog?.data ? (
+          {selectedTileDialog?.type === 'youtube_analytics' ? (
+            <YouTubeAnalyticsTile idea={currentIdea} />
+          ) : selectedTileDialog?.data ? (
             <DataHubTile
               title={selectedTileDialog.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               Icon={selectedTileDialog.type === 'market_size' ? DollarSign : 
@@ -888,10 +904,11 @@ export default function EnterpriseHub() {
                     selectedTileDialog.type === 'youtube_analytics' ? Activity :
                     Newspaper}
               data={selectedTileDialog.data}
-              loading={false}
+              loading={!selectedTileDialog.data}
               expanded={true}
               tileType={selectedTileDialog.type}
               className="border-0 shadow-none"
+              onRefresh={() => refreshTile?.(selectedTileDialog.type)}
             />
           ) : (
             <div className="py-12 text-center text-muted-foreground">
