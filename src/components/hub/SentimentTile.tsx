@@ -433,7 +433,7 @@ export function SentimentTile({ className }: SentimentTileProps) {
 
   if (!data) return null;
 
-  const sentimentTrend = data.metrics.trend_delta.startsWith('+') ? 'up' : 'down';
+  const sentimentTrend = data.metrics?.trend_delta?.startsWith?.('+') ? 'up' : 'down';
 
   return (
     <Card className={cn("h-full overflow-hidden", className)}>
