@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
 import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
+import { DataHubTile } from "@/components/hub/DataHubTile";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
 import { SentimentTile } from "@/components/hub/SentimentTile";
@@ -26,6 +27,8 @@ import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Accordion,
   AccordionContent,
@@ -50,6 +53,7 @@ export default function EnterpriseHub() {
     return localStorage.getItem('enterpriseHub_summaryExpanded') !== 'false';
   });
   const [advancedControlsOpen, setAdvancedControlsOpen] = useState(false);
+  const [selectedTileDialog, setSelectedTileDialog] = useState<{ type: string; data: any } | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   
   // Save summary expanded state
@@ -518,7 +522,10 @@ export default function EnterpriseHub() {
             {hasLoadedData && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Market Size Tile */}
-                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'market_size', data: tiles.market_size })}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -531,20 +538,33 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">
-                      {tiles.market_size?.metrics?.tam ? `$${(tiles.market_size.metrics.tam / 1000000000).toFixed(1)}B` : 'Calculating...'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {tiles.market_size?.explanation || 'Loading market analysis...'}
-                    </p>
-                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Details
-                    </Button>
+                    {loading && !tiles.market_size ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-8 w-24" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold">
+                          {tiles.market_size?.metrics?.tam ? `$${(tiles.market_size.metrics.tam / 1000000000).toFixed(1)}B` : 'Calculating...'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {tiles.market_size?.explanation || 'Loading market analysis...'}
+                        </p>
+                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Details
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
                 {/* Competition Tile */}
-                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'competition', data: tiles.competition })}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -557,20 +577,33 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">
-                      {tiles.competition?.metrics?.total_competitors || 'N/A'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {tiles.competition?.explanation || 'Loading competitive analysis...'}
-                    </p>
-                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Details
-                    </Button>
+                    {loading && !tiles.competition ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold">
+                          {tiles.competition?.metrics?.total_competitors || 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {tiles.competition?.explanation || 'Loading competitive analysis...'}
+                        </p>
+                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Details
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
                 {/* Google Trends Tile */}
-                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'google_trends', data: tiles.google_trends })}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -583,20 +616,33 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">
-                      {tiles.google_trends?.metrics?.interest || 'N/A'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {tiles.google_trends?.explanation || 'Loading search trends...'}
-                    </p>
-                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Details
-                    </Button>
+                    {loading && !tiles.google_trends ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold">
+                          {tiles.google_trends?.metrics?.interest || 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {tiles.google_trends?.explanation || 'Loading search trends...'}
+                        </p>
+                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Details
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
                 {/* Market Trends Tile */}
-                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'market_trends', data: tiles.market_trends })}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -609,15 +655,25 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">
-                      {tiles.market_trends?.metrics?.growthRate ? `${tiles.market_trends.metrics.growthRate}%` : 'N/A'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {tiles.market_trends?.explanation || 'Loading trend analysis...'}
-                    </p>
-                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Details
-                    </Button>
+                    {loading && !tiles.market_trends ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold">
+                          {tiles.market_trends?.metrics?.growthRate ? `${tiles.market_trends.metrics.growthRate}%` : 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {tiles.market_trends?.explanation || 'Loading trend analysis...'}
+                        </p>
+                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Details
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -629,7 +685,10 @@ export default function EnterpriseHub() {
             {hasLoadedData && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Sentiment Card */}
-                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'sentiment', data: tiles.sentiment })}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -642,20 +701,33 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-green-500">
-                      {tiles.sentiment?.metrics?.positive ? `${tiles.sentiment.metrics.positive}%` : 'N/A'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {tiles.sentiment?.explanation || 'Loading sentiment data...'}
-                    </p>
-                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Details
-                    </Button>
+                    {loading && !tiles.sentiment ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold text-green-500">
+                          {tiles.sentiment?.metrics?.positive ? `${tiles.sentiment.metrics.positive}%` : 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {tiles.sentiment?.explanation || 'Loading sentiment data...'}
+                        </p>
+                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Details
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
                 {/* News Analysis Card */}
-                <Card className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group">
+                <Card 
+                  className="border-border/50 bg-card/50 hover:shadow-md transition-all cursor-pointer group"
+                  onClick={() => setSelectedTileDialog({ type: 'news_analysis', data: tiles.news_analysis })}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -668,15 +740,25 @@ export default function EnterpriseHub() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">
-                      {tiles.news_analysis?.metrics?.articles || 'N/A'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {tiles.news_analysis?.explanation || 'Loading news coverage...'}
-                    </p>
-                    <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Details
-                    </Button>
+                    {loading && !tiles.news_analysis ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold">
+                          {tiles.news_analysis?.metrics?.articles || 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {tiles.news_analysis?.explanation || 'Loading news coverage...'}
+                        </p>
+                        <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Details
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -741,6 +823,44 @@ export default function EnterpriseHub() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Tile Details Dialog */}
+      <Dialog open={!!selectedTileDialog} onOpenChange={() => setSelectedTileDialog(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedTileDialog?.type === 'market_size' && <DollarSign className="h-5 w-5 text-primary" />}
+              {selectedTileDialog?.type === 'competition' && <Building2 className="h-5 w-5 text-primary" />}
+              {selectedTileDialog?.type === 'google_trends' && <Search className="h-5 w-5 text-primary" />}
+              {selectedTileDialog?.type === 'market_trends' && <TrendingUp className="h-5 w-5 text-primary" />}
+              {selectedTileDialog?.type === 'sentiment' && <MessageSquare className="h-5 w-5 text-primary" />}
+              {selectedTileDialog?.type === 'news_analysis' && <Newspaper className="h-5 w-5 text-primary" />}
+              {selectedTileDialog?.type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTileDialog?.data ? (
+            <DataHubTile
+              title={selectedTileDialog.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              Icon={selectedTileDialog.type === 'market_size' ? DollarSign : 
+                    selectedTileDialog.type === 'competition' ? Building2 :
+                    selectedTileDialog.type === 'google_trends' ? Search :
+                    selectedTileDialog.type === 'market_trends' ? TrendingUp :
+                    selectedTileDialog.type === 'sentiment' ? MessageSquare :
+                    Newspaper}
+              data={selectedTileDialog.data}
+              loading={false}
+              expanded={true}
+              tileType={selectedTileDialog.type}
+              className="border-0 shadow-none"
+            />
+          ) : (
+            <div className="py-12 text-center text-muted-foreground">
+              <p>No data available for this tile yet.</p>
+              <p className="text-sm mt-2">Try refreshing the analysis or wait for data to load.</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}
       <EvidenceExplorer
