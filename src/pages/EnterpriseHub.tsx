@@ -474,7 +474,13 @@ export default function EnterpriseHub() {
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
-                <SentimentTile className="mb-6" />
+                <SentimentTile 
+                  className="mb-6"
+                  data={tiles.sentiment}
+                  idea={canonicalIdea}
+                  loading={loading}
+                  onRefresh={() => refreshTile('sentiment')}
+                />
                 <MainAnalysisGrid
                   tiles={{
                     news_analysis: tiles.news_analysis,

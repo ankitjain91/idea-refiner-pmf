@@ -28,6 +28,10 @@ import { toast } from '@/hooks/use-toast';
 
 interface SentimentTileProps {
   className?: string;
+  data?: any; // Tile data from parent
+  idea?: string; // Idea from parent
+  loading?: boolean;
+  onRefresh?: () => void;
 }
 
 interface SentimentCluster {
@@ -115,7 +119,13 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))'
 ];
 
-export function SentimentTile({ className }: SentimentTileProps) {
+export function SentimentTile({ 
+  className, 
+  data: propData, 
+  idea: propIdea, 
+  loading: propLoading = false,
+  onRefresh 
+}: SentimentTileProps) {
   const { currentIdea } = useIdeaContext();
   const [data, setData] = useState<SentimentData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,14 +134,22 @@ export function SentimentTile({ className }: SentimentTileProps) {
   const [selectedCluster, setSelectedCluster] = useState<SentimentCluster | null>(null);
   const [showAIChat, setShowAIChat] = useState(false);
 
+  // Use prop data if available, otherwise fetch
+  const ideaToUse = propIdea || currentIdea;
+
   useEffect(() => {
-    if (currentIdea) {
+    if (propData) {
+      // Use data from parent
+      setData(propData as SentimentData);
+      setLoading(propLoading);
+    } else if (ideaToUse) {
+      // Fetch own data
       fetchSentimentData();
     }
-  }, [currentIdea]);
+  }, [propData, propLoading, ideaToUse]);
 
   const fetchSentimentData = async () => {
-    if (!currentIdea) {
+    if (!ideaToUse) {
       setError('No idea provided');
       setLoading(false);
       return;
@@ -142,10 +160,10 @@ export function SentimentTile({ className }: SentimentTileProps) {
 
     try {
       // Prefetch related sentiment data
-      optimizedQueue.prefetchRelated('unified-sentiment', { idea: currentIdea, detailed: true });
+      optimizedQueue.prefetchRelated('unified-sentiment', { idea: ideaToUse, detailed: true });
       
       const response = await optimizedQueue.invokeFunction('unified-sentiment', {
-        idea: currentIdea,
+        idea: ideaToUse,
         detailed: true
       });
 
