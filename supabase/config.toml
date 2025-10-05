@@ -356,6 +356,9 @@ verify_jwt = false
 [functions.unified-sentiment]
 verify_jwt = false
 
+[functions.groq-conversation-summary]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

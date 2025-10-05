@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { createConversationSummary } from '@/utils/conversationUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 const IDEA_KEY = 'appIdea';
 
@@ -43,7 +43,17 @@ export const useIdeaContext = () => {
   };
 
   const generateIdea = async (conversationHistory: any[]): Promise<string> => {
-    const summary = createConversationSummary(conversationHistory);
+    // Call Groq edge function to generate smart summary
+    const { data, error } = await supabase.functions.invoke('groq-conversation-summary', {
+      body: { messages: conversationHistory }
+    });
+
+    if (error) {
+      console.error('[useIdeaContext] Groq summary error:', error);
+      throw new Error('Failed to generate idea summary');
+    }
+
+    const summary = data.summary;
     
     const ideaData: IdeaData = {
       summary,
