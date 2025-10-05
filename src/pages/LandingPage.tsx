@@ -30,7 +30,8 @@ import {
   Star,
   Award,
   DollarSign,
-  Send
+  Send,
+  Trophy
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -341,6 +342,36 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Floating Leaderboard Teaser */}
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1, duration: 0.8, type: "spring" }}
+        className="fixed bottom-8 right-8 z-40"
+      >
+        <Card 
+          className="overflow-hidden border-2 border-primary/30 bg-card/95 backdrop-blur-lg shadow-2xl hover:shadow-primary/20 transition-all duration-300 hover:scale-105 cursor-pointer group"
+          onClick={() => navigate('/leaderboard')}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardContent className="p-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-gradient-to-br from-warning to-accent">
+                <Trophy className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-sm">Live Leaderboard</h3>
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0">LIVE</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">See top-ranked ideas now</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Success Showcase */}
       <section id="success-stories" className="container mx-auto px-6 py-24">
         <div className="max-w-6xl mx-auto">
@@ -354,6 +385,15 @@ export default function LandingPage() {
             <p className="text-muted-foreground text-lg">
               People like you turned their ideas into thriving businesses with SmoothBrains
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/leaderboard')}
+              className="mt-4 gap-2 rounded-full"
+            >
+              <Trophy className="h-4 w-4" />
+              View Full Leaderboard
+            </Button>
           </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
