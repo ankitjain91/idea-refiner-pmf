@@ -33,6 +33,7 @@ import { useSession } from '@/contexts/SimpleSessionContext';
 import { LS_KEYS } from '@/lib/storage-keys';
 import { backgroundProcessor } from '@/lib/background-processor';
 import { AsyncDashboardButton } from '@/components/AsyncDashboardButton';
+import { GenerateIdeaButton } from './chat/GenerateIdeaButton';
 
 // Import refactored components and utilities
 import { Message, SuggestionItem } from './chat/types';
@@ -2189,7 +2190,11 @@ User submission: """${messageText}"""`;
       </div>
       
       {/* Quick Actions */}
-      <div className="flex gap-2 mt-3 max-w-4xl mx-auto">
+      <div className="flex gap-2 mt-3 max-w-4xl mx-auto flex-wrap">
+        <GenerateIdeaButton 
+          conversationHistory={messages}
+          disabled={isTyping || messages.length === 0}
+        />
         <AsyncDashboardButton />
         <motion.div whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button

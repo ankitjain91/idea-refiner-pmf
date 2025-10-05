@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LS_KEYS } from '@/lib/storage-keys';
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 
 interface SessionData {
   chatHistory: any[];
@@ -104,6 +105,7 @@ export const useSession = () => {
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sessions, setSessions] = useState<BrainstormingSession[]>([]);
   const [currentSession, setCurrentSession] = useState<BrainstormingSession | null>(null);
+  const { getIdea, clearIdea } = useIdeaContext();
   
   // Auto-save state (default to ON)
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
@@ -129,8 +131,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
       }
       
-      // Also check for currentIdea from EnhancedIdeaChat
-      const currentIdea = localStorage.getItem('currentIdea') || localStorage.getItem(LS_KEYS.userIdea) || '';
+      // Get current idea from centralized source
+      const currentIdea = getIdea();
       const analysisCompleted = localStorage.getItem(LS_KEYS.analysisCompleted) === 'true';
       const pmfScore = parseInt(localStorage.getItem(LS_KEYS.pmfScore) || '0');
       const analysisData = JSON.parse(localStorage.getItem(LS_KEYS.ideaMetadata) || '{}');
@@ -288,13 +290,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         dashboardData: {} // Initialize empty dashboard data
       };
       
-      // Clear ALL generic localStorage to reset for new session
+      // Clear idea using centralized hook
+      clearIdea();
+      
+      // Clear session-related data
       localStorage.removeItem('chatHistory');
       localStorage.removeItem('enhancedIdeaChatMessages');
-      localStorage.removeItem(LS_KEYS.userIdea);
-      localStorage.removeItem('currentIdea');
-      localStorage.removeItem('pmf.user.idea');
-      localStorage.removeItem('userIdea');
       localStorage.removeItem('pmf.user.answers');
       localStorage.removeItem('ideaMetadata');
       localStorage.removeItem('conversationHistory');

@@ -7,12 +7,16 @@ import { supabase } from '@/lib/supabase-queue-wrapper';
 import { installAPIInterceptor } from '@/lib/api-interceptor';
 import { globalRequestQueue } from '@/lib/request-queue';
 import { warmRouteChunks } from '@/lib/route-prefetch';
+import { runMigrations } from '@/lib/migration';
 
 // Install API interceptor to track all Supabase function calls
 installAPIInterceptor(supabase);
 
 // Soften global request spacing to improve perceived navigation speed
 globalRequestQueue.setMinDelay(300);
+
+// Run migrations to cleanup old localStorage keys
+runMigrations();
 
 // Warm up lazy route chunks after idle to speed up first navigation
 if (typeof window !== 'undefined') {

@@ -1,30 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useIdeaContext } from '@/hooks/useIdeaContext';
 
 export const AsyncDashboardButton = () => {
   const navigate = useNavigate();
-  const [hasIdea, setHasIdea] = useState(false);
-
-  useEffect(() => {
-    const checkIdea = () => {
-      const currentIdea = localStorage.getItem('currentIdea');
-      setHasIdea(!!currentIdea);
-    };
-
-    checkIdea();
-
-    // Listen for storage changes
-    window.addEventListener('storage', checkIdea);
-    // Listen for custom events when idea is set/cleared
-    window.addEventListener('idea:changed', checkIdea);
-
-    return () => {
-      window.removeEventListener('storage', checkIdea);
-      window.removeEventListener('idea:changed', checkIdea);
-    };
-  }, []);
+  const { hasIdea } = useIdeaContext();
 
   const handleClick = () => {
     navigate('/dashboard');
