@@ -32,14 +32,32 @@ function generateCacheKey(config: LLMCacheConfig): string {
   
   // Create hash of the combined string
   const content = `${model}::${prompt}::${paramsStr}`;
-  return btoa(content).substring(0, 64); // Base64 encode and truncate
+  
+  // Use TextEncoder to properly handle UTF-8 characters
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  
+  // Convert to hex string instead of base64 to avoid btoa() Latin1 issues
+  const hex = Array.from(data)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  return hex.substring(0, 64); // Truncate to 64 chars
 }
 
 /**
  * Generate a hash of the prompt for indexing
  */
 function generatePromptHash(prompt: string): string {
-  return btoa(prompt.substring(0, 100)).substring(0, 32);
+  const encoder = new TextEncoder();
+  const data = encoder.encode(prompt.substring(0, 100));
+  
+  // Convert to hex string
+  const hex = Array.from(data)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  return hex.substring(0, 32);
 }
 
 /**
