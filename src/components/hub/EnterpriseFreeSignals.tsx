@@ -5,22 +5,70 @@ import { toast } from "sonner";
 
 export function EnterpriseFreeSignals({ idea }: { idea: string }) {
   const [data, setData] = useState<any|null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!idea) return;
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase.functions.invoke('free-signals', {
+      console.log('[EnterpriseFreeSignals] Fetching data for:', idea);
+      const { data: responseData, error: invokeError } = await supabase.functions.invoke('free-signals', {
         body: { idea, tiles: ['sentiment','market','competitors'], horizonDays: 90 }
       });
-      if (error) throw error;
-      setData(data?.data || data);
+      
+      if (invokeError) {
+        console.error('[EnterpriseFreeSignals] Invoke error:', invokeError);
+        throw invokeError;
+      }
+      
+      console.log('[EnterpriseFreeSignals] Response:', responseData);
+      
+      const extractedData = responseData?.data || responseData;
+      console.log('[EnterpriseFreeSignals] Extracted data:', extractedData);
+      
+      setData(extractedData);
+      
+      if (!extractedData) {
+        setError('No data received from free signals');
+      }
     } catch (e:any) {
-      console.error(e);
+      console.error('[EnterpriseFreeSignals] Error:', e);
+      setError(e.message || 'Failed to load free signals data');
       toast.error(`Free data error: ${e.message || e}`);
+    } finally {
+      setLoading(false);
     }
   }, [idea]);
 
   useEffect(()=>{ load(); }, [load]);
+
+  if (loading && !data) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-48 bg-muted/50 rounded-lg animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="grid grid-cols-1 gap-4 mt-4">
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <p className="text-sm text-destructive">{error}</p>
+          <button 
+            onClick={load} 
+            className="mt-2 text-xs underline hover:no-underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) return null;
 
