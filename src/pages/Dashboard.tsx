@@ -8,6 +8,8 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { saveIdeaToLeaderboard } from "@/utils/saveIdeaToLeaderboard";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -15,6 +17,43 @@ export default function Dashboard() {
   const { user } = useAuth();
   const isPro = subscription.tier === 'pro' || subscription.tier === 'enterprise';
   const limits = SUBSCRIPTION_TIERS[subscription.tier].features;
+
+  // Update leaderboard when dashboard loads
+  useEffect(() => {
+    const updateLeaderboard = async () => {
+      const currentIdea = localStorage.getItem('currentIdea');
+      const sessionData = localStorage.getItem('sessionData');
+      const sessionName = localStorage.getItem('currentSessionName') || 'Untitled Session';
+      
+      if (!currentIdea) return;
+      
+      let pmfScore = 0;
+      let category = 'Uncategorized';
+      
+      if (sessionData) {
+        try {
+          const parsed = JSON.parse(sessionData);
+          pmfScore = parsed.pmfScore || parsed.dashboardData?.smoothBrainsScore || 0;
+          category = parsed.category || 'Uncategorized';
+        } catch (e) {
+          console.error('[Dashboard] Failed to parse session data:', e);
+        }
+      }
+      
+      if (pmfScore > 0) {
+        await saveIdeaToLeaderboard({
+          idea: currentIdea,
+          refinedIdea: currentIdea,
+          pmfScore,
+          sessionName,
+          category,
+          isPublic: true
+        });
+      }
+    };
+    
+    updateLeaderboard();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
