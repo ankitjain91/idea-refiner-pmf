@@ -1,96 +1,107 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, Plus, TrendingUp } from "lucide-react";
+import { MessageSquare, Plus, TrendingUp, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { formatDistanceToNow } from "date-fns";
 
-interface IdeaItem {
+interface SessionItem {
   id: string;
-  original_idea: string;
+  session_name: string;
+  idea: string;
   pmf_score: number;
   updated_at: string;
+  last_accessed: string | null;
 }
 
 export function RecentIdeas() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     
-    const fetchIdeas = async () => {
+    const fetchSessions = async () => {
       const { data, error } = await supabase
         .from('analysis_sessions')
-        .select('id, idea, pmf_score, updated_at')
+        .select('id, session_name, idea, pmf_score, updated_at, last_accessed')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
+        .eq('is_active', true)
+        .order('last_accessed', { ascending: false, nullsFirst: false })
         .limit(5);
 
       if (data && !error) {
-        setIdeas(data.map(d => ({
-          id: d.id,
-          original_idea: d.idea,
-          pmf_score: d.pmf_score || 0,
-          updated_at: d.updated_at
-        })));
+        setSessions(data);
       }
       setLoading(false);
     };
 
-    fetchIdeas();
+    fetchSessions();
   }, [user]);
 
   return (
-    <Card>
+    <Card className="border-primary/20">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-primary" />
-              Your Ideas
+              <MessageSquare className="h-5 w-5 text-primary" />
+              Your Sessions
             </CardTitle>
-            <CardDescription>Recently validated ideas</CardDescription>
+            <CardDescription>Recently active idea validation sessions</CardDescription>
           </div>
-          <Button onClick={() => navigate('/ideachat')} className="gap-2">
+          <Button onClick={() => navigate('/ideachat')} className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90">
             <Plus className="h-4 w-4" />
-            Validate New Idea
+            New Session
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-sm text-muted-foreground">Loading ideas...</div>
-        ) : ideas.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">No ideas yet. Start validating!</p>
+          <div className="text-sm text-muted-foreground">Loading sessions...</div>
+        ) : sessions.length === 0 ? (
+          <div className="py-8 text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <MessageSquare className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1">No sessions yet</p>
+              <p className="text-xs text-muted-foreground mb-4">Start your first idea validation session</p>
+            </div>
             <Button onClick={() => navigate('/ideachat')} variant="outline">
-              Create Your First Idea
+              Start First Session
             </Button>
           </div>
         ) : (
           <div className="space-y-3">
-            {ideas.map((idea) => (
+            {sessions.map((session) => (
               <div
-                key={idea.id}
-                className="flex items-start justify-between gap-4 p-3 rounded-lg border border-border/40 hover:bg-accent/5 transition-colors cursor-pointer"
-                onClick={() => navigate(`/ideachat?session=${idea.id}`)}
+                key={session.id}
+                className="group flex items-start justify-between gap-4 p-4 rounded-lg border border-border/40 hover:border-primary/50 hover:bg-accent/5 transition-all cursor-pointer"
+                onClick={() => navigate(`/ideachat?session=${session.id}`)}
               >
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm truncate">{idea.original_idea}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Updated {formatDistanceToNow(new Date(idea.updated_at), { addSuffix: true })}
-                  </p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+                    <h4 className="font-medium text-sm truncate">{session.session_name}</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{session.idea}</p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDistanceToNow(new Date(session.last_accessed || session.updated_at), { addSuffix: true })}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={idea.pmf_score >= 70 ? 'default' : 'secondary'} className="gap-1">
+                  <Badge variant={session.pmf_score >= 70 ? 'default' : 'secondary'} className="gap-1">
                     <TrendingUp className="h-3 w-3" />
-                    {idea.pmf_score}
+                    {session.pmf_score}
                   </Badge>
                 </div>
               </div>
