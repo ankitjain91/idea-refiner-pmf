@@ -197,6 +197,21 @@ export default function EnterpriseHub() {
     };
   }, [updateIdeaFromSession]);
 
+  // Use the data hub hook with current idea and session_id
+  // IMPORTANT: Must call hooks before any conditional returns
+  console.log('[EnterpriseHub] Using idea for data hub:', currentIdea?.substring(0, 100));
+  const dataHub = useDataHubWrapper({
+    idea: currentIdea || '',
+    session_id: currentSession?.id || null,
+    targetMarkets: ["US", "EU", "APAC"],
+    audienceProfiles: ["early_adopters", "enterprise"],
+    geos: ["global"],
+    timeHorizon: "12_months",
+    competitorHints: []
+  });
+
+  const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime, loadingTasks } = dataHub;
+
   // Prevent dashboard from loading if no idea exists
   if (!currentIdea) {
     return (
@@ -214,20 +229,6 @@ export default function EnterpriseHub() {
       </div>
     );
   }
-
-  // Use the data hub hook with current idea and session_id
-  console.log('[EnterpriseHub] Using idea for data hub:', currentIdea?.substring(0, 100));
-  const dataHub = useDataHubWrapper({
-    idea: currentIdea,
-    session_id: currentSession?.id || null,
-    targetMarkets: ["US", "EU", "APAC"],
-    audienceProfiles: ["early_adopters", "enterprise"],
-    geos: ["global"],
-    timeHorizon: "12_months",
-    competitorHints: []
-  });
-
-  const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime, loadingTasks } = dataHub;
 
   // Set up real-time refresh
   useEffect(() => {

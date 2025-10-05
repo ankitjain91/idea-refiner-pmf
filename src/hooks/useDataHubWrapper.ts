@@ -10,11 +10,10 @@ import { DataHubInput } from '@/lib/data-hub-orchestrator';
 export function useDataHubWrapper(input: DataHubInput) {
   const { flags } = useFeatureFlags();
   
-  // Only call the appropriate hook based on the feature flag
-  // This ensures we follow React's rules of hooks
-  if (flags.useOptimizedDataLoading) {
-    return useOptimizedDataHub(input);
-  } else {
-    return useDataHub(input);
-  }
+  // Call both hooks unconditionally to follow React's Rules of Hooks
+  const optimizedResult = useOptimizedDataHub(input);
+  const standardResult = useDataHub(input);
+  
+  // Return the appropriate result based on the feature flag
+  return flags.useOptimizedDataLoading ? optimizedResult : standardResult;
 }
