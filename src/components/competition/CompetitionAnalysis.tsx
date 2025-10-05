@@ -91,6 +91,7 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
       if (apiError) throw apiError;
 
       if (response?.success && response?.data?.topCompetitors) {
+        console.log('Competition API Response:', response.data);
         setData(response.data);
         toast({
           title: 'Competition data loaded',
@@ -224,78 +225,85 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
 
         {/* Competitors List */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Identified Competitors ({data.topCompetitors.length})</h3>
-          <ScrollArea className="h-[500px] pr-4">
-            <div className="space-y-3">
+          <h3 className="text-sm font-medium mb-3">Top Competitors</h3>
+          <ScrollArea className="h-[600px] pr-4">
+            <div className="space-y-4">
               {data.topCompetitors.map((competitor, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
+                  className="p-5 rounded-lg border bg-card/50 hover:bg-accent/5 transition-colors space-y-4"
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  {/* Header with Name and Market Share */}
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-base mb-1 flex items-center gap-2 flex-wrap">
-                        <span className="truncate">{competitor.name}</span>
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <h4 className="font-bold text-lg">{competitor.name}</h4>
                         <Badge variant="outline" className={getStrengthColor(competitor.strength)}>
-                          {competitor.strength}
+                          {competitor.strength.toUpperCase()}
                         </Badge>
-                      </h4>
+                      </div>
                       {competitor.url && (
                         <a
                           href={competitor.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline inline-flex items-center gap-1 mb-2"
+                          className="text-sm text-primary hover:underline inline-flex items-center gap-1"
                         >
-                          View website <ExternalLink className="h-3 w-3" />
+                          {competitor.url} <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>
-                    <div className="text-right ml-4 flex-shrink-0">
-                      <p className="text-2xl font-bold text-primary">{competitor.marketShare}%</p>
-                      <p className="text-xs text-muted-foreground">market share</p>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-3xl font-bold text-primary">{competitor.marketShare}%</p>
+                      <p className="text-xs text-muted-foreground">Market Share</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-3">
-                    {competitor.valuation && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Valuation</p>
-                        <p className="font-medium">{competitor.valuation}</p>
-                      </div>
-                    )}
-                    {competitor.fundingStage && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Funding Stage</p>
-                        <p className="font-medium">{competitor.fundingStage}</p>
-                      </div>
-                    )}
-                    {competitor.founded && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Founded</p>
-                        <p className="font-medium">{competitor.founded}</p>
-                      </div>
-                    )}
+                  {/* Company Info Grid */}
+                  <div className="grid grid-cols-3 gap-4 p-3 bg-muted/30 rounded-md">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Founded</p>
+                      <p className="font-semibold">{competitor.founded || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Funding Stage</p>
+                      <p className="font-semibold">{competitor.fundingStage || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Valuation</p>
+                      <p className="font-semibold">{competitor.valuation || 'N/A'}</p>
+                    </div>
                   </div>
 
+                  {/* Strengths and Weaknesses */}
                   {(competitor.strengths?.length || competitor.weaknesses?.length) && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {competitor.strengths && competitor.strengths.length > 0 && (
-                        <div className="bg-green-500/5 rounded-md p-3">
-                          <p className="font-medium text-green-600 dark:text-green-400 text-xs mb-2">Strengths</p>
-                          <ul className="space-y-1 text-sm">
+                        <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4">
+                          <p className="font-semibold text-green-600 dark:text-green-400 text-sm mb-3 flex items-center gap-2">
+                            <span className="text-lg">✓</span> Strengths
+                          </p>
+                          <ul className="space-y-2">
                             {competitor.strengths.map((s, i) => (
-                              <li key={i} className="text-muted-foreground">• {s}</li>
+                              <li key={i} className="text-sm text-foreground/90 flex items-start gap-2">
+                                <span className="text-green-500 mt-0.5">•</span>
+                                <span>{s}</span>
+                              </li>
                             ))}
                           </ul>
                         </div>
                       )}
                       {competitor.weaknesses && competitor.weaknesses.length > 0 && (
-                        <div className="bg-red-500/5 rounded-md p-3">
-                          <p className="font-medium text-red-600 dark:text-red-400 text-xs mb-2">Weaknesses</p>
-                          <ul className="space-y-1 text-sm">
+                        <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                          <p className="font-semibold text-red-600 dark:text-red-400 text-sm mb-3 flex items-center gap-2">
+                            <span className="text-lg">⚠</span> Weaknesses
+                          </p>
+                          <ul className="space-y-2">
                             {competitor.weaknesses.map((w, i) => (
-                              <li key={i} className="text-muted-foreground">• {w}</li>
+                              <li key={i} className="text-sm text-foreground/90 flex items-start gap-2">
+                                <span className="text-red-500 mt-0.5">•</span>
+                                <span>{w}</span>
+                              </li>
                             ))}
                           </ul>
                         </div>
