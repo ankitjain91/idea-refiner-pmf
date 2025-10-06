@@ -306,6 +306,24 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     return `${(value / 1000).toFixed(0)}K`;
   };
   
+  // Parse dollar amounts from marketData strings
+  const parseDollarAmount = (str: string | number): number => {
+    if (typeof str === 'number') return str;
+    if (!str) return 0;
+    const match = String(str).match(/\$?([\d.]+)\s*([BMK])?/i);
+    if (!match) return 0;
+    
+    const value = parseFloat(match[1]);
+    const unit = match[2]?.toUpperCase();
+    
+    switch (unit) {
+      case 'B': return value * 1000000000;
+      case 'M': return value * 1000000;
+      case 'K': return value * 1000;
+      default: return value;
+    }
+  };
+  
   // Calculate totals from regional data FIRST
   const totalTAM = regionalData.reduce((sum, r) => sum + r.tam, 0);
   const totalSAM = regionalData.reduce((sum, r) => sum + r.sam, 0);
@@ -315,11 +333,16 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   // This ensures consistency between Market Analysis and Global Market Overview
   const overallMetrics = useMemo(() => {
     const metrics = marketData?.market_size?.metrics || marketData?.metrics;
-    if (metrics) {
+    if (metrics && (metrics.tam || metrics.sam || metrics.som)) {
+      // Parse the metrics properly
+      const tamValue = parseDollarAmount(metrics.tam);
+      const samValue = parseDollarAmount(metrics.sam);
+      const somValue = parseDollarAmount(metrics.som);
+      
       return {
-        tam: metrics.tam || `$${(totalTAM / 1000000000).toFixed(2)}B`,
-        sam: metrics.sam || `$${(totalSAM / 1000000000).toFixed(2)}B`,
-        som: metrics.som || `$${(totalSOM / 1000000000).toFixed(2)}B`
+        tam: tamValue > 0 ? formatCurrency(tamValue) : formatCurrency(totalTAM),
+        sam: samValue > 0 ? formatCurrency(samValue) : formatCurrency(totalSAM),
+        som: somValue > 0 ? formatCurrency(somValue) : formatCurrency(totalSOM)
       };
     }
     return {
@@ -362,6 +385,61 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     if (value > 0.2) return "hsl(var(--primary) / 0.6)";
     return "hsl(var(--primary) / 0.4)";
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Globe2 className="h-5 w-5 text-primary animate-pulse" />
+              </div>
+              <CardTitle className="text-lg font-semibold">Global Market Overview</CardTitle>
+            </div>
+            <Badge variant="secondary" className="animate-pulse">
+              <Activity className="h-3 w-3 mr-1" />
+              Loading...
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <Globe2 className="h-16 w-16 text-primary/60" />
+            </motion.div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Analyzing Global Markets</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Gathering regional data and market insights...
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                className="h-2 w-2 rounded-full bg-primary"
+              />
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                className="h-2 w-2 rounded-full bg-primary"
+              />
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                className="h-2 w-2 rounded-full bg-primary"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Show empty state if no data
   if (regionalData.length === 0 || totalTAM === 0) {
@@ -434,14 +512,14 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
           {/* Enhanced Interactive SVG World Map */}
           <div className="relative aspect-[2/1] rounded-xl bg-gradient-to-br from-primary/5 via-background to-primary/10 border border-border/50 overflow-hidden group">
             
-            <div ref={containerRef} className="relative w-full rounded-2xl overflow-hidden transition-all duration-700" style={{ height: containerSize.h }}>
+            <div ref={containerRef} className="relative w-full rounded-2xl overflow-hidden transition-all duration-700" style={{ height: containerSize.h || 400 }}>
               {/* Satellite background with subtle animation */}
               <motion.img 
                 src={satUrl} 
                 alt="World Satellite" 
                 className="absolute inset-0 w-full h-full object-cover opacity-80"
-                initial={{ scale: 1 }}
-                animate={{ scale: 1.02 }}
+                initial={{ scale: 1, opacity: 0 }}
+                animate={{ scale: 1.02, opacity: 0.8 }}
                 transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
               />
               
