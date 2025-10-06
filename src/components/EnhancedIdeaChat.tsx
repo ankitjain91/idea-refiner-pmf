@@ -236,81 +236,52 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const { toast } = useToast();
   const location = useLocation();
   
-  // ALWAYS load session from DB on mount
+  // Sync component state when currentSession changes (e.g., after URL-based session load)
   useEffect(() => {
-    const loadSessionFromDB = async () => {
-      const sid = localStorage.getItem('currentSessionId');
-      if (!sid) {
-        console.log('[EnhancedIdeaChat] No session ID found');
-        return;
-      }
+    if (!currentSession) {
+      console.log('[EnhancedIdeaChat] No current session');
+      return;
+    }
+    
+    console.log(`[EnhancedIdeaChat] Session changed: ${currentSession.id} - Syncing state`);
+    
+    const sessionData = currentSession.data;
+    
+    // Restore chat history
+    if (sessionData?.chatHistory && Array.isArray(sessionData.chatHistory)) {
+      console.log(`[EnhancedIdeaChat] ✅ Loaded ${sessionData.chatHistory.length} messages from session`);
+      setMessages(sessionData.chatHistory);
+      setConversationStarted(sessionData.chatHistory.length > 0);
       
-      console.log('[EnhancedIdeaChat] Loading session from database:', sid);
+      // Update localStorage for persistence
+      localStorage.setItem(`session_${currentSession.id}_messages`, JSON.stringify(sessionData.chatHistory));
+      localStorage.setItem('chatHistory', JSON.stringify(sessionData.chatHistory));
+    }
+    
+    // Restore idea
+    if (sessionData?.currentIdea) {
+      console.log('[EnhancedIdeaChat] ✅ Restored idea from session');
+      setCurrentIdea(sessionData.currentIdea);
+      setHasValidIdea(true);
       
-      try {
-        const { data, error } = await supabase
-          .from('brainstorming_sessions')
-          .select('state')
-          .eq('id', sid)
-          .maybeSingle();
-          
-        if (error) {
-          console.error('[EnhancedIdeaChat] Database fetch error:', error);
-          return;
-        }
-        
-        if (!data) {
-          console.log('[EnhancedIdeaChat] No session found in database with ID:', sid);
-          return;
-        }
-        
-        const state = data.state as any;
-        
-        // Restore chat history
-        if (state?.chatHistory && Array.isArray(state.chatHistory) && state.chatHistory.length > 0) {
-          console.log(`[EnhancedIdeaChat] ✅ Loaded ${state.chatHistory.length} messages from DB`);
-          setMessages(state.chatHistory);
-          setConversationStarted(true);
-          // Update BOTH session-specific AND unified keys
-          localStorage.setItem(`session_${sid}_messages`, JSON.stringify(state.chatHistory));
-          localStorage.setItem('chatHistory', JSON.stringify(state.chatHistory));
-        }
-        
-        // Restore idea
-        if (state?.currentIdea) {
-          console.log('[EnhancedIdeaChat] ✅ Restored idea from DB');
-          setCurrentIdea(state.currentIdea);
-          setHasValidIdea(true);
-          // Update BOTH session-specific AND unified keys
-          localStorage.setItem(`session_${sid}_idea`, state.currentIdea);
-          localStorage.setItem('userIdea', state.currentIdea);
-          localStorage.setItem('currentIdea', state.currentIdea);
-        }
-        
-        // Restore wrinkle points
-        if (typeof state?.wrinklePoints === 'number') {
-          setWrinklePoints(state.wrinklePoints);
-          localStorage.setItem('wrinklePoints', state.wrinklePoints.toString());
-        }
-        
-        // Restore conversation summary
-        if (state?.conversationSummary) {
-          setConversationSummary(state.conversationSummary);
-          localStorage.setItem(`session_${sid}_summary`, state.conversationSummary);
-        }
-      } catch (e) {
-        console.error('[EnhancedIdeaChat] Failed to load from database:', e);
-      }
-    };
+      // Update localStorage
+      localStorage.setItem(`session_${currentSession.id}_idea`, sessionData.currentIdea);
+      localStorage.setItem('userIdea', sessionData.currentIdea);
+      localStorage.setItem('currentIdea', sessionData.currentIdea);
+    }
     
-    loadSessionFromDB();
+    // Restore wrinkle points
+    if (typeof sessionData?.wrinklePoints === 'number') {
+      setWrinklePoints(sessionData.wrinklePoints);
+      localStorage.setItem('wrinklePoints', sessionData.wrinklePoints.toString());
+    }
     
-    window.addEventListener('session:loaded', loadSessionFromDB);
-    
-    return () => {
-      window.removeEventListener('session:loaded', loadSessionFromDB);
-    };
-  }, []);
+    // Restore conversation summary
+    if (sessionData?.conversationSummary) {
+      setConversationSummary(sessionData.conversationSummary);
+      localStorage.setItem(`session_${currentSession.id}_summary`, sessionData.conversationSummary);
+    }
+  }, [currentSession?.id]); // Re-run when session ID changes
   
   // Update user message count whenever messages change
   useEffect(() => {

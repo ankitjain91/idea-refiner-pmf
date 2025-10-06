@@ -10,6 +10,7 @@ interface SessionData {
   pmfScore?: number;
   analysisCompleted: boolean;
   wrinklePoints?: number;
+  conversationSummary?: string;
   lastActivity: string;
   // Dashboard specific data
   dashboardData?: {
@@ -153,6 +154,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Get wrinkle points if available
       const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
       
+      // Get conversation summary if available
+      const conversationSummary = sid ? localStorage.getItem(`session_${sid}_summary`) || '' : '';
+      
       // Collect ALL dashboard data
       const dashboardData: any = {
         // Core metrics
@@ -219,6 +223,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         pmfScore: isNaN(pmfScore) ? 0 : pmfScore,
         analysisCompleted,
         wrinklePoints: isNaN(wrinklePoints) ? 0 : wrinklePoints,
+        conversationSummary,
         lastActivity: new Date().toISOString(),
         dashboardData
       };
@@ -460,6 +465,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         pmfScore: typeof rawState.pmfScore === 'number' ? rawState.pmfScore : 0,
         analysisCompleted: !!rawState.analysisCompleted,
         wrinklePoints: typeof rawState.wrinklePoints === 'number' ? rawState.wrinklePoints : 0,
+        conversationSummary: typeof rawState.conversationSummary === 'string' ? rawState.conversationSummary : '',
         lastActivity: rawState.lastActivity || data.updated_at,
         dashboardData: rawState.dashboardData ?? {}
       };
@@ -560,6 +566,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Restore wrinkle points if available
       if (session.data.wrinklePoints !== undefined) {
         localStorage.setItem('wrinklePoints', String(session.data.wrinklePoints));
+      }
+      
+      // Restore conversation summary if available
+      if (session.data.conversationSummary) {
+        localStorage.setItem(`session_${sessionId}_summary`, session.data.conversationSummary);
       }
       
       // Restore dashboard data if available
