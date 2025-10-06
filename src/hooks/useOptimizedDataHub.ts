@@ -356,6 +356,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
             }
             
             // Convert optimized format to TileData format
+            const isReddit = tileType === 'reddit_sentiment';
             const tileData: TileData = {
               metrics: optimizedData.metrics || {},
               explanation: optimizedData.insights?.summary || 
@@ -365,7 +366,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
                 typeof c === 'string' ? { url: c, title: 'Source', source: 'Web', relevance: 0.8 } : c
               ) || [],
               charts: [],
-              json: optimizedData.items?.[0] || optimizedData.metrics || {},
+              json: isReddit ? ((optimizedData as any).data || {}) : (optimizedData.items?.[0] || optimizedData.metrics || {}),
               confidence: optimizedData.confidence || 0.7,
               dataQuality: optimizedData.confidence > 0.8 ? 'high' : 
                            optimizedData.confidence > 0.6 ? 'medium' : 'low',

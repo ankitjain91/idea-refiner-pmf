@@ -75,7 +75,7 @@ export class OptimizedDashboardService {
     
     // Define all unique sources across all tiles
     const allSources = new Set([
-      'social-sentiment', 'reddit-sentiment', 'twitter-search', 'gdelt-news',
+      'social-sentiment', 'reddit-sentiment', 'reddit-research', 'twitter-search', 'gdelt-news',
       'market-insights', 'competitive-landscape', 'web-search-optimized', 
       'serper-batch-search', 'market-size-analysis', 'market-intelligence',
       'youtube-search', 'news-analysis', 'launch-timeline', 'execution-insights',
@@ -225,6 +225,7 @@ export class OptimizedDashboardService {
     // Define multiple sources for each tile type to enrich data
     const enrichmentMap: Record<string, string[]> = {
       sentiment: ['social-sentiment', 'reddit-sentiment', 'twitter-search', 'gdelt-news'],
+      reddit_sentiment: ['reddit-research', 'reddit-sentiment', 'social-sentiment'],
       market_size: ['market-size-analysis', 'market-intelligence', 'competitive-landscape'],
       competition: ['competitive-landscape', 'web-search-optimized', 'serper-batch-search'],
       'market-trends': ['market-insights', 'gdelt-news', 'web-search-optimized', 'youtube-search'],
@@ -329,13 +330,14 @@ export class OptimizedDashboardService {
       return this.aggregateGoogleTrendsData(responses);
     } else if (tileType === 'news_analysis' || tileType === 'news-analysis') {
       return this.aggregateNewsAnalysisData(responses);
+    } else if (tileType === 'reddit_sentiment') {
+      // Prefer rich Reddit research payload when available
+      const redditResp = responses.find(r => (r.source || '').includes('reddit-research'));
+      const data = redditResp?.rawResponse || responses.find(r => (r.source || '').includes('reddit-sentiment'))?.rawResponse || {};
+      const sourceIds = responses.map(r => r.id || r.source || '');
+      const confidence = data && Object.keys(data).length > 0 ? 0.85 : 0.4;
+      return { data, confidence, sourceIds };
     }
-    
-    return {
-      data: aggregationResult.data || {},
-      confidence: aggregationResult.confidence,
-      sourceIds: responses.map(r => r.id || '')
-    };
   }
   
   private aggregateMarketTrendsData(responses: any[]): { data: any; confidence: number; sourceIds: string[] } {
@@ -819,14 +821,19 @@ export class OptimizedDashboardService {
           query: idea,
           type: 'sentiment'
         };
-    } else if (endpoint === 'youtube-search') {
-      requestBody = {
-        query: idea,
-        maxResults: 25
-      };
-    } else if (endpoint === 'news-analysis') {
-      requestBody = { idea };
-    }
+      } else if (endpoint === 'youtube-search') {
+        requestBody = {
+          query: idea,
+          maxResults: 25
+        };
+      } else if (endpoint === 'news-analysis') {
+        requestBody = { idea };
+      } else if (endpoint === 'reddit-research') {
+        requestBody = {
+          idea_text: idea,
+          time_window: 'week'
+        };
+      }
       
       const { data, error } = await supabase.functions.invoke(endpoint, {
         body: requestBody
@@ -844,6 +851,7 @@ export class OptimizedDashboardService {
   private getEndpointForSource(source: string): string {
     const endpointMap: Record<string, string> = {
       'reddit-sentiment': 'reddit-sentiment',
+      'reddit-research': 'reddit-research',
       'twitter-search': 'twitter-search',
       'social-sentiment': 'social-sentiment',
       'market-insights': 'market-insights',
