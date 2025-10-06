@@ -775,10 +775,20 @@ export function useOptimizedDataHub(input: DataHubInput) {
   
   const refresh = useCallback(async () => {
     hasFetchedRef.current = false;
-    // DON'T clear cache - keep existing data visible while fetching fresh data
-    // This prevents the "data disappears" issue
+    
+    // CRITICAL: Clear cache for this idea to force fresh API calls
+    const normalizedIdea = input.idea?.trim().toLowerCase();
+    if (normalizedIdea) {
+      const cacheKey = getCacheKeyForIdea('datahub', normalizedIdea);
+      localStorage.removeItem(cacheKey);
+      console.log('[OptimizedDataHub] Cache invalidated for refresh');
+    }
+    
+    // Clear UnifiedResponseCache for this idea
+    await cache.current.invalidateIdea(input.idea);
+    
     return fetchDataHub(true);
-  }, [fetchDataHub]);
+  }, [fetchDataHub, input.idea]);
   
   const refreshTile = useCallback(async (tileType: string) => {
     if (!input.idea) return;
@@ -790,8 +800,9 @@ export function useOptimizedDataHub(input: DataHubInput) {
     }));
     
     try {
-      // DON'T clear cache - keep existing data visible while refreshing
-      // This prevents data from disappearing during refresh
+      // CRITICAL: Clear cache for this specific tile to force fresh API call
+      await cache.current.invalidateTile(input.idea, tileType);
+      console.log(`[OptimizedDataHub] Cache invalidated for tile: ${tileType}`);
       
       // Special handling for market_size to ensure real-time service is used
       if (tileType === 'market_size') {

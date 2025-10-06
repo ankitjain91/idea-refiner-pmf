@@ -245,6 +245,38 @@ export class UnifiedResponseCache {
     console.log(`Cleared all cache entries for idea: ${idea}`);
   }
   
+  async invalidateIdea(idea: string): Promise<void> {
+    // Alias for clearForIdea for semantic clarity
+    await this.clearForIdea(idea);
+  }
+  
+  async invalidateTile(idea: string, tileType: string): Promise<void> {
+    // Clear cache for specific tile endpoint
+    const allResponses = await this.db.getAllResponses();
+    const toKeep = allResponses.filter(r => {
+      if (r.idea !== idea) return true;
+      // Remove if endpoint matches tile type
+      return !(r.endpoint.includes(tileType) || r.source.includes(tileType));
+    });
+    
+    // Clear all
+    await this.db.clearAllResponses();
+    
+    // Re-store the ones we want to keep
+    for (const response of toKeep) {
+      await this.db.storeResponse(response);
+    }
+    
+    // Clear from memory cache
+    Array.from(this.memoryCache.entries()).forEach(([id, response]) => {
+      if (response.idea === idea && (response.endpoint.includes(tileType) || response.source.includes(tileType))) {
+        this.memoryCache.delete(id);
+      }
+    });
+    
+    console.log(`Invalidated cache for tile: ${tileType}, idea: ${idea}`);
+  }
+  
   private generateId(idea: string, source: string, endpoint: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);
