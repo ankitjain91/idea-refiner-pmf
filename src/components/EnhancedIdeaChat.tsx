@@ -2557,12 +2557,12 @@ User submission: """${messageText}"""`;
     const newPinned = !isPinned;
     
     if (newPinned && conversationSummary) {
-      // Lock in the summary when pinning
-      lockedIdeaManager.setLockedIdea(conversationSummary);
-      console.log('[EnhancedIdeaChat] Locked summary:', conversationSummary);
+      // Just update pin status, don't auto-lock
+      lockedIdeaManager.setPinned(true);
+      console.log('[EnhancedIdeaChat] Conversation pinned (idea not locked)');
       toast({
-        title: "Idea Locked In! 🔒",
-        description: "Your conversation summary is now locked and will be used across the dashboard.",
+        title: "Conversation Pinned! 📌",
+        description: "Your conversation is pinned. Use the Lock button to lock the idea for dashboard.",
       });
     } else if (!newPinned) {
       // Clear lock when unpinning
