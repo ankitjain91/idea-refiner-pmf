@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { LS_KEYS } from '@/lib/storage-keys';
 
 export interface MarketSizeData {
   TAM: string;
@@ -69,11 +70,36 @@ export function useMarketSizeData(idea?: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { currentSession } = useSession();
-  
-  const currentIdea = idea || currentSession?.data?.currentIdea || localStorage.getItem('current_idea') || '';
+
+  // Resolve and normalize the current idea from multiple known sources
+  const resolveIdea = () => {
+    try {
+      const fromProp = idea?.trim();
+      if (fromProp) return fromProp;
+      const fromSession = currentSession?.data?.currentIdea?.trim();
+      if (fromSession) return fromSession;
+      const fromUserIdea = localStorage.getItem(LS_KEYS.userIdea)?.trim();
+      if (fromUserIdea) return fromUserIdea;
+      const appIdeaRaw = localStorage.getItem('appIdea');
+      if (appIdeaRaw) {
+        try {
+          const parsed = JSON.parse(appIdeaRaw);
+          const summary = typeof parsed?.summary === 'string' ? parsed.summary.trim() : '';
+          if (summary) return summary;
+        } catch {}
+      }
+      const legacy = localStorage.getItem('current_idea')?.trim();
+      if (legacy) return legacy;
+    } catch {}
+    return '';
+  };
+
+  const resolvedIdea = resolveIdea();
+  const normalizedIdea = resolvedIdea ? resolvedIdea.trim().toLowerCase() : '';
+  const CACHE_KEY = normalizedIdea ? `pmf.market_size:${normalizedIdea}` : '';
 
   const fetchMarketData = async () => {
-    if (!currentIdea) {
+    if (!resolvedIdea) {
       setError('No idea provided');
       return;
     }
@@ -83,7 +109,7 @@ export function useMarketSizeData(idea?: string) {
     
     try {
       const { data: result, error: functionError } = await supabase.functions.invoke('market-size-analysis', {
-        body: { idea: currentIdea }
+        body: { idea: resolvedIdea }
       });
 
       if (functionError) {
@@ -97,8 +123,10 @@ export function useMarketSizeData(idea?: string) {
         setData(result);
         // Cache per-idea to persist across tab changes and reloads
         try {
-          localStorage.setItem(`market_size_data:${currentIdea}`, JSON.stringify(result));
-          localStorage.setItem('lastFetchedIdea', currentIdea);
+          if (CACHE_KEY) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(result));
+            localStorage.setItem('lastFetchedIdea', normalizedIdea);
+          }
         } catch (e) {
           console.warn('Failed to cache market size data', e);
         }
@@ -112,17 +140,19 @@ export function useMarketSizeData(idea?: string) {
   };
 
   useEffect(() => {
-    if (!currentIdea) return;
+    if (!resolvedIdea) return;
 
     // Try to load cached data for this idea first
     try {
-      const cached = localStorage.getItem(`market_size_data:${currentIdea}`);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        setData(parsed);
-        setError(null);
-        localStorage.setItem('lastFetchedIdea', currentIdea);
-        return; // Skip network fetch when cache exists
+      if (CACHE_KEY) {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setData(parsed);
+          setError(null);
+          localStorage.setItem('lastFetchedIdea', normalizedIdea);
+          return; // Skip network fetch when cache exists
+        }
       }
     } catch (e) {
       console.warn('Failed to read cached market size data', e);
@@ -132,7 +162,7 @@ export function useMarketSizeData(idea?: string) {
     if (!data) {
       fetchMarketData();
     }
-  }, [currentIdea]);
+  }, [normalizedIdea]);
 
   return {
     data,
