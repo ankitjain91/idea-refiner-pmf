@@ -11,15 +11,15 @@ Comprehensive AI credits tracking system that monitors AI/LLM usage across the a
 - **idea-chat**: 15 credits per message (main chat interface)
 - **groq-conversation-summary**: 10 credits per summary
 - **generate-suggestions**: 5 credits per generation
-- **tile-ai-chat**: 25 credits per tile analysis (to be implemented)
-- **Dashboard tiles**: 2-8 credits per refresh (to be implemented)
+- **tile-ai-chat**: 25 credits per tile analysis
+- **data-hub**: 2 credits per tile generated (dashboard generation)
 
 #### Edge Functions Updated
 1. ✅ **idea-chat** - Tracks 15 credits per user message
 2. ✅ **groq-conversation-summary** - Tracks 10 credits per summary
 3. ✅ **generate-suggestions** - Tracks 5 credits per suggestion generation
-4. ⏳ **tile-ai-chat** - Needs implementation
-5. ⏳ **Data hub orchestrator functions** - Needs implementation
+4. ✅ **tile-ai-chat** - Tracks 25 credits per tile chat
+5. ✅ **data-hub** - Tracks 2 credits per tile (dashboard generation)
 
 #### Tracking Implementation
 Each edge function now:

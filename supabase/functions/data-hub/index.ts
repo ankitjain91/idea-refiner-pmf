@@ -129,6 +129,45 @@ serve(async (req: Request) => {
       }
     }
 
+  // Track AI credits usage if user is authenticated
+  const authHeader = req.headers.get('Authorization');
+  if (authHeader) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+      
+      if (user?.id) {
+        // Calculate credits based on tiles generated
+        const tilesGenerated = Object.keys(resultTiles).length;
+        const creditsUsed = tilesGenerated * 2; // 2 credits per tile
+        
+        // Get current billing period
+        const { data: periodData } = await supabase.rpc('get_current_billing_period');
+        const billingPeriodStart = periodData?.[0]?.period_start || new Date().toISOString();
+        const billingPeriodEnd = periodData?.[0]?.period_end || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        
+        // Increment AI credits usage
+        await supabase.rpc('increment_usage', {
+          _user_id: user.id,
+          _type: 'ai_credits',
+          _amount: creditsUsed
+        });
+        
+        // Log detailed usage
+        await supabase.from('ai_credits_usage').insert({
+          user_id: user.id,
+          operation_type: 'data-hub',
+          credits_used: creditsUsed,
+          billing_period_start: billingPeriodStart,
+          billing_period_end: billingPeriodEnd
+        });
+        
+        console.log('[data-hub] Tracked AI credits:', creditsUsed, 'for', tilesGenerated, 'tiles');
+      }
+    } catch (error) {
+      console.error('[data-hub] Error tracking AI credits:', error);
+    }
+  }
+
   const responseMeta = { ...meta, errors: metaErrors.length ? metaErrors : undefined };
   return new Response(JSON.stringify({ success: true, tiles: resultTiles, meta: responseMeta }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e: any) {
