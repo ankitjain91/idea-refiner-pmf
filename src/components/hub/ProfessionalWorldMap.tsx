@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Globe2, TrendingUp, DollarSign, Users, Activity, MapPin, BarChart, Maximize2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLockedIdea } from "@/lib/lockedIdeaManager";
 
 // Satellite background + equirectangular projection for markers
 const satUrl = "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73909/world.topo.bathy.200412.3x5400x2700.jpg"; // contains "world.topo.bathy"
@@ -39,6 +40,9 @@ interface ProfessionalWorldMapProps {
 export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const { lockedIdea } = useLockedIdea();
+  const [cachedRegions, setCachedRegions] = useState<RegionData[]>([]);
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -54,6 +58,23 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   const [viewType, setViewType] = useState<"market" | "growth" | "penetration">("market");
   const [hoveredRegion, setHoveredRegion] = useState<RegionData | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<RegionData | null>(null);
+  
+  // Restore cached data on mount
+  useEffect(() => {
+    if (lockedIdea && cachedRegions.length === 0) {
+      const cacheKey = `worldmap_data_${lockedIdea.slice(0, 50)}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsedData = JSON.parse(cached);
+          setCachedRegions(parsedData);
+          console.log('[ProfessionalWorldMap] Restored cached data:', parsedData.length, 'regions');
+        } catch (e) {
+          console.error('[ProfessionalWorldMap] Failed to restore cached data:', e);
+        }
+      }
+    }
+  }, [lockedIdea, cachedRegions.length]);
   
   // Extract real data from marketData prop or use intelligent defaults
   const extractRegionalData = (): RegionData[] => {
@@ -249,10 +270,21 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     }
 
     console.log('[ProfessionalWorldMap] No valid market data available');
-    return [];
+    // Return cached data if available instead of empty array
+    return cachedRegions.length > 0 ? cachedRegions : [];
   };
 
   const regions = extractRegionalData();
+  
+  // Persist to cache whenever we have new valid data
+  useEffect(() => {
+    if (regions.length > 0 && lockedIdea) {
+      const cacheKey = `worldmap_data_${lockedIdea.slice(0, 50)}`;
+      localStorage.setItem(cacheKey, JSON.stringify(regions));
+      setCachedRegions(regions);
+      console.log('[ProfessionalWorldMap] Cached', regions.length, 'regions');
+    }
+  }, [regions.length, lockedIdea]);
   
   const totalTAM = regions.reduce((sum, r) => sum + r.tam, 0);
   const totalSAM = regions.reduce((sum, r) => sum + r.sam, 0);
