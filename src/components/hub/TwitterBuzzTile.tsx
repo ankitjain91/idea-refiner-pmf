@@ -438,7 +438,7 @@ export function TwitterBuzzTile({ data, loading = false, onRefresh }: TwitterBuz
                         {tweet?.metrics?.reply_count ?? tweet?.replies ?? 0}
                       </span>
                     </div>
-                    {tweet.url && (
+                    {tweet.url && tweet.url !== '#' && tweet.url !== '' && (
                       <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
                         <a href={tweet.url} target="_blank" rel="noopener noreferrer">
                           View on Twitter →

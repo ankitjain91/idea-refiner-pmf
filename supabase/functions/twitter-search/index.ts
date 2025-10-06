@@ -104,7 +104,7 @@ Be realistic - not every idea will have massive engagement. Return only JSON.`;
           like_count: parsed.engagement?.avg_likes || 12,
           retweet_count: parsed.engagement?.avg_retweets || 3
         },
-        url: '#'
+        url: '' // Empty URL for AI-generated tweets - no link will be shown
       })),
       clusters: [{
         cluster_id: 'ai_generated',

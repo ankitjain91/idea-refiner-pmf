@@ -193,7 +193,7 @@ export function ComprehensiveTwitterTile({ data, loading }: Props) {
                       {tweet?.created_at && (
                         <span className="ml-auto">{new Date(tweet.created_at).toLocaleDateString()}</span>
                       )}
-                      {tweet?.url && (
+                      {tweet?.url && tweet.url !== '#' && tweet.url !== '' && (
                         <Button variant="ghost" size="sm" className="h-6 text-xs" asChild>
                           <a href={tweet.url} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-3 w-3 mr-1" />

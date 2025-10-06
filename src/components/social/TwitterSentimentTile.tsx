@@ -579,7 +579,7 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
                           {(tweet as any)?.metrics?.reply_count ?? (tweet as any)?.replies ?? 0}
                         </span>
                       </div>
-                      {(tweet as any)?.url && (
+                      {(tweet as any)?.url && (tweet as any).url !== '#' && (tweet as any).url !== '' && (
                         <a 
                           href={(tweet as any).url} 
                           target="_blank" 
