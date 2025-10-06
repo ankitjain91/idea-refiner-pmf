@@ -53,7 +53,6 @@ export interface SearchResult {
   fetchedAt: string;
   relevanceScore: number;
 }
-}
 
 export interface NewsItem {
   publisher: string;
@@ -248,7 +247,6 @@ export class DataHubOrchestrator {
   public async executeFetchPlan(plan: FetchPlanItem[]): Promise<DataHubIndices> {
     return this.dataHub;
   }
-  }[]> = new Map();
 
   // Tile caching
   private tileCache = new Map<string, {
@@ -481,50 +479,6 @@ export class DataHubOrchestrator {
         // Reject all pending requests on error
         requests.forEach(({ reject }) => reject(error));
       }
-    }
-  }
-            tileData = this.synthesizeCompetition();
-            break;
-          case 'sentiment':
-            tileData = this.synthesizeSentiment();
-            break;
-          case 'market_trends':
-            tileData = this.synthesizeMarketTrends();
-            break;
-          case 'google_trends':
-            tileData = this.synthesizeGoogleTrends();
-            break;
-          case 'web_search':
-            tileData = this.synthesizeWebSearch();
-            break;
-          case 'reddit_sentiment':
-            tileData = this.synthesizeRedditSentiment();
-            break;
-          case 'twitter_buzz':
-            tileData = this.synthesizeTwitterBuzz();
-            break;
-          default:
-            tileData = baseData;
-        }
-
-        // Cache the result
-        const cacheKey = `${this.input.idea}_${tileType}`;
-        this.tileCache.set(cacheKey, {
-          data: tileData,
-          timestamp: Date.now()
-        });
-
-        // Resolve all pending requests for this tile type
-        requests.forEach(({ resolve }) => resolve(tileData));
-      } catch (error) {
-        // Reject all pending requests on error
-        requests.forEach(({ reject }) => reject(error));
-      }
-        return this.synthesizeCompetitiveAdvantage();
-      case 'risk_assessment':
-        return this.synthesizeRiskAssessment();
-      default:
-        return baseData;
     }
   }
 
