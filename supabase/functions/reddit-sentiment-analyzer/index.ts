@@ -66,28 +66,38 @@ serve(async (req) => {
     const { access_token } = await tokenResponse.json();
     console.log('[reddit-sentiment-analyzer] Got Reddit access token');
 
-    // Extract better keywords from idea - focus on problem/solution
+    // Extract better keywords from idea - focus on core concepts
     const extractKeywords = (text: string): string => {
-      // Remove common words and get meaningful terms
-      const stopWords = ['this', 'that', 'with', 'from', 'have', 'using', 'for', 'the', 'and', 'or'];
-      const words = text.toLowerCase().split(/\s+/);
+      const lowerText = text.toLowerCase();
       
-      // Prioritize unique domain-specific words
-      const meaningfulWords = words
-        .filter((word: string) => word.length > 4 && !stopWords.includes(word))
-        .slice(0, 4);
+      // Extract noun phrases and key concepts (2-3 word combinations)
+      const words = lowerText.split(/\s+/).filter(w => w.length > 2);
       
-      // If we have "virtual" + specific domain, combine them
-      const hasVirtual = words.includes('virtual');
-      const domain = meaningfulWords.find((w: string) => 
-        ['travel', 'reality', 'tours', 'experiences'].includes(w)
-      );
+      // Common stop words to ignore
+      const stopWords = ['this', 'that', 'with', 'from', 'have', 'been', 'using', 
+                         'for', 'the', 'and', 'or', 'but', 'are', 'was', 'will', 
+                         'can', 'would', 'could', 'should', 'into', 'about'];
       
-      if (hasVirtual && domain) {
-        return `"virtual ${domain}" OR "${domain} accessibility" OR "immersive ${domain}"`;
+      // Get meaningful words
+      const meaningful = words.filter(w => !stopWords.includes(w) && w.length > 3);
+      
+      // Try to identify key phrases (2 consecutive meaningful words)
+      const phrases: string[] = [];
+      for (let i = 0; i < meaningful.length - 1; i++) {
+        if (meaningful[i].length > 3 && meaningful[i + 1].length > 3) {
+          phrases.push(`"${meaningful[i]} ${meaningful[i + 1]}"`);
+        }
       }
       
-      return meaningfulWords.slice(0, 3).join(' OR ');
+      // If we found good phrases, use them
+      if (phrases.length > 0) {
+        // Add the top 2-3 single keywords as alternatives
+        const topKeywords = meaningful.slice(0, 2).map(w => w);
+        return `${phrases.slice(0, 2).join(' OR ')} OR ${topKeywords.join(' OR ')}`;
+      }
+      
+      // Fallback to top keywords only
+      return meaningful.slice(0, 4).join(' OR ');
     };
 
     const searchQuery = encodeURIComponent(extractKeywords(idea));
