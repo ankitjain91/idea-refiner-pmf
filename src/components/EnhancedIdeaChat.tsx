@@ -2443,7 +2443,7 @@ User submission: """${messageText}"""`;
             wrinkleTierLabel={wrinkleTierLabel}
             dynamicBrainTooltip={dynamicBrainTooltip}
           />
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <h3 className="font-extrabold tracking-tight fluid-text-xl leading-tight select-text">
                 {displaySessionName}
@@ -2458,60 +2458,58 @@ User submission: """${messageText}"""`;
                 <RotateCcw className="h-3.5 w-3.5" />
               </Button>
             </div>
-            <p className="fluid-text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+            <p className="fluid-text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[0.75rem] tracking-tight text-primary/90">{wrinklePoints.toFixed(1)}</span>
               <span className="text-[0.65rem] uppercase tracking-wide font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">Wrinkles</span>
             {currentSession?.is_anonymous && (
               <span className="text-[0.65rem] uppercase tracking-wide font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Anonymous</span>
             )}
           </p>
+          
+          {/* Idea Summary Button with Progress */}
+          <Button
+            variant={conversationSummary ? "default" : "outline"}
+            size="sm"
+            onClick={() => conversationSummary && setShowSummaryDialog(true)}
+            disabled={summaryLoading || !conversationSummary}
+            className={cn(
+              "gap-2 w-fit relative overflow-hidden transition-all duration-300",
+              conversationSummary && "shadow-md hover:shadow-lg",
+              summaryLoading && "cursor-wait"
+            )}
+          >
+            {/* Progress fill background */}
+            {summaryLoading && (
+              <motion.div
+                className="absolute inset-0 bg-primary/20"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 3, ease: "easeOut" }}
+              />
+            )}
+            
+            {/* Button content */}
+            <div className="relative z-10 flex items-center gap-2">
+              {summaryLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : conversationSummary ? (
+                <>
+                  <Lightbulb className="h-4 w-4" />
+                  <span>View Idea</span>
+                </>
+              ) : (
+                <>
+                  <Lightbulb className="h-4 w-4 opacity-50" />
+                  <span>No Idea Yet</span>
+                </>
+              )}
+            </div>
+          </Button>
           </div>
         </div>
-      </div>
-      
-      {/* Idea Summary Button with Progress */}
-      <div className="flex justify-end mt-3">
-        <Button
-          variant={conversationSummary ? "default" : "outline"}
-          size="sm"
-          onClick={() => conversationSummary && setShowSummaryDialog(true)}
-          disabled={summaryLoading || !conversationSummary}
-          className={cn(
-            "gap-2 min-w-[140px] relative overflow-hidden transition-all duration-300",
-            conversationSummary && "shadow-md hover:shadow-lg",
-            summaryLoading && "cursor-wait"
-          )}
-        >
-          {/* Progress fill background */}
-          {summaryLoading && (
-            <motion.div
-              className="absolute inset-0 bg-primary/20"
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 3, ease: "easeOut" }}
-            />
-          )}
-          
-          {/* Button content */}
-          <div className="relative z-10 flex items-center gap-2">
-            {summaryLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Generating...</span>
-              </>
-            ) : conversationSummary ? (
-              <>
-                <Lightbulb className="h-4 w-4" />
-                <span>View Idea</span>
-              </>
-            ) : (
-              <>
-                <Lightbulb className="h-4 w-4 opacity-50" />
-                <span>No Idea Yet</span>
-              </>
-            )}
-          </div>
-        </Button>
       </div>
     </div>
 
