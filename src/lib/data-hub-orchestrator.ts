@@ -123,6 +123,59 @@ export class DataHubOrchestrator {
     // Very lightweight synthesis to avoid type errors and keep UI flowing.
     const baseConfidence = 0.8;
 
+    // Special handling: attempt real twitter fetch if tileType is twitter_buzz
+    if (tileType === 'twitter_buzz') {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        // Derive a basic query from first search result title or fallback
+        const ideaHint = this.indices.SEARCH_INDEX[0]?.title?.slice(0, 80) || 'startup idea';
+        const { data, error } = await supabase.functions.invoke('twitter-search', { body: { idea: ideaHint } });
+        if (error) throw error;
+        const twitterBuzz = (data as any)?.twitter_buzz || data;
+        if (twitterBuzz) {
+          return {
+            metrics: {
+              tweets: twitterBuzz.metrics?.total_tweets || 0,
+              positive: twitterBuzz.metrics?.overall_sentiment?.positive || 0,
+              negative: twitterBuzz.metrics?.overall_sentiment?.negative || 0,
+              hashtags: (twitterBuzz.metrics?.top_hashtags || []).length || 0,
+              influencers: twitterBuzz.metrics?.influencers?.length || 0
+            },
+            explanation: twitterBuzz.summary || 'Twitter buzz analysis',
+            citations: (twitterBuzz.clusters?.[0]?.citations || []).map((c: any) => ({
+              url: c.url || 'https://twitter.com',
+              title: c.source || 'Twitter Source',
+              source: c.source || 'Twitter',
+              relevance: 0.8
+            })),
+            charts: [],
+            json: twitterBuzz,
+            confidence: twitterBuzz.confidence === 'High' ? 0.9 : twitterBuzz.confidence === 'Medium' ? 0.7 : 0.5,
+            dataQuality: 'medium'
+          };
+        }
+      } catch (err) {
+        console.warn('[DataHubOrchestrator] twitter_buzz live fetch failed, falling back:', err);
+      }
+      // Fallback placeholder if live fetch failed
+      return {
+        metrics: {
+          tweets: 0,
+          positive: 0,
+          negative: 0,
+          hashtags: 0,
+          influencers: 0,
+          placeholder: true
+        },
+        explanation: 'Twitter data unavailable (fallback placeholder).',
+        citations: [],
+        charts: [],
+        json: {},
+        confidence: 0.3,
+        dataQuality: 'low'
+      };
+    }
+
     const metrics: Record<string, any> = {
       tile: tileType,
       sources: {

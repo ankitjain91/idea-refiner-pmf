@@ -343,6 +343,70 @@ export function useOptimizedDataHub(input: DataHubInput) {
             return;
           }
           
+          // Direct Twitter fetch (bypass optimized service for reliability)
+          if (tileType === 'twitter_buzz') {
+            try {
+              const twitterData = await optimizedService.current.getDataForPlatform('twitter', input.idea);
+              // If platform service failed, call edge function directly
+              if (!twitterData) {
+                const { supabase } = await import('@/integrations/supabase/client');
+                const { data, error } = await supabase.functions.invoke('twitter-search', { body: { idea: input.idea } });
+                if (error) throw error;
+                const twitterBuzz = (data as any)?.twitter_buzz || data;
+                if (twitterBuzz) {
+                  const tileData: TileData = {
+                    metrics: {
+                      tweets: twitterBuzz.metrics?.total_tweets || 0,
+                      positive: twitterBuzz.metrics?.overall_sentiment?.positive || 0,
+                      negative: twitterBuzz.metrics?.overall_sentiment?.negative || 0,
+                      influencers: twitterBuzz.metrics?.influencers?.length || 0,
+                      hashtags: (twitterBuzz.metrics?.top_hashtags || []).length || 0
+                    },
+                    explanation: twitterBuzz.summary || 'Twitter buzz analysis',
+                    citations: (twitterBuzz.clusters?.[0]?.citations || []).map((c: any) => ({
+                      url: c.url || 'https://twitter.com',
+                      title: c.source || 'Twitter Source',
+                      source: c.source || 'Twitter',
+                      relevance: 0.8
+                    })),
+                    charts: [],
+                    json: twitterBuzz,
+                    confidence: twitterBuzz.confidence === 'High' ? 0.9 : twitterBuzz.confidence === 'Medium' ? 0.7 : 0.5,
+                    dataQuality: 'medium'
+                  };
+                  setState(prev => ({
+                    ...prev,
+                    tiles: { ...prev.tiles, [tileType]: tileData },
+                    loadingTasks: prev.loadingTasks.map(t =>
+                      t.id === tileType ? { ...t, status: 'complete' as const } : t
+                    )
+                  }));
+                  return;
+                }
+              } else {
+                const tileData: TileData = {
+                  metrics: twitterData.metrics || {},
+                  explanation: twitterData.insights?.summary || twitterData.notes || 'Twitter analysis',
+                  citations: (twitterData.citations || []).map((c: any) => typeof c === 'string' ? ({ url: c, title: 'Source', source: 'Twitter', relevance: 0.8 }) : c),
+                  charts: [],
+                  json: twitterData.items?.[0] || twitterData.metrics || {},
+                  confidence: twitterData.confidence || 0.7,
+                  dataQuality: (twitterData.confidence || 0.7) > 0.8 ? 'high' : (twitterData.confidence || 0.7) > 0.6 ? 'medium' : 'low'
+                };
+                setState(prev => ({
+                  ...prev,
+                  tiles: { ...prev.tiles, [tileType]: tileData },
+                  loadingTasks: prev.loadingTasks.map(t =>
+                    t.id === tileType ? { ...t, status: 'complete' as const } : t
+                  )
+                }));
+                return;
+              }
+            } catch (e) {
+              console.warn('[OptimizedDataHub] twitter_buzz fetch failed, falling back', e);
+            }
+          }
+
           // Use optimized service for other tiles
           const optimizedData = await optimizedService.current.getDataForTile(tileType, input.idea);
           
