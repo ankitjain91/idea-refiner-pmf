@@ -73,6 +73,44 @@ export async function clearAllCache(): Promise<void> {
 }
 
 /**
+ * Clear cache for a specific tile type
+ */
+export async function clearTileCache(tileId: string): Promise<void> {
+  console.log(`🧹 Clearing cache for tile: ${tileId}`);
+  
+  try {
+    // Clear localStorage keys for this tile
+    const localStorageKeys = Object.keys(localStorage);
+    const tileKeys = localStorageKeys.filter(key => 
+      key.includes(tileId) || 
+      key.includes(`tile_cache_${tileId}`) ||
+      key.includes(`cache:${tileId}`)
+    );
+    
+    tileKeys.forEach(key => localStorage.removeItem(key));
+    console.log(`✅ Cleared ${tileKeys.length} localStorage items for ${tileId}`);
+    
+    // Clear sessionStorage keys for this tile
+    const sessionStorageKeys = Object.keys(sessionStorage);
+    const tileSessionKeys = sessionStorageKeys.filter(key => key.includes(tileId));
+    
+    tileSessionKeys.forEach(key => sessionStorage.removeItem(key));
+    console.log(`✅ Cleared ${tileSessionKeys.length} sessionStorage items for ${tileId}`);
+    
+    // Clear IndexedDB entries for this tile
+    const cache = UnifiedResponseCache.getInstance();
+    // Note: UnifiedResponseCache doesn't have a tile-specific clear method
+    // but we can clear expired entries which will help
+    await cache.clearExpired();
+    
+    console.log(`✅ Cache cleared for tile: ${tileId}`);
+  } catch (error) {
+    console.error(`❌ Error clearing cache for tile ${tileId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Get cache statistics
  */
 export async function getCacheStats(): Promise<{
