@@ -236,89 +236,75 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const { toast } = useToast();
   const location = useLocation();
   
-  // Listen for session changes and restore conversation - ENHANCED WITH RECOVERY
+  // ALWAYS load session from DB on mount
   useEffect(() => {
-    const handleSessionLoad = async () => {
+    const loadSessionFromDB = async () => {
       const sid = localStorage.getItem('currentSessionId');
       if (!sid) {
         console.log('[EnhancedIdeaChat] No session ID found');
         return;
       }
       
-      console.log('[EnhancedIdeaChat] Loading session:', sid);
-      
-      // CRITICAL: Always try database FIRST on page load/refresh
-      let parsedMessages = null;
+      console.log('[EnhancedIdeaChat] Loading session from database:', sid);
       
       try {
-        console.log('[EnhancedIdeaChat] Fetching from database...');
         const { data, error } = await supabase
           .from('brainstorming_sessions')
           .select('state')
           .eq('id', sid)
-          .maybeSingle(); // Use maybeSingle to avoid errors if session doesn't exist
+          .maybeSingle();
           
         if (error) {
           console.error('[EnhancedIdeaChat] Database fetch error:', error);
-        } else if (data) {
-          const state = data?.state as any;
-          if (state?.chatHistory && Array.isArray(state.chatHistory)) {
-            parsedMessages = state.chatHistory;
-            console.log(`[EnhancedIdeaChat] ✅ Loaded ${parsedMessages.length} messages from database`);
-            // Update localStorage to match database
-            localStorage.setItem(`session_${sid}_messages`, JSON.stringify(parsedMessages));
-          } else {
-            console.log('[EnhancedIdeaChat] No chatHistory in database state');
-          }
-        } else {
+          return;
+        }
+        
+        if (!data) {
           console.log('[EnhancedIdeaChat] No session found in database with ID:', sid);
+          return;
+        }
+        
+        const state = data.state as any;
+        
+        // Restore chat history
+        if (state?.chatHistory && Array.isArray(state.chatHistory) && state.chatHistory.length > 0) {
+          console.log(`[EnhancedIdeaChat] ✅ Loaded ${state.chatHistory.length} messages from DB`);
+          setMessages(state.chatHistory);
+          setConversationStarted(true);
+          localStorage.setItem(`session_${sid}_messages`, JSON.stringify(state.chatHistory));
+        }
+        
+        // Restore idea
+        if (state?.currentIdea) {
+          console.log('[EnhancedIdeaChat] ✅ Restored idea from DB');
+          setCurrentIdea(state.currentIdea);
+          setHasValidIdea(true);
+          localStorage.setItem('currentIdea', state.currentIdea);
+          localStorage.setItem(`session_${sid}_idea`, state.currentIdea);
+        }
+        
+        // Restore wrinkle points
+        if (typeof state?.wrinklePoints === 'number') {
+          setWrinklePoints(state.wrinklePoints);
+          localStorage.setItem('wrinklePoints', state.wrinklePoints.toString());
+        }
+        
+        // Restore conversation summary
+        if (state?.conversationSummary) {
+          setConversationSummary(state.conversationSummary);
+          localStorage.setItem(`session_${sid}_summary`, state.conversationSummary);
         }
       } catch (e) {
-        console.error('[EnhancedIdeaChat] Failed to fetch from database:', e);
-      }
-      
-      // Fallback to localStorage if database didn't have messages
-      if (!parsedMessages || parsedMessages.length === 0) {
-        console.log('[EnhancedIdeaChat] Trying localStorage fallback...');
-        const stored = localStorage.getItem(`session_${sid}_messages`);
-        if (stored) {
-          try {
-            parsedMessages = JSON.parse(stored);
-            console.log(`[EnhancedIdeaChat] Found ${parsedMessages?.length || 0} messages in localStorage`);
-          } catch (e) {
-            console.error('[EnhancedIdeaChat] Error parsing stored messages:', e);
-          }
-        }
-      }
-      
-      // Restore messages if we found any
-      if (parsedMessages && Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-        console.log('[EnhancedIdeaChat] Restoring', parsedMessages.length, 'messages');
-        setMessages(parsedMessages);
-        setConversationStarted(true);
-        
-        // Also restore other session data
-        const restoredIdea = localStorage.getItem('currentIdea') || '';
-        const restoredWrinkles = localStorage.getItem('wrinklePoints');
-        
-        if (restoredIdea) {
-          setCurrentIdea(restoredIdea);
-          setHasValidIdea(true);
-        }
-        if (restoredWrinkles) setWrinklePoints(parseInt(restoredWrinkles) || 0);
-      } else {
-        console.log('[EnhancedIdeaChat] No messages found to restore');
+        console.error('[EnhancedIdeaChat] Failed to load from database:', e);
       }
     };
     
-    // Run immediately on mount (critical for page refresh)
-    handleSessionLoad();
+    loadSessionFromDB();
     
-    // Also listen for session load events
-    window.addEventListener('session:loaded', handleSessionLoad);
+    window.addEventListener('session:loaded', loadSessionFromDB);
     
     return () => {
-      window.removeEventListener('session:loaded', handleSessionLoad);
+      window.removeEventListener('session:loaded', loadSessionFromDB);
     };
   }, []);
   
@@ -339,22 +325,39 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, [resetTrigger]);
 
-  // Persist messages to localStorage whenever they change
+  // Save to DB on EVERY user action (immediately)
   useEffect(() => {
     if (messages.length > 0 && !anonymous) {
       const sid = localStorage.getItem('currentSessionId');
       if (sid) {
+        // Update localStorage immediately
         localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
         
-        // Also save to database (debounced)
-        const saveTimer = setTimeout(() => {
-          saveCurrentSession();
-        }, 2000); // Wait 2 seconds after last message before saving to DB
-        
-        return () => clearTimeout(saveTimer);
+        // Save to database immediately (no debounce)
+        saveCurrentSession();
       }
     }
   }, [messages, anonymous, saveCurrentSession]);
+  
+  // Save idea to DB on every change
+  useEffect(() => {
+    if (currentIdea && !anonymous) {
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) {
+        localStorage.setItem(`session_${sid}_idea`, currentIdea);
+        localStorage.setItem('currentIdea', currentIdea);
+        saveCurrentSession();
+      }
+    }
+  }, [currentIdea, anonymous, saveCurrentSession]);
+  
+  // Save wrinkle points on change
+  useEffect(() => {
+    if (!anonymous && wrinklePoints > 0) {
+      localStorage.setItem('wrinklePoints', wrinklePoints.toString());
+      saveCurrentSession();
+    }
+  }, [wrinklePoints, anonymous, saveCurrentSession]);
 
   useEffect(() => {
     if (messages.length > 1) {

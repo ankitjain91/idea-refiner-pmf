@@ -434,16 +434,18 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 
 
-  // Load a specific session
+  // Load a specific session - ALWAYS from DB
   const loadSession = useCallback(async (sessionId: string) => {
     setLoading(true);
     try {
+      console.log('[SessionContext] Loading session from DB:', sessionId);
+      
       const { data, error } = await supabase
         .from('brainstorming_sessions')
         .select('*')
         .eq('id', sessionId)
         .eq('is_active', true)
-        .maybeSingle(); // Use maybeSingle to avoid errors if session doesn't exist
+        .maybeSingle();
 
       if (error) throw error;
       if (!data) {
@@ -457,7 +459,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         analysisData: rawState.analysisData ?? {},
         pmfScore: typeof rawState.pmfScore === 'number' ? rawState.pmfScore : 0,
         analysisCompleted: !!rawState.analysisCompleted,
-        wrinklePoints: typeof rawState.wrinklePoints === 'number' ? rawState.wrinklePoints : undefined,
+        wrinklePoints: typeof rawState.wrinklePoints === 'number' ? rawState.wrinklePoints : 0,
         lastActivity: rawState.lastActivity || data.updated_at,
         dashboardData: rawState.dashboardData ?? {}
       };
@@ -473,8 +475,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
 
       setCurrentSession(session);
+      
+      console.log(`[SessionContext] ✅ Loaded session with ${sessionData.chatHistory.length} messages from DB`);
 
-      // Clear ALL localStorage data first to prevent cross-session pollution
+      // Clear ALL localStorage first
       localStorage.removeItem('chatHistory');
       localStorage.removeItem('enhancedIdeaChatMessages');
       localStorage.removeItem(LS_KEYS.userIdea);
