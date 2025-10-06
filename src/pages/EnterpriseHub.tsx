@@ -225,9 +225,9 @@ export default function EnterpriseHub() {
     restoreCache();
   }, []);
 
-  // Set up real-time refresh with strict rate limiting (ONLY when explicitly enabled)
+  // NO AUTO-REFRESH - Only manual refresh via button clicks
   useEffect(() => {
-    // Clear any existing interval on unmount or when dependencies change
+    // Clear any existing interval on unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -235,57 +235,6 @@ export default function EnterpriseHub() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    // Only set up interval if ALL conditions are met
-    if (!isRealTime || refreshInterval === 0 || !currentIdea || useMockData) {
-      // Clear interval if conditions no longer met
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    console.log('[EnterpriseHub] Setting up real-time refresh with interval:', refreshInterval);
-    
-    let lastRefreshTime = Date.now();
-    let pendingRefresh = false;
-    
-    intervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const timeSinceLastRefresh = now - lastRefreshTime;
-      
-      // Minimum 2 minutes between refreshes
-      const minInterval = 120000;
-      
-      if (timeSinceLastRefresh < minInterval) {
-        console.log(`🚫 Rate limiting refresh - too soon (${Math.round(timeSinceLastRefresh/1000)}s since last)`);
-        return;
-      }
-      
-      // Prevent duplicate refreshes
-      if (pendingRefresh) {
-        console.log('⏳ Refresh already pending, skipping');
-        return;
-      }
-      
-      pendingRefresh = true;
-      console.log('🔄 Real-time auto-refresh triggered');
-      
-      refresh().finally(() => {
-        lastRefreshTime = Date.now();
-        pendingRefresh = false;
-      });
-    }, refreshInterval);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [isRealTime, refreshInterval, currentIdea, refresh, useMockData]);
   
   // Check if we have existing analysis data
   useEffect(() => {
