@@ -106,6 +106,22 @@ export function ExecutiveMarketSizeTile({
       return;
     }
 
+    // Check cache first unless force refresh
+    if (!force) {
+      const cacheKey = `market_size_${lockedIdea.slice(0, 50)}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const cachedData = JSON.parse(cached);
+          setMarketData(cachedData);
+          console.log('[ExecutiveMarketSizeTile] Loaded from cache');
+          return;
+        } catch (e) {
+          console.warn('[ExecutiveMarketSizeTile] Failed to parse cache', e);
+        }
+      }
+    }
+
     if (loading && !force) {
       console.log('[ExecutiveMarketSizeTile] Fetch already in progress');
       return;
@@ -136,7 +152,12 @@ export function ExecutiveMarketSizeTile({
       
       if (data?.market_size) {
         setMarketData(data.market_size);
-        console.log('[ExecutiveMarketSizeTile] Market data successfully loaded and set.');
+        
+        // Cache the result
+        const cacheKey = `market_size_${lockedIdea.slice(0, 50)}`;
+        localStorage.setItem(cacheKey, JSON.stringify(data.market_size));
+        
+        console.log('[ExecutiveMarketSizeTile] Market data successfully loaded, set, and cached.');
       } else {
         console.warn('[ExecutiveMarketSizeTile] API response did not contain market_size object.');
         toast.warning("Market analysis response was incomplete.");
@@ -148,7 +169,7 @@ export function ExecutiveMarketSizeTile({
       setLoading(false);
       console.log('[ExecutiveMarketSizeTile] Fetch process finished.');
     }
-  }, [lockedIdea, hasLockedIdea, dataHub]);
+  }, [lockedIdea, hasLockedIdea, dataHub, loading, marketData]);
 
   // Effect for handling idea changes and initial load
   useEffect(() => {
@@ -163,13 +184,8 @@ export function ExecutiveMarketSizeTile({
     }
   }, [lockedIdea, hasLockedIdea, marketData, fetchAttempted]);
 
-  // Effect for handling tab switches
-  useEffect(() => {
-    if (hasLockedIdea && lockedIdea && !marketData && !loading) {
-      console.log('[ExecutiveMarketSizeTile] Tab activated, checking data state');
-      fetchMarketData();
-    }
-  }, []);
+  // Effect for handling tab switches - removed auto-fetch to prevent constant refetching
+  // Data will be loaded from cache or fetched once on initial mount
 
   const parseValue = (value: string): number => {
     if (!value) return 0;
