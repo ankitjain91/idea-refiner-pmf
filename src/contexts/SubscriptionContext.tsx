@@ -250,7 +250,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const getRemainingIdeas = (): number => {
     const limit = SUBSCRIPTION_TIERS[subscription.tier].features.ideasPerMonth;
-    if (limit === -1) return -1; // Unlimited
+    if (limit === -1) return -1; // Return -1 for unlimited (not Infinity)
     return Math.max(0, limit - usage.ideas_used);
   };
 
@@ -261,7 +261,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const getRemainingExports = (): number => {
     const limit = SUBSCRIPTION_TIERS[subscription.tier].features.exportsPerMonth;
-    if (limit === -1) return -1; // Unlimited
+    if (limit === -1) return -1; // Return -1 for unlimited (not Infinity)
     return Math.max(0, limit - usage.exports_used);
   };
 

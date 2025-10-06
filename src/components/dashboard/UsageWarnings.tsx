@@ -14,8 +14,8 @@ export function UsageWarnings() {
 
   const warnings = [];
 
-  // Ideas warning (≥90%)
-  if (ideasRemaining !== Infinity && ideasRemaining <= 1) {
+  // Ideas warning - check if not unlimited (-1) and running low
+  if (ideasRemaining !== -1 && ideasRemaining <= 1) {
     warnings.push({
       type: 'ideas',
       message: `You're almost out of ideas for this month (${ideasRemaining} left).`,
@@ -24,22 +24,22 @@ export function UsageWarnings() {
     });
   }
 
-  // Credits warning
-  if (creditsRemaining <= 100) {
+  // Credits warning - show if under 100 credits
+  if (creditsRemaining <= 100 && creditsRemaining > 0) {
     warnings.push({
       type: 'credits',
-      message: `You're low on AI credits (${creditsRemaining} remaining).`,
-      action: 'Buy +3,000 Credits',
-      onClick: () => {/* TODO: Buy credits */}
+      message: `You're low on AI credits (${creditsRemaining.toLocaleString()} remaining).`,
+      action: 'Upgrade Plan',
+      onClick: () => navigate('/pricing')
     });
   }
 
-  // Exports warning
-  if (exportsRemaining !== Infinity && exportsRemaining === 0) {
+  // Exports warning - check if not unlimited (-1) and none left
+  if (exportsRemaining !== -1 && exportsRemaining === 0) {
     warnings.push({
       type: 'exports',
       message: `You've used all your exports for this month.`,
-      action: 'Upgrade to Basic',
+      action: 'Upgrade Plan',
       onClick: () => navigate('/pricing')
     });
   }

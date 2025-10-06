@@ -104,15 +104,19 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="relative z-10">
               <div className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-1">
-                {usage.ideas_used}
+                {usage.ideas_used || 0}
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                of {limits.ideasPerMonth === -1 ? 'unlimited' : limits.ideasPerMonth} this month
+                of {limits.ideasPerMonth === -1 ? '∞ unlimited' : limits.ideasPerMonth} this month
               </p>
               <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
                 <div 
                   className="h-full bg-gradient-to-r from-primary via-accent to-primary transition-all duration-500 rounded-full" 
-                  style={{ width: limits.ideasPerMonth === -1 ? '100%' : `${Math.min(100, (usage.ideas_used / limits.ideasPerMonth) * 100)}%` }}
+                  style={{ 
+                    width: limits.ideasPerMonth === -1 
+                      ? `${Math.min(100, (usage.ideas_used / 10) * 100)}%` 
+                      : `${Math.min(100, (usage.ideas_used / limits.ideasPerMonth) * 100)}%` 
+                  }}
                 />
               </div>
             </CardContent>
@@ -128,7 +132,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="relative z-10">
               <div className="text-3xl font-bold bg-gradient-to-r from-secondary via-accent to-secondary bg-clip-text text-transparent mb-1">
-                {usage.ai_credits_used.toLocaleString()}
+                {(usage.ai_credits_used || 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground mb-3">
                 of {limits.aiCreditsPerMonth.toLocaleString()} this month
@@ -136,7 +140,7 @@ export default function Dashboard() {
               <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
                 <div 
                   className="h-full bg-gradient-to-r from-secondary via-accent to-warning transition-all duration-500 rounded-full" 
-                  style={{ width: `${Math.min(100, (usage.ai_credits_used / limits.aiCreditsPerMonth) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((usage.ai_credits_used || 0) / limits.aiCreditsPerMonth) * 100)}%` }}
                 />
               </div>
             </CardContent>
@@ -152,15 +156,19 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="relative z-10">
               <div className="text-3xl font-bold bg-gradient-to-r from-warning via-accent to-warning bg-clip-text text-transparent mb-1">
-                {usage.exports_used}
+                {usage.exports_used || 0}
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                of {limits.exportsPerMonth === -1 ? 'unlimited' : limits.exportsPerMonth} this month
+                of {limits.exportsPerMonth === -1 ? '∞ unlimited' : limits.exportsPerMonth} this month
               </p>
               <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
                 <div 
                   className="h-full bg-gradient-to-r from-warning via-accent to-warning transition-all duration-500 rounded-full" 
-                  style={{ width: limits.exportsPerMonth === -1 ? '100%' : `${Math.min(100, (usage.exports_used / limits.exportsPerMonth) * 100)}%` }}
+                  style={{ 
+                    width: limits.exportsPerMonth === -1 
+                      ? `${Math.min(100, ((usage.exports_used || 0) / 10) * 100)}%` 
+                      : `${Math.min(100, ((usage.exports_used || 0) / limits.exportsPerMonth) * 100)}%` 
+                  }}
                 />
               </div>
             </CardContent>
