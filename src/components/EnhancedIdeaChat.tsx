@@ -1870,6 +1870,10 @@ const ChatMessageItem = useMemo(() => {
         localStorage.setItem(`session_${sid}_summary`, text);
         localStorage.setItem(`session_${sid}_lastSummaryGen`, userMsgCount.toString());
       }
+      // Auto-lock idea to enable dashboard when summary is ready
+      if (text && text.trim().length >= 20) {
+        lockedIdeaManager.setLockedIdea(text);
+      }
     };
 
     try {
@@ -1926,6 +1930,18 @@ const ChatMessageItem = useMemo(() => {
       setSummaryLoading(false);
     }
   }, [summaryLoading, conversationSummary, currentIdea, createLocalSummary]);
+
+  // Auto-trigger summary generation based on user message thresholds (placed after declaration)
+  useEffect(() => {
+    if (summaryLoading) return;
+    if (userMessageCount === 3 && lastSummaryGeneration === 0) {
+      console.log('[Summary] Threshold reached: 3 user messages. Triggering generation.');
+      generateConversationSummary(messages);
+    } else if (lastSummaryGeneration > 0 && userMessageCount >= lastSummaryGeneration + 2) {
+      console.log('[Summary] Threshold reached: +2 user messages since last generation. Triggering regeneration.');
+      generateConversationSummary(messages);
+    }
+  }, [userMessageCount, lastSummaryGeneration, summaryLoading, messages, generateConversationSummary]);
 
   const sendMessageHandler = useCallback(async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
