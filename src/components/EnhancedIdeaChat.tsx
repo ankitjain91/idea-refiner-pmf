@@ -272,6 +272,16 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     };
   }, []);
   
+  // Update user message count whenever messages change
+  useEffect(() => {
+    const validMessages = messages.filter(m => !m.isTyping && m.content && m.content.length > 5);
+    const validUserMessages = validMessages.filter(m => m.type === 'user');
+    const count = validUserMessages.length;
+    
+    console.log('[Summary] Messages changed - User count:', count, 'Total messages:', messages.length);
+    setUserMessageCount(count);
+  }, [messages]);
+  
   // Effects
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {
@@ -2408,6 +2418,7 @@ User submission: """${messageText}"""`;
           // Track user message count and auto-generate summary
           const validMessages = newMessages.filter(m => !m.isTyping && m.content);
           const validUserMessages = validMessages.filter(m => m.type === 'user');
+          console.log('[Summary] User message count:', validUserMessages.length, 'Last gen:', lastSummaryGeneration);
           setUserMessageCount(validUserMessages.length);
           
           // Generate at exactly 3 user messages (first time)
