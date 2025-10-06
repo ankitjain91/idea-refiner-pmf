@@ -108,30 +108,33 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
   };
 
   return (
-    <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-card to-card/80">
-      <CardHeader className="border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
+    <Card className="overflow-hidden border-2 border-primary/10 bg-gradient-to-br from-card via-card/95 to-primary/5 shadow-lg">
+      <CardHeader className="border-b-2 border-border/50 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent backdrop-blur-sm">
         <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              Reddit Sentiment
+          <div className="space-y-1.5">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <MessageSquare className="h-5 w-5 text-primary" />
+              </div>
+              Reddit Community Pulse
             </CardTitle>
-            <CardDescription>Live community mood across Reddit</CardDescription>
+            <CardDescription className="text-sm">Real-time sentiment analysis from Reddit discussions</CardDescription>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={fetchSentiment}
             disabled={loading}
-            className="gap-2"
+            className="gap-2 hover:bg-primary/10 hover:border-primary/30 transition-all"
           >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4 transition-transform", loading && "animate-spin")} />
             Refresh
           </Button>
         </div>
         {lastUpdate && (
-          <div className="text-xs text-muted-foreground mt-2">
-            Last updated: {lastUpdate.toLocaleTimeString()}
+          <div className="text-xs text-muted-foreground/80 mt-3 flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+            Updated {lastUpdate.toLocaleTimeString()}
           </div>
         )}
       </CardHeader>
@@ -234,67 +237,103 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
               </div>
             </div>
 
-            {/* Top Posts - Show 10 with comprehensive details */}
+            {/* Top Posts - Show unique posts only with enhanced design */}
             {data.topPosts && data.topPosts.length > 0 && (
               <div className="space-y-3">
-                <h4 className="text-sm font-medium">Top {data.topPosts.length} Recent Discussions</h4>
-                <div className="space-y-3">
-                  {data.topPosts.slice(0, 10).map((post, idx) => (
-                    <a
-                      key={idx}
-                      href={post.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "block p-4 rounded-lg border transition-all hover:shadow-lg hover:scale-[1.02]",
-                        getSentimentColor(post.sentiment)
-                      )}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          {getSentimentIcon(post.sentiment)}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium line-clamp-2 mb-1">{post.title}</p>
-                            {post.selftext && (
-                              <p className="text-xs text-muted-foreground line-clamp-3 mb-2">
-                                {post.selftext.substring(0, 300)}...
-                              </p>
-                            )}
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Top Discussions
+                </h4>
+                <div className="grid gap-3">
+                  {(() => {
+                    const seenTitles = new Set<string>();
+                    return data.topPosts
+                      .filter(post => {
+                        const normalized = post.title.toLowerCase().trim();
+                        if (seenTitles.has(normalized)) return false;
+                        seenTitles.add(normalized);
+                        return true;
+                      })
+                      .slice(0, 8)
+                      .map((post, idx) => (
+                        <a
+                          key={`${post.url}-${idx}`}
+                          href={post.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(
+                            "group relative block p-5 rounded-xl border-2 transition-all duration-300",
+                            "hover:shadow-xl hover:-translate-y-1 hover:border-primary/40",
+                            getSentimentColor(post.sentiment)
+                          )}
+                        >
+                          {/* Gradient overlay on hover */}
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:to-transparent transition-all duration-300" />
+                          
+                          <div className="relative space-y-3">
+                            {/* Header with sentiment */}
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {getSentimentIcon(post.sentiment)}
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <h5 className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                                  {post.title}
+                                </h5>
+                                
+                                {/* Post preview text */}
+                                {post.selftext && post.selftext.trim() && (
+                                  <p className="text-xs text-muted-foreground/90 leading-relaxed line-clamp-2 italic border-l-2 border-border/50 pl-3">
+                                    {post.selftext.substring(0, 200)}...
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Metadata row */}
+                            <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/30">
                               {post.subreddit && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge 
+                                  variant="secondary" 
+                                  className="text-xs font-medium bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                                >
                                   r/{post.subreddit}
                                 </Badge>
                               )}
-                              <span>u/{post.author}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <ThumbsUp className="h-3 w-3" />
-                                {post.score}
-                              </span>
-                              {post.upvote_ratio !== undefined && (
-                                <>
-                                  <span>•</span>
-                                  <span>{Math.round(post.upvote_ratio * 100)}% upvoted</span>
-                                </>
-                              )}
-                              {post.num_comments !== undefined && (
-                                <>
-                                  <span>•</span>
-                                  <span className="flex items-center gap-1">
+                              
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+                                <span className="flex items-center gap-1 bg-background/50 px-2 py-1 rounded-md">
+                                  <ThumbsUp className="h-3 w-3" />
+                                  <span className="font-medium">{post.score.toLocaleString()}</span>
+                                </span>
+                                
+                                {post.num_comments !== undefined && (
+                                  <span className="flex items-center gap-1 bg-background/50 px-2 py-1 rounded-md">
                                     <MessageSquare className="h-3 w-3" />
-                                    {post.num_comments}
+                                    <span className="font-medium">{post.num_comments}</span>
                                   </span>
-                                </>
+                                )}
+                                
+                                <span className="bg-background/50 px-2 py-1 rounded-md font-medium">
+                                  {getRelativeTime(post.created)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Author and upvote ratio */}
+                            <div className="flex items-center justify-between text-xs text-muted-foreground/70 pt-1">
+                              <span>by u/{post.author}</span>
+                              {post.upvote_ratio !== undefined && (
+                                <span className="flex items-center gap-1">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                                  {Math.round(post.upvote_ratio * 100)}% upvoted
+                                </span>
                               )}
-                              <span>•</span>
-                              <span>{getRelativeTime(post.created)}</span>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    </a>
-                  ))}
+                        </a>
+                      ));
+                  })()}
                 </div>
               </div>
             )}
