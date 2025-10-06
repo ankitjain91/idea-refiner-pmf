@@ -1851,6 +1851,11 @@ const ChatMessageItem = useMemo(() => {
     setHasValidIdea(false);
     setAnonymous(false);
     setOffTopicAttempts(0);
+    setUserMessageCount(0);
+    setLastSummaryGeneration(0);
+    setConversationSummary('');
+    setSummaryLoading(false);
+    setConversationStarted(false);
     onReset?.();
   }, [onReset, fetchRandomIdeas, anonymous, ideaContext]);
   
