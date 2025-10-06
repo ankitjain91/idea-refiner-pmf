@@ -185,9 +185,6 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
         {tileErrors._bulk && (
           <div className="flex items-center gap-2 text-sm text-destructive"><AlertCircle className="h-4 w-4" />{tileErrors._bulk}</div>
         )}
-        <Button size="sm" variant="outline" onClick={forceRefreshAll} disabled={networkLoading} className="gap-2">
-          <RefreshCw className={cn('h-4 w-4', networkLoading && 'animate-spin')} /> Force Refresh
-        </Button>
         {debug && meta && (
           <details className="ml-auto bg-muted/40 rounded px-3 py-2 text-xs">
             <summary className="cursor-pointer flex items-center gap-1"><Bug className="h-3 w-3" />Meta</summary>
