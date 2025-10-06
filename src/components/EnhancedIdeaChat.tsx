@@ -555,9 +555,10 @@ What's your startup idea?`,
     checkPendingQuestion();
   }, [location, toast]); // Re-run when location changes
 
-  // Persist messages for authenticated users and save to database immediately
+  // Persist messages for authenticated users with debouncing
   useEffect(() => {
     if (!anonymous && messages.length > 0) {
+      // Always save to localStorage immediately for fast recovery
       const sid = localStorage.getItem('currentSessionId');
       if (sid) {
         try {
@@ -565,12 +566,12 @@ What's your startup idea?`,
         } catch {}
       }
       
-      // Save to database immediately without delay
-      const saveToDatabase = async () => {
+      // Debounce database saves to prevent excessive writes
+      const saveTimeout = setTimeout(async () => {
         setPersistenceStatus('saving');
         try {
           await saveCurrentSession();
-          console.log('[EnhancedIdeaChat] Session saved immediately after message');
+          console.log('[EnhancedIdeaChat] Session saved to database');
           setPersistenceStatus('saved');
           setPersistenceError(undefined);
           
@@ -581,12 +582,11 @@ What's your startup idea?`,
           setPersistenceStatus('error');
           setPersistenceError('Failed to save');
         }
-      };
+      }, 2000); // Wait 2 seconds before saving to DB
       
-      saveToDatabase();
-      
-      // Also save on unmount for safety
+      // Save immediately on unmount
       return () => {
+        clearTimeout(saveTimeout);
         saveCurrentSession().catch(console.error);
       };
     }
