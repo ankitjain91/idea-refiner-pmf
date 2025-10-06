@@ -131,20 +131,36 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       }
     };
 
+    // CRITICAL: Handle both data structures
+    // 1. marketData.market_size.charts (from edge function)
+    // 2. marketData.charts (direct pass-through)
+    let charts = null;
+    
+    if (marketData?.market_size?.charts) {
+      console.log('[ProfessionalWorldMap] Using marketData.market_size.charts structure');
+      charts = marketData.market_size.charts;
+    } else if (marketData?.charts) {
+      console.log('[ProfessionalWorldMap] Using marketData.charts structure');
+      charts = marketData.charts;
+    }
+
     // If we have real market data from charts, extract and use it
-    if (marketData?.charts) {
-      const regionalChart = marketData.charts.find(
+    if (charts && Array.isArray(charts)) {
+      const regionalChart = charts.find(
         (c: any) => c.type === 'treemap' && c.title?.includes('Regional')
       );
       
       if (regionalChart?.series && Array.isArray(regionalChart.series)) {
         console.log('[ProfessionalWorldMap] Found regional chart data:', regionalChart.series);
         
-        return baseRegions.map(region => {
-          const chartData = regionalChart.series.find((s: any) => s.name === region.code);
+        const mappedRegions = baseRegions.map(region => {
+          // Try to match by region code or full name
+          const chartData = regionalChart.series.find((s: any) => 
+            s.name === region.code || s.name === region.name
+          );
           
           if (chartData) {
-            const tam = parseDollarAmount(chartData.sam || '0'); // SAM field contains TAM value
+            const tam = parseDollarAmount(chartData.tam || chartData.sam || '0');
             const sam = parseDollarAmount(chartData.sam || '0');
             const som = parseDollarAmount(chartData.som || '0');
             
@@ -171,7 +187,12 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
           }
           
           return null;
-        }).filter((r): r is RegionData => r !== null);
+        }).filter((r): r is RegionData => r !== null && r.tam > 0);
+        
+        if (mappedRegions.length > 0) {
+          console.log('[ProfessionalWorldMap] Successfully extracted', mappedRegions.length, 'regions with data');
+          return mappedRegions;
+        }
       }
     }
     
