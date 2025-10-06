@@ -230,15 +230,18 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     if (regionalSplit && typeof regionalSplit === 'object') {
       const derivedSeries = Object.entries(regionalSplit).map(([name, valueStr]: any) => {
         const baseVal = parseFloat(String(valueStr).replace(/[^\d.]/g, ''));
-        // If the provided value looks like billions (e.g., 12.3), keep unit B
         const unit = /B/i.test(String(valueStr)) ? 'B' : 'M';
-        const samVal = unit === 'B' ? baseVal * 0.4 : baseVal * 400; // crude unit handling
-        const somVal = unit === 'B' ? baseVal * 0.04 : baseVal * 40;
+        
+        // CORRECT: SAM should be 30-40% of TAM, SOM should be 3-5% of SAM
+        // This maintains the proper relationship: TAM > SAM > SOM
+        const samVal = baseVal * 0.35; // 35% of TAM
+        const somVal = samVal * 0.04;  // 4% of SAM
+        
         return {
           name,
           tam: `$${baseVal}${unit}`,
           sam: `$${samVal.toFixed(1)}${unit}`,
-          som: `$${somVal.toFixed(1)}${unit}`
+          som: `$${somVal.toFixed(2)}${unit}`
         };
       });
 
