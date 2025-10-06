@@ -60,6 +60,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     const baseRegions = [
       {
         name: "North America",
+        code: "NA",
         coordinates: [-100, 45] as [number, number],
         population: 579000000,
         urbanization: 0.82,
@@ -68,6 +69,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       },
       {
         name: "Europe",
+        code: "EMEA",
         coordinates: [10, 50] as [number, number],
         population: 747000000,
         urbanization: 0.75,
@@ -76,6 +78,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       },
       {
         name: "Asia Pacific",
+        code: "APAC",
         coordinates: [105, 20] as [number, number],
         population: 4560000000,
         urbanization: 0.51,
@@ -84,6 +87,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       },
       {
         name: "Latin America",
+        code: "LATAM",
         coordinates: [-60, -15] as [number, number],
         population: 659000000,
         urbanization: 0.81,
@@ -92,6 +96,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       },
       {
         name: "Middle East & Africa",
+        code: "MEA",
         coordinates: [25, 0] as [number, number],
         population: 2100000000,
         urbanization: 0.43,
@@ -100,6 +105,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       },
       {
         name: "Oceania",
+        code: "OCE",
         coordinates: [135, -25] as [number, number],
         population: 44000000,
         urbanization: 0.86,
@@ -107,6 +113,23 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
         mobileUsers: 0.85
       }
     ];
+
+    // Helper function to parse dollar amounts like "$1.3B" or "$0.5B"
+    const parseDollarAmount = (str: string): number => {
+      if (!str) return 0;
+      const match = str.match(/\$?([\d.]+)\s*([BMK])/i);
+      if (!match) return 0;
+      
+      const value = parseFloat(match[1]);
+      const unit = match[2].toUpperCase();
+      
+      switch (unit) {
+        case 'B': return value * 1000000000;
+        case 'M': return value * 1000000;
+        case 'K': return value * 1000;
+        default: return value;
+      }
+    };
 
     // If we have real market data, use it to calculate realistic regional splits
     if (marketData) {
