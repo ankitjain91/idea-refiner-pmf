@@ -14,6 +14,7 @@ interface RedditPost {
   created_utc: number;
   num_comments: number;
   subreddit: string;
+  upvote_ratio: number;
 }
 
 serve(async (req) => {
@@ -206,17 +207,18 @@ Rules:
     const analysis = JSON.parse(toolCall.function.arguments);
     console.log('[reddit-sentiment-analyzer] AI analysis complete');
 
-    // Combine posts with their sentiment
-    const postsWithSentiment = posts.slice(0, 15).map((post: RedditPost, idx: number) => ({
+    // Combine posts with their sentiment - return all posts (up to 30)
+    const postsWithSentiment = posts.map((post: RedditPost, idx: number) => ({
       title: post.title,
       url: `https://reddit.com${post.url}`,
-      sentiment: analysis.sentiments[idx] || 'neutral',
+      sentiment: idx < 15 ? (analysis.sentiments[idx] || 'neutral') : 'neutral',
       score: post.score,
       author: post.author,
       created: post.created_utc,
       subreddit: post.subreddit,
       num_comments: post.num_comments,
-      selftext: post.selftext?.substring(0, 200)
+      selftext: post.selftext?.substring(0, 350),
+      upvote_ratio: post.upvote_ratio
     }));
 
     // Calculate sentiment counts
@@ -230,7 +232,7 @@ Rules:
       neutral: sentimentCounts.neutral || 0,
       negative: sentimentCounts.negative || 0,
       summary: analysis.summary,
-      topPosts: postsWithSentiment.sort((a: any, b: any) => b.score - a.score).slice(0, 3),
+      topPosts: postsWithSentiment.sort((a: any, b: any) => b.score - a.score).slice(0, 10),
       totalPosts: posts.length
     };
 

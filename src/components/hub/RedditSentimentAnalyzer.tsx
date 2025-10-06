@@ -17,6 +17,7 @@ interface RedditPost {
   subreddit?: string;
   num_comments?: number;
   selftext?: string;
+  upvote_ratio?: number;
 }
 
 interface SentimentData {
@@ -96,6 +97,16 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
 
   const total = data ? data.positive + data.neutral + data.negative : 0;
 
+  const getRelativeTime = (timestamp: number) => {
+    const now = Date.now() / 1000;
+    const diff = now - timestamp;
+    
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
   return (
     <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-card to-card/80">
       <CardHeader className="border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
@@ -150,6 +161,22 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">Sentiment Distribution</span>
                 <span className="text-muted-foreground">{data.totalPosts} posts analyzed</span>
+              </div>
+              
+              {/* Quick stats row */}
+              <div className="grid grid-cols-3 gap-2 p-3 rounded-lg bg-muted/20">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-500">{data.positive}</div>
+                  <div className="text-xs text-muted-foreground">Positive</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-500">{data.neutral}</div>
+                  <div className="text-xs text-muted-foreground">Neutral</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-red-500">{data.negative}</div>
+                  <div className="text-xs text-muted-foreground">Negative</div>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -207,12 +234,12 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
               </div>
             </div>
 
-            {/* Top Posts - Show 5 with more details */}
+            {/* Top Posts - Show 10 with comprehensive details */}
             {data.topPosts && data.topPosts.length > 0 && (
               <div className="space-y-3">
-                <h4 className="text-sm font-medium">Top Recent Discussions</h4>
+                <h4 className="text-sm font-medium">Top {data.topPosts.length} Recent Discussions</h4>
                 <div className="space-y-3">
-                  {data.topPosts.slice(0, 5).map((post, idx) => (
+                  {data.topPosts.slice(0, 10).map((post, idx) => (
                     <a
                       key={idx}
                       href={post.url}
@@ -229,8 +256,8 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium line-clamp-2 mb-1">{post.title}</p>
                             {post.selftext && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                                {post.selftext.substring(0, 150)}...
+                              <p className="text-xs text-muted-foreground line-clamp-3 mb-2">
+                                {post.selftext.substring(0, 300)}...
                               </p>
                             )}
                             <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
@@ -245,17 +272,23 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
                                 <ThumbsUp className="h-3 w-3" />
                                 {post.score}
                               </span>
+                              {post.upvote_ratio !== undefined && (
+                                <>
+                                  <span>•</span>
+                                  <span>{Math.round(post.upvote_ratio * 100)}% upvoted</span>
+                                </>
+                              )}
                               {post.num_comments !== undefined && (
                                 <>
                                   <span>•</span>
                                   <span className="flex items-center gap-1">
                                     <MessageSquare className="h-3 w-3" />
-                                    {post.num_comments} comments
+                                    {post.num_comments}
                                   </span>
                                 </>
                               )}
                               <span>•</span>
-                              <span>{new Date(post.created * 1000).toLocaleDateString()}</span>
+                              <span>{getRelativeTime(post.created)}</span>
                             </div>
                           </div>
                         </div>
