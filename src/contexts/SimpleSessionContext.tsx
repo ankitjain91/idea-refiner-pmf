@@ -633,6 +633,55 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
+  // IMMEDIATE message saver - called directly when messages change
+  const saveMessagesNow = useCallback(async () => {
+    if (!currentSession) return;
+    
+    try {
+      const sessionData = getCurrentSessionData();
+      
+      // For anonymous sessions, update localStorage only
+      if (currentSession.is_anonymous) {
+        const updatedSession = {
+          ...currentSession,
+          data: sessionData,
+          updated_at: new Date().toISOString()
+        };
+        localStorage.setItem('currentAnonymousSession', JSON.stringify(updatedSession));
+        return;
+      }
+      
+      // For authenticated sessions, save to database immediately
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { error } = await supabase
+        .from('brainstorming_sessions')
+        .update({
+          state: sessionData as any, // Type cast to Json
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentSession.id)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('[Session] Failed to save messages immediately:', error);
+        // Retry once
+        setTimeout(async () => {
+          await supabase
+            .from('brainstorming_sessions')
+            .update({ state: sessionData as any, updated_at: new Date().toISOString() })
+            .eq('id', currentSession.id)
+            .eq('user_id', user.id);
+        }, 1000);
+      } else {
+        console.log('[Session] ✓ Messages saved to database');
+      }
+    } catch (error) {
+      console.error('[Session] Error in saveMessagesNow:', error);
+    }
+  }, [currentSession, getCurrentSessionData]);
+
   // Save current session data to database (skip anonymous sessions or when auto-save is disabled)
   const saveCurrentSession = useCallback(async () => {
     if (!currentSession || saving) return;
@@ -662,10 +711,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const { error } = await supabase
         .from('brainstorming_sessions')
         .update({
-          state: sessionData as any,
+          state: sessionData as any, // Type cast to handle Json type
           updated_at: new Date().toISOString()
         })
-        .eq('id', currentSession.id);
+        .eq('id', currentSession.id) as any; // Type cast for update result
 
       if (error) throw error;
       
@@ -904,6 +953,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     deleteSession,
     renameSession,
     duplicateSession,
+    saveMessagesNow,
     saveCurrentSession
   };
 

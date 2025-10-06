@@ -21,7 +21,10 @@ export async function deleteAllUserSessions() {
       return { error: deleteError };
     }
 
-    // Clear localStorage (comprehensive)
+    // WARN user before clearing - this is destructive
+    console.warn('[DeleteSessions] Deleting all sessions and clearing localStorage');
+    
+    // Clear localStorage (comprehensive) - but ONLY session-specific keys
     const keysToRemove = [
       // Core session identifiers
       'currentSessionId',
@@ -30,17 +33,7 @@ export async function deleteAllUserSessions() {
       'sessionBackup',
       'lastSessionActivity',
 
-      // Chat & idea
-      'chatHistory',
-      'enhancedIdeaChatMessages',
-      'currentIdea',
-      'userIdea', 
-      'pmf.user.idea',
-      'userAnswers',
-      'pmf.user.answers',
-      'conversationHistory',
-
-      // Analysis / PMF
+      // Analysis / PMF - keep these as they're not message-critical
       'ideaMetadata',
       'pmfAnalysisData',
       'pmf.analysis.completed',
@@ -71,23 +64,25 @@ export async function deleteAllUserSessions() {
       'autoSaveEnabled',
     ];
     
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+    keysToRemove.forEach(key => {
+      console.log('[DeleteSessions] Removing key:', key);
+      localStorage.removeItem(key);
+    });
 
-    // Remove any keys that start with common session-related prefixes or patterns
+    // Remove session-specific message storage
     try {
-      const prefixes = ['session', 'chat', 'idea', 'pmf', 'dashboard', 'analysis', 'enhanced'];
-      // Iterate backwards since we're mutating localStorage during iteration
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
         if (!key) continue;
-        const matchesPrefix = prefixes.some(p => key.startsWith(p));
-        const matchesPattern = key.includes('session_') || key.includes('pmf.');
-        if (matchesPrefix || matchesPattern) {
+        
+        // Only remove session-prefixed keys (session_xxx_messages, etc.)
+        if (key.startsWith('session_')) {
+          console.log('[DeleteSessions] Removing session key:', key);
           localStorage.removeItem(key);
         }
       }
     } catch (e) {
-      console.warn('Error during broad localStorage cleanup:', e);
+      console.warn('Error during session-specific localStorage cleanup:', e);
     }
 
     // Broadcast reset events so active views clear in-memory state immediately

@@ -76,7 +76,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
 }) => {
   const navigate = useNavigate();
   // State management
-  const { currentSession, saveCurrentSession } = useSession();
+  const { currentSession, saveCurrentSession, saveMessagesNow } = useSession();
   const ideaContext = useIdeaContext(); // Hook must be called at component level
   const [anonymous, setAnonymous] = useState(false);
   const isDefaultSessionName = !currentSession?.name;
@@ -236,35 +236,67 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   const { toast } = useToast();
   const location = useLocation();
   
-  // Listen for session changes and restore conversation
+  // Listen for session changes and restore conversation - ENHANCED WITH RECOVERY
   useEffect(() => {
-    const handleSessionLoad = () => {
+    const handleSessionLoad = async () => {
       const sid = localStorage.getItem('currentSessionId');
       if (!sid) return;
-      const stored = localStorage.getItem(`session_${sid}_messages`);
+      
+      // Try localStorage first
+      let stored = localStorage.getItem(`session_${sid}_messages`);
+      let parsedMessages = null;
+      
       if (stored) {
         try {
-          const parsedMessages = JSON.parse(stored);
-          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-            console.log('[EnhancedIdeaChat] Restoring messages from loaded session:', parsedMessages.length);
-            setMessages(parsedMessages);
+          parsedMessages = JSON.parse(stored);
+        } catch (e) {
+          console.error('[EnhancedIdeaChat] Error parsing stored messages:', e);
+        }
+      }
+      
+      // If no localStorage or parsing failed, try to recover from database
+      if (!parsedMessages || parsedMessages.length === 0) {
+        console.log('[EnhancedIdeaChat] Attempting to recover messages from database...');
+        try {
+          const { data } = await supabase
+            .from('brainstorming_sessions')
+            .select('state')
+            .eq('id', sid)
+            .single();
             
-            // Also restore other session data
-            const restoredIdea = localStorage.getItem('currentIdea') || '';
-            const restoredWrinkles = localStorage.getItem('wrinklePoints');
-            
-            if (restoredIdea) setCurrentIdea(restoredIdea);
-            if (restoredWrinkles) setWrinklePoints(parseInt(restoredWrinkles) || 0);
+          const state = data?.state as any;
+          if (state?.chatHistory) {
+            parsedMessages = state.chatHistory;
+            console.log(`[EnhancedIdeaChat] Recovered ${parsedMessages.length} messages from database`);
+            // Save back to localStorage
+            localStorage.setItem(`session_${sid}_messages`, JSON.stringify(parsedMessages));
           }
         } catch (e) {
-          console.error('[EnhancedIdeaChat] Error restoring session messages:', e);
+          console.error('[EnhancedIdeaChat] Failed to recover from database:', e);
         }
+      }
+      
+      if (parsedMessages && Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+        console.log('[EnhancedIdeaChat] Restoring', parsedMessages.length, 'messages');
+        setMessages(parsedMessages);
+        setConversationStarted(true);
+        
+        // Also restore other session data
+        const restoredIdea = localStorage.getItem('currentIdea') || '';
+        const restoredWrinkles = localStorage.getItem('wrinklePoints');
+        
+        if (restoredIdea) {
+          setCurrentIdea(restoredIdea);
+          setHasValidIdea(true);
+        }
+        if (restoredWrinkles) setWrinklePoints(parseInt(restoredWrinkles) || 0);
       }
     };
     
     // Listen for session load events
     window.addEventListener('storage', handleSessionLoad);
     window.addEventListener('session:loaded', handleSessionLoad);
+    handleSessionLoad(); // Run immediately on mount
     
     return () => {
       window.removeEventListener('storage', handleSessionLoad);
