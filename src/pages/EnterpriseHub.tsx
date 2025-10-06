@@ -20,10 +20,11 @@ import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
-import { SentimentTile } from "@/components/hub/SentimentTile";
-import { EnhancedRedditTile } from "@/components/hub/EnhancedRedditTile";
-import { TwitterBuzzTile } from "@/components/hub/TwitterBuzzTile";
-import { YouTubeAnalyticsTile } from "@/components/hub/YouTubeAnalyticsTile";
+import { ComprehensiveSentimentTile } from "@/components/hub/ComprehensiveSentimentTile";
+import { ComprehensiveRedditTile } from "@/components/hub/ComprehensiveRedditTile";
+import { ComprehensiveTwitterTile } from "@/components/hub/ComprehensiveTwitterTile";
+import { ComprehensiveYouTubeTile } from "@/components/hub/ComprehensiveYouTubeTile";
+import { SimpleNewsTile } from "@/components/hub/SimpleNewsTile";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -584,34 +585,15 @@ export default function EnterpriseHub() {
             )}
           </TabsContent>
 
-          {/* CUSTOMER RESEARCH TAB - Sentiment, News, Reddit, Twitter, YouTube */}
+          {/* CUSTOMER RESEARCH TAB */}
           <TabsContent value="customer" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
-                <SentimentTile className="mb-6" />
-                <MainAnalysisGrid
-                  tiles={{
-                    news_analysis: tiles.news_analysis,
-                  }}
-                  loading={loading}
-                  viewMode="deep"
-                  onRefreshTile={refreshTile}
-                />
-                <EnhancedRedditTile 
-                  data={tiles.reddit_sentiment?.json || null} 
-                  loading={loading}
-                  onRefresh={() => refreshTile('reddit_sentiment')}
-                />
-                <TwitterBuzzTile 
-                  data={tiles.twitter_buzz?.json || null}
-                  loading={loading}
-                  onRefresh={() => refreshTile('twitter_buzz')}
-                />
-                <YouTubeAnalyticsTile 
-                  data={tiles.youtube_analytics?.json || null}
-                  loading={loading}
-                  onRefresh={() => refreshTile('youtube_analytics')}
-                />
+                <ComprehensiveSentimentTile />
+                <ComprehensiveRedditTile data={tiles.reddit_sentiment?.json} loading={loading} />
+                <ComprehensiveTwitterTile data={tiles.twitter_buzz?.json} loading={loading} />
+                <ComprehensiveYouTubeTile data={tiles.youtube_analytics?.json} loading={loading} />
+                <SimpleNewsTile idea={currentIdea} />
               </div>
             )}
           </TabsContent>
