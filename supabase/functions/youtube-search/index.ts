@@ -84,11 +84,25 @@ serve(async (req) => {
     console.log(`[youtube-search] Found ${videoIds.length} unique videos`);
     
     if (videoIds.length === 0) {
-      return new Response(JSON.stringify({
+      const response = {
         idea: searchIdea,
         youtube_insights: [],
-        summary: 'No videos found for this idea'
-      }), {
+        summary: {
+          total_videos: 0,
+          total_views: 0,
+          total_likes: 0,
+          avg_relevance: 0,
+          top_channels: [],
+          time_window,
+          region: regionCode,
+          error: 'No videos found for this idea'
+        },
+        meta: {
+          confidence: 'Low',
+          cached_until: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
+        }
+      };
+      return new Response(JSON.stringify(response), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -111,9 +125,9 @@ serve(async (req) => {
     const scoredVideos = videoStats.map((video: any) => {
       const title = video.snippet.title.toLowerCase();
       const description = (video.snippet.description || '').toLowerCase();
-      const views = parseInt(video.statistics.viewCount || 0);
-      const likes = parseInt(video.statistics.likeCount || 0);
-      const comments = parseInt(video.statistics.commentCount || 0);
+      const views = parseInt(String(video.statistics.viewCount || '0'));
+      const likes = parseInt(String(video.statistics.likeCount || '0'));
+      const comments = parseInt(String(video.statistics.commentCount || '0'));
       const publishedAt = new Date(video.snippet.publishedAt);
       const ageInDays = (now.getTime() - publishedAt.getTime()) / (1000 * 60 * 60 * 24);
       
@@ -203,15 +217,19 @@ serve(async (req) => {
         total_likes: 0,
         avg_relevance: 0,
         top_channels: [],
+        time_window: 'year',
+        region: 'US',
         error: errorMessage
       },
       meta: {
         confidence: 'Low',
-        error: errorMessage
+        error: errorMessage,
+        error_type: (errorMessage.toLowerCase().includes('rate limit')) ? 'rate_limit' : (errorMessage.toLowerCase().includes('config') || errorMessage.toLowerCase().includes('auth')) ? 'config' : 'unknown',
+        cached_until: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
+      status: 200
     });
   }
 });
