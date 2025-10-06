@@ -64,6 +64,10 @@ const SENTIMENT_COLORS = {
 export function EnhancedRedditTile({ data, loading = false, className, onRefresh }: Props) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const PAGE_SIZE = 12;
+  const MAX_STORE_POSTS = 150;
+  const [postPage, setPostPage] = useState(1);
+  const [truncatedNote, setTruncatedNote] = useState<string | null>(null);
 
   const handleRefresh = async () => {
     if (onRefresh && !isRefreshing) {
@@ -134,13 +138,102 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
   }
 
   // Validate data structure - handle both nested and flat structures
+  // Shallow trim & memoize to avoid re-renders with giant payloads
   console.log('[EnhancedRedditTile] Received data structure:', Object.keys(data));
+  let trimmed = data;
+  try {
+    if (data.posts?.length || 0 > MAX_STORE_POSTS || (data.summary?.top_subreddits?.length || 0) > 25) {
+      const original = {
+        posts: data.posts?.length || 0,
+        subs: data.summary?.top_subreddits?.length || 0,
+        pains: data.summary?.common_pain_points?.length || 0
+      };
+      trimmed = {
+        ...data,
+        posts: (data.posts || []).slice(0, MAX_STORE_POSTS),
+        summary: {
+          ...data.summary,
+          top_subreddits: (data.summary.top_subreddits || []).slice(0, 20),
+          common_pain_points: (data.summary.common_pain_points || []).slice(0, 40)
+        }
+      };
+      const notes: string[] = [];
+      if (original.posts > (trimmed.posts?.length || 0)) notes.push(`posts ${(trimmed.posts?.length || 0)}/${original.posts}`);
+      if (original.subs > (trimmed.summary.top_subreddits?.length || 0)) notes.push(`subs ${(trimmed.summary.top_subreddits?.length || 0)}/${original.subs}`);
+      if (original.pains > (trimmed.summary.common_pain_points?.length || 0)) notes.push(`pains ${(trimmed.summary.common_pain_points?.length || 0)}/${original.pains}`);
+      if (notes.length) setTruncatedNote(notes.join(', '));
+    }
+  } catch {}
+  data = trimmed;
   const summary = (data.summary || data) as any; // If data.summary exists, use it; otherwise data itself is the summary
   const insights = (data.insights || {
     sentiment_distribution: { positive: 0, neutral: 0, negative: 0 },
     top_pain_categories: {}
   }) as any;
-  const posts = (data.posts || []) as any[];
+  // --- Post normalization & de-duplication ---
+  const normalizeAndDedupePosts = React.useCallback((postsIn: any[]): any[] => {
+    if (!Array.isArray(postsIn)) return [];
+    console.log('[EnhancedReddit] Raw posts received:', postsIn.slice(0, 3).map(p => ({ title: p.title?.slice(0, 50), permalink: p.permalink, url: p.url })));
+    const seen = new Set<string>();
+    const cleaned: any[] = [];
+    for (const p of postsIn) {
+      if (!p) continue;
+      // Try multiple dedup strategies
+      const urlKey = (p.permalink || p.url || '')?.trim().toLowerCase();
+      const titleKey = p.title?.trim().toLowerCase();
+      const summaryKey = p.summary?.trim().toLowerCase();
+      
+      let key = '';
+      if (urlKey && urlKey.length > 10) key = urlKey;
+      else if (titleKey && titleKey.length > 5) key = titleKey;
+      else if (summaryKey && summaryKey.length > 10) key = summaryKey;
+      
+      if (!key || seen.has(key)) {
+        if (seen.has(key)) console.log('[EnhancedReddit] Skipping duplicate:', key.slice(0, 30));
+        continue;
+      }
+      seen.add(key);
+      cleaned.push({ ...p });
+    }
+    console.log('[EnhancedReddit] After dedup:', cleaned.length, 'from', postsIn.length);
+    return cleaned;
+  }, []);
+
+  const collapseCrossPosts = React.useCallback((postsIn: any[]): any[] => {
+    if (!Array.isArray(postsIn) || !postsIn.length) return postsIn;
+    const norm = (t: string) => t
+      .toLowerCase()
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const map = new Map<string, any>();
+    for (const p of postsIn) {
+      const key = norm(p.title || '');
+      if (!key) continue;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, { ...p, _sources: [{ subreddit: p.subreddit, score: p.score, comments: p.comments }], _crosspostCount: 1 });
+      } else {
+        existing._sources.push({ subreddit: p.subreddit, score: p.score, comments: p.comments });
+        existing._crosspostCount += 1;
+        existing.score = Math.max(existing.score || 0, p.score || 0);
+        existing.comments = Math.max(existing.comments || 0, p.comments || 0);
+      }
+    }
+    return Array.from(map.values());
+  }, []);
+
+  // Prefer recency if age_days provided, else keep original order
+  const rawPosts = (data.posts || []) as any[];
+  const deduped = normalizeAndDedupePosts(rawPosts);
+  const collapsed = collapseCrossPosts(deduped);
+  let posts = collapsed;
+  if (collapsed.some(p => typeof p.age_days === 'number')) {
+    posts = [...collapsed].sort((a, b) => (a.age_days ?? 9999) - (b.age_days ?? 9999));
+  }
+  if (deduped.length !== rawPosts.length) console.log('[EnhancedRedditTile] De-duplicated posts', { before: rawPosts.length, after: deduped.length });
+  if (collapsed.length !== deduped.length) console.log('[EnhancedRedditTile] Cross-post collapsed posts', { before: deduped.length, after: collapsed.length });
 
   // Ensure required fields exist with fallbacks
   const totalPosts = summary.total_posts_analyzed || 0;
@@ -287,8 +380,8 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
 
             {/* Top Posts Tab */}
             <TabsContent value="posts" className="px-4 space-y-3">
-              {data.posts.map((post, idx) => (
-                <Card key={idx} className="p-4">
+              {posts.slice(0, postPage * PAGE_SIZE).map((post, idx) => (
+                <Card key={(post.permalink || post.url || post.title || idx).toString()} className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 space-y-1">
@@ -296,6 +389,23 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
                           <Badge variant="outline" className="text-xs">
                             r/{post.subreddit}
                           </Badge>
+                          {post._crosspostCount > 1 && (
+                            <>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {post._crosspostCount}× cross-posts
+                              </Badge>
+                              {post._sources?.slice(1, 3).map((src: any, i: number) => (
+                                <Badge key={i} variant="outline" className="text-[10px]">
+                                  r/{src.subreddit}
+                                </Badge>
+                              ))}
+                              {post._sources?.length > 3 && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  +{post._sources.length - 3}
+                                </Badge>
+                              )}
+                            </>
+                          )}
                           {post.flair && (
                             <Badge variant="secondary" className="text-xs">
                               {post.flair}
@@ -309,6 +419,9 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
                           </Badge>
                         </div>
                         <h4 className="font-medium text-sm">{post.title}</h4>
+                        {post.age_days !== undefined && (
+                          <span className="text-[10px] text-muted-foreground ml-1">{post.age_days}d</span>
+                        )}
                       </div>
                       <Badge className="flex-shrink-0">
                         Relevance: {post.relevance_score}
@@ -340,9 +453,9 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
                         <MessageSquare className="h-3 w-3" />
                         {post.comments} comments
                       </span>
-                      <span>{post.age_days}d ago</span>
+                      {post.age_days !== undefined && <span>{post.age_days}d ago</span>}
                       <Button variant="ghost" size="sm" className="h-6 text-xs p-0 ml-auto" asChild>
-                        <a href={post.permalink} target="_blank" rel="noopener noreferrer">
+                        <a href={post.permalink?.startsWith('http') ? post.permalink : `https://reddit.com${post.permalink || post.url || ''}`} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-3 w-3 mr-1" />
                           View
                         </a>
@@ -351,6 +464,13 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
                   </div>
                 </Card>
               ))}
+              {posts.length > postPage * PAGE_SIZE && (
+                <div className="flex justify-center pb-4">
+                  <Button size="sm" variant="outline" className="text-xs" onClick={() => setPostPage(p => p + 1)}>
+                    Load more ({posts.length - postPage * PAGE_SIZE} remaining)
+                  </Button>
+                </div>
+              )}
             </TabsContent>
 
             {/* Pain Points Tab */}
@@ -455,6 +575,9 @@ export function EnhancedRedditTile({ data, loading = false, className, onRefresh
           </ScrollArea>
         </Tabs>
       </CardContent>
+      {truncatedNote && (
+        <div className="px-4 pb-2 text-[10px] text-muted-foreground italic">Dataset trimmed: {truncatedNote}</div>
+      )}
     </Card>
   );
 }

@@ -130,6 +130,11 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<RedditCluster | null>(null);
+  // Pagination / trimming state for large payloads
+  const POST_PAGE_SIZE = 15;
+  const MAX_POSTS_STORE = 120; // cap retained posts in state
+  const [postPage, setPostPage] = useState(1);
+  const [truncatedInfo, setTruncatedInfo] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
@@ -158,32 +163,125 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
         time_window: 'year'
       });
 
-      if (response?.reddit_sentiment) {
-        console.log('[Reddit] Full response data:', {
-          hasRedditSentiment: true,
-          keys: Object.keys(response.reddit_sentiment),
-          hasClusters: !!response.reddit_sentiment.clusters,
-          hasItems: !!response.reddit_sentiment.items,
-          hasThemes: !!response.reddit_sentiment.themes,
-          hasPainPoints: !!response.reddit_sentiment.pain_points,
-          hasMetrics: !!response.reddit_sentiment.metrics,
-          itemsCount: response.reddit_sentiment.items?.length || 0,
-          themesCount: response.reddit_sentiment.themes?.length || 0,
-          painPointsCount: response.reddit_sentiment.pain_points?.length || 0,
-          fullData: response.reddit_sentiment
-        });
-        setData(response.reddit_sentiment);
-        if (response.reddit_sentiment.clusters?.length > 0) {
-          setSelectedCluster(response.reddit_sentiment.clusters[0]);
+      // Helper: shallow de-duplicate posts (by url then title) and clone to prevent shared refs
+      const dedupePosts = (items: RedditItem[] | undefined): RedditItem[] => {
+        if (!items || !items.length) return [];
+        console.log('[Reddit] Raw items received:', items.slice(0, 3).map(it => ({ title: it.title?.slice(0, 50), url: it.url, source: it.source })));
+        const seen = new Set<string>();
+        const result: RedditItem[] = [];
+        for (const it of items) {
+          // Try multiple dedup strategies: URL first, then title, then snippet
+          const urlKey = it.url?.trim().toLowerCase();
+          const titleKey = it.title?.trim().toLowerCase();
+          const snippetKey = it.snippet?.trim().toLowerCase();
+          
+          let key = '';
+          if (urlKey && urlKey.length > 10) key = urlKey; // Prefer URL if meaningful
+          else if (titleKey && titleKey.length > 5) key = titleKey;
+          else if (snippetKey && snippetKey.length > 10) key = snippetKey;
+          
+          if (!key) continue;
+          if (seen.has(key)) {
+            console.log('[Reddit] Skipping duplicate:', key.slice(0, 30));
+            continue;
+          }
+          seen.add(key);
+          // Shallow clone to avoid accidental shared mutation from backend reuse
+          result.push({ ...it });
         }
+        console.log('[Reddit] After dedup:', result.length, 'from', items.length);
+        return result;
+      };
+
+      // Collapse cross-posts: group identical titles (case/spacing/punct insensitive) across different subreddits
+      const collapseCrossPosts = (items: RedditItem[]): RedditItem[] => {
+        if (!items.length) return items;
+        const norm = (t: string) => t
+          .toLowerCase()
+          .replace(/https?:\/\/\S+/g, '') // strip raw links
+          .replace(/[^a-z0-9\s]/g, ' ') // remove punctuation
+          .replace(/\s+/g, ' ') // collapse whitespace
+          .trim();
+        const map = new Map<string, RedditItem & { _sources?: any[]; _crosspostCount?: number }>();
+        for (const it of items) {
+          const key = norm(it.title || '');
+          if (!key) continue;
+          const existing = map.get(key);
+          if (!existing) {
+            map.set(key, { ...it, _sources: [{ subreddit: (it as any).subreddit || it.source, score: it.score, comments: it.num_comments }], _crosspostCount: 1 });
+          } else {
+            existing._sources!.push({ subreddit: (it as any).subreddit || it.source, score: it.score, comments: it.num_comments });
+            existing._crosspostCount = (existing._crosspostCount || 1) + 1;
+            // Aggregate metrics (simple max / sum heuristics)
+            if (typeof it.score === 'number') existing.score = Math.max(existing.score || 0, it.score);
+            if (typeof it.num_comments === 'number') existing.num_comments = Math.max(existing.num_comments || 0, it.num_comments);
+          }
+        }
+        return Array.from(map.values());
+      };
+
+      if (response?.reddit_sentiment) {
+        const raw = response.reddit_sentiment as RedditSentimentData;
+        const originalCounts = {
+          clusters: raw.clusters?.length || 0,
+          items: raw.items?.length || 0,
+          themes: raw.themes?.length || 0,
+          pain: raw.pain_points?.length || 0,
+          subreddits: raw.top_subreddits?.length || 0
+        };
+        // De-dupe items BEFORE trimming so we keep max variety
+        const dedupedItems = dedupePosts(raw.items);
+        const afterCross = collapseCrossPosts(dedupedItems);
+        const duplicatesRemoved = (raw.items?.length || 0) - dedupedItems.length;
+        const crossCollapsed = dedupedItems.length - afterCross.length;
+        // Create trimmed shallow copy
+        const trimmed: RedditSentimentData = {
+          ...raw,
+          clusters: (raw.clusters || []).slice(0, 8),
+          items: afterCross.slice(0, MAX_POSTS_STORE),
+          themes: (raw.themes || []).slice(0, 20),
+            pain_points: (raw.pain_points || []).slice(0, 20),
+          top_subreddits: (raw.top_subreddits || []).slice(0, 10)
+        };
+        // Build truncation summary
+        const notes: string[] = [];
+        if (originalCounts.clusters > trimmed.clusters.length) notes.push(`clusters ${trimmed.clusters.length}/${originalCounts.clusters}`);
+        if (originalCounts.items > (trimmed.items?.length || 0)) notes.push(`posts ${(trimmed.items?.length || 0)}/${originalCounts.items}`);
+        if (duplicatesRemoved > 0) notes.push(`dedup -${duplicatesRemoved}`);
+        if (crossCollapsed > 0) notes.push(`cross -${crossCollapsed}`);
+        if (originalCounts.themes > (trimmed.themes?.length || 0)) notes.push(`themes ${(trimmed.themes?.length || 0)}/${originalCounts.themes}`);
+        if (originalCounts.pain > (trimmed.pain_points?.length || 0)) notes.push(`pain ${(trimmed.pain_points?.length || 0)}/${originalCounts.pain}`);
+        if (originalCounts.subreddits > (trimmed.top_subreddits?.length || 0)) notes.push(`subs ${(trimmed.top_subreddits?.length || 0)}/${originalCounts.subreddits}`);
+        if (notes.length) setTruncatedInfo(notes.join(', '));
+        console.log('[Reddit] trimmed payload', notes);
+        setData(trimmed);
+        if (trimmed.clusters?.length > 0) setSelectedCluster(trimmed.clusters[0]);
       } else if (response?.data) {
         // Try alternate response structure
-        console.log('[Reddit] Using alternate data structure:', response.data);
-        setData(response.data);
+        const alt = response.data as RedditSentimentData;
+        const deduped = dedupePosts(alt.items);
+        const afterCross = collapseCrossPosts(deduped);
+        if (deduped.length !== (alt.items?.length || 0)) {
+          console.log('[Reddit] de-duplicated alt items', { before: alt.items?.length, after: deduped.length });
+        }
+        if (afterCross.length !== deduped.length) {
+          console.log('[Reddit] cross-post collapsed alt items', { before: deduped.length, after: afterCross.length });
+        }
+        alt.items = afterCross.slice(0, MAX_POSTS_STORE);
+        setData(alt);
       } else if (response) {
         // Try direct response
-        console.log('[Reddit] Using direct response:', response);
-        setData(response);
+        const direct = response as RedditSentimentData;
+        const deduped = dedupePosts(direct.items);
+        const afterCross = collapseCrossPosts(deduped);
+        if (deduped.length !== (direct.items?.length || 0)) {
+          console.log('[Reddit] de-duplicated direct items', { before: direct.items?.length, after: deduped.length });
+        }
+        if (afterCross.length !== deduped.length) {
+          console.log('[Reddit] cross-post collapsed direct items', { before: deduped.length, after: afterCross.length });
+        }
+        direct.items = afterCross.slice(0, MAX_POSTS_STORE);
+        setData(direct);
       } else {
         // Generate synthetic data for demonstration
         console.log('[Reddit] No response data, using synthetic');
@@ -577,11 +675,30 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
             <TabsContent value="posts" className="px-4 space-y-3">
               {data.items && data.items.length > 0 ? (
-                data.items.map((item, idx) => (
-                  <Card key={idx} className="p-4">
+                data.items.slice(0, postPage * POST_PAGE_SIZE).map((item, idx) => (
+                  <Card key={(item as any).url || (item as any).title || idx} className="p-4">
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-medium text-sm flex-1">{item.title}</h4>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">{item.title}</h4>
+                          {(item as any)._crosspostCount > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              <Badge variant="secondary" className="text-[10px]">
+                                {(item as any)._crosspostCount}× cross-posts
+                              </Badge>
+                              {(item as any)._sources?.slice(0, 3).map((src: any, i: number) => (
+                                <Badge key={i} variant="outline" className="text-[10px]">
+                                  {src.subreddit || 'reddit'}
+                                </Badge>
+                              ))}
+                              {(item as any)._sources?.length > 3 && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  +{(item as any)._sources.length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         {item.score !== undefined && (
                           <Badge variant="outline" className="flex-shrink-0">
                             <ThumbsUp className="h-3 w-3 mr-1" />
@@ -609,9 +726,17 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
                       </div>
                       {item.url && (
                         <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
-                          <a href={item.url} target="_blank" rel="noopener noreferrer">
+                          <a href={item.url.startsWith('http') ? item.url : `https://reddit.com${item.url}`} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-3 w-3 mr-1" />
                             View Post
+                          </a>
+                        </Button>
+                      )}
+                      {!item.url && (item as any).permalink && (
+                        <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
+                          <a href={`https://reddit.com${(item as any).permalink}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            View on Reddit
                           </a>
                         </Button>
                       )}
@@ -622,6 +747,13 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No Reddit posts found</p>
+                </div>
+              )}
+              {data.items && data.items.length > postPage * POST_PAGE_SIZE && (
+                <div className="flex justify-center pt-2">
+                  <Button size="sm" variant="outline" onClick={() => setPostPage(p => p + 1)} className="text-xs">
+                    Load more ({data.items.length - postPage * POST_PAGE_SIZE} remaining)
+                  </Button>
                 </div>
               )}
             </TabsContent>
@@ -802,6 +934,9 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
         </Tabs>
       </CardContent>
       
+      {truncatedInfo && (
+        <div className="px-4 pb-2 text-[10px] text-muted-foreground italic">Dataset trimmed: {truncatedInfo}</div>
+      )}
       <TileAIChat
         open={showAIChat}
         onOpenChange={setShowAIChat}

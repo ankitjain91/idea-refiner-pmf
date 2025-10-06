@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { DataHubTile } from "./DataHubTile";
 import { TileData } from "@/lib/data-hub-orchestrator";
 import { ExecutiveMarketSizeTile } from "@/components/market/ExecutiveMarketSizeTile";
@@ -17,6 +17,14 @@ import {
   TrendingUp, Users, MessageSquare, Activity, 
   Search, Newspaper, DollarSign, Building2, Globe
 } from "lucide-react";
+import { fetchTiles, refreshTile } from '@/lib/api/dataHubClient';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, RefreshCw, Bug } from 'lucide-react';
+
+// Local cache key helper
+function ideaHashKey(idea: string) { return 'dh_cache_' + idea.toLowerCase().slice(0,96); }
+
+interface CachedBundle { tiles: Record<string, any>; meta?: any; ts: number; }
 
 interface MainAnalysisGridProps {
   tiles: {
@@ -35,234 +43,119 @@ interface MainAnalysisGridProps {
 
 export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTile }: MainAnalysisGridProps) {
   const { currentSession } = useSession();
-  
-  // Get valid startup idea, filtering out chat suggestions
-  const getValidIdea = (): string => {
-    // Helper to parse appIdea JSON
-    const parseAppIdea = (): string | null => {
-      try {
-        const appIdea = localStorage.getItem('appIdea');
-        if (appIdea) {
-          const parsed = JSON.parse(appIdea);
-          return parsed.summary || parsed.idea || null;
-        }
-      } catch (e) {
-        // If JSON parsing fails, try to use it as plain string
-        const raw = localStorage.getItem('appIdea');
-        if (raw && raw.length > 30) return raw;
-      }
-      return null;
-    };
+  const [fetchedTiles, setFetchedTiles] = useState<Record<string, any>>({});
+  const [tileErrors, setTileErrors] = useState<Record<string, string>>({});
+  const [networkLoading, setNetworkLoading] = useState(false);
+  const [meta, setMeta] = useState<any>(null);
+  const [failureCounts, setFailureCounts] = useState<Record<string, number>>({});
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
+  const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1';
 
-    const ideaSources = [
-      parseAppIdea(),
-      localStorage.getItem('dashboardIdea'),
-      localStorage.getItem('pmfCurrentIdea'),
-      currentSession?.data?.currentIdea,
-      localStorage.getItem('currentIdea'),
-      localStorage.getItem('userIdea')
-    ];
-    
-    for (const ideaCandidate of ideaSources) {
-      if (!ideaCandidate) continue;
-      
-      const cleaned = ideaCandidate.trim();
-      
-      // Skip if it's a chat suggestion/question
-      const isChatSuggestion = 
-        cleaned.length < 30 ||
-        cleaned.startsWith('What') ||
-        cleaned.startsWith('How') ||
-        cleaned.startsWith('Why') ||
-        cleaned.includes('would you') ||
-        cleaned.includes('could you') ||
-        cleaned.includes('?');
-      
-      if (!isChatSuggestion) {
-        return cleaned;
+  const currentIdea = useMemo(() => {
+    const base = localStorage.getItem('currentIdea') || currentSession?.data?.currentIdea || '';
+    return base.trim();
+  }, [currentSession?.data?.currentIdea]);
+
+  const requestedTileIds = useMemo(() => Object.keys(tiles || {}), [tiles]);
+
+  // Hydrate from local cache instantly
+  useEffect(() => {
+    if (!currentIdea) return;
+    try {
+      const raw = localStorage.getItem(ideaHashKey(currentIdea));
+      if (raw) {
+        const parsed: CachedBundle = JSON.parse(raw);
+        // 10 minute freshness window
+        if (Date.now() - parsed.ts < 10 * 60 * 1000) {
+          setFetchedTiles(prev => ({ ...parsed.tiles, ...prev }));
+          if (parsed.meta) setMeta(parsed.meta);
+        }
+      }
+    } catch {}
+  }, [currentIdea]);
+
+  const persistCache = useCallback((tilesObj: Record<string, any>, metaObj: any) => {
+    if (!currentIdea) return;
+    try {
+      const bundle: CachedBundle = { tiles: tilesObj, meta: metaObj, ts: Date.now() };
+      localStorage.setItem(ideaHashKey(currentIdea), JSON.stringify(bundle));
+    } catch {}
+  }, [currentIdea]);
+
+  const hydrateFromServer = useCallback(async (force?: boolean) => {
+    if (!currentIdea || requestedTileIds.length === 0) return;
+    setNetworkLoading(true);
+    try {
+      const res = await fetchTiles(currentIdea, { tiles: requestedTileIds, forceRefresh: force });
+      if (res?.tiles) {
+        setFetchedTiles(res.tiles);
+        setTileErrors({});
+        setMeta(res.meta || null);
+        persistCache(res.tiles, res.meta);
+      }
+    } catch (e: any) {
+      console.error('[MainAnalysisGrid] bulk fetch error', e);
+      setTileErrors(prev => ({ ...prev, _bulk: e?.message || 'Failed to fetch tiles' }));
+    } finally {
+      setNetworkLoading(false);
+    }
+  }, [currentIdea, requestedTileIds, persistCache]);
+
+  useEffect(() => { hydrateFromServer(false); }, [hydrateFromServer]);
+
+  const handleSingleRefresh = async (id: string) => {
+    if (!currentIdea) return;
+    // Circuit breaker check
+    if (cooldowns[id] && cooldowns[id] > Date.now()) return;
+    try {
+      const res = await refreshTile(currentIdea, id);
+      if (res?.tile) {
+        setFetchedTiles(prev => ({ ...prev, [id]: res.tile }));
+        setTileErrors(prev => { const copy = { ...prev }; delete copy[id]; return copy; });
+        setFailureCounts(prev => ({ ...prev, [id]: 0 }));
+        persistCache({ ...fetchedTiles, [id]: res.tile }, meta);
+      }
+    } catch (e: any) {
+      setTileErrors(prev => ({ ...prev, [id]: e?.message || 'Refresh failed' }));
+      setFailureCounts(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+      if ((failureCounts[id] || 0) + 1 >= 3) {
+        setCooldowns(prev => ({ ...prev, [id]: Date.now() + 5 * 60 * 1000 })); // 5 min
       }
     }
-    
-    return '';
   };
-  
-  const currentIdea = getValidIdea();
-  
-  // State to manage tile data loading
-  const [tileData, setTileData] = useState<Record<string, TileData | null>>({});
-  const [tileLoading, setTileLoading] = useState<Record<string, boolean>>({});
-  
-  // Lazy load data for each tile type
-  const loadTileData = useCallback((tileId: string) => {
-    // Skip if already loading or already has data
-    if (tileLoading[tileId] || tileData[tileId]) return;
-    
-    setTileLoading(prev => ({ ...prev, [tileId]: true }));
-    
-    // Simulate API call with mock data
-    setTimeout(() => {
-      let mockData: TileData | null = null;
-      
-      switch(tileId) {
-        case 'sentiment':
-          mockData = {
-            metrics: {
-              positive: 65,
-              neutral: 25,
-              negative: 10,
-              total_mentions: 4200,
-              trend: 'improving',
-              engagement_rate: 85,
-              sentiment_summary: '65% positive / 10% negative'
-            },
-            explanation: "Users express strong enthusiasm for AI-powered productivity solutions, with particular interest in workflow automation and time-saving features. The sentiment has improved 23% over the past month.",
-            confidence: 85,
-            dataQuality: "high" as const,
-            citations: [
-              { url: "reddit.com", title: "Reddit Discussion", source: "Reddit", relevance: 0.95 },
-              { url: "twitter.com", title: "Twitter Analysis", source: "Twitter", relevance: 0.92 }
-            ],
-            charts: [],
-            json: {
-              positive: 65,
-              neutral: 25,
-              negative: 10,
-              mentions: 4200,
-              trend: 'improving'
-            }
-          };
-          break;
-          
-        case 'market_trends':
-          mockData = {
-            metrics: {
-              growthRate: 28,
-              marketCap: 4500000000,
-              yearOverYear: 45,
-              adoption: 67,
-              velocity: 85,  // Changed to number to fix console warning
-              maturity: 65,   // Changed to number
-              trendScore: 82  // Added trend score
-            },
-            explanation: "AI productivity tools are experiencing rapid growth driven by remote work trends and digital transformation initiatives.",
-            confidence: 90,
-            dataQuality: "high" as const,
-            citations: [
-              { url: "gartner.com", title: "Gartner Report", source: "Gartner", relevance: 0.98 },
-              { url: "forrester.com", title: "Forrester Trends", source: "Forrester", relevance: 0.96 }
-            ],
-            charts: [],
-            json: {}
-          };
-          break;
-          
-        case 'google_trends':
-          mockData = {
-            metrics: {
-              interest: 87,
-              growth: 150,
-              queries: 2300000,
-              peakInterest: 92,
-              avgInterest: 78,
-              breakoutTerms: 5
-            },
-            explanation: "Significant spike in searches for 'AI productivity tools' and related terms, indicating growing consumer awareness and demand.",
-            confidence: 95,
-            dataQuality: "high" as const,
-            citations: [
-              { url: "trends.google.com", title: "Google Trends", source: "Google", relevance: 1.0 }
-            ],
-            charts: [],
-            json: {}
-          };
-          break;
-          
-        case 'news_analysis':
-          mockData = {
-            metrics: {
-              articles: 342,
-              reach: 12500000,
-              mentions: 1200,
-              sentiment: 78,
-              virality: 4.2,
-              shareOfVoice: 34
-            },
-            explanation: "Media coverage is overwhelmingly positive with focus on innovation, funding rounds, and successful implementations.",
-            confidence: 88,
-            dataQuality: "high" as const,
-            citations: [
-              { url: "techcrunch.com", title: "TechCrunch", source: "TechCrunch", relevance: 0.94 },
-              { url: "forbes.com", title: "Forbes", source: "Forbes", relevance: 0.91 }
-            ],
-            charts: [],
-            json: {}
-          };
-          break;
-      }
-      
-      setTileData(prev => ({ ...prev, [tileId]: mockData }));
-      setTileLoading(prev => ({ ...prev, [tileId]: false }));
-    }, 1500 + Math.random() * 1000); // Random delay for realistic loading
-  }, [tileLoading, tileData]);
-  
+
+  const forceRefreshAll = () => hydrateFromServer(true);
+
+  // Merge precedence: server fetched > prop tiles (legacy) > empty (must be declared before mainTiles)
+  const mergedTileData = (id: string): any => {
+    return fetchedTiles[id] || (tiles as any)[id] || null;
+  };
+
+  // Include financial_analysis if parent passed it in tiles
   const mainTiles = [
-    { 
-      id: "market_size", 
-      title: "Market Size", 
-      icon: DollarSign,
-      data: tiles.market_size || tileData.market_size || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.market_size?.confidence < 0.5 || (!tiles.market_size && tileData.market_size?.confidence < 0.5)
-    },
-    { 
-      id: "competition", 
-      title: "Competition", 
-      icon: Building2,
-      data: tiles.competition || tileData.competition || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.competition?.confidence < 0.5 || (!tiles.competition && tileData.competition?.confidence < 0.5)
-    },
-    { 
-      id: "sentiment", 
-      title: "Sentiment", 
-      icon: MessageSquare,
-      data: tiles.sentiment || tileData.sentiment || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.sentiment?.confidence < 0.5 || (!tiles.sentiment && tileData.sentiment?.confidence < 0.5)
-    },
-    { 
-      id: "market_trends", 
-      title: "Market Trends", 
-      icon: TrendingUp,
-      data: tiles.market_trends || tileData.market_trends || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.market_trends?.confidence < 0.5 || (!tiles.market_trends && tileData.market_trends?.confidence < 0.5)
-    },
-    { 
-      id: "web_search", 
-      title: "Web Intelligence", 
-      icon: Globe,
-      data: tiles.web_search || tileData.web_search || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.web_search?.confidence < 0.5 || (!tiles.web_search && tileData.web_search?.confidence < 0.5)
-    },
-    { 
-      id: "google_trends", 
-      title: "Google Trends", 
-      icon: Search,
-      data: tiles.google_trends || tileData.google_trends || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.google_trends?.confidence < 0.5 || (!tiles.google_trends && tileData.google_trends?.confidence < 0.5)
-    },
-    { 
-      id: "news_analysis", 
-      title: "News Analysis", 
-      icon: Newspaper,
-      data: tiles.news_analysis || tileData.news_analysis || null,
-      span: "col-span-full",
-      isUsingFallback: tiles.news_analysis?.confidence < 0.5 || (!tiles.news_analysis && tileData.news_analysis?.confidence < 0.5)
-    }
-  ];
+    { id: 'market_size', title: 'Market Size', icon: DollarSign },
+    { id: 'competition', title: 'Competition', icon: Building2 },
+    { id: 'sentiment', title: 'Sentiment', icon: MessageSquare },
+    { id: 'market_trends', title: 'Market Trends', icon: TrendingUp },
+    { id: 'web_search', title: 'Web Intelligence', icon: Globe },
+    { id: 'google_trends', title: 'Google Trends', icon: Search },
+    { id: 'news_analysis', title: 'News Analysis', icon: Newspaper },
+    { id: 'financial_analysis', title: 'Financial Analysis', icon: DollarSign }
+  ]
+    .filter(t => requestedTileIds.includes(t.id))
+    .map(t => {
+      const data = mergedTileData(t.id);
+      return {
+        ...t,
+        data,
+        span: 'col-span-full',
+        isUsingFallback: !!data && data.confidence < 0.5,
+        error: tileErrors[t.id],
+        cooldownUntil: cooldowns[t.id]
+      };
+    });
+
+  // mergedTileData moved earlier to avoid TDZ / reference error
 
   // Only include tiles explicitly provided via props to avoid cross-tab duplication
   // Only include tiles that are explicitly passed in the tiles prop (by checking if key exists)
@@ -272,110 +165,95 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        {tileErrors._bulk && (
+          <div className="flex items-center gap-2 text-sm text-destructive"><AlertCircle className="h-4 w-4" />{tileErrors._bulk}</div>
+        )}
+        <Button size="sm" variant="outline" onClick={forceRefreshAll} disabled={networkLoading} className="gap-2">
+          <RefreshCw className={cn('h-4 w-4', networkLoading && 'animate-spin')} /> Force Refresh
+        </Button>
+        {debug && meta && (
+          <details className="ml-auto bg-muted/40 rounded px-3 py-2 text-xs">
+            <summary className="cursor-pointer flex items-center gap-1"><Bug className="h-3 w-3" />Meta</summary>
+            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-[10px]">{JSON.stringify(meta, null, 2)}</pre>
+          </details>
+        )}
+      </div>
       <div className="grid grid-cols-1 gap-6">
         {displayTiles.map((tile) => {
-          
-          // Use enhanced tiles for market_size, competition, and google_trends
-          if (tile.id === "market_size") {
+          if (tile.id === 'market_size') {
             return (
               <div key={tile.id} className={tile.span}>
                 <ExecutiveMarketSizeTile 
                   idea={currentIdea}
                   ideaContext={currentIdea}
                   dataHub={tiles}
-                  onRefresh={async () => {
-                    if (onRefreshTile) {
-                      toast.info('Refreshing market size data...');
-                      await onRefreshTile('market_size');
-                    }
-                  }}
+                  onRefresh={() => handleSingleRefresh('market_size')}
                 />
               </div>
             );
           }
-          
-          
-          if (tile.id === "competition") {
+          if (tile.id === 'competition') {
             return (
               <div key={tile.id} className={tile.span}>
                 <CompetitionAnalysis idea={currentIdea} />
               </div>
             );
           }
-          
-          if (tile.id === "google_trends") {
+          if (tile.id === 'google_trends') {
             return (
               <div key={tile.id} className={tile.span}>
-                <SimpleGoogleTrendsTile 
-                  className="h-full"
-                />
+                <SimpleGoogleTrendsTile className="h-full" />
               </div>
             );
           }
-          
-          if (tile.id === "news_analysis") {
+          if (tile.id === 'news_analysis') {
             return (
               <div key={tile.id} className={tile.span}>
-                <SimpleNewsTile 
-                  className="h-full"
-                />
+                <SimpleNewsTile className="h-full" />
               </div>
             );
           }
-          
-          if (tile.id === "market_trends") {
+          if (tile.id === 'market_trends') {
             return (
               <div key={tile.id} className={tile.span}>
-                <MarketTrendsTile 
-                  idea={currentIdea}
-                  className="h-full"
-                />
+                <MarketTrendsTile idea={currentIdea} className="h-full" />
               </div>
             );
           }
-          
-          if (tile.id === "web_search") {
+          if (tile.id === 'web_search') {
             return (
               <div key={tile.id} className={tile.span}>
-                <WebSearchTile 
-                  idea={currentIdea}
-                  className="h-full"
-                />
+                <WebSearchTile idea={currentIdea} className="h-full" />
               </div>
             );
           }
-          
-          // Determine tile size based on content richness
+          // Default tile renderer including financial_analysis when backend supplies it
           const hasRegionalData = (tile.data as any)?.regionalBreakdown || (tile.data as any)?.regionalGrowth || (tile.data as any)?.regionalInterest;
           const hasMultipleMetrics = tile.data?.metrics && Object.keys(tile.data.metrics).length > 2;
           const hasDetailedInsights = (tile.data as any)?.segments || (tile.data as any)?.drivers || (tile.data as any)?.breakoutTerms || (tile.data as any)?.keyEvents;
-          
           const isLargeTile = hasRegionalData || (hasMultipleMetrics && hasDetailedInsights);
-          const gridClass = isLargeTile && viewMode === "deep" ? "lg:col-span-2" : "";
-          
+          const gridClass = isLargeTile && viewMode === 'deep' ? 'lg:col-span-2' : '';
+          const inCooldown = tile.cooldownUntil && tile.cooldownUntil > Date.now();
           return (
             <div key={tile.id} className={cn(tile.span, gridClass)}>
               <DataHubTile
                 title={tile.title}
                 Icon={tile.icon}
                 data={sanitizeTileData(tile.data)}
-                loading={tileLoading[tile.id] || loading}
-                onRefresh={async () => {
-                  if (onRefreshTile && tiles[tile.id as keyof typeof tiles]) {
-                    toast.info(`Refreshing ${tile.title} data...`);
-                    await onRefreshTile(tile.id);
-                  } else {
-                    loadTileData(tile.id);
-                  }
-                }}
-                expanded={viewMode === "deep"}
+                loading={(networkLoading && !tile.data)}
+                onRefresh={() => !inCooldown && handleSingleRefresh(tile.id)}
+                expanded={viewMode === 'deep'}
                 tileType={tile.id}
-                isUsingFallback={(tile as any).isUsingFallback}
-                className={cn(
-                  "h-full",
-                  isLargeTile && viewMode === "deep" ? "min-h-[400px]" : "min-h-[300px]"
-                )}
+                isUsingFallback={tile.isUsingFallback}
+                className={cn('h-full', isLargeTile && viewMode === 'deep' ? 'min-h-[400px]' : 'min-h-[300px]')}
               />
+              {tile.error && (
+                <div className="mt-2 text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {tile.error}
+                  {inCooldown && <span className="text-[10px] ml-2">cooling down</span>}
+                </div>
+              )}
             </div>
           );
         })}
