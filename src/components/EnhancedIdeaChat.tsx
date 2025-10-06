@@ -2470,24 +2470,26 @@ User submission: """${messageText}"""`;
       </div>
       
       {/* Idea Generation Progress & View Button */}
-      <div className="flex justify-end mt-3">
-        {summaryLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span>Generating your idea summary...</span>
-          </div>
-        ) : conversationSummary ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowSummaryDialog(true)}
-            className="gap-2"
-          >
-            <Lightbulb className="h-4 w-4" />
-            View Idea
-          </Button>
-        ) : null}
-      </div>
+      {(summaryLoading || conversationSummary) && (
+        <div className="flex justify-end mt-3">
+          {summaryLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span>Generating your idea summary...</span>
+            </div>
+          ) : conversationSummary ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSummaryDialog(true)}
+              className="gap-2"
+            >
+              <Lightbulb className="h-4 w-4" />
+              View Idea
+            </Button>
+          ) : null}
+        </div>
+      )}
     </div>
 
     {/* Confetti Animation */}
