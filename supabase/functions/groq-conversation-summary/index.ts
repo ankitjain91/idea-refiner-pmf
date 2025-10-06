@@ -60,14 +60,13 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY not configured - please set it in edge function secrets');
     }
 
-    // Filter and format messages - only take last 2-3 exchanges to keep summary focused on new info
-    const recentMessages = messages.slice(-6); // Last 3 exchanges (user + bot)
-    const conversationText = recentMessages
+    // Filter and format messages - use ALL messages to understand full context
+    const conversationText = messages
       .filter((m: any) => !m.isTyping && m.content && (m.type === 'user' || m.type === 'assistant'))
       .map((m: any) => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n\n');
 
-    console.log('[Groq Summary] Processing', recentMessages.length, 'recent messages', existingSummary ? '(updating existing)' : '(generating new)');
+    console.log('[Groq Summary] Processing', messages.length, 'messages', existingSummary ? '(updating existing)' : '(generating new)');
 
     const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',

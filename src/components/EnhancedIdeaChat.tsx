@@ -1873,6 +1873,11 @@ const ChatMessageItem = useMemo(() => {
       // Auto-lock idea to enable dashboard when summary is ready
       if (text && text.trim().length >= 20) {
         lockedIdeaManager.setLockedIdea(text);
+        // CRITICAL: Also update currentIdea state so tiles use latest
+        setCurrentIdea(text);
+        localStorage.setItem('currentIdea', text);
+        // Dispatch event for listeners
+        window.dispatchEvent(new CustomEvent('idea:changed', { detail: text }));
       }
     };
 
@@ -1933,13 +1938,21 @@ const ChatMessageItem = useMemo(() => {
 
   // Auto-trigger summary generation based on user message thresholds (placed after declaration)
   useEffect(() => {
-    if (summaryLoading) return;
+    if (summaryLoading) {
+      console.log('[Summary] Skipping trigger - already loading');
+      return;
+    }
+    
+    console.log('[Summary] Checking threshold - userMessageCount:', userMessageCount, 'lastGen:', lastSummaryGeneration);
+    
     if (userMessageCount === 3 && lastSummaryGeneration === 0) {
-      console.log('[Summary] Threshold reached: 3 user messages. Triggering generation.');
+      console.log('[Summary] ✅ Threshold reached: 3 user messages. Triggering generation.');
       generateConversationSummary(messages);
     } else if (lastSummaryGeneration > 0 && userMessageCount >= lastSummaryGeneration + 2) {
-      console.log('[Summary] Threshold reached: +2 user messages since last generation. Triggering regeneration.');
+      console.log('[Summary] ✅ Threshold reached: +2 user messages since last generation. Triggering regeneration.');
       generateConversationSummary(messages);
+    } else {
+      console.log('[Summary] ⏸️ Threshold not met yet');
     }
   }, [userMessageCount, lastSummaryGeneration, summaryLoading, messages, generateConversationSummary]);
 
