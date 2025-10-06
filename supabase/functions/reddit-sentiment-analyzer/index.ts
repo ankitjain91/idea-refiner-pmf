@@ -218,18 +218,28 @@ Rules:
     console.log('[reddit-sentiment-analyzer] AI analysis complete');
 
     // Combine posts with their sentiment - return all posts (up to 30)
-    const postsWithSentiment = posts.map((post: RedditPost, idx: number) => ({
-      title: post.title,
-      url: post.url.startsWith('http') ? post.url : `https://reddit.com${post.url}`,
-      sentiment: idx < 15 ? (analysis.sentiments[idx] || 'neutral') : 'neutral',
-      score: post.score,
-      author: post.author,
-      created: post.created_utc,
-      subreddit: post.subreddit,
-      num_comments: post.num_comments,
-      selftext: post.selftext?.substring(0, 350),
-      upvote_ratio: post.upvote_ratio
-    }));
+    const postsWithSentiment = posts.map((post: RedditPost, idx: number) => {
+      // Handle both relative and absolute URLs
+      let postUrl = post.url;
+      if (postUrl.startsWith('/r/')) {
+        postUrl = `https://reddit.com${postUrl}`;
+      } else if (!postUrl.startsWith('http')) {
+        postUrl = `https://reddit.com${postUrl}`;
+      }
+      
+      return {
+        title: post.title,
+        url: postUrl,
+        sentiment: idx < 15 ? (analysis.sentiments[idx] || 'neutral') : 'neutral',
+        score: post.score,
+        author: post.author,
+        created: post.created_utc,
+        subreddit: post.subreddit,
+        num_comments: post.num_comments,
+        selftext: post.selftext?.substring(0, 350),
+        upvote_ratio: post.upvote_ratio
+      };
+    });
 
     // Calculate sentiment counts
     const sentimentCounts = analysis.sentiments.reduce((acc: any, sentiment: string) => {
