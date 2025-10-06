@@ -27,6 +27,10 @@ interface SentimentData {
   summary: string;
   topPosts: RedditPost[];
   totalPosts: number;
+  themes?: string[];
+  pain_points?: string[];
+  engagement_score?: number;
+  positivity_score?: number;
 }
 
 interface RedditSentimentAnalyzerProps {
@@ -227,12 +231,40 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
               </div>
             </div>
 
+            {/* Key Themes */}
+            {data.themes && data.themes.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Key Themes</h4>
+                <div className="flex flex-wrap gap-2">
+                  {data.themes.map((theme, idx) => (
+                    <Badge key={idx} variant="outline" className="bg-primary/5">
+                      {theme}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pain Points */}
+            {data.pain_points && data.pain_points.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Common Pain Points</h4>
+                <div className="space-y-2">
+                  {data.pain_points.slice(0, 5).map((pain, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm">
+                      {pain}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Top Posts - Show unique posts only with enhanced design */}
             {data.topPosts && data.topPosts.length > 0 && (
               <div className="space-y-3">
                 <h4 className="text-sm font-medium flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
-                  Top Discussions
+                  Top Discussions ({data.topPosts.length} posts)
                 </h4>
                 <div className="grid gap-3">
                   {(() => {
