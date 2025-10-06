@@ -14,6 +14,8 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "@/components/hub/HeroSection";
@@ -52,6 +54,18 @@ export default function EnterpriseHub() {
   });
   const [advancedControlsOpen, setAdvancedControlsOpen] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout>();
+  
+  // Tile selection for selective refresh
+  const [selectedTiles, setSelectedTiles] = useState<Set<string>>(() => new Set([
+    'twitter_sentiment',
+    'youtube_analysis',
+    'market_size',
+    'google_trends',
+    'news_trends',
+    'sentiment',
+    'web_search'
+  ]));
+  const [refreshPopoverOpen, setRefreshPopoverOpen] = useState(false);
   
   // Save summary expanded state
   useEffect(() => {
@@ -272,7 +286,7 @@ export default function EnterpriseHub() {
     checkExistingData();
   }, [tiles, currentIdea]);
   
-  // Custom refresh that also updates the idea from session
+  // Custom refresh that refreshes only selected tiles
   const handleRefresh = useCallback(async () => {
     updateIdeaFromSession();
     setHasLoadedData(true);
@@ -280,8 +294,52 @@ export default function EnterpriseHub() {
     if (currentIdea) {
       localStorage.setItem('dashboardAnalyzed', currentIdea);
     }
-    await refresh();
-  }, [updateIdeaFromSession, refresh, currentIdea]);
+    
+    // If all tiles are selected, do a full refresh
+    if (selectedTiles.size === 7) {
+      await refresh();
+      toast.success('All tiles refreshed');
+    } else if (selectedTiles.size > 0) {
+      // Refresh only selected tiles
+      const refreshPromises = Array.from(selectedTiles).map(tileKey => 
+        refreshTile(tileKey as any)
+      );
+      await Promise.all(refreshPromises);
+      toast.success(`Refreshed ${selectedTiles.size} tile${selectedTiles.size > 1 ? 's' : ''}`);
+    } else {
+      toast.error('Please select at least one tile to refresh');
+    }
+    
+    setRefreshPopoverOpen(false);
+  }, [updateIdeaFromSession, refresh, refreshTile, currentIdea, selectedTiles]);
+  
+  const toggleTileSelection = (tileKey: string) => {
+    setSelectedTiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tileKey)) {
+        newSet.delete(tileKey);
+      } else {
+        newSet.add(tileKey);
+      }
+      return newSet;
+    });
+  };
+  
+  const toggleAllTiles = () => {
+    if (selectedTiles.size === 7) {
+      setSelectedTiles(new Set());
+    } else {
+      setSelectedTiles(new Set([
+        'twitter_sentiment',
+        'youtube_analysis',
+        'market_size',
+        'google_trends',
+        'news_trends',
+        'sentiment',
+        'web_search'
+      ]));
+    }
+  };
 
   // Handle Get Score button click
   const handleGetScore = useCallback(() => {
@@ -431,6 +489,76 @@ export default function EnterpriseHub() {
                 Evidence Explorer
               </Button>
               
+              <Popover open={refreshPopoverOpen} onOpenChange={setRefreshPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh ({selectedTiles.size})
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64" align="start">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Select Tiles to Refresh</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Choose which data sources to update
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 pb-2 border-b">
+                        <Checkbox
+                          id="select-all"
+                          checked={selectedTiles.size === 7}
+                          onCheckedChange={toggleAllTiles}
+                        />
+                        <label
+                          htmlFor="select-all"
+                          className="text-sm font-medium cursor-pointer flex-1"
+                        >
+                          Select All
+                        </label>
+                      </div>
+                      
+                      {[
+                        { key: 'twitter_sentiment', label: 'Twitter Sentiment' },
+                        { key: 'youtube_analysis', label: 'YouTube Analysis' },
+                        { key: 'market_size', label: 'Market Size' },
+                        { key: 'google_trends', label: 'Google Trends' },
+                        { key: 'news_trends', label: 'News Trends' },
+                        { key: 'sentiment', label: 'Sentiment Analysis' },
+                        { key: 'web_search', label: 'Web Search' }
+                      ].map(({ key, label }) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <Checkbox
+                            id={key}
+                            checked={selectedTiles.has(key)}
+                            onCheckedChange={() => toggleTileSelection(key)}
+                          />
+                          <label
+                            htmlFor={key}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button 
+                      onClick={handleRefresh} 
+                      disabled={loading || selectedTiles.size === 0}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh Selected
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
               <Collapsible
                 open={advancedControlsOpen}
                 onOpenChange={setAdvancedControlsOpen}
@@ -448,22 +576,13 @@ export default function EnterpriseHub() {
               </Collapsible>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {lastFetchTime && (
                 <span className="text-xs text-muted-foreground">
                   Updated: {new Date(lastFetchTime).toLocaleTimeString()}
                 </span>
               )}
-              <Button
-                onClick={handleRefresh}
-                disabled={loading}
-                variant="default"
-                size="sm"
-                className="gap-2"
-              >
-                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-                Refresh
-              </Button>
+              <CacheClearButton />
             </div>
           </div>
           
