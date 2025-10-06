@@ -768,7 +768,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {regionalData.sort((a, b) => b.cagr - a.cagr).map((region, i) => (
+                      {[...regionalData].sort((a, b) => b.cagr - a.cagr).map((region, i) => (
                         <motion.div
                           key={region.name}
                           initial={{ opacity: 0, x: -20 }}
@@ -813,7 +813,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {regionalData.sort((a, b) => b.marketPenetration - a.marketPenetration).map((region, i) => (
+                      {[...regionalData].sort((a, b) => b.marketPenetration - a.marketPenetration).map((region, i) => (
                         <motion.div
                           key={region.name}
                           initial={{ opacity: 0, x: -20 }}
