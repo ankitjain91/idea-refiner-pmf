@@ -261,7 +261,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       localStorage.setItem('chatHistory', JSON.stringify(sessionData.chatHistory));
     }
     
-    // Restore idea
+    // Restore idea and locked idea
     if (sessionData?.currentIdea) {
       console.log('[EnhancedIdeaChat] ✅ Restored idea from session');
       setCurrentIdea(sessionData.currentIdea);
@@ -271,6 +271,12 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       localStorage.setItem(`session_${currentSession.id}_idea`, sessionData.currentIdea);
       localStorage.setItem('userIdea', sessionData.currentIdea);
       localStorage.setItem('currentIdea', sessionData.currentIdea);
+      
+      // CRITICAL: Restore locked idea if it's valid
+      if (sessionData.currentIdea.trim().length >= 20) {
+        console.log('[EnhancedIdeaChat] ✅ Restoring locked idea:', sessionData.currentIdea.slice(0, 50));
+        lockedIdeaManager.setLockedIdea(sessionData.currentIdea);
+      }
     }
     
     // Restore wrinkle points
@@ -283,6 +289,12 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     if (sessionData?.conversationSummary) {
       setConversationSummary(sessionData.conversationSummary);
       localStorage.setItem(`session_${currentSession.id}_summary`, sessionData.conversationSummary);
+      
+      // CRITICAL: If we have a summary, also restore it as locked idea
+      if (sessionData.conversationSummary.trim().length >= 20) {
+        console.log('[EnhancedIdeaChat] ✅ Restoring locked idea from summary:', sessionData.conversationSummary.slice(0, 50));
+        lockedIdeaManager.setLockedIdea(sessionData.conversationSummary);
+      }
     }
     
     // Small delay to show the loading animation
