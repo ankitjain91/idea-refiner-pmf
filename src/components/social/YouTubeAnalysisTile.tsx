@@ -73,6 +73,22 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
       return;
     }
 
+    // Check cache first unless force refresh
+    if (!force) {
+      const cacheKey = `youtube_analysis_${lockedIdea.slice(0, 50)}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const cachedData = JSON.parse(cached);
+          setData(cachedData);
+          console.log('[YouTubeAnalysisTile] Loaded from cache');
+          return;
+        } catch (e) {
+          console.warn('[YouTubeAnalysisTile] Failed to parse cache', e);
+        }
+      }
+    }
+
     if (loading && !force) {
       console.log('[YouTubeAnalysisTile] Fetch already in progress');
       return;
@@ -126,7 +142,12 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
       };
 
       setData(transformedData);
-      console.log('[YouTubeAnalysisTile] Data fetched successfully');
+      
+      // Cache the result
+      const cacheKey = `youtube_analysis_${lockedIdea.slice(0, 50)}`;
+      localStorage.setItem(cacheKey, JSON.stringify(transformedData));
+      
+      console.log('[YouTubeAnalysisTile] Data fetched successfully and cached');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch YouTube data';
       console.error('[YouTubeAnalysisTile] Error:', message);
