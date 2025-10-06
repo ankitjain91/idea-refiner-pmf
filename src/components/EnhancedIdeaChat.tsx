@@ -151,6 +151,17 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     return '';
   });
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [userMessageCount, setUserMessageCount] = useState(0);
+  const [lastSummaryGeneration, setLastSummaryGeneration] = useState(() => {
+    if (!anonymous) {
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) {
+        const stored = localStorage.getItem(`session_${sid}_lastSummaryGen`);
+        return stored ? parseInt(stored, 10) : 0;
+      }
+    }
+    return 0;
+  });
 
   // Persisted chat persona (allows custom tone/style)
   const [chatPersona, setChatPersona] = useState<any>(() => {
@@ -1831,50 +1842,76 @@ const ChatMessageItem = useMemo(() => {
   // Generate evolving conversation summary (cumulative)
   const generateConversationSummary = useCallback(async (messageList: Message[]) => {
     const validMessages = messageList.filter(m => !m.isTyping && m.content);
+    const validUserMessages = validMessages.filter(m => m.type === 'user');
 
-    // Only generate if we have new messages since last summary
-    if (summaryLoading || validMessages.length <= lastSummaryMessageCount.current) {
+    // Only generate if we have enough user messages
+    if (summaryLoading || validUserMessages.length < 3) {
       return;
     }
 
-    console.log('[Summary] Starting generation. Previous count:', lastSummaryMessageCount.current, 'New count:', validMessages.length);
-    lastSummaryMessageCount.current = validMessages.length;
+    console.log('[Summary] Starting generation for', validUserMessages.length, 'user messages');
     setSummaryLoading(true);
 
-    const persistSummary = (text: string) => {
+    const persistSummary = (text: string, userMsgCount: number) => {
       setConversationSummary(text);
+      setLastSummaryGeneration(userMsgCount);
       const sid = localStorage.getItem('currentSessionId');
-      if (sid) localStorage.setItem(`session_${sid}_summary`, text);
+      if (sid) {
+        localStorage.setItem(`session_${sid}_summary`, text);
+        localStorage.setItem(`session_${sid}_lastSummaryGen`, userMsgCount.toString());
+      }
     };
 
     try {
       const { data, error } = await supabase.functions.invoke('groq-conversation-summary', {
         body: {
-          messages: validMessages,
-          existingSummary: conversationSummary || undefined
+          messages: validMessages.map(m => ({
+            type: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+            isTyping: m.isTyping
+          })),
+          existingSummary: conversationSummary || null
         }
       });
 
       if (error) {
         console.error('[Summary] Edge function error:', error);
-        // Fallback to local summarizer
+        toast({
+          title: "Summary generated locally",
+          description: "AI summary unavailable - using basic summary",
+          variant: "default",
+          duration: 3000,
+        });
         const fallback = createLocalSummary(validMessages, currentIdea || '');
-        persistSummary(fallback);
+        persistSummary(fallback, validUserMessages.length);
         return;
       }
 
       if (data?.summary && typeof data.summary === 'string') {
-        console.log('[Summary] Generated via edge function');
-        persistSummary(data.summary);
+        console.log('[Summary] Generated via edge function:', data.summary);
+        persistSummary(data.summary, validUserMessages.length);
+        
+        // Show success toast
+        toast({
+          title: "✨ Your idea summary is ready!",
+          description: "Click 'View Your Idea' to see it",
+          duration: 3000,
+        });
       } else {
         console.warn('[Summary] No summary in response, using local fallback');
         const fallback = createLocalSummary(validMessages, currentIdea || '');
-        persistSummary(fallback);
+        persistSummary(fallback, validUserMessages.length);
       }
     } catch (err) {
-      console.error('[Summary] Exception generating summary, using local fallback:', err);
+      console.error('[Summary] Exception generating summary:', err);
+      toast({
+        title: "Summary generated locally",
+        description: "AI summary unavailable - using basic summary",
+        variant: "default",
+        duration: 3000,
+      });
       const fallback = createLocalSummary(validMessages, currentIdea || '');
-      persistSummary(fallback);
+      persistSummary(fallback, validUserMessages.length);
     } finally {
       setSummaryLoading(false);
     }
@@ -2368,11 +2405,19 @@ User submission: """${messageText}"""`;
           
           localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
           
-          // Generate evolving conversation summary after a few messages (3+ valid messages)
+          // Track user message count and auto-generate summary
           const validMessages = newMessages.filter(m => !m.isTyping && m.content);
-          console.log('[Summary] Valid messages count:', validMessages.length);
-          if (validMessages.length >= 3) {
-            console.log('[Summary] Triggering generation...');
+          const validUserMessages = validMessages.filter(m => m.type === 'user');
+          setUserMessageCount(validUserMessages.length);
+          
+          // Generate at exactly 3 user messages (first time)
+          if (validUserMessages.length === 3 && lastSummaryGeneration === 0) {
+            console.log('[Summary] Auto-generating at 3 user messages');
+            generateConversationSummary(newMessages);
+          }
+          // Regenerate every 2 new user messages after initial generation
+          else if (lastSummaryGeneration > 0 && validUserMessages.length >= lastSummaryGeneration + 2) {
+            console.log('[Summary] Regenerating after 2 new user messages');
             generateConversationSummary(newMessages);
           }
           
@@ -2473,73 +2518,88 @@ User submission: """${messageText}"""`;
           </p>
           
           {/* Idea Summary Button with Progress */}
-          <Button
-            variant={conversationSummary ? "default" : "outline"}
-            size="sm"
-            onClick={() => conversationSummary && setShowSummaryDialog(true)}
-            disabled={!conversationSummary && !summaryLoading}
-            className={cn(
-              "gap-2 w-fit relative overflow-hidden transition-all duration-500",
-              conversationSummary && "bg-gradient-to-r from-primary via-primary/90 to-primary shadow-lg hover:shadow-xl hover:scale-105 animate-in",
-              summaryLoading && "cursor-wait",
-              !conversationSummary && !summaryLoading && "opacity-50"
-            )}
-          >
-            {/* Progress fill background for loading */}
-            {summaryLoading && (
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/50 to-primary/30"
-                initial={{ x: "-100%" }}
-                animate={{ x: "100%" }}
-                transition={{ 
-                  duration: 2, 
-                  ease: "easeInOut",
-                  repeat: Infinity
-                }}
-              />
-            )}
-            
-            {/* Shimmer effect when ready */}
-            {conversationSummary && (
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                initial={{ x: "-100%" }}
-                animate={{ x: "200%" }}
-                transition={{ 
-                  duration: 2, 
-                  ease: "easeInOut",
-                  repeat: Infinity,
-                  repeatDelay: 1
-                }}
-              />
-            )}
-            
-            {/* Button content */}
-            <div className="relative z-10 flex items-center gap-2">
-              {summaryLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Refining Idea...</span>
-                </>
-              ) : conversationSummary ? (
-                <>
-                  <motion.div
-                    initial={{ rotate: 0 }}
-                    animate={{ rotate: [0, -10, 10, -10, 0] }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                  >
-                    <Lightbulb className="h-4 w-4 fill-current" />
-                  </motion.div>
-                  <span className="font-semibold">View Your Idea</span>
-                </>
-              ) : (
-                <>
-                  <Lightbulb className="h-4 w-4 opacity-50" />
-                  <span>Chat to unlock...</span>
-                </>
-              )}
-            </div>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={conversationSummary ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => conversationSummary && setShowSummaryDialog(true)}
+                  disabled={!conversationSummary && !summaryLoading}
+                  className={cn(
+                    "gap-2 w-fit relative overflow-hidden transition-all duration-500",
+                    conversationSummary && "bg-gradient-to-r from-primary via-primary/90 to-primary shadow-lg hover:shadow-xl hover:scale-105 animate-in",
+                    summaryLoading && "cursor-wait",
+                    !conversationSummary && !summaryLoading && "opacity-50"
+                  )}
+                >
+                  {/* Progress fill background for loading */}
+                  {summaryLoading && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/50 to-primary/30"
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "100%" }}
+                      transition={{ 
+                        duration: 2, 
+                        ease: "easeInOut",
+                        repeat: Infinity
+                      }}
+                    />
+                  )}
+                  
+                  {/* Shimmer effect when ready */}
+                  {conversationSummary && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "200%" }}
+                      transition={{ 
+                        duration: 2, 
+                        ease: "easeInOut",
+                        repeat: Infinity,
+                        repeatDelay: 1
+                      }}
+                    />
+                  )}
+                  
+                  {/* Button content */}
+                  <div className="relative z-10 flex items-center gap-2">
+                    {summaryLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Refining Idea...</span>
+                      </>
+                    ) : conversationSummary ? (
+                      <>
+                        <motion.div
+                          initial={{ rotate: 0 }}
+                          animate={{ rotate: [0, -10, 10, -10, 0] }}
+                          transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                          <Lightbulb className="h-4 w-4 fill-current" />
+                        </motion.div>
+                        <span className="font-semibold">View Your Idea</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lightbulb className="h-4 w-4 opacity-50" />
+                        <span>Chat to unlock ({userMessageCount}/3)</span>
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {conversationSummary 
+                    ? "Click to see your refined idea summary" 
+                    : userMessageCount < 3 
+                      ? `Share ${3 - userMessageCount} more message${3 - userMessageCount === 1 ? '' : 's'} to unlock your idea summary`
+                      : "Your idea summary is being generated..."}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           </div>
         </div>
       </div>

@@ -5,15 +5,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Retry helper with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2) {
+  let lastError;
+  
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      lastError = error;
+      console.error(`[Groq Summary] Attempt ${i + 1} failed:`, error.message);
+      
+      if (i < maxRetries) {
+        const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+        console.log(`[Groq Summary] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     const { messages, existingSummary } = await req.json();
     
     if (!messages || messages.length === 0) {
+      console.error('[Groq Summary] No messages provided in request');
       return new Response(
         JSON.stringify({ error: 'No messages provided' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -22,7 +56,8 @@ serve(async (req) => {
 
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
     if (!GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY not configured');
+      console.error('[Groq Summary] GROQ_API_KEY environment variable not configured');
+      throw new Error('GROQ_API_KEY not configured - please set it in edge function secrets');
     }
 
     // Filter and format messages - only take last 2-3 exchanges to keep summary focused on new info
@@ -32,9 +67,9 @@ serve(async (req) => {
       .map((m: any) => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n\n');
 
-    console.log('[Groq Summary] Processing', recentMessages.length, 'recent messages', existingSummary ? '(with existing summary)' : '(from scratch)');
+    console.log('[Groq Summary] Processing', recentMessages.length, 'recent messages', existingSummary ? '(updating existing)' : '(generating new)');
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${GROQ_API_KEY}`,
@@ -98,22 +133,24 @@ DO NOT include explanations, just return the 2-sentence summary.`
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[Groq Summary] API error:', response.status, errorText);
-      throw new Error(`Groq API error: ${response.status}`);
+      throw new Error(`Groq API failed with status ${response.status}: ${errorText.substring(0, 200)}`);
     }
 
     const data = await response.json();
     const summary = data.choices[0]?.message?.content?.trim() || '';
-
-    console.log('[Groq Summary] Generated:', summary);
+    
+    const duration = Date.now() - startTime;
+    console.log('[Groq Summary] Generated in', duration, 'ms:', summary);
 
     // Validate that we got exactly 2 sentences
     const sentences = summary.split(/[.!?]+/).filter(s => s.trim());
     if (sentences.length < 2) {
-      console.warn('[Groq Summary] Got less than 2 sentences, using fallback');
+      console.warn('[Groq Summary] Got less than 2 sentences, returning fallback');
       return new Response(
         JSON.stringify({ 
           summary: 'A startup platform focused on innovative solutions. It helps users solve key challenges through technology and innovation.',
-          sentences: 2
+          sentences: 2,
+          fallback: true
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -122,15 +159,30 @@ DO NOT include explanations, just return the 2-sentence summary.`
     // Take only first 2 sentences and reconstruct
     const finalSummary = sentences.slice(0, 2).join('. ') + '.';
 
+    console.log('[Groq Summary] Success - returning summary');
     return new Response(
-      JSON.stringify({ summary: finalSummary, sentences: sentences.length }),
+      JSON.stringify({ 
+        summary: finalSummary, 
+        sentences: sentences.length,
+        duration 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[Groq Summary] Error:', error);
+    const duration = Date.now() - startTime;
+    console.error('[Groq Summary] Error after', duration, 'ms:', error);
+    
+    // Return helpful error message
+    const errorMessage = error.name === 'AbortError' 
+      ? 'Request timeout - summary generation took too long'
+      : error.message || 'Unknown error occurred';
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: errorMessage,
+        duration 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
