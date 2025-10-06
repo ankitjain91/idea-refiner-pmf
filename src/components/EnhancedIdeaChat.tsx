@@ -268,6 +268,16 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, [resetTrigger]);
 
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0 && !anonymous) {
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) {
+        localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
+      }
+    }
+  }, [messages, anonymous]);
+
   useEffect(() => {
     if (messages.length > 1) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
