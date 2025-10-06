@@ -20,11 +20,6 @@ import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
-import { ComprehensiveSentimentTile } from "@/components/hub/ComprehensiveSentimentTile";
-import { ComprehensiveRedditTile } from "@/components/hub/ComprehensiveRedditTile";
-import { ComprehensiveTwitterTile } from "@/components/hub/ComprehensiveTwitterTile";
-import { ComprehensiveYouTubeTile } from "@/components/hub/ComprehensiveYouTubeTile";
-import { SimpleNewsTile } from "@/components/hub/SimpleNewsTile";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -586,11 +581,7 @@ export default function EnterpriseHub() {
           <TabsContent value="sentiment" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
-                <ComprehensiveSentimentTile />
-                <ComprehensiveRedditTile data={tiles.reddit_sentiment?.json} loading={loading} />
-                <ComprehensiveTwitterTile data={tiles.twitter_buzz?.json} loading={loading} />
-                <ComprehensiveYouTubeTile data={tiles.youtube_analytics?.json} loading={loading} />
-                <SimpleNewsTile />
+                {/* New tiles will be added here */}
               </div>
             )}
           </TabsContent>
