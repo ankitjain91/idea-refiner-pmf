@@ -152,6 +152,8 @@ export function SentimentTile({ className }: SentimentTileProps) {
     setError(null);
 
     try {
+      console.log('[SentimentTile] Fetching sentiment data for:', currentIdea.substring(0, 50));
+      
       // Prefetch related sentiment data
       optimizedQueue.prefetchRelated('unified-sentiment', { idea: currentIdea, detailed: true, version: SENTIMENT_API_VERSION });
       
@@ -159,6 +161,13 @@ export function SentimentTile({ className }: SentimentTileProps) {
         idea: currentIdea,
         detailed: true,
         version: SENTIMENT_API_VERSION
+      });
+
+      console.log('[SentimentTile] Response received:', {
+        hasResponse: !!response,
+        hasSentiment: !!response?.sentiment,
+        keys: response ? Object.keys(response) : [],
+        sentimentKeys: response?.sentiment ? Object.keys(response.sentiment) : []
       });
 
       if (response?.sentiment) {
@@ -196,6 +205,12 @@ export function SentimentTile({ className }: SentimentTileProps) {
           throw new Error('Empty sentiment payload');
         }
 
+        console.log('[SentimentTile] Successfully loaded sentiment data:', {
+          clustersCount: normalized.clusters.length,
+          chartsCount: normalized.charts.length,
+          hasMetrics: !!normalized.metrics
+        });
+        
         setData(normalized);
         if (normalized.clusters.length > 0) {
           setSelectedCluster(normalized.clusters[0]);

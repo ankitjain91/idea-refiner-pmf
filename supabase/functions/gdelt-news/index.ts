@@ -12,16 +12,19 @@ serve(async (req) => {
   }
 
   try {
-    const { query, startDate, endDate, maxRecords = 100 } = await req.json();
+    const { query, idea, startDate, endDate, maxRecords = 100 } = await req.json();
     
-    if (!query) {
-      throw new Error('Query is required');
+    // Accept either 'query' or 'idea' parameter
+    const searchQuery = query || idea;
+    
+    if (!searchQuery) {
+      throw new Error('Query or idea is required');
     }
 
-    console.log('GDELT search for:', query);
+    console.log('GDELT search for:', searchQuery);
 
     // GDELT DOC 2.0 API endpoint (free, no auth required)
-    const gdeltQuery = encodeURIComponent(query);
+    const gdeltQuery = encodeURIComponent(searchQuery);
     let gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${gdeltQuery}&mode=artlist&maxrecords=${maxRecords}&format=json`;
 
     if (startDate) {
@@ -108,7 +111,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        query,
+        query: searchQuery,
         totalArticles: articles.length,
         articles: articles.slice(0, 50), // Limit to 50 articles in response
         sentiment: {
