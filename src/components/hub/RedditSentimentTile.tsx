@@ -669,15 +669,6 @@ ${batch.map((post, idx) => `${idx}. Title: "${post.title}"
                 </p>
               </details>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              className="flex-shrink-0 border-red-300 text-red-700 hover:bg-red-50"
-            >
-              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-              Retry
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -722,15 +713,6 @@ ${batch.map((post, idx) => `${idx}. Title: "${post.title}"
             >
               <Sparkles className="h-3.5 w-3.5 text-purple-600" />
               <span className="hidden sm:inline text-purple-700 font-medium">AI Analysis</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing || loading}
-              className="hover:bg-orange-50 transition-all duration-200"
-            >
-              <RefreshCw className={`h-4 w-4 text-orange-600 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
             </Button>
             {/* DEBUGGING: Test button */}
             {new URLSearchParams(window.location.search).get('debug') === '1' && (
@@ -1019,23 +1001,12 @@ ${batch.map((post, idx) => `${idx}. Title: "${post.title}"
                     Our AI analyzed Reddit posts but couldn't find discussions highly relevant to your specific idea. 
                     Try refreshing or consider broadening your idea description.
                   </p>
-                  <div className="flex items-center justify-center gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleRefresh}
-                      className="bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200/50 text-purple-700"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                      Try Again
-                    </Button>
                     {/* Debug info */}
                     {new URLSearchParams(window.location.search).get('debug') === '1' && (
                       <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-300">
                         🧪 AI Filter Active
                       </Badge>
                     )}
-                  </div>
                 </div>
               )}
               {data.items && data.items.length > postPage * POST_PAGE_SIZE && (

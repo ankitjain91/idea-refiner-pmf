@@ -120,16 +120,6 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
             </CardTitle>
             <CardDescription className="text-sm">Real-time sentiment analysis from Reddit discussions</CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchSentiment}
-            disabled={loading}
-            className="gap-2 hover:bg-primary/10 hover:border-primary/30 transition-all"
-          >
-            <RefreshCw className={cn("h-4 w-4 transition-transform", loading && "animate-spin")} />
-            Refresh
-          </Button>
         </div>
         {lastUpdate && (
           <div className="text-xs text-muted-foreground/80 mt-3 flex items-center gap-1.5">
