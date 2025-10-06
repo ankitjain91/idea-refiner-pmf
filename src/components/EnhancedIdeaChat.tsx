@@ -137,6 +137,18 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
     return '';
   });
+  
+  // Evolving conversation summary state
+  const [conversationSummary, setConversationSummary] = useState<string>(() => {
+    if (!anonymous) {
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) {
+        return localStorage.getItem(`session_${sid}_summary`) || '';
+      }
+    }
+    return '';
+  });
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   // Persisted chat persona (allows custom tone/style)
   const [chatPersona, setChatPersona] = useState<any>(() => {
@@ -1778,6 +1790,36 @@ const ChatMessageItem = useMemo(() => {
     }, 100);
   }, []);
 
+  // Generate evolving conversation summary
+  const generateConversationSummary = useCallback(async (messageList: Message[]) => {
+    if (summaryLoading || messageList.length < 4) return;
+    
+    setSummaryLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('groq-conversation-summary', {
+        body: { messages: messageList }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.summary) {
+        setConversationSummary(data.summary);
+        
+        // Persist to localStorage
+        const sid = localStorage.getItem('currentSessionId');
+        if (sid) {
+          localStorage.setItem(`session_${sid}_summary`, data.summary);
+        }
+        
+        console.log('[Summary] Generated:', data.summary);
+      }
+    } catch (error) {
+      console.error('[Summary] Error generating summary:', error);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [summaryLoading]);
+
   const sendMessageHandler = useCallback(async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
     if (!messageText || isTyping) return;
@@ -2266,6 +2308,11 @@ User submission: """${messageText}"""`;
           
           localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
           
+          // Generate evolving conversation summary after a few messages
+          if (newMessages.length >= 4) {
+            generateConversationSummary(newMessages);
+          }
+          
           return newMessages;
         });
       }
@@ -2279,7 +2326,7 @@ User submission: """${messageText}"""`;
         variant: "destructive"
       });
     }
-  }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, toast]); // Properly close the sendMessageHandler function
+  }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, toast, generateConversationSummary]); // Properly close the sendMessageHandler function
 
   // Handle pin toggle
   const handlePinToggle = useCallback(() => {
@@ -2346,6 +2393,36 @@ User submission: """${messageText}"""`;
           </div>
         </div>
       </div>
+      
+      {/* Evolving Conversation Summary */}
+      {conversationSummary && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="mt-4 relative"
+        >
+          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-4 border border-primary/20">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-1">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+                  Conversation Summary
+                  {summaryLoading && (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  )}
+                </h4>
+                <p className="text-sm text-foreground/90 leading-relaxed">
+                  {conversationSummary}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+      
       
       {/* Persistence Controls */}
       <div className="flex items-center gap-2 mt-3 flex-wrap">
