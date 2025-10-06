@@ -20,11 +20,6 @@ import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
-import { ComprehensiveSentimentTile } from "@/components/hub/ComprehensiveSentimentTile";
-import { ComprehensiveRedditTile } from "@/components/hub/ComprehensiveRedditTile";
-import { ComprehensiveTwitterTile } from "@/components/hub/ComprehensiveTwitterTile";
-import { ComprehensiveYouTubeTile } from "@/components/hub/ComprehensiveYouTubeTile";
-import { SimpleNewsTile } from "@/components/hub/SimpleNewsTile";
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -536,10 +531,9 @@ export default function EnterpriseHub() {
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="sticky top-[57px] z-30 bg-background/95 backdrop-blur-lg pb-4 -mx-4 px-4 mb-6 border-b border-border/50">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="market">Market Analysis</TabsTrigger>
-              <TabsTrigger value="customer">Customer Research</TabsTrigger>
               <TabsTrigger value="evidence">Evidence</TabsTrigger>
             </TabsList>
           </div>
@@ -582,18 +576,6 @@ export default function EnterpriseHub() {
             )}
           </TabsContent>
 
-          {/* CUSTOMER RESEARCH TAB */}
-          <TabsContent value="customer" className="space-y-6">
-            {hasLoadedData && (
-              <div className="space-y-4">
-                <ComprehensiveSentimentTile />
-                <ComprehensiveRedditTile data={tiles.reddit_sentiment?.json} loading={loading} />
-                <ComprehensiveTwitterTile data={tiles.twitter_buzz?.json} loading={loading} />
-                <ComprehensiveYouTubeTile data={tiles.youtube_analytics?.json} loading={loading} />
-                <SimpleNewsTile />
-              </div>
-            )}
-          </TabsContent>
 
           {/* EVIDENCE TAB */}
           <TabsContent value="evidence" className="space-y-6">
