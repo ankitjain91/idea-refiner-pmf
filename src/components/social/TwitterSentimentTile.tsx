@@ -144,6 +144,31 @@ interface TwitterBuzzData {
   cached_until?: string;
 }
 
+function normalizeTwitterBuzzData(obj: any): TwitterBuzzData {
+  const metrics = obj?.metrics || {};
+  const overall = metrics?.overall_sentiment || {};
+  return {
+    summary: obj?.summary ?? '',
+    metrics: {
+      total_tweets: Number(metrics?.total_tweets ?? 0),
+      buzz_trend: metrics?.buzz_trend ?? '—',
+      overall_sentiment: {
+        positive: Number(overall?.positive ?? 0),
+        neutral: Number(overall?.neutral ?? 0),
+        negative: Number(overall?.negative ?? 0),
+      },
+      top_hashtags: Array.isArray(metrics?.top_hashtags) ? metrics.top_hashtags : [],
+      influencers: Array.isArray(metrics?.influencers) ? metrics.influencers : [],
+    },
+    clusters: Array.isArray(obj?.clusters) ? obj.clusters : [],
+    raw_tweets: Array.isArray(obj?.raw_tweets) ? obj.raw_tweets : [],
+    confidence: obj?.confidence ?? 'Low',
+    cached: obj?.cached,
+    cached_at: obj?.cached_at,
+    cached_until: obj?.cached_until,
+  };
+}
+
 interface TwitterSentimentTileProps {
   className?: string;
 }
@@ -174,7 +199,7 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
       const cachedData = await getTwitterCache(ideaHash);
       if (cachedData && isValidTwitterBuzzData(cachedData)) {
         console.log('[TwitterSentimentTile] Using cached data from IndexedDB');
-        setData(cachedData);
+        setData(normalizeTwitterBuzzData(cachedData));
         setIsFromCache(true);
         setFetchAttempted(true);
         return;
@@ -203,11 +228,11 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
         throw new Error('No Twitter data in response');
       }
 
-      setData(twitterBuzz);
+      setData(normalizeTwitterBuzzData(twitterBuzz));
       setIsFromCache(Boolean(twitterBuzz.cached));
       
       // Store in IndexedDB cache
-      await setTwitterCache(ideaHash, twitterBuzz);
+      await setTwitterCache(ideaHash, normalizeTwitterBuzzData(twitterBuzz));
       
       console.log('[TwitterSentimentTile] Data fetched successfully and cached');
     } catch (err) {
