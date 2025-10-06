@@ -59,6 +59,7 @@ export default function EnterpriseHub() {
   const [selectedTiles, setSelectedTiles] = useState<Set<string>>(() => new Set([
     'twitter_sentiment',
     'youtube_analysis',
+    'reddit_sentiment',
     'market_size',
     'google_trends',
     'news_trends',
@@ -296,7 +297,7 @@ export default function EnterpriseHub() {
     }
     
     // If all tiles are selected, do a full refresh
-    if (selectedTiles.size === 7) {
+    if (selectedTiles.size === 8) {
       await refresh();
       toast.success('All tiles refreshed');
     } else if (selectedTiles.size > 0) {
@@ -326,12 +327,13 @@ export default function EnterpriseHub() {
   };
   
   const toggleAllTiles = () => {
-    if (selectedTiles.size === 7) {
+    if (selectedTiles.size === 8) {
       setSelectedTiles(new Set());
     } else {
       setSelectedTiles(new Set([
         'twitter_sentiment',
         'youtube_analysis',
+        'reddit_sentiment',
         'market_size',
         'google_trends',
         'news_trends',
@@ -510,7 +512,7 @@ export default function EnterpriseHub() {
                       <div className="flex items-center gap-2 pb-2 border-b">
                         <Checkbox
                           id="select-all"
-                          checked={selectedTiles.size === 7}
+                          checked={selectedTiles.size === 8}
                           onCheckedChange={toggleAllTiles}
                         />
                         <label
@@ -524,6 +526,7 @@ export default function EnterpriseHub() {
                       {[
                         { key: 'twitter_sentiment', label: 'Twitter Sentiment' },
                         { key: 'youtube_analysis', label: 'YouTube Analysis' },
+                        { key: 'reddit_sentiment', label: 'Reddit Sentiment' },
                         { key: 'market_size', label: 'Market Size' },
                         { key: 'google_trends', label: 'Google Trends' },
                         { key: 'news_trends', label: 'News Trends' },
