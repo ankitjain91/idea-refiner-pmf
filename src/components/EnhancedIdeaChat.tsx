@@ -76,9 +76,10 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
 }) => {
   const navigate = useNavigate();
   // State management
-  const { currentSession, saveCurrentSession, saveMessagesNow } = useSession();
+  const { currentSession, saveCurrentSession, saveMessagesNow, loading: sessionLoading } = useSession();
   const ideaContext = useIdeaContext(); // Hook must be called at component level
   const [anonymous, setAnonymous] = useState(false);
+  const [loadingSessionMessages, setLoadingSessionMessages] = useState(false);
   const isDefaultSessionName = !currentSession?.name;
   const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
   
@@ -240,10 +241,12 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   useEffect(() => {
     if (!currentSession) {
       console.log('[EnhancedIdeaChat] No current session');
+      setLoadingSessionMessages(false);
       return;
     }
     
     console.log(`[EnhancedIdeaChat] Session changed: ${currentSession.id} - Syncing state`);
+    setLoadingSessionMessages(true);
     
     const sessionData = currentSession.data;
     
@@ -281,6 +284,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       setConversationSummary(sessionData.conversationSummary);
       localStorage.setItem(`session_${currentSession.id}_summary`, sessionData.conversationSummary);
     }
+    
+    // Small delay to show the loading animation
+    setTimeout(() => setLoadingSessionMessages(false), 300);
   }, [currentSession?.id]); // Re-run when session ID changes
   
   // Update user message count whenever messages change
@@ -2643,20 +2649,41 @@ User submission: """${messageText}"""`;
     {/* Messages Area */}
     <ScrollArea className="flex-1 relative">
       <div className="fluid-pad-sm lg:fluid-pad-md space-y-4 sm:space-y-6">
-        <AnimatePresence mode="popLayout">
-          {messages.map((message) => (
-            <ChatMessageItem
-              key={message.id}
-              message={message}
-              sendMessage={sendMessageHandler}
-              handleSuggestionClick={handleSuggestionClickHandler}
-              retryMessage={retryMessageHandler}
-            />
-          ))}
-        </AnimatePresence>
+        {/* Loading Animation */}
+        {loadingSessionMessages && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="flex flex-col items-center justify-center py-12 space-y-4"
+          >
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <div className="absolute inset-0 h-12 w-12 animate-ping opacity-20 rounded-full bg-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground animate-pulse">
+              Loading your conversation...
+            </p>
+          </motion.div>
+        )}
+        
+        {/* Messages */}
+        {!loadingSessionMessages && (
+          <AnimatePresence mode="popLayout">
+            {messages.map((message) => (
+              <ChatMessageItem
+                key={message.id}
+                message={message}
+                sendMessage={sendMessageHandler}
+                handleSuggestionClick={handleSuggestionClickHandler}
+                retryMessage={retryMessageHandler}
+              />
+            ))}
+          </AnimatePresence>
+        )}
 
         {/* Share Card */}
-        {showShareCard && shareCardData && (
+        {!loadingSessionMessages && showShareCard && shareCardData && (
           <div className="max-w-3xl mx-auto mt-8">
             <ShareableReportCard
               ideaTitle={shareCardData.ideaTitle}
