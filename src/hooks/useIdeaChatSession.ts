@@ -76,7 +76,8 @@ export function useIdeaChatSession() {
       
       if (storedSessionId && !currentSession) {
         loadSession(storedSessionId).then(() => {
-          // force rerender of chat component to pick up restored history
+          // Don't trigger initializeChat for existing sessions
+          // Only force rerender to pick up restored history
           setChatKey(k => k + 1);
         }).catch(() => {
           // fallback: still refresh chat component

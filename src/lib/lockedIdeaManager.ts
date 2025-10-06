@@ -119,6 +119,40 @@ export class LockedIdeaManager {
   }
 
   /**
+   * Check if conversation is pinned
+   */
+  isPinned(): boolean {
+    if (typeof window === 'undefined') return false;
+    
+    try {
+      const pinned = localStorage.getItem('conversation_pinned');
+      return pinned === 'true';
+    } catch (error) {
+      console.error('[LockedIdeaManager] Error checking pinned status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Set pinned status for conversation
+   */
+  setPinned(pinned: boolean): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      if (pinned) {
+        localStorage.setItem('conversation_pinned', 'true');
+        console.log('[LockedIdeaManager] Conversation pinned');
+      } else {
+        localStorage.removeItem('conversation_pinned');
+        console.log('[LockedIdeaManager] Conversation unpinned');
+      }
+    } catch (error) {
+      console.error('[LockedIdeaManager] Error setting pinned status:', error);
+    }
+  }
+
+  /**
    * Subscribe to idea changes
    */
   subscribe(callback: (idea: string) => void): () => void {
@@ -183,12 +217,14 @@ export class LockedIdeaManager {
     return {
       lockedIdea: this.getLockedIdea(),
       hasLocked: this.hasLockedIdea(),
+      isPinned: this.isPinned(),
       listenerCount: this.listeners.size,
       allLocalStorageIdeas: {
         pmfCurrentIdea: localStorage.getItem('pmfCurrentIdea'),
         currentIdea: localStorage.getItem('currentIdea'),
         dashboardIdea: localStorage.getItem('dashboardIdea'),
-        ideaText: localStorage.getItem('ideaText')
+        ideaText: localStorage.getItem('ideaText'),
+        pinnedValue: localStorage.getItem('conversation_pinned')
       }
     };
   }
@@ -202,20 +238,33 @@ export function useLockedIdea(): {
   hasLockedIdea: boolean;
   setLockedIdea: (idea: string) => void;
   clearLockedIdea: () => void;
+  isPinned: boolean;
+  setPinned: (pinned: boolean) => void;
 } {
   const manager = LockedIdeaManager.getInstance();
   const [lockedIdea, setLockedIdeaState] = useState(manager.getLockedIdea());
+  const [isPinned, setIsPinnedState] = useState(manager.isPinned());
 
   useEffect(() => {
     const unsubscribe = manager.subscribe(setLockedIdeaState);
     return unsubscribe;
   }, [manager]);
 
+  // Poll for pinned status changes (since we don't have an event system for it yet)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsPinnedState(manager.isPinned());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [manager]);
+
   return {
     lockedIdea,
     hasLockedIdea: lockedIdea.length > 0,
     setLockedIdea: (idea: string) => manager.setLockedIdea(idea),
-    clearLockedIdea: () => manager.clearLockedIdea()
+    clearLockedIdea: () => manager.clearLockedIdea(),
+    isPinned,
+    setPinned: (pinned: boolean) => manager.setPinned(pinned)
   };
 }
 

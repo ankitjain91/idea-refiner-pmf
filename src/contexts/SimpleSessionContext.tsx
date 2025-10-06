@@ -360,8 +360,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await removeIdeaFromLeaderboard(oldIdea);
       }
       
-      // Trigger a custom event to reset the chat component
-      window.dispatchEvent(new CustomEvent('session:reset'));
+      // Only trigger reset if not pinned
+      const isPinned = localStorage.getItem('conversation_pinned') === 'true';
+      if (!isPinned) {
+        // Trigger a custom event to reset the chat component
+        window.dispatchEvent(new CustomEvent('session:reset'));
+      } else {
+        console.log('[SessionContext] Skipping session reset - conversation is pinned');
+      }
       
       if (anonymous) {
         // Create anonymous session (not persisted to database)

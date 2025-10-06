@@ -55,6 +55,10 @@ import { validateFirstIdea } from './enhanced/ideaValidation';
 import { ShareableReportCard } from './share/ShareableReportCard';
 import { ConfettiAnimation } from './share/ConfettiAnimation';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { IdeaLockToggle } from './chat/IdeaLockToggle';
+import { ConversationPinToggle } from './chat/ConversationPinToggle';
+import { PersistenceIndicator } from './chat/PersistenceIndicator';
+import { lockedIdeaManager } from '@/lib/lockedIdeaManager';
 
 interface EnhancedIdeaChatProps {
   sessionName?: string;
@@ -154,6 +158,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   } | null>(null);
   const [triggerConfetti, setTriggerConfetti] = useState(false);
   const { subscription } = useSubscription();
+
+  // Persistence state
+  const [persistenceStatus, setPersistenceStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [persistenceError, setPersistenceError] = useState<string | undefined>();
+  const [isPinned, setIsPinned] = useState(() => lockedIdeaManager.isPinned());
 
   // Derived: wrinkle tier + dynamic tooltip messaging
   const wrinkleTier = useMemo(() => {
@@ -463,15 +472,37 @@ What's your startup idea?`,
     };
   }, [currentSession?.id]);
 
-  // Listen for session reset event
+  // Listen for session reset event with conditional clearing
   useEffect(() => {
     const handleSessionReset = () => {
-      // Clear all chat state
+      // Check if idea is locked or conversation is pinned
+      const isIdeaLocked = lockedIdeaManager.hasLockedIdea();
+      const isConversationPinned = lockedIdeaManager.isPinned();
+      
+      console.log('[EnhancedIdeaChat] Session reset event:', {
+        isIdeaLocked,
+        isConversationPinned,
+        currentIdea: currentIdea?.slice(0, 50)
+      });
+      
+      // Don't clear if pinned
+      if (isConversationPinned) {
+        console.log('[EnhancedIdeaChat] Skipping reset - conversation is pinned');
+        return;
+      }
+      
+      // Clear messages unless pinned
       setMessages([]);
-      setCurrentIdea('');
-      setIdeaSummaryName('');
+      
+      // Clear idea unless locked
+      if (!isIdeaLocked) {
+        setCurrentIdea('');
+        setIdeaSummaryName('');
+        setHasValidIdea(false);
+      }
+      
+      // Reset other state
       setWrinklePoints(0);
-      setHasValidIdea(false);
       setConversationStarted(false);
       setPersistenceLevel(0);
       setOffTopicAttempts(0);
@@ -488,7 +519,7 @@ What's your startup idea?`,
     return () => {
       window.removeEventListener('session:reset', handleSessionReset);
     };
-  }, [initializeChat]);
+  }, [initializeChat, currentIdea]);
 
   // Initialize chat on mount or session change
   useEffect(() => {
@@ -534,17 +565,30 @@ What's your startup idea?`,
         } catch {}
       }
       
-      // Save to database immediately after each message
-      const saveTimeout = setTimeout(async () => {
+      // Save to database immediately without delay
+      const saveToDatabase = async () => {
+        setPersistenceStatus('saving');
         try {
           await saveCurrentSession();
           console.log('[EnhancedIdeaChat] Session saved immediately after message');
+          setPersistenceStatus('saved');
+          setPersistenceError(undefined);
+          
+          // Clear "saved" indicator after 2 seconds
+          setTimeout(() => setPersistenceStatus('idle'), 2000);
         } catch (error) {
           console.error('[EnhancedIdeaChat] Failed to save session:', error);
+          setPersistenceStatus('error');
+          setPersistenceError('Failed to save');
         }
-      }, 100); // Small delay to batch rapid changes
+      };
       
-      return () => clearTimeout(saveTimeout);
+      saveToDatabase();
+      
+      // Also save on unmount for safety
+      return () => {
+        saveCurrentSession().catch(console.error);
+      };
     }
   }, [messages, anonymous, saveCurrentSession]);
   
