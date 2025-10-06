@@ -107,7 +107,7 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
 
     try {
       const { data: response, error: functionError } = await supabase.functions.invoke('youtube-search', {
-        body: { idea_text: lockedIdea, idea: lockedIdea }
+        body: { idea_text: lockedIdea, idea: lockedIdea, time_window: 'year', regionCode: 'US', relevanceLanguage: 'en' }
       });
 
       if (functionError) throw new Error(functionError.message);
@@ -140,6 +140,14 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
           }
         }
       };
+      // If no videos found, surface an actionable empty state instead of a blank UI
+      if (!transformedData.summary.totalVideos) {
+        const msg = response?.summary?.error || 'No relevant YouTube videos found. Try refining your idea keywords and refresh.';
+        setError(msg);
+        // Do not cache empty results to allow future successful fetches
+        setLoading(false);
+        return;
+      }
 
       setData(transformedData);
       
