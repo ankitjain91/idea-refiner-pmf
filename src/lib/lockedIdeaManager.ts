@@ -23,7 +23,54 @@ export class LockedIdeaManager {
    */
   getLockedIdea(): string {
     if (typeof window === 'undefined') return '';
-    return localStorage.getItem(LOCKED_IDEA_KEY) || '';
+
+    // First check the primary storage key
+    let idea = localStorage.getItem(LOCKED_IDEA_KEY);
+    
+    // If no idea found, check other known keys and migrate if found
+    if (!idea || idea.trim().length === 0) {
+      const alternateKeys = [
+        'ideaSummaryName',
+        'pmf.user.idea',
+        'appIdea',
+        'dashboardIdea',
+        'currentIdea',
+        'userIdea',
+        'ideaText'
+      ];
+
+      for (const key of alternateKeys) {
+        const altIdea = localStorage.getItem(key);
+        if (altIdea && altIdea.trim().length > 0) {
+          // Found an idea in alternate storage, migrate it
+          idea = altIdea.trim();
+          this.setLockedIdea(idea); // This will clean up old keys
+          console.log(`[LockedIdeaManager] Migrated idea from ${key}:`, idea.slice(0, 50));
+          break;
+        }
+      }
+    }
+
+    // Handle JSON stored ideas
+    if (idea) {
+      try {
+        const parsed = JSON.parse(idea);
+        if (parsed.summary) {
+          idea = parsed.summary;
+          this.setLockedIdea(idea); // Store as plain text
+        }
+      } catch {}
+    }
+
+    const finalIdea = idea || '';
+    console.log('[LockedIdeaManager] Getting locked idea:', {
+      exists: !!finalIdea,
+      length: finalIdea.length,
+      preview: finalIdea.slice(0, 50),
+      isValid: finalIdea.trim().length >= 20
+    });
+    
+    return finalIdea;
   }
 
   /**
@@ -33,6 +80,11 @@ export class LockedIdeaManager {
     if (typeof window === 'undefined') return;
     
     const trimmedIdea = idea.trim();
+    if (trimmedIdea.length < 20) {
+      console.warn('[LockedIdeaManager] Attempt to set invalid idea (too short):', trimmedIdea);
+      return;
+    }
+
     localStorage.setItem(LOCKED_IDEA_KEY, trimmedIdea);
     
     // Clean up all other idea keys to avoid confusion
@@ -45,10 +97,12 @@ export class LockedIdeaManager {
   }
 
   /**
-   * Check if there's a locked idea
+   * Check if there's a valid locked idea
    */
   hasLockedIdea(): boolean {
-    return this.getLockedIdea().length > 0;
+    const idea = this.getLockedIdea();
+    // Ensure idea exists and is substantial (more than just whitespace)
+    return idea && idea.trim().length >= 20; // Minimum length for a meaningful idea
   }
 
   /**
@@ -87,15 +141,24 @@ export class LockedIdeaManager {
       'dashboardIdea', 
       'ideaText',
       'pmf.user.idea',
-      'current_idea' // Add any other keys you find
+      'current_idea',
+      'ideaSummaryName',
+      'appIdea',
+      'userIdea'
     ];
 
+    let cleanupCount = 0;
     keysToRemove.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
+        cleanupCount++;
         console.log('[LockedIdeaManager] Cleaned up old key:', key);
       }
     });
+
+    if (cleanupCount > 0) {
+      console.log(`[LockedIdeaManager] Cleaned up ${cleanupCount} old idea keys`);
+    }
   }
 
   /**

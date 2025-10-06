@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { saveIdeaToLeaderboard, removeIdeaFromLeaderboard } from '@/utils/saveIdeaToLeaderboard';
 
-const IDEA_KEY = 'appIdea';
+const IDEA_KEY = 'pmfCurrentIdea'; // Use the same key as lockedIdeaManager
 
 interface IdeaData {
   summary: string;
@@ -40,11 +40,17 @@ export const useIdeaContext = () => {
 
   const getIdea = (): string => {
     try {
-      // 1) Preferred: AI-generated idea summary
+      // Get the locked idea
       const stored = localStorage.getItem(IDEA_KEY);
-      if (stored) {
-        const data: IdeaData = JSON.parse(stored);
-        if (data?.summary) return data.summary;
+      if (stored && stored.trim().length > 0) {
+        try {
+          // Try parsing as JSON first (for backward compatibility)
+          const data = JSON.parse(stored);
+          if (data?.summary) return data.summary;
+        } catch {
+          // If not JSON, use the raw string
+          return stored;
+        }
       }
 
       // 2) Fallback: sessionData persisted by the app (contains state.currentIdea)
@@ -93,9 +99,12 @@ export const useIdeaContext = () => {
       generatedAt: Date.now()
     };
     
-    // Save to localStorage
-    localStorage.setItem(IDEA_KEY, JSON.stringify(ideaData));
-    console.log('[useIdeaContext] Idea saved to localStorage');
+    // Save to localStorage and update locked idea manager
+    localStorage.setItem(IDEA_KEY, ideaData.summary);
+    console.log('[useIdeaContext] Idea saved:', ideaData.summary.substring(0, 100));
+    
+    // Trigger idea changed event for components to update
+    window.dispatchEvent(new Event('idea:changed'));
     
     // Save to database
     try {

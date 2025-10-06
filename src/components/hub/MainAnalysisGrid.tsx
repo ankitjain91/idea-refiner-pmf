@@ -194,8 +194,6 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <ExecutiveMarketSizeTile 
-                  idea={lockedIdea}
-                  ideaContext={lockedIdea}
                   dataHub={tiles}
                   onRefresh={() => handleSingleRefresh('market_size')}
                 />
@@ -205,7 +203,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
           if (tile.id === 'competition') {
             return (
               <div key={tile.id} className={tile.span}>
-                <CompetitionAnalysis idea={lockedIdea} />
+                        <CompetitionAnalysis className="col-span-1 lg:col-span-2" />
               </div>
             );
           }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Globe, TrendingUp, DollarSign, Target, MapPin, BarChart3,
   ExternalLink, Info, RefreshCw, Building, Users, Brain, 
-  ChevronDown, ChevronUp, Activity, AlertTriangle, Zap, Sparkles
+  ChevronDown, ChevronUp, Activity, AlertTriangle, AlertCircle,
+  Zap, Sparkles
 } from 'lucide-react';
 import { TileAIChat } from '@/components/hub/TileAIChat';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { useLockedIdea } from '@/lib/lockedIdeaManager';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -23,8 +25,6 @@ import { formatMoney, formatPercent } from '@/utils/dataFormatting';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ExecutiveMarketSizeTileProps {
-  idea?: string;
-  ideaContext?: string;
   dataHub?: any;
   className?: string;
   onRefresh?: () => void;
@@ -57,75 +57,119 @@ interface MarketSizeData {
 }
 
 export function ExecutiveMarketSizeTile({ 
-  idea, 
-  ideaContext, 
   dataHub,
   className, 
   onRefresh 
 }: ExecutiveMarketSizeTileProps) {
   const { currentSession } = useSession();
+  const { lockedIdea, hasLockedIdea } = useLockedIdea();
+  
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [viewMode, setViewMode] = useState<'overview' | 'regional' | 'segments' | 'drivers'>('overview');
   const [marketData, setMarketData] = useState<MarketSizeData | null>(null);
   const [loading, setLoading] = useState(false);
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [fetchAttempted, setFetchAttempted] = useState(false);
   
-  const currentIdea = useMemo(() => 
-    ideaContext || idea || currentSession?.data?.currentIdea || ''
-  , [ideaContext, idea, currentSession?.data?.currentIdea]);
+  useEffect(() => {
+    console.log('[ExecutiveMarketSizeTile] State Debug:', {
+      hasLockedIdea,
+      ideaExists: !!lockedIdea,
+      ideaLength: lockedIdea?.length || 0,
+      ideaPreview: lockedIdea?.slice(0, 50),
+      loading,
+      hasData: !!marketData,
+      fetchAttempted,
+      allKeys: localStorage ? Object.keys(localStorage).filter(key => key.includes('idea')) : [],
+      currentIdeaValue: localStorage?.getItem('pmfCurrentIdea')?.slice(0, 50)
+    });
+  }, [hasLockedIdea, lockedIdea, loading, marketData, fetchAttempted]);
 
-  const fetchMarketData = async () => {
-    if (!currentIdea) {
-      toast.error('No idea provided for market analysis');
+  const fetchMarketData = useCallback(async (force: boolean = false) => {
+    console.log('[ExecutiveMarketSizeTile] Attempting fetch:', {
+      hasLockedIdea,
+      ideaExists: !!lockedIdea,
+      ideaLength: lockedIdea?.length || 0,
+      force,
+      loading,
+      ideaPreview: lockedIdea?.slice(0, 50)
+    });
+
+    if (!hasLockedIdea || !lockedIdea) {
+      console.warn('[ExecutiveMarketSizeTile] Fetch validation failed:', {
+        hasLockedIdea,
+        ideaExists: !!lockedIdea,
+        ideaLength: lockedIdea?.length || 0
+      });
+      toast.error('Please lock an idea first using the "Lock My Idea" button.');
       return;
     }
 
+    if (loading && !force) {
+      console.log('[ExecutiveMarketSizeTile] Fetch already in progress');
+      return;
+    }
+
+    console.log('[ExecutiveMarketSizeTile] Starting market analysis fetch:', {
+      ideaPreview: lockedIdea.slice(0, 50),
+      force,
+      currentLoading: loading,
+      hasExistingData: !!marketData
+    });
+
     setLoading(true);
+    setFetchAttempted(true);
+
     try {
-      console.log('[ExecutiveMarketSizeTile] Fetching market size analysis');
-      
       const { data, error } = await supabase.functions.invoke('market-size-analysis', {
         body: { 
-          idea: currentIdea,
-          idea_context: ideaContext || currentIdea,
+          idea: lockedIdea,
+          idea_context: lockedIdea,
           data_hub: dataHub 
         }
       });
 
       if (error) throw error;
 
-      console.log('[ExecutiveMarketSizeTile] RAW API RESPONSE - ALL DATA:', JSON.stringify(data, null, 2));
+      console.log('[ExecutiveMarketSizeTile] RAW API RESPONSE:', JSON.stringify(data, null, 2));
       
       if (data?.market_size) {
         setMarketData(data.market_size);
-        console.log('[ExecutiveMarketSizeTile] Market data loaded - ALL FIELDS:', {
-          tam: data.market_size.metrics.tam,
-          sam: data.market_size.metrics.sam,
-          som: data.market_size.metrics.som,
-          growth_rate_cagr: data.market_size.metrics.growth_rate_cagr,
-          regional_split: data.market_size.metrics.regional_split,
-          segment_split: data.market_size.metrics.segment_split,
-          drivers: data.market_size.metrics.drivers,
-          constraints: data.market_size.metrics.constraints,
-          citations: data.market_size.citations,
-          charts: data.market_size.charts?.map((c: any) => ({ type: c.type, title: c.title, seriesCount: c.series?.length })),
-          confidence: data.market_size.confidence
-        });
+        console.log('[ExecutiveMarketSizeTile] Market data successfully loaded and set.');
+      } else {
+        console.warn('[ExecutiveMarketSizeTile] API response did not contain market_size object.');
+        toast.warning("Market analysis response was incomplete.");
       }
     } catch (error) {
       console.error('[ExecutiveMarketSizeTile] Error fetching market data:', error);
       toast.error(`Failed to fetch market analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
+      console.log('[ExecutiveMarketSizeTile] Fetch process finished.');
     }
-  };
+  }, [lockedIdea, hasLockedIdea, dataHub]);
 
+  // Effect for handling idea changes and initial load
   useEffect(() => {
-    if (currentIdea && !marketData && !loading) {
+    if (hasLockedIdea && lockedIdea) {
+      if (!marketData && !fetchAttempted) {
+        console.log('[ExecutiveMarketSizeTile] Triggering initial data fetch');
+        fetchMarketData();
+      }
+    } else {
+      setMarketData(null);
+      setFetchAttempted(false);
+    }
+  }, [lockedIdea, hasLockedIdea, marketData, fetchAttempted]);
+
+  // Effect for handling tab switches
+  useEffect(() => {
+    if (hasLockedIdea && lockedIdea && !marketData && !loading) {
+      console.log('[ExecutiveMarketSizeTile] Tab activated, checking data state');
       fetchMarketData();
     }
-  }, [currentIdea]);
+  }, []);
 
   const parseValue = (value: string): number => {
     if (!value) return 0;
@@ -189,11 +233,68 @@ export function ExecutiveMarketSizeTile({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Button onClick={fetchMarketData} disabled={!currentIdea} size="sm" variant="outline">
-              <Activity className="h-3 w-3 mr-1" />
-              Analyze Market
-            </Button>
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            {!hasLockedIdea ? (
+              <div className="text-center space-y-4">
+                <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    {lockedIdea 
+                      ? "Your current idea is too short. Please provide a more detailed description and lock it using the 'Lock My Idea' button."
+                      : "Please lock an idea first using the 'Lock My Idea' button."}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60">
+                    Idea state: {lockedIdea ? `${lockedIdea.length} chars` : 'empty'}
+                    {lockedIdea && ` (preview: ${lockedIdea.slice(0, 30)}...)`}
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    console.log('[ExecutiveMarketSizeTile] Debug Info:', {
+                      hasLockedIdea,
+                      ideaExists: !!lockedIdea,
+                      ideaLength: lockedIdea?.length || 0,
+                      ideaPreview: lockedIdea?.slice(0, 50),
+                      localStorage: localStorage ? Object.keys(localStorage).filter(key => key.includes('idea')).reduce((acc, key) => {
+                        acc[key] = localStorage.getItem(key)?.slice(0, 50);
+                        return acc;
+                      }, {} as Record<string, string | undefined>) : {}
+                    });
+                    toast.info('Check console for debug info');
+                  }} 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-xs"
+                >
+                  <Info className="h-3 w-3 mr-1" />
+                  Debug Info
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center space-y-4">
+                <Globe className="h-8 w-8 text-primary mx-auto" />
+                <p className="text-sm text-muted-foreground mb-2">Ready to analyze market size for your idea</p>
+                <Button 
+                  onClick={() => fetchMarketData(true)} 
+                  disabled={loading} 
+                  size="sm" 
+                  variant="default"
+                  className="min-w-[150px]"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="h-3 w-3 mr-2" />
+                      Analyze Market
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -548,7 +649,7 @@ export function ExecutiveMarketSizeTile({
         onOpenChange={setShowAIChat}
         tileData={marketData as any}
         tileTitle="Market Size Analysis"
-        idea={currentIdea}
+        idea={lockedIdea}
       />
     </Card>
   );

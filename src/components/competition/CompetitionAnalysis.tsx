@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Building2, ExternalLink, RefreshCw, TrendingUp, Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useLockedIdea } from '@/lib/lockedIdeaManager';
 
 interface CompetitorData {
   name: string;
@@ -30,53 +31,21 @@ interface CompetitionAPIResponse {
 }
 
 interface CompetitionAnalysisProps {
-  idea?: string;
   className?: string;
 }
 
-export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProps) {
+export function CompetitionAnalysis({ className }: CompetitionAnalysisProps) {
+  const { lockedIdea, hasLockedIdea } = useLockedIdea();
   const [data, setData] = useState<CompetitionAPIResponse['data'] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Get idea from multiple sources
-  const getIdea = (): string => {
-    const parseAppIdea = (): string | null => {
-      try {
-        const appIdea = localStorage.getItem('appIdea');
-        if (appIdea) {
-          const parsed = JSON.parse(appIdea);
-          return parsed.summary || parsed.idea || null;
-        }
-      } catch (e) {
-        const raw = localStorage.getItem('appIdea');
-        if (raw && raw.length > 30) return raw;
-      }
-      return null;
-    };
-
-    const sources = [
-      idea,
-      parseAppIdea(),
-      localStorage.getItem('dashboardIdea'),
-      localStorage.getItem('currentIdea'),
-    ];
-
-    for (const source of sources) {
-      if (source && source.trim().length > 30) {
-        return source.trim();
-      }
-    }
-
-    return '';
-  };
-
-  const currentIdea = getIdea();
-
-  const fetchCompetitionData = async () => {
-    if (!currentIdea) {
-      setError('No idea available to analyze');
+  const fetchCompetitors = useCallback(async () => {
+    if (!hasLockedIdea || !lockedIdea) {
+      // This state should ideally be handled by the parent component
+      // not showing a toast to avoid spamming, but logging it.
+      console.warn('[CompetitionAnalysis] Fetch attempt without a locked idea.');
       return;
     }
 
@@ -84,40 +53,39 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
     setError(null);
 
     try {
-      const { data: response, error: apiError } = await supabase.functions.invoke('competitive-landscape', {
-        body: { idea: currentIdea, depth: 'comprehensive' }
+      const { data: response, error: functionError } = await supabase.functions.invoke('competitive-landscape', {
+        body: { idea: lockedIdea }
       });
 
-      if (apiError) throw apiError;
+      if (functionError) {
+        throw new Error(`Supabase function error: ${functionError.message}`);
+      }
+      
+      const apiResponse = response as CompetitionAPIResponse;
 
-      if (response?.success && response?.data?.topCompetitors) {
-        console.log('Competition API Response:', response.data);
-        setData(response.data);
-        toast({
-          title: 'Competition data loaded',
-          description: `Found ${response.data.topCompetitors.length} competitors`,
-        });
+      if (apiResponse.success) {
+        setData(apiResponse.data);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('Failed to fetch competition data from the API.');
       }
     } catch (err) {
-      console.error('Competition fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load competition data');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      setError(errorMessage);
       toast({
-        title: 'Error loading competition data',
-        description: 'Please try again',
+        title: 'Error Fetching Competition',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [lockedIdea, hasLockedIdea, toast]);
 
   useEffect(() => {
-    if (currentIdea) {
-      fetchCompetitionData();
+    if (hasLockedIdea && lockedIdea && !data) {
+      fetchCompetitors();
     }
-  }, []);
+  }, [lockedIdea, hasLockedIdea, data, fetchCompetitors]);
 
   const getStrengthColor = (strength: string) => {
     switch (strength) {
@@ -127,6 +95,25 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
       default: return 'bg-muted text-muted-foreground';
     }
   };
+
+  if (!hasLockedIdea) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            Competition Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Please lock an idea to see competition analysis.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading && !data) {
     return (
@@ -163,7 +150,7 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
           <div className="text-center py-8">
             <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchCompetitionData} size="sm" variant="outline">
+            <Button onClick={fetchCompetitors} size="sm" variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
             </Button>
@@ -196,7 +183,7 @@ export function CompetitionAnalysis({ idea, className }: CompetitionAnalysisProp
               {data.topCompetitors.length} competitors identified
             </CardDescription>
           </div>
-          <Button onClick={fetchCompetitionData} size="sm" variant="outline" disabled={loading}>
+          <Button onClick={fetchCompetitors} size="sm" variant="outline" disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
