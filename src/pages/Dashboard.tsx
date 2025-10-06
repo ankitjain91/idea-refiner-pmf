@@ -1,6 +1,7 @@
 import { UsageWarnings } from "@/components/dashboard/UsageWarnings";
 import { RecentIdeas } from "@/components/dashboard/RecentIdeas";
 import { CollaborationPanel } from "@/components/dashboard/CollaborationPanel";
+import { AICreditsUsageCard } from "@/components/dashboard/AICreditsUsageCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, HelpCircle, MessageSquare, Badge as BadgeIcon, BarChart3, TrendingUp, DollarSign, Users } from "lucide-react";
@@ -135,12 +136,12 @@ export default function Dashboard() {
                 {(usage.ai_credits_used || 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                of {limits.aiCreditsPerMonth.toLocaleString()} this month
+                of {(limits.aiCreditsPerMonth as number).toLocaleString()} this month
               </p>
               <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
                 <div 
                   className="h-full bg-gradient-to-r from-secondary via-accent to-warning transition-all duration-500 rounded-full" 
-                  style={{ width: `${Math.min(100, ((usage.ai_credits_used || 0) / limits.aiCreditsPerMonth) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((usage.ai_credits_used || 0) / (limits.aiCreditsPerMonth as number)) * 100)}%` }}
                 />
               </div>
             </CardContent>
@@ -200,6 +201,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Credits Usage Card */}
+        <AICreditsUsageCard />
 
         {/* Recent Ideas */}
         <RecentIdeas />

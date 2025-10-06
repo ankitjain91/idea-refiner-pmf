@@ -230,7 +230,7 @@ Based on this specific conversation, what are 4 natural, contextual things the u
       }
     }
 
-    // Track usage if user is authenticated
+    // Track AI credits usage
     const authHeader = req.headers.get('Authorization');
     if (authHeader) {
       try {
@@ -238,30 +238,47 @@ Based on this specific conversation, what are 4 natural, contextual things the u
           authHeader.replace('Bearer ', '')
         );
         
-        if (user?.id && response.usage) {
-          // Log usage for cost tracking
-          const inputCost = (response.usage.prompt_tokens / 1000) * 0.00005;
-          const outputCost = (response.usage.completion_tokens / 1000) * 0.00008;
-          const totalCost = inputCost + outputCost;
+        if (user?.id) {
+          const creditsUsed = 15; // idea-chat costs 15 credits
           
-          await supabase
-            .from('openai_usage')
-            .insert({
+          // Get current billing period
+          const { data: periodData } = await supabase.rpc('get_current_billing_period');
+          const billingPeriodStart = periodData?.[0]?.period_start || new Date().toISOString();
+          const billingPeriodEnd = periodData?.[0]?.period_end || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          
+          // Increment AI credits usage
+          await supabase.rpc('increment_usage', {
+            _user_id: user.id,
+            _type: 'ai_credits',
+            _amount: creditsUsed
+          });
+          
+          // Log detailed usage
+          await supabase.from('ai_credits_usage').insert({
+            user_id: user.id,
+            operation_type: 'idea-chat',
+            credits_used: creditsUsed,
+            billing_period_start: billingPeriodStart,
+            billing_period_end: billingPeriodEnd
+          });
+          
+          // Also track cost for analytics
+          if (response.usage) {
+            const inputCost = (response.usage.prompt_tokens / 1000) * 0.00005;
+            const outputCost = (response.usage.completion_tokens / 1000) * 0.00008;
+            const totalCost = inputCost + outputCost;
+            
+            await supabase.from('openai_usage').insert({
               user_id: user.id,
               function_name: 'idea-chat',
               model: 'llama-3.1-8b-instant',
-              input_tokens: response.usage.prompt_tokens,
-              output_tokens: response.usage.completion_tokens,
-              cost_usd: totalCost,
-              metadata: {
-                provider: 'groq',
-                input_cost: inputCost,
-                output_cost: outputCost
-              }
+              tokens_used: response.usage.prompt_tokens + response.usage.completion_tokens,
+              cost_usd: totalCost
             });
+          }
         }
       } catch (error) {
-        console.error('Error tracking usage:', error);
+        console.error('Error tracking AI credits:', error);
       }
     }
 

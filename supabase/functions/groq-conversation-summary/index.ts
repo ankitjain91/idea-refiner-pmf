@@ -140,6 +140,48 @@ DO NOT include explanations, just return the 2-sentence summary.`
     
     const duration = Date.now() - startTime;
     console.log('[Groq Summary] Generated in', duration, 'ms:', summary);
+    
+    // Track AI credits usage if user is authenticated
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      try {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
+        
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+          
+          if (user?.id) {
+            const creditsUsed = 10; // summary generation costs 10 credits
+            
+            // Get current billing period
+            const { data: periodData } = await supabase.rpc('get_current_billing_period');
+            const billingPeriodStart = periodData?.[0]?.period_start || new Date().toISOString();
+            const billingPeriodEnd = periodData?.[0]?.period_end || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            
+            // Increment AI credits usage
+            await supabase.rpc('increment_usage', {
+              _user_id: user.id,
+              _type: 'ai_credits',
+              _amount: creditsUsed
+            });
+            
+            // Log detailed usage
+            await supabase.from('ai_credits_usage').insert({
+              user_id: user.id,
+              operation_type: 'groq-conversation-summary',
+              credits_used: creditsUsed,
+              billing_period_start: billingPeriodStart,
+              billing_period_end: billingPeriodEnd
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[Groq Summary] Error tracking AI credits:', error);
+      }
+    }
 
     // Validate that we got exactly 2 sentences
     const sentences = summary.split(/[.!?]+/).filter(s => s.trim());

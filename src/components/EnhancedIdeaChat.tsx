@@ -181,7 +181,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     insights: string[];
   } | null>(null);
   const [triggerConfetti, setTriggerConfetti] = useState(false);
-  const { subscription } = useSubscription();
+  const subscriptionContext = useSubscription();
 
   // Persistence state
   const [persistenceStatus, setPersistenceStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -898,6 +898,18 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
   const sendMessage = async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
     if (!messageText || isTyping) return;
+    
+    // Check AI credits before sending message
+    const creditsCheck = subscriptionContext.canUseFeature('use_ai_credits');
+    if (!creditsCheck.allowed) {
+      toast({
+        title: "Out of AI Credits",
+        description: creditsCheck.reason || "You've used all your AI credits for this month. Upgrade to continue chatting.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (isDefaultSessionName) {
       // Gating: require explicit session name
       setMessages(prev => {
@@ -2671,8 +2683,8 @@ User submission: """${messageText}"""`;
               score={shareCardData.score}
               marketSize={shareCardData.marketSize}
               insights={shareCardData.insights}
-              isPaid={subscription.tier === 'enterprise'}
-              showBranding={subscription.tier !== 'enterprise'}
+              isPaid={subscriptionContext.subscription.tier === 'enterprise'}
+              showBranding={subscriptionContext.subscription.tier !== 'enterprise'}
             />
           </div>
         )}
