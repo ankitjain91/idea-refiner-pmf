@@ -27,8 +27,8 @@ serve(async (req) => {
     console.log('[GENERATE-SUGGESTIONS] Idea context:', ideaDescription);
     console.log('[GENERATE-SUGGESTIONS] Previous answers:', previousAnswers);
 
-    // Create a context-aware prompt that generates user-focused conversational suggestions
-    const systemPrompt = `You are helping a user have a productive conversation about their startup idea. Generate suggestions for what the USER should say next to continue the discussion naturally. Never suggest what the AI should say - only what the user might want to say, ask, or clarify.`;
+    // Create a context-aware prompt that generates predictive, actionable user responses
+    const systemPrompt = `You are predicting what a user would most likely say next in a startup idea conversation. Generate PREDICTIVE suggestions - actual answers and statements the user would say, NOT questions asking for help. These should sound like confident responses from someone developing their startup.`;
     
     const userPrompt = `
 Context:
@@ -37,27 +37,23 @@ Context:
 
 Current situation: The AI just asked: "${question}"
 
-Generate 4 natural suggestions for what the USER could say next. Each suggestion should be:
+Generate 4 PREDICTIVE suggestions - what the user would LIKELY SAY, not questions they would ask. Each suggestion should be:
 
-1. A natural user response - either answering the question, asking for clarification, or providing relevant information
-2. Written from the user's perspective (first person "I" statements when appropriate)
-3. Contextually relevant to continue the conversation forward
-4. Concise (10-25 words) but complete thoughts
-5. Varied in approach - mix direct answers, clarifications, and follow-up questions
+1. A confident, specific answer or statement (NOT a question asking for help)
+2. Written from user's perspective with concrete details
+3. Varied in specificity - from clear answers to exploratory statements
+4. Concise (10-25 words) but substantive
+5. Sound like someone who is developing their idea, not seeking basic guidance
 
-Types to include:
-- Direct answer to the question asked
-- Request for clarification or examples
-- Providing additional context about their idea
-- Asking about implications or next steps
-
-Format: Return ONLY a JSON array of 4 suggestion strings, no markdown or explanation.
+CRITICAL: Predict actual ANSWERS and STATEMENTS, not questions like "Can you help me with X?" or "What should I consider?"
 
 Example for "Who is your target audience?":
-["Young professionals aged 25-35 who struggle with time management and productivity",
- "Can you give me examples of different target audiences I should consider?",
- "I'm thinking B2B, but not sure if B2C would be better - what matters most?",
- "Remote workers and digital nomads who need flexible collaboration tools"]`;
+["Young professionals aged 25-35 in tech who struggle with remote team collaboration",
+ "Small business owners with 10-50 employees who need affordable automation tools",
+ "I'm targeting both B2B and B2C - enterprise teams and individual power users",
+ "Remote workers and freelancers who value productivity and work-life balance"]
+
+Format: Return ONLY a JSON array of 4 suggestion strings, no markdown or explanation.`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -150,46 +146,46 @@ Example for "Who is your target audience?":
         
         if (lowerQ.includes('target audience') || lowerQ.includes('who is your')) {
           suggestions = [
-            'Young professionals who need better work-life balance tools',
-            'Can you help me identify the most profitable target segment?',
-            'I think SMBs, but how do I validate this assumption?',
-            'People frustrated with existing solutions in this space'
+            'Young professionals aged 25-40 in tech who need better productivity tools',
+            'Small to medium businesses with 10-100 employees looking to automate workflows',
+            'Remote teams and digital nomads who value flexible collaboration',
+            'Enterprise customers in finance and healthcare who need compliance-ready solutions'
           ];
         } else if (lowerQ.includes('problem') || lowerQ.includes('pain point')) {
           suggestions = [
-            'Current solutions are too expensive and complicated for most users',
-            'What specific pain points should I focus on first?',
-            'People waste hours daily due to inefficient processes',
-            'I need help articulating the core problem more clearly'
+            'Current solutions are too expensive and require months of training to implement',
+            'Teams waste 5-10 hours weekly on manual data entry and coordination',
+            'Users struggle with fragmented tools that don\'t integrate with their existing stack',
+            'The market lacks affordable, user-friendly options for non-technical users'
           ];
         } else if (lowerQ.includes('unique value') || lowerQ.includes('proposition') || lowerQ.includes('different')) {
           suggestions = [
-            'We\'re 10x faster and half the price of alternatives',
-            'How can I better differentiate from existing competitors?',
-            'Our AI-powered approach is completely unique in this market',
-            'Should I focus more on price or features for differentiation?'
+            'We deliver 10x faster results at 50% the cost through AI automation',
+            'Our platform is the only one with real-time collaboration and offline-first architecture',
+            'We combine enterprise-grade security with consumer-level simplicity',
+            'Unlike competitors, we offer white-label customization and native integrations'
           ];
         } else if (lowerQ.includes('monetization') || lowerQ.includes('revenue') || lowerQ.includes('pricing')) {
           suggestions = [
-            'Thinking subscription model, $20-50 per month range',
-            'What pricing model works best for B2B SaaS?',
-            'Freemium with premium features at $99/month',
-            'Not sure yet - what would you recommend for my idea?'
+            'Tiered subscription: $29/mo starter, $99/mo pro, $299/mo enterprise',
+            'Freemium model with 14-day premium trial, then $49/mo for unlimited access',
+            'Usage-based pricing at $0.10 per transaction plus $19/mo base fee',
+            'Annual contracts for enterprise ($5k-50k) and monthly for SMBs ($99-499)'
           ];
         } else if (lowerQ.includes('competitor') || lowerQ.includes('competition')) {
           suggestions = [
-            'There are 3 main players but they\'re all outdated',
-            'How do I analyze my competition effectively?',
-            'No direct competitors, but several indirect ones exist',
-            'I\'m not sure who my real competitors are - can you help?'
+            'Main competitors are Asana, Monday.com, and ClickUp but they lack our AI features',
+            'We compete with Salesforce and HubSpot in CRM but focus on smaller teams',
+            'No direct competitors - we\'re creating a new category between project management and CRM',
+            'Legacy players like Jira dominate but struggle with modern UX and mobile-first users'
           ];
         } else {
-          // Generic fallback for unknown questions - conversational user responses
+          // Generic fallback for unknown questions - predictive answers
           suggestions = [
-            'I need more guidance on how to answer this properly',
-            'Can you give me some examples to consider?',
-            'Let me think about this - what\'s most important here?',
-            'I have some ideas but would like your input first'
+            'I\'m focusing on solving this through automation and smart workflows',
+            'My approach combines AI capabilities with human-centered design',
+            'We plan to launch an MVP in 3 months and iterate based on user feedback',
+            'I\'ve validated this with 20+ potential customers who showed strong interest'
           ];
         }
       }

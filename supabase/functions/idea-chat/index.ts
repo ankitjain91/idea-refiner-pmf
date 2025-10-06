@@ -151,16 +151,18 @@ serve(async (req) => {
       const suggestionResponse = await callGroq([
         { 
           role: 'system', 
-          content: `You are analyzing a startup idea discussion. Based on the conversation history and the latest AI response, generate 4 highly contextual follow-up questions or responses the USER would naturally want to say next.
-          
-These should:
-- Build directly on what was just discussed
-- Reference specific points from the conversation
-- Move the conversation forward productively
-- Sound like natural user responses, not generic questions
-- Be 5-12 words each
+          content: `You are predicting what a startup founder would ACTUALLY SAY next in this conversation. Generate 4 PREDICTIVE, ACTIONABLE responses - NOT questions asking for help.
 
-Never generate generic questions like "Tell me more" or "What else?". Always make them specific to the actual conversation.`
+CRITICAL RULES:
+- Predict specific ANSWERS and STATEMENTS the user would make
+- NO questions like "How do I..." or "What should I..."
+- Build directly on what was just discussed with concrete details
+- Reference specific points from the conversation
+- Sound like a founder articulating their strategy, not seeking basic guidance
+- Be 8-15 words each - substantive but concise
+
+Example BAD (questions): "How do I validate this?", "What metrics should I track?"
+Example GOOD (predictions): "I'll test this with 50 beta users in healthcare first", "Tracking CAC, LTV, and monthly retention as key metrics"`
         },
         { 
           role: 'user', 
@@ -198,32 +200,32 @@ Based on this specific conversation, what are 4 natural, contextual things the u
       console.error('Error generating suggestions:', e);
     }
     
-    // Fallback with contextual suggestions based on conversation stage
+    // Fallback with contextual PREDICTIVE suggestions based on conversation stage
     if (!suggestions || suggestions.length === 0) {
-      // Try to provide contextual fallbacks based on conversation length
+      // Provide predictive responses based on conversation stage
       if (conversationHistory && conversationHistory.length > 4) {
-        // Later in conversation - more specific questions
+        // Later in conversation - specific execution plans
         suggestions = [
-          "What specific metrics should I track?",
-          "How do I scale this efficiently?",
-          "What partnerships would accelerate growth?",
-          "Should I bootstrap or seek funding?"
+          "I'll track CAC, LTV, churn rate, and NPS as primary metrics",
+          "Planning to scale through partnerships with industry leaders first",
+          "Targeting Series A at $2M ARR with 20% month-over-month growth",
+          "Building distribution through content marketing and strategic partnerships"
         ];
       } else if (conversationHistory && conversationHistory.length > 2) {
-        // Mid conversation - validation questions
+        // Mid conversation - validation and strategy
         suggestions = [
-          "How do I test this with customers?",
-          "What's my competitive advantage?",
-          "How quickly can I launch an MVP?",
-          "What are the unit economics?"
+          "I'll validate with 30 customer interviews and a landing page test",
+          "My advantage is 10x faster implementation with AI-powered automation",
+          "MVP launch in 8 weeks with core features and payment integration",
+          "Unit economics: $50 CAC, $99 MRR, targeting 3:1 LTV:CAC ratio"
         ];
       } else {
-        // Early conversation - foundational questions
+        // Early conversation - foundational answers
         suggestions = [
-          "Who exactly is my target customer?",
-          "What problem am I solving?",
-          "How will I make money?",
-          "Why would customers choose me?"
+          "Small business owners aged 30-50 managing 5-50 person teams",
+          "Solving inefficient manual workflows that waste 10+ hours weekly",
+          "Tiered SaaS model: $49/mo starter, $149/mo pro, custom enterprise",
+          "We're 50% cheaper and 3x easier to use than enterprise alternatives"
         ];
       }
     }
