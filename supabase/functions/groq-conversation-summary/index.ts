@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, existingSummary } = await req.json();
     
     if (!messages || messages.length === 0) {
       return new Response(
@@ -25,13 +25,14 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY not configured');
     }
 
-    // Filter and format messages for Groq - only actual conversation, no suggestions
-    const conversationText = messages
+    // Filter and format messages - only take last 2-3 exchanges to keep summary focused on new info
+    const recentMessages = messages.slice(-6); // Last 3 exchanges (user + bot)
+    const conversationText = recentMessages
       .filter((m: any) => !m.isTyping && m.content && (m.type === 'user' || m.type === 'assistant'))
       .map((m: any) => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n\n');
 
-    console.log('[Groq Summary] Processing conversation with', messages.length, 'messages');
+    console.log('[Groq Summary] Processing', recentMessages.length, 'recent messages', existingSummary ? '(with existing summary)' : '(from scratch)');
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -44,7 +45,29 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a startup idea analyzer. Your job is to read a conversation about a startup idea and create a perfect 2-sentence summary.
+            content: existingSummary 
+              ? `You are a startup idea analyzer. Update the existing summary with new conversation information.
+
+CRITICAL RULES:
+1. Take the EXISTING SUMMARY and ADD new important details from the recent conversation
+2. Generate EXACTLY 2 sentences, no more, no less
+3. First sentence: Describe WHAT the startup does (keep from existing, enhance with new details)
+4. Second sentence: Describe the PROBLEM/VALUE (keep from existing, add new refinements)
+5. Be specific and concrete - incorporate new details from conversation
+6. Each sentence should be 15-25 words
+7. Use professional, clear language
+8. DON'T repeat the same information - only add NEW insights
+
+Example:
+EXISTING: "The platform streams indie films with revenue sharing. It helps indie filmmakers reach audiences."
+NEW INFO: Discussion about unique referral system and quality metrics
+UPDATED: "The platform streams indie films with unique-referral-based revenue sharing. It helps indie filmmakers monetize through quality-focused viewer promotions and engagement tracking."
+
+EXISTING SUMMARY:
+${existingSummary}
+
+DO NOT just repeat the existing summary. Add the new information from the recent conversation below.`
+              : `You are a startup idea analyzer. Your job is to read a conversation about a startup idea and create a perfect 2-sentence summary.
 
 CRITICAL RULES:
 1. Generate EXACTLY 2 sentences, no more, no less
@@ -62,7 +85,9 @@ DO NOT include explanations, just return the 2-sentence summary.`
           },
           {
             role: 'user',
-            content: `Analyze this conversation and create a 2-sentence startup idea summary:\n\n${conversationText}`
+            content: existingSummary
+              ? `Update this summary with new information from the recent conversation:\n\n${conversationText}`
+              : `Analyze this conversation and create a 2-sentence startup idea summary:\n\n${conversationText}`
           }
         ],
         temperature: 0.3,

@@ -1796,7 +1796,6 @@ const ChatMessageItem = useMemo(() => {
       const conv = messageList
         .filter(m => m.content)
         .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }));
-      // Use existing utility to build a concise 2-sentence summary
       const sum = createConversationSummary(conv as any, ideaText || '');
       return sum;
     } catch (e) {
@@ -1807,18 +1806,31 @@ const ChatMessageItem = useMemo(() => {
     }
   }, []);
 
-  // Generate evolving conversation summary
+  // Track last message count to avoid regenerating on every render
+  const lastSummaryMessageCount = useRef(0);
+
+  // Generate evolving conversation summary (cumulative)
   const generateConversationSummary = useCallback(async (messageList: Message[]) => {
     const validMessages = messageList.filter(m => !m.isTyping && m.content);
-    console.log('[Summary] Checking if should generate. Messages:', validMessages.length, 'Loading:', summaryLoading);
     
-    if (summaryLoading || validMessages.length < 3) return;
+    // Only generate if we have new messages since last summary
+    if (summaryLoading || validMessages.length <= lastSummaryMessageCount.current) {
+      return;
+    }
     
-    console.log('[Summary] Starting generation...');
+    console.log('[Summary] Starting generation. Previous count:', lastSummaryMessageCount.current, 'New count:', validMessages.length);
+    lastSummaryMessageCount.current = validMessages.length;
     setSummaryLoading(true);
+    
     try {
+      // Get new messages since last summary
+      const newMessages = validMessages.slice(Math.max(0, validMessages.length - 2));
+      
       const { data, error } = await supabase.functions.invoke('groq-conversation-summary', {
-        body: { messages: validMessages }
+        body: { 
+          messages: validMessages,
+          existingSummary: conversationSummary || undefined // Pass existing summary for cumulative update
+        }
       });
       
       if (error) {
@@ -1841,20 +1853,7 @@ const ChatMessageItem = useMemo(() => {
     } finally {
       setSummaryLoading(false);
     }
-  }, [summaryLoading]);
-
-  // Auto-generate summary on mount/updates
-  useEffect(() => {
-    const valid = messages.filter(m => !m.isTyping && m.content);
-    console.log('[Summary] useEffect - valid messages:', valid.length);
-    if (valid.length >= 2) {
-      if (!conversationSummary) {
-        const fallback = createLocalSummary(messages, currentIdea);
-        if (fallback) setConversationSummary(fallback);
-      }
-      generateConversationSummary(messages);
-    }
-  }, [messages, conversationSummary, currentIdea, createLocalSummary, generateConversationSummary]);
+  }, [summaryLoading, conversationSummary]);
 
   const sendMessageHandler = useCallback(async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
