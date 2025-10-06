@@ -325,39 +325,42 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, [resetTrigger]);
 
-  // Save to DB on EVERY user action (immediately)
-  useEffect(() => {
-    if (messages.length > 0 && !anonymous) {
-      const sid = localStorage.getItem('currentSessionId');
-      if (sid) {
-        // Update localStorage immediately
-        localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
-        
-        // Save to database immediately (no debounce)
-        saveCurrentSession();
-      }
-    }
-  }, [messages, anonymous, saveCurrentSession]);
+  // Consolidated persistence: debounced save for all state changes
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Save idea to DB on every change
   useEffect(() => {
-    if (currentIdea && !anonymous) {
-      const sid = localStorage.getItem('currentSessionId');
-      if (sid) {
-        localStorage.setItem(`session_${sid}_idea`, currentIdea);
-        localStorage.setItem('currentIdea', currentIdea);
-        saveCurrentSession();
-      }
+    if (anonymous) return;
+    
+    const sid = localStorage.getItem('currentSessionId');
+    if (!sid) return;
+    
+    // Update localStorage immediately (sync)
+    if (messages.length > 0) {
+      localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
     }
-  }, [currentIdea, anonymous, saveCurrentSession]);
-  
-  // Save wrinkle points on change
-  useEffect(() => {
-    if (!anonymous && wrinklePoints > 0) {
+    if (currentIdea) {
+      localStorage.setItem(`session_${sid}_idea`, currentIdea);
+      localStorage.setItem('currentIdea', currentIdea);
+    }
+    if (wrinklePoints > 0) {
       localStorage.setItem('wrinklePoints', wrinklePoints.toString());
-      saveCurrentSession();
     }
-  }, [wrinklePoints, anonymous, saveCurrentSession]);
+    
+    // Debounce database save (500ms)
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      saveCurrentSession();
+    }, 500);
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [messages, currentIdea, wrinklePoints, anonymous, saveCurrentSession]);
 
   useEffect(() => {
     if (messages.length > 1) {
