@@ -1717,6 +1717,9 @@ const ChatMessageItem = useMemo(() => {
       await ideaContext.clearIdea();
     }
     
+    // Clear idea summary state
+    setIdeaSummaryName('');
+    
     // Clear ALL persisted state - both generic and session-specific
     const keysToRemove = [
       // Chat and idea related
@@ -1734,6 +1737,8 @@ const ChatMessageItem = useMemo(() => {
       'ideaMetadata',
       'ideaChatAnswers',
       'ideaDescription',
+      'ideaSummaryName',
+      'appIdea',
       'market_size_value',
       'competition_value',
       'sentiment_value',
