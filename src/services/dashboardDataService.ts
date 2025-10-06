@@ -208,8 +208,19 @@ class DashboardDataService {
   }
 
   private async fetchRedditData(idea: string): Promise<TileData> {
-    // Use reddit-research which returns summary, posts, insights suited for EnhancedRedditTile
-    const data = await invokeSupabaseFunction('reddit-research', { idea });
+    // Use reddit-research which returns summary, posts, insights suited for ComprehensiveRedditTile
+    console.log('[DashboardDataService] Fetching Reddit research for:', idea);
+    const data = await invokeSupabaseFunction('reddit-research', { 
+      idea_text: idea,
+      time_window: 'week'
+    });
+    
+    console.log('[DashboardDataService] Reddit research response:', {
+      hasSummary: !!data?.summary,
+      hasInsights: !!data?.insights,
+      postCount: data?.posts?.length || 0
+    });
+    
     if (!data) throw new Error('No data received');
 
     const summary = data.summary || {};
