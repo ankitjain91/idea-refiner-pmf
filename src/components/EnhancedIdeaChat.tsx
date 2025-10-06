@@ -1792,17 +1792,25 @@ const ChatMessageItem = useMemo(() => {
 
   // Generate evolving conversation summary
   const generateConversationSummary = useCallback(async (messageList: Message[]) => {
-    if (summaryLoading || messageList.length < 4) return;
+    const validMessages = messageList.filter(m => !m.isTyping && m.content);
+    console.log('[Summary] Checking if should generate. Messages:', validMessages.length, 'Loading:', summaryLoading);
     
+    if (summaryLoading || validMessages.length < 3) return;
+    
+    console.log('[Summary] Starting generation...');
     setSummaryLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('groq-conversation-summary', {
-        body: { messages: messageList }
+        body: { messages: validMessages }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[Summary] Error:', error);
+        throw error;
+      }
       
       if (data?.summary) {
+        console.log('[Summary] Generated:', data.summary);
         setConversationSummary(data.summary);
         
         // Persist to localStorage
@@ -1810,8 +1818,6 @@ const ChatMessageItem = useMemo(() => {
         if (sid) {
           localStorage.setItem(`session_${sid}_summary`, data.summary);
         }
-        
-        console.log('[Summary] Generated:', data.summary);
       }
     } catch (error) {
       console.error('[Summary] Error generating summary:', error);
@@ -2308,8 +2314,11 @@ User submission: """${messageText}"""`;
           
           localStorage.setItem('ideaMetadata', JSON.stringify(metadata));
           
-          // Generate evolving conversation summary after a few messages
-          if (newMessages.length >= 4) {
+          // Generate evolving conversation summary after a few messages (3+ valid messages)
+          const validMessages = newMessages.filter(m => !m.isTyping && m.content);
+          console.log('[Summary] Valid messages count:', validMessages.length);
+          if (validMessages.length >= 3) {
+            console.log('[Summary] Triggering generation...');
             generateConversationSummary(newMessages);
           }
           
