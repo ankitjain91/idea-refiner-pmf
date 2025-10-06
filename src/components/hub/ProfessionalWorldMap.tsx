@@ -109,51 +109,79 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     ];
 
     // If we have real market data, use it to calculate realistic regional splits
-    if (marketData?.metrics) {
-      const totalTam = marketData.metrics.tam || marketData.metrics.total_addressable_market || 16100000000;
-      const totalSam = marketData.metrics.sam || marketData.metrics.serviceable_addressable_market || 3817500000;
-      const totalSom = marketData.metrics.som || marketData.metrics.serviceable_obtainable_market || 295625000;
+    if (marketData) {
+      console.log('[ProfessionalWorldMap] Received marketData:', marketData);
       
-      // Regional market share based on digital economy size and internet penetration
-      const regionalShares = {
-        "North America": 0.28,      // Highest per-capita spending
-        "Europe": 0.24,              // Strong digital infrastructure
-        "Asia Pacific": 0.32,        // Largest population, growing fast
-        "Latin America": 0.08,       // Emerging market
-        "Middle East & Africa": 0.06, // Growing potential
-        "Oceania": 0.02              // Small but mature
-      };
-
-      return baseRegions.map(region => {
-        const share = regionalShares[region.name as keyof typeof regionalShares] || 0.1;
-        const regionTam = totalTam * share;
-        const regionSam = totalSam * share;
-        const regionSom = totalSom * share;
+      // Try multiple possible data structures
+      const metrics = marketData.metrics || marketData.data?.metrics || marketData;
+      const totalTam = 
+        metrics?.tam || 
+        metrics?.total_addressable_market || 
+        marketData?.tam ||
+        marketData?.total_addressable_market ||
+        marketData?.marketSize?.tam ||
+        null;
+      
+      const totalSam = 
+        metrics?.sam || 
+        metrics?.serviceable_addressable_market || 
+        marketData?.sam ||
+        marketData?.serviceable_addressable_market ||
+        marketData?.marketSize?.sam ||
+        null;
         
-        // Calculate growth rate based on region maturity and digital penetration
-        const baseGrowth = 12;
-        const growthMultiplier = (1 - region.internetPenetration) * 1.5 + 1; // Emerging markets grow faster
-        const cagr = baseGrowth * growthMultiplier;
-        
-        return {
-          name: region.name,
-          coordinates: region.coordinates,
-          tam: regionTam,
-          sam: regionSam,
-          som: regionSom,
-          cagr: parseFloat(cagr.toFixed(1)),
-          confidence: 0.75 + (region.internetPenetration * 0.2), // Higher confidence in mature markets
-          marketPenetration: regionSom / regionTam,
-          competitorDensity: region.internetPenetration * 0.8, // More developed = more competition
-          regulatoryScore: region.urbanization * 0.9, // Urban areas = better regulation
-          demographics: {
-            population: region.population,
-            urbanization: region.urbanization,
-            internetPenetration: region.internetPenetration,
-            mobileUsers: region.mobileUsers
-          }
+      const totalSom = 
+        metrics?.som || 
+        metrics?.serviceable_obtainable_market || 
+        marketData?.som ||
+        marketData?.serviceable_obtainable_market ||
+        marketData?.marketSize?.som ||
+        null;
+      
+      console.log('[ProfessionalWorldMap] Extracted values:', { totalTam, totalSam, totalSom });
+      
+      if (totalTam && totalSam && totalSom) {
+        // Regional market share based on digital economy size and internet penetration
+        const regionalShares = {
+          "North America": 0.28,      // Highest per-capita spending
+          "Europe": 0.24,              // Strong digital infrastructure
+          "Asia Pacific": 0.32,        // Largest population, growing fast
+          "Latin America": 0.08,       // Emerging market
+          "Middle East & Africa": 0.06, // Growing potential
+          "Oceania": 0.02              // Small but mature
         };
-      });
+
+        return baseRegions.map(region => {
+          const share = regionalShares[region.name as keyof typeof regionalShares] || 0.1;
+          const regionTam = totalTam * share;
+          const regionSam = totalSam * share;
+          const regionSom = totalSom * share;
+          
+          // Calculate growth rate based on region maturity and digital penetration
+          const baseGrowth = 12;
+          const growthMultiplier = (1 - region.internetPenetration) * 1.5 + 1; // Emerging markets grow faster
+          const cagr = baseGrowth * growthMultiplier;
+          
+          return {
+            name: region.name,
+            coordinates: region.coordinates,
+            tam: regionTam,
+            sam: regionSam,
+            som: regionSom,
+            cagr: parseFloat(cagr.toFixed(1)),
+            confidence: 0.75 + (region.internetPenetration * 0.2), // Higher confidence in mature markets
+            marketPenetration: regionSom / regionTam,
+            competitorDensity: region.internetPenetration * 0.8, // More developed = more competition
+            regulatoryScore: region.urbanization * 0.9, // Urban areas = better regulation
+            demographics: {
+              population: region.population,
+              urbanization: region.urbanization,
+              internetPenetration: region.internetPenetration,
+              mobileUsers: region.mobileUsers
+            }
+          };
+        });
+      }
     }
 
     // Fallback to intelligent defaults based on global market patterns
