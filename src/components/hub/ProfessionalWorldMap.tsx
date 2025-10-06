@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -293,9 +293,28 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     }
   }, [marketData, lockedIdea]);
   
+  // Calculate totals from regional data FIRST
   const totalTAM = regionalData.reduce((sum, r) => sum + r.tam, 0);
   const totalSAM = regionalData.reduce((sum, r) => sum + r.sam, 0);
   const totalSOM = regionalData.reduce((sum, r) => sum + r.som, 0);
+  
+  // Extract overall metrics from marketData (matching ExecutiveMarketSizeTile)
+  // This ensures consistency between Market Analysis and Global Market Overview
+  const overallMetrics = useMemo(() => {
+    const metrics = marketData?.market_size?.metrics || marketData?.metrics;
+    if (metrics) {
+      return {
+        tam: metrics.tam || `$${(totalTAM / 1000000000).toFixed(2)}B`,
+        sam: metrics.sam || `$${(totalSAM / 1000000000).toFixed(2)}B`,
+        som: metrics.som || `$${(totalSOM / 1000000000).toFixed(2)}B`
+      };
+    }
+    return {
+      tam: formatCurrency(totalTAM),
+      sam: formatCurrency(totalSAM),
+      som: formatCurrency(totalSOM)
+    };
+  }, [marketData, totalTAM, totalSAM, totalSOM]);
 
   const markers = regionalData.map((r: any) => ({
     lng: r?.coordinates?.[0] ?? 0,
@@ -670,7 +689,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                         <div className="flex-1">
                           <p className="text-sm text-muted-foreground font-medium">Total Market (TAM)</p>
                           <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                            {formatCurrency(totalTAM)}
+                            {overallMetrics.tam}
                           </p>
                           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                             <Sparkles className="h-3 w-3" />
@@ -700,7 +719,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                         <div className="flex-1">
                           <p className="text-sm text-muted-foreground font-medium">Addressable (SAM)</p>
                           <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                            {formatCurrency(totalSAM)}
+                            {overallMetrics.sam}
                           </p>
                           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                             <Users className="h-3 w-3" />
@@ -730,7 +749,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                         <div className="flex-1">
                           <p className="text-sm text-muted-foreground font-medium">Obtainable (SOM)</p>
                           <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                            {formatCurrency(totalSOM)}
+                            {overallMetrics.som}
                           </p>
                           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
