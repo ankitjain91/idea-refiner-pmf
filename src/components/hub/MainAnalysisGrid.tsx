@@ -7,6 +7,9 @@ import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
 import { MarketTrendsTile } from "./MarketTrendsTile";
 import { WebSearchTile } from "./WebSearchTile";
+import { TwitterSentimentTile } from "../social/TwitterSentimentTile";
+import { YouTubeAnalysisTile } from "../social/YouTubeAnalysisTile";
+import { RedditSentimentTile } from "./RedditSentimentTile";
 import { useLockedIdea } from "@/lib/lockedIdeaManager";
 
 import { useSession } from "@/contexts/SimpleSessionContext";
@@ -36,6 +39,8 @@ interface MainAnalysisGridProps {
     web_search?: TileData | null;
     google_trends?: TileData | null;
     news_analysis?: TileData | null;
+    twitter_sentiment?: TileData | null;
+    youtube_analysis?: TileData | null;
   };
   loading?: boolean;
   viewMode: "executive" | "deep";
@@ -149,6 +154,8 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
     { id: 'web_search', title: 'Web Intelligence', icon: Globe },
     { id: 'google_trends', title: 'Google Trends', icon: Search },
     { id: 'news_analysis', title: 'News Analysis', icon: Newspaper },
+    { id: 'twitter_sentiment', title: 'Twitter Insights', icon: MessageSquare },
+    { id: 'youtube_analysis', title: 'YouTube Analysis', icon: Activity },
     { id: 'financial_analysis', title: 'Financial Analysis', icon: DollarSign }
   ]
     .filter(t => requestedTileIds.includes(t.id))
@@ -232,6 +239,20 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <WebSearchTile idea={lockedIdea} className="h-full" />
+              </div>
+            );
+          }
+          if (tile.id === 'twitter_sentiment') {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <TwitterSentimentTile className="h-full" />
+              </div>
+            );
+          }
+          if (tile.id === 'youtube_analysis') {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <YouTubeAnalysisTile className="h-full" />
               </div>
             );
           }

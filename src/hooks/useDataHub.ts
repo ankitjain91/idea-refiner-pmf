@@ -19,6 +19,19 @@ interface DataHubState {
   lastFetchTime: string | null;
 }
 
+// Rate limiting configuration
+const RATE_LIMIT = {
+  MIN_INTERVAL: 60000, // 1 minute between refreshes
+  BATCH_WINDOW: 1000,  // 1 second batching window
+  CACHE_TTL: 300000    // 5 minute cache TTL
+};
+
+const CACHE_CONFIG = {
+  TTL: 5 * 60 * 1000, // 5 minutes
+  FORCE_TTL: 60 * 1000, // 1 minute minimum between force refreshes
+  MAX_REQUESTS_PER_MINUTE: 10
+};
+
 export function useDataHub(input: DataHubInput) {
   const [state, setState] = useState<DataHubState>({
     indices: null,
@@ -34,6 +47,10 @@ export function useDataHub(input: DataHubInput) {
   const { toast } = useToast();
   const orchestratorRef = useRef<DataHubOrchestrator | null>(null);
   const hasFetchedRef = useRef(false);
+  const lastForceRefreshRef = useRef<number>(0);
+  const requestCountRef = useRef<{count: number; resetTime: number}>({ count: 0, resetTime: Date.now() });
+  const lastFetchRef = useRef<number>(0);
+  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Initialize orchestrator
   useEffect(() => {
@@ -45,8 +62,49 @@ export function useDataHub(input: DataHubInput) {
       setState(prev => ({ ...prev, error: 'Missing idea' }));
       return;
     }
+
+    // Check rate limiting
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchRef.current;
+    if (!forceRefresh && timeSinceLastFetch < RATE_LIMIT.MIN_INTERVAL) {
+      console.log(`[DataHub] Rate limiting - too soon since last fetch (${timeSinceLastFetch}ms)`);      
+      return;
+    }
+
+    // Check cache first
+    const cacheKey = `datahub_${useMockData ? 'mock' : 'real'}_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
+    if (!forceRefresh) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsedCache = JSON.parse(cached);
+          const cacheAge = now - new Date(parsedCache.fetchedAt).getTime();
+          if (cacheAge < RATE_LIMIT.CACHE_TTL) {
+            console.log('[DataHub] Using cached data');
+            setState({
+              indices: parsedCache.indices,
+              tiles: parsedCache.tiles,
+              loading: false,
+              error: null,
+              summary: parsedCache.summary,
+              lastFetchTime: parsedCache.fetchedAt
+            });
+            return;
+          }
+        } catch (e) {
+          console.error('Cache parse error:', e);
+        }
+      }
+    }
     
+    // Clear any pending batch
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+    }
+    
+    // Start new batch window
     setState(prev => ({ ...prev, loading: true, error: null }));
+    lastFetchRef.current = now;
     
     try {
       // Check if we should use mock data or real data
@@ -462,36 +520,54 @@ export function useDataHub(input: DataHubInput) {
     }
   }, [input, toast, useMockData, user?.id]);
   
-  // Auto-fetch on mount only if idea changed or no data exists
+  // Debounce and batch fetch requests
   useEffect(() => {
     const loadDataForIdea = async () => {
       if (!input.idea) return;
       
-      // Check if we already have data for this idea in state
-      const hasDataInState = Object.keys(state.tiles).length > 0;
+      // Check cache first
+      const cacheKey = `datahub_${useMockData ? 'mock' : 'real'}_${user?.id}_${btoa(input.idea).substring(0, 20)}`;
+      const cached = localStorage.getItem(cacheKey);
       
-      // Check if the idea has changed
-      const lastIdeaKey = 'lastFetchedIdea';
-      const lastIdea = localStorage.getItem(lastIdeaKey);
-      const ideaChanged = lastIdea !== input.idea;
-      
-      // Only fetch if:
-      // 1. We don't have data in state AND haven't fetched yet
-      // 2. OR the idea has changed
-      if ((!hasDataInState && !hasFetchedRef.current) || ideaChanged) {
-        console.log('🚀 Initial DATA_HUB fetch for:', input.idea.substring(0, 50), {
-          hasDataInState,
-          hasFetched: hasFetchedRef.current,
-          ideaChanged
-        });
-        
-        // Store the current idea as last fetched
-        localStorage.setItem(lastIdeaKey, input.idea);
-        
-        await fetchDataHub(false);
-      } else {
-        console.log('⚡ Skipping fetch - data already loaded for:', input.idea.substring(0, 50));
+      if (cached) {
+        try {
+          const parsedCache = JSON.parse(cached);
+          const cacheAge = Date.now() - new Date(parsedCache.fetchedAt).getTime();
+          
+          // Use cache if less than 5 minutes old
+          if (cacheAge < 5 * 60 * 1000) {
+            console.log('📦 Using cached data for:', input.idea.substring(0, 50));
+            setState({
+              indices: parsedCache.indices,
+              tiles: parsedCache.tiles,
+              loading: false,
+              error: null,
+              summary: parsedCache.summary,
+              lastFetchTime: parsedCache.fetchedAt
+            });
+            return;
+          }
+        } catch (e) {
+          console.error('Cache parse error:', e);
+        }
       }
+      
+      // Debounce fetch requests
+      const timeoutId = setTimeout(async () => {
+        const hasDataInState = Object.keys(state.tiles).length > 0;
+        const lastIdea = localStorage.getItem('lastFetchedIdea');
+        const ideaChanged = lastIdea !== input.idea;
+        
+        if ((!hasDataInState && !hasFetchedRef.current) || ideaChanged) {
+          console.log('🚀 Debounced DATA_HUB fetch for:', input.idea.substring(0, 50));
+          localStorage.setItem('lastFetchedIdea', input.idea);
+          await fetchDataHub(false);
+        } else {
+          console.log('⚡ Skipping fetch - data already loaded for:', input.idea.substring(0, 50));
+        }
+      }, 1000); // 1 second debounce
+      
+      return () => clearTimeout(timeoutId);
     };
     
     loadDataForIdea();

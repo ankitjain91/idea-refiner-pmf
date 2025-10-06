@@ -225,12 +225,42 @@ export default function EnterpriseHub() {
     restoreCache();
   }, []);
 
-  // Set up real-time refresh
+  // Set up real-time refresh with strict rate limiting
   useEffect(() => {
     if (isRealTime && refreshInterval > 0 && currentIdea && !useMockData) {
+      let lastRefreshTime = Date.now();
+      let pendingRefresh = false;
+      let consecutiveRefreshes = 0;
+      
       intervalRef.current = setInterval(() => {
-        refresh();
-        console.log('Real-time data refresh triggered');
+        const now = Date.now();
+        const timeSinceLastRefresh = now - lastRefreshTime;
+        
+        // Exponential backoff for consecutive refreshes
+        const backoffDelay = Math.min(60000 * Math.pow(2, consecutiveRefreshes), 300000); // Max 5 minutes
+        
+        if (timeSinceLastRefresh < backoffDelay) {
+          console.log(`🚫 Rate limiting refresh - backoff ${backoffDelay}ms (consecutive: ${consecutiveRefreshes})`);
+          return;
+        }
+        
+        // Batch multiple refresh requests
+        if (!pendingRefresh) {
+          pendingRefresh = true;
+          
+          // Use RAF to batch potential multiple calls
+          requestAnimationFrame(async () => {
+            try {
+              await refresh();
+              console.log('🔄 Batched real-time refresh complete');
+              lastRefreshTime = Date.now();
+            } finally {
+              pendingRefresh = false;
+            }
+          });
+        } else {
+          console.log('⏳ Refresh already pending, skipping');
+        }
       }, refreshInterval);
 
       return () => {
@@ -582,6 +612,15 @@ export default function EnterpriseHub() {
           <TabsContent value="sentiment" className="space-y-6">
             {hasLoadedData && (
               <div className="space-y-4">
+                <MainAnalysisGrid
+                  tiles={{
+                    twitter_sentiment: tiles.twitter_sentiment,
+                    youtube_analysis: tiles.youtube_analysis,
+                  }}
+                  loading={loading}
+                  viewMode="deep"
+                  onRefreshTile={refreshTile}
+                />
                 <RedditSentimentAnalyzer idea={currentIdea} />
               </div>
             )}

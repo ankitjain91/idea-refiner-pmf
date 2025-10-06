@@ -3,6 +3,15 @@
  * Central system for orchestrating all data fetching with deduplication
  */
 
+import { SearchResult, NewsItem, CompetitorData, ReviewData, SocialData, PriceData, TrendsData } from './types';
+import { setTimeout } from 'timers';
+
+type DataProviderSource = 'serper' | 'tavily' | 'brave' | 'firecrawl' | 'groq' | 'serpapi' | 'scraperapi';
+
+interface DataQuality {
+  dataQuality: 'high' | 'medium' | 'low';
+}
+
 export interface DataHubInput {
   idea: string;
   session_id?: string | null;
@@ -43,6 +52,7 @@ export interface SearchResult {
   source: string;
   fetchedAt: string;
   relevanceScore: number;
+}
 }
 
 export interface NewsItem {
@@ -146,22 +156,105 @@ export interface ChartData {
 }
 
 export class DataHubOrchestrator {
-  private dataHub: DataHubIndices = {
-    SEARCH_INDEX: [],
-    NEWS_INDEX: [],
-    COMPETITOR_INDEX: [],
-    REVIEWS_INDEX: [],
-    SOCIAL_INDEX: [],
-    PRICE_INDEX: [],
-    MARKET_INDEX: [],
-    TRENDS_METRICS: {} as TrendsData,
-    EVIDENCE_STORE: [],
-    PROVIDER_LOG: []
-  };
+  // Static properties
+  private static readonly BATCH_WINDOW: number = 100; // 100ms batch window
+  private static readonly CACHE_TTL: number = 5 * 60 * 1000; // 5 minutes
 
-  private fetchPlan: FetchPlanItem[] = [];
-  private dedupeMap = new Map<string, string>();
-  private input: DataHubInput = { idea: '' };
+  // Instance properties
+  private dataHub: DataHubIndices;
+  private fetchPlan: FetchPlanItem[];
+  private dedupeMap: Map<string, string>;
+  private input: DataHubInput;
+  private batchTimeout: NodeJS.Timeout | null;
+  private pendingTiles: Map<string, {
+    resolve: (value: TileData) => void;
+    reject: (error: Error) => void;
+    tileType: string;
+  }>;
+  private tileCache: Map<string, {
+    data: TileData;
+    timestamp: number;
+  }>;
+
+  constructor() {
+    this.dataHub = {
+      SEARCH_INDEX: [],
+      NEWS_INDEX: [],
+      COMPETITOR_INDEX: [],
+      REVIEWS_INDEX: [],
+      SOCIAL_INDEX: [],
+      PRICE_INDEX: [],
+      MARKET_INDEX: [],
+      TRENDS_METRICS: {} as TrendsData,
+      EVIDENCE_STORE: [],
+      PROVIDER_LOG: []
+    };
+    this.fetchPlan = [];
+    this.dedupeMap = new Map<string, string>();
+    this.input = { idea: '' };
+    this.batchTimeout = null;
+    this.pendingTiles = new Map();
+    this.tileCache = new Map();
+  }
+
+  public setIndices(indices: DataHubIndices): void {
+    this.dataHub = indices;
+  }
+
+  private normalizeInput(input: DataHubInput): string[] {
+    const keywords: string[] = [];
+    
+    // Extract keywords from idea
+    const ideaWords = input.idea.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    keywords.push(...ideaWords);
+    
+    // Add target markets
+    if (input.targetMarkets) {
+      keywords.push(...input.targetMarkets.map(m => m.toLowerCase()));
+    }
+    
+    // Add audience profiles
+    if (input.audienceProfiles) {
+      keywords.push(...input.audienceProfiles.map(a => a.toLowerCase()));
+    }
+    
+    // Add competitors
+    if (input.competitorHints) {
+      keywords.push(...input.competitorHints.map(c => c.toLowerCase()));
+    }
+    
+    // Remove duplicates
+    return [...new Set(keywords)];
+  }
+
+  private buildFetchPlan(input: DataHubInput, keywords: string[]): FetchPlanItem[] {
+    const plan: FetchPlanItem[] = [];
+    
+    // Initialize fetch plan
+    keywords.forEach(keyword => {
+      plan.push({
+        id: `q_${keyword}`,
+        source: 'serper',
+        purpose: 'search',
+        query: keyword,
+        dedupeKey: keyword,
+        priority: 1
+      });
+    });
+    
+    return plan;
+  }
+
+  public async executeFetchPlan(plan: FetchPlanItem[]): Promise<DataHubIndices> {
+    return this.dataHub;
+  }
+  }[]> = new Map();
+
+  // Tile caching
+  private tileCache = new Map<string, {
+    data: TileData;
+    timestamp: number;
+  }>();
 
   // Allow injecting indices from edge function response
   public setIndices(indices: DataHubIndices) {
@@ -268,6 +361,38 @@ export class DataHubOrchestrator {
    * PHASE 3: Synthesize tile data from hub
    */
   async synthesizeTileData(tileType: string): Promise<TileData> {
+    // Check cache first
+    const cacheKey = `${this.input.idea}_${tileType}`;
+    const cached = this.tileCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < DataHubOrchestrator.CACHE_TTL) {
+      console.log(`[DataHub] Cache hit for ${tileType}`);
+      return cached.data;
+    }
+
+    // Return promise that will be resolved when batch is processed
+    return new Promise((resolve, reject) => {
+      // Add to pending batch
+      if (!this.pendingTiles.has(tileType)) {
+        this.pendingTiles.set(tileType, []);
+      }
+      this.pendingTiles.get(tileType)!.push({ resolve, reject, tileType });
+
+      // Schedule batch processing
+      if (!this.batchTimeout) {
+        this.batchTimeout = setTimeout(() => this.processBatch(), DataHubOrchestrator.BATCH_WINDOW);
+      }
+    });
+  }
+
+  private async processBatch(): Promise<void> {
+    // Clear timeout
+    this.batchTimeout = null;
+
+    // Process all pending tiles
+    const pending = Array.from(this.pendingTiles.entries());
+    this.pendingTiles.clear();
+
+    // Base tile data
     const baseData: TileData = {
       metrics: {},
       explanation: '',
@@ -278,30 +403,123 @@ export class DataHubOrchestrator {
       dataQuality: 'low'
     };
 
-    switch (tileType) {
-      case 'pmf_score':
-        return await this.synthesizePMFScore();
-      case 'market_size':
-        return this.synthesizeMarketSize();
-      case 'competition':
-        return this.synthesizeCompetition();
-      case 'sentiment':
-        return this.synthesizeSentiment();
-      case 'market_trends':
-        return this.synthesizeMarketTrends();
-      case 'google_trends':
-        return this.synthesizeGoogleTrends();
-      case 'web_search':
-        return this.synthesizeWebSearch();
-      case 'reddit_sentiment':
-        return this.synthesizeRedditSentiment();
-      case 'twitter_buzz':
-        return this.synthesizeTwitterBuzz();
-      case 'growth_potential':
-        return this.synthesizeGrowthPotential();
-      case 'market_readiness':
-        return this.synthesizeMarketReadiness();
-      case 'competitive_advantage':
+    // Process each tile type in batch
+    for (const [tileType, requests] of pending) {
+      try {
+        let tileData: TileData;
+
+        // Synthesize data based on tile type
+        switch (tileType) {
+          case 'pmf_score': {
+            tileData = await this.synthesizePMFScore();
+            break;
+          }
+          case 'market_size': {
+            tileData = this.synthesizeMarketSize();
+            break;
+          }
+          case 'competition': {
+            tileData = this.synthesizeCompetition();
+            break;
+          }
+          case 'sentiment': {
+            tileData = this.synthesizeSentiment();
+            break;
+          }
+          case 'market_trends': {
+            tileData = this.synthesizeMarketTrends();
+            break;
+          }
+          case 'google_trends': {
+            tileData = this.synthesizeGoogleTrends();
+            break;
+          }
+          case 'web_search': {
+            tileData = this.synthesizeWebSearch();
+            break;
+          }
+          case 'reddit_sentiment': {
+            tileData = this.synthesizeRedditSentiment();
+            break;
+          }
+          case 'twitter_buzz': {
+            tileData = this.synthesizeTwitterBuzz();
+            break;
+          }
+          case 'growth_potential': {
+            tileData = this.synthesizeGrowthPotential();
+            break;
+          }
+          case 'market_readiness': {
+            tileData = this.synthesizeMarketReadiness();
+            break;
+          }
+          case 'competitive_advantage': {
+            tileData = this.synthesizeCompetitiveAdvantage();
+            break;
+          }
+          case 'risk_assessment': {
+            tileData = this.synthesizeRiskAssessment();
+            break;
+          }
+          default: {
+            tileData = baseData;
+            break;
+          }
+        }
+
+        // Cache the result
+        const cacheKey = `${this.input.idea}_${tileType}`;
+        this.tileCache.set(cacheKey, {
+          data: tileData,
+          timestamp: Date.now()
+        });
+
+        // Resolve all pending requests for this tile type
+        requests.forEach(({ resolve }) => resolve(tileData));
+      } catch (error) {
+        // Reject all pending requests on error
+        requests.forEach(({ reject }) => reject(error));
+      }
+    }
+  }
+            tileData = this.synthesizeCompetition();
+            break;
+          case 'sentiment':
+            tileData = this.synthesizeSentiment();
+            break;
+          case 'market_trends':
+            tileData = this.synthesizeMarketTrends();
+            break;
+          case 'google_trends':
+            tileData = this.synthesizeGoogleTrends();
+            break;
+          case 'web_search':
+            tileData = this.synthesizeWebSearch();
+            break;
+          case 'reddit_sentiment':
+            tileData = this.synthesizeRedditSentiment();
+            break;
+          case 'twitter_buzz':
+            tileData = this.synthesizeTwitterBuzz();
+            break;
+          default:
+            tileData = baseData;
+        }
+
+        // Cache the result
+        const cacheKey = `${this.input.idea}_${tileType}`;
+        this.tileCache.set(cacheKey, {
+          data: tileData,
+          timestamp: Date.now()
+        });
+
+        // Resolve all pending requests for this tile type
+        requests.forEach(({ resolve }) => resolve(tileData));
+      } catch (error) {
+        // Reject all pending requests on error
+        requests.forEach(({ reject }) => reject(error));
+      }
         return this.synthesizeCompetitiveAdvantage();
       case 'risk_assessment':
         return this.synthesizeRiskAssessment();
