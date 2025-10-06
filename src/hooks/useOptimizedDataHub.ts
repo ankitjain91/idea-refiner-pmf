@@ -775,12 +775,10 @@ export function useOptimizedDataHub(input: DataHubInput) {
   
   const refresh = useCallback(async () => {
     hasFetchedRef.current = false;
-    // Clear relevant cache entries to force real API calls
-    if (input.idea) {
-      await cache.current.clearForIdea(input.idea);
-    }
+    // DON'T clear cache - keep existing data visible while fetching fresh data
+    // This prevents the "data disappears" issue
     return fetchDataHub(true);
-  }, [fetchDataHub, input.idea]);
+  }, [fetchDataHub]);
   
   const refreshTile = useCallback(async (tileType: string) => {
     if (!input.idea) return;
@@ -792,8 +790,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
     }));
     
     try {
-      // Clear cache for this specific tile type (simplified: clear all for the idea)
-      await cache.current.clearForIdea(input.idea);
+      // DON'T clear cache - keep existing data visible while refreshing
+      // This prevents data from disappearing during refresh
       
       // Special handling for market_size to ensure real-time service is used
       if (tileType === 'market_size') {
