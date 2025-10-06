@@ -147,6 +147,29 @@ interface TwitterBuzzData {
 function normalizeTwitterBuzzData(obj: any): TwitterBuzzData {
   const metrics = obj?.metrics || {};
   const overall = metrics?.overall_sentiment || {};
+
+  const normalizeTweet = (t: any, idx: number) => {
+    const rawText = typeof t?.text === 'string'
+      ? t.text
+      : (typeof t?.text?.text === 'string'
+          ? t.text.text
+          : (typeof t?.text?.content === 'string'
+              ? t.text.content
+              : (typeof t === 'string' ? t : '')));
+
+    return {
+      id: String(t?.id ?? `tmp_${idx}`),
+      text: rawText,
+      created_at: t?.created_at ?? new Date().toISOString(),
+      metrics: {
+        like_count: Number(t?.metrics?.like_count ?? t?.likes ?? 0),
+        retweet_count: Number(t?.metrics?.retweet_count ?? t?.retweets ?? 0),
+        reply_count: Number(t?.metrics?.reply_count ?? t?.replies ?? 0),
+      },
+      url: t?.url ?? '#',
+    };
+  };
+
   return {
     summary: obj?.summary ?? '',
     metrics: {
@@ -161,7 +184,7 @@ function normalizeTwitterBuzzData(obj: any): TwitterBuzzData {
       influencers: Array.isArray(metrics?.influencers) ? metrics.influencers : [],
     },
     clusters: Array.isArray(obj?.clusters) ? obj.clusters : [],
-    raw_tweets: Array.isArray(obj?.raw_tweets) ? obj.raw_tweets : [],
+    raw_tweets: Array.isArray(obj?.raw_tweets) ? obj.raw_tweets.map((t: any, i: number) => normalizeTweet(t, i)) : [],
     confidence: obj?.confidence ?? 'Low',
     cached: obj?.cached,
     cached_at: obj?.cached_at,

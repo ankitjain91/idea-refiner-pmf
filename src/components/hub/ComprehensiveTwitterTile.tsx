@@ -176,7 +176,7 @@ export function ComprehensiveTwitterTile({ data, loading }: Props) {
               {rawTweets.map((tweet: any, idx: number) => (
                 <Card key={idx} className="p-4">
                   <div className="space-y-3">
-                    <p className="text-sm">{typeof tweet?.text === 'string' ? tweet.text : JSON.stringify(tweet)}</p>
+                    <p className="text-sm">{typeof tweet?.text === 'string' ? tweet.text : (typeof tweet?.text?.text === 'string' ? tweet.text.text : JSON.stringify(tweet))}</p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Heart className="h-3 w-3" />

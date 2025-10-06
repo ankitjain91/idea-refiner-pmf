@@ -420,7 +420,7 @@ export function TwitterBuzzTile({ data, loading = false, onRefresh }: TwitterBuz
               (data as any).raw_tweets.map((tweet: any, idx: number) => (
                 <Card key={idx} className="p-4">
                   <div className="space-y-3">
-                    <p className="text-sm">{typeof tweet?.text === 'string' ? tweet.text : JSON.stringify(tweet)}</p>
+                    <p className="text-sm">{typeof tweet?.text === 'string' ? tweet.text : (typeof tweet?.text?.text === 'string' ? tweet.text.text : JSON.stringify(tweet))}</p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {tweet.created_at && (
                         <span>{new Date(tweet.created_at).toLocaleDateString()}</span>
