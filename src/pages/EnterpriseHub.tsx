@@ -6,6 +6,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
 import { useIdeaContext } from '@/hooks/useIdeaContext';
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
+import { lockedIdeaManager } from '@/lib/lockedIdeaManager';
 import { CacheRestorationService } from '@/services/cacheRestorationService';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -59,7 +60,17 @@ export default function EnterpriseHub() {
   
   // Update idea from current session
   const updateIdeaFromSession = useCallback(() => {
-    // First, check for the generated idea from GenerateIdeaButton (appIdea)
+    // FIRST: Check for locked idea - this takes priority over everything
+    const lockedIdea = lockedIdeaManager.getLockedIdea();
+    if (lockedIdea) {
+      console.log("[EnterpriseHub] Using locked idea:", lockedIdea.substring(0, 100));
+      setCurrentIdea(lockedIdea);
+      setConversationSummary(lockedIdea);
+      setSessionName(currentSession?.name || "Locked Idea Session");
+      return; // Skip all other checks
+    }
+    
+    // Second, check for the generated idea from GenerateIdeaButton (appIdea)
     let storedIdea = "";
     let hasGeneratedIdea = false;
     try {
