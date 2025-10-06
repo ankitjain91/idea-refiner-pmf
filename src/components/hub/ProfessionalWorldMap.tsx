@@ -188,21 +188,22 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
           );
           
           if (chartData) {
-            const tam = parseDollarAmount(chartData.tam || chartData.sam || '0');
-            const sam = parseDollarAmount(chartData.sam || '0');
-            const som = parseDollarAmount(chartData.som || '0');
+            const tamRaw = parseDollarAmount(chartData.tam || chartData.sam || '0');
+            const samRaw = parseDollarAmount(chartData.sam || '0');
+            const somRaw = parseDollarAmount(chartData.som || '0');
+            const sane = ensureMarketHierarchy(tamRaw, samRaw, somRaw);
             
-            console.log(`[ProfessionalWorldMap] ${region.name}:`, { tam, sam, som });
+            console.log(`[ProfessionalWorldMap] ${region.name}:`, { tam: sane.tam, sam: sane.sam, som: sane.som });
             
             return {
               name: region.name,
               coordinates: region.coordinates,
-              tam,
-              sam,
-              som,
+              tam: sane.tam,
+              sam: sane.sam,
+              som: sane.som,
               cagr: 15 + Math.random() * 10,
               confidence: 0.7 + Math.random() * 0.2,
-              marketPenetration: tam > 0 ? (som / tam) * 100 : 5,
+              marketPenetration: sane.tam > 0 ? (sane.som / sane.tam) * 100 : 5,
               competitorDensity: 30 + Math.random() * 40,
               regulatoryScore: 0.6 + Math.random() * 0.3,
               demographics: {
@@ -248,18 +249,19 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       const mappedRegions = baseRegions.map(region => {
         const chartData = derivedSeries.find((s: any) => s.name === region.code || s.name === region.name);
         if (chartData) {
-          const tam = parseDollarAmount(chartData.tam || chartData.sam || '0');
-          const sam = parseDollarAmount(chartData.sam || '0');
-          const som = parseDollarAmount(chartData.som || '0');
+          const tamRaw = parseDollarAmount(chartData.tam || chartData.sam || '0');
+          const samRaw = parseDollarAmount(chartData.sam || '0');
+          const somRaw = parseDollarAmount(chartData.som || '0');
+          const sane = ensureMarketHierarchy(tamRaw, samRaw, somRaw);
           return {
             name: region.name,
             coordinates: region.coordinates,
-            tam,
-            sam,
-            som,
+            tam: sane.tam,
+            sam: sane.sam,
+            som: sane.som,
             cagr: 15 + Math.random() * 10,
             confidence: 0.7 + Math.random() * 0.2,
-            marketPenetration: tam > 0 ? (som / tam) * 100 : 5,
+            marketPenetration: sane.tam > 0 ? (sane.som / sane.tam) * 100 : 5,
             competitorDensity: 30 + Math.random() * 40,
             regulatoryScore: 0.6 + Math.random() * 0.3,
             demographics: {
@@ -326,6 +328,22 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       default: return value;
     }
   };
+
+  // Ensure consistent market funnel: TAM >= SAM >= SOM
+  const ensureMarketHierarchy = (tam: number, sam: number, som: number) => {
+    const safeTam = Math.max(0, tam || 0);
+    let safeSam = Math.max(0, sam || 0);
+    let safeSom = Math.max(0, som || 0);
+
+    if (safeSam === 0 || safeSam > safeTam) {
+      safeSam = safeTam * 0.35; // default 35% of TAM
+    }
+    if (safeSom === 0 || safeSom > safeSam) {
+      safeSom = safeSam * 0.04; // default 4% of SAM
+    }
+
+    return { tam: safeTam, sam: safeSam, som: safeSom };
+  };
   
   // Calculate totals from regional data FIRST
   const totalTAM = regionalData.reduce((sum, r) => sum + r.tam, 0);
@@ -337,21 +355,23 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   const overallMetrics = useMemo(() => {
     const metrics = marketData?.market_size?.metrics || marketData?.metrics;
     if (metrics && (metrics.tam || metrics.sam || metrics.som)) {
-      // Parse the metrics properly
-      const tamValue = parseDollarAmount(metrics.tam);
-      const samValue = parseDollarAmount(metrics.sam);
-      const somValue = parseDollarAmount(metrics.som);
+      // Parse the metrics and sanitize
+      const tamRaw = parseDollarAmount(metrics.tam);
+      const samRaw = parseDollarAmount(metrics.sam);
+      const somRaw = parseDollarAmount(metrics.som);
+      const sane = ensureMarketHierarchy(tamRaw, samRaw, somRaw);
       
       return {
-        tam: tamValue > 0 ? formatCurrency(tamValue) : formatCurrency(totalTAM),
-        sam: samValue > 0 ? formatCurrency(samValue) : formatCurrency(totalSAM),
-        som: somValue > 0 ? formatCurrency(somValue) : formatCurrency(totalSOM)
+        tam: formatCurrency(sane.tam > 0 ? sane.tam : totalTAM),
+        sam: formatCurrency(sane.sam > 0 ? sane.sam : totalSAM),
+        som: formatCurrency(sane.som > 0 ? sane.som : totalSOM)
       };
     }
+    const saneTotals = ensureMarketHierarchy(totalTAM, totalSAM, totalSOM);
     return {
-      tam: formatCurrency(totalTAM),
-      sam: formatCurrency(totalSAM),
-      som: formatCurrency(totalSOM)
+      tam: formatCurrency(saneTotals.tam),
+      sam: formatCurrency(saneTotals.sam),
+      som: formatCurrency(saneTotals.som)
     };
   }, [marketData, totalTAM, totalSAM, totalSOM]);
 
