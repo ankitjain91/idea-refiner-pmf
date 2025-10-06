@@ -4,7 +4,6 @@
  */
 
 import { SearchResult, NewsItem, CompetitorData, ReviewData, SocialData, PriceData, TrendsData } from './types';
-import { setTimeout } from 'timers';
 
 type DataProviderSource = 'serper' | 'tavily' | 'brave' | 'firecrawl' | 'groq' | 'serpapi' | 'scraperapi';
 
@@ -45,59 +44,7 @@ export interface DataHubIndices {
   PROVIDER_LOG: ProviderLogEntry[];
 }
 
-export interface SearchResult {
-  url: string;
-  title: string;
-  snippet: string;
-  source: string;
-  fetchedAt: string;
-  relevanceScore: number;
-}
-
-export interface NewsItem {
-  publisher: string;
-  title: string;
-  url: string;
-  publishedDate: string;
-  tone: 'positive' | 'neutral' | 'negative';
-  snippet: string;
-  relevanceScore: number;
-}
-
-export interface CompetitorData {
-  name: string;
-  url: string;
-  pricing: any;
-  features: string[];
-  claims: string[];
-  traction: any;
-  marketShare?: number;
-  lastUpdated: string;
-}
-
-export interface ReviewData {
-  source: string;
-  text: string;
-  rating: number;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  date: string;
-  productName?: string;
-  verified: boolean;
-}
-
-export interface SocialData {
-  platform: 'reddit' | 'twitter' | 'youtube' | 'linkedin';
-  content: string;
-  engagement: number;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  date: string;
-  author?: string;
-  url?: string;
-}
-
-export interface PriceData {
-  product: string;
-  price: number;
+// Interfaces imported from ./types - removed duplicate declarations
   currency: string;
   source: string;
   date: string;
@@ -247,51 +194,6 @@ export class DataHubOrchestrator {
   public async executeFetchPlan(plan: FetchPlanItem[]): Promise<DataHubIndices> {
     return this.dataHub;
   }
-
-  // Tile caching
-  private tileCache = new Map<string, {
-    data: TileData;
-    timestamp: number;
-  }>();
-
-  // Allow injecting indices from edge function response
-  public setIndices(indices: DataHubIndices) {
-    this.dataHub = indices;
-  }
-
-  /**
-   * PHASE 0: Normalize input
-   */
-  normalizeInput(input: DataHubInput): string[] {
-    const keywords: string[] = [];
-    
-    // Extract keywords from idea
-    const ideaWords = input.idea.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-    keywords.push(...ideaWords);
-    
-    // Add target markets
-    if (input.targetMarkets) {
-      keywords.push(...input.targetMarkets.map(m => m.toLowerCase()));
-    }
-    
-    // Add audience profiles
-    if (input.audienceProfiles) {
-      keywords.push(...input.audienceProfiles.map(a => a.toLowerCase()));
-    }
-    
-    // Add competitors
-    if (input.competitorHints) {
-      keywords.push(...input.competitorHints.map(c => c.toLowerCase()));
-    }
-    
-    // Remove duplicates
-    return [...new Set(keywords)];
-  }
-
-  /**
-   * PHASE 1: Build fetch plan with deduplication
-   */
-  buildFetchPlan(input: DataHubInput, keywords: string[]): FetchPlanItem[] {
     // Store the input for later use in synthesis
     this.input = input;
     const plan: FetchPlanItem[] = [];
