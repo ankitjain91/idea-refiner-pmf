@@ -13,6 +13,7 @@ interface RedditPost {
   author: string;
   created_utc: number;
   num_comments: number;
+  subreddit: string;
 }
 
 serve(async (req) => {
@@ -212,7 +213,10 @@ Rules:
       sentiment: analysis.sentiments[idx] || 'neutral',
       score: post.score,
       author: post.author,
-      created: post.created_utc
+      created: post.created_utc,
+      subreddit: post.subreddit,
+      num_comments: post.num_comments,
+      selftext: post.selftext?.substring(0, 200)
     }));
 
     // Calculate sentiment counts

@@ -14,6 +14,9 @@ interface RedditPost {
   score: number;
   author: string;
   created: number;
+  subreddit?: string;
+  num_comments?: number;
+  selftext?: string;
 }
 
 interface SentimentData {
@@ -204,32 +207,56 @@ export function RedditSentimentAnalyzer({ idea }: RedditSentimentAnalyzerProps) 
               </div>
             </div>
 
-            {/* Top Posts */}
+            {/* Top Posts - Show 5 with more details */}
             {data.topPosts && data.topPosts.length > 0 && (
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Top Recent Discussions</h4>
-                <div className="space-y-2">
-                  {data.topPosts.slice(0, 3).map((post, idx) => (
+                <div className="space-y-3">
+                  {data.topPosts.slice(0, 5).map((post, idx) => (
                     <a
                       key={idx}
                       href={post.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(
-                        "block p-3 rounded-lg border transition-all hover:shadow-md",
+                        "block p-4 rounded-lg border transition-all hover:shadow-lg hover:scale-[1.02]",
                         getSentimentColor(post.sentiment)
                       )}
                     >
-                      <div className="flex items-start gap-2">
-                        {getSentimentIcon(post.sentiment)}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-2 mb-1">{post.title}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>u/{post.author}</span>
-                            <span>•</span>
-                            <span>{post.score} upvotes</span>
-                            <span>•</span>
-                            <span>{new Date(post.created * 1000).toLocaleDateString()}</span>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          {getSentimentIcon(post.sentiment)}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium line-clamp-2 mb-1">{post.title}</p>
+                            {post.selftext && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                                {post.selftext.substring(0, 150)}...
+                              </p>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                              {post.subreddit && (
+                                <Badge variant="outline" className="text-xs">
+                                  r/{post.subreddit}
+                                </Badge>
+                              )}
+                              <span>u/{post.author}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <ThumbsUp className="h-3 w-3" />
+                                {post.score}
+                              </span>
+                              {post.num_comments !== undefined && (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <MessageSquare className="h-3 w-3" />
+                                    {post.num_comments} comments
+                                  </span>
+                                </>
+                              )}
+                              <span>•</span>
+                              <span>{new Date(post.created * 1000).toLocaleDateString()}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
