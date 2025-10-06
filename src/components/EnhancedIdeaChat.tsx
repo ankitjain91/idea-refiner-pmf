@@ -2366,12 +2366,30 @@ User submission: """${messageText}"""`;
     }
   }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, toast, generateConversationSummary]); // Properly close the sendMessageHandler function
 
-  // Handle pin toggle
+  // Handle pin toggle - locks in the conversation summary
   const handlePinToggle = useCallback(() => {
     const newPinned = !isPinned;
+    
+    if (newPinned && conversationSummary) {
+      // Lock in the summary when pinning
+      lockedIdeaManager.setLockedIdea(conversationSummary);
+      console.log('[EnhancedIdeaChat] Locked summary:', conversationSummary);
+      toast({
+        title: "Idea Locked In! 🔒",
+        description: "Your conversation summary is now locked and will be used across the dashboard.",
+      });
+    } else if (!newPinned) {
+      // Clear lock when unpinning
+      lockedIdeaManager.clearLockedIdea();
+      toast({
+        title: "Idea Unlocked",
+        description: "You can now work on a different idea.",
+      });
+    }
+    
     setIsPinned(newPinned);
     lockedIdeaManager.setPinned(newPinned);
-  }, [isPinned]);
+  }, [isPinned, conversationSummary, toast]);
 
   // Handle save retry
   const handleSaveRetry = useCallback(async () => {
@@ -2464,11 +2482,17 @@ User submission: """${messageText}"""`;
       
       {/* Persistence Controls */}
       <div className="flex items-center gap-2 mt-3 flex-wrap">
-        <ConversationPinToggle 
-          isPinned={isPinned}
-          onToggle={handlePinToggle}
-          hasMessages={messages.length > 1}
-        />
+        {conversationSummary ? (
+          <ConversationPinToggle 
+            isPinned={isPinned}
+            onToggle={handlePinToggle}
+            hasMessages={messages.length > 1}
+          />
+        ) : (
+          <div className="text-xs text-muted-foreground italic">
+            Chat a bit more to generate a summary you can lock in
+          </div>
+        )}
       </div>
     </div>
 

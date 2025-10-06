@@ -18,6 +18,11 @@ export const ConversationPinToggle: React.FC<ConversationPinToggleProps> = ({
     return null;
   }
 
+  const buttonText = isPinned ? "Locked In" : "Lock In Idea";
+  const tooltipText = isPinned 
+    ? "Your idea summary is locked and will be used across the dashboard. Click to unlock."
+    : "Lock your conversation summary to use it as your finalized idea across the dashboard.";
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -31,22 +36,18 @@ export const ConversationPinToggle: React.FC<ConversationPinToggleProps> = ({
             {isPinned ? (
               <>
                 <Pin className="h-4 w-4" />
-                Pinned
+                {buttonText}
               </>
             ) : (
               <>
                 <PinOff className="h-4 w-4" />
-                Pin Chat
+                {buttonText}
               </>
             )}
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>
-            {isPinned
-              ? 'Conversation is pinned and won\'t be cleared on session change'
-              : 'Pin this conversation to prevent it from being cleared'}
-          </p>
+          <p className="max-w-xs">{tooltipText}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
