@@ -1790,6 +1790,23 @@ const ChatMessageItem = useMemo(() => {
     }, 100);
   }, []);
 
+  // Local fallback summary from conversation history
+  const createLocalSummary = useCallback((messageList: Message[], ideaText: string) => {
+    try {
+      const conv = messageList
+        .filter(m => m.content)
+        .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }));
+      // Use existing utility to build a concise 2-sentence summary
+      const sum = createConversationSummary(conv as any, ideaText || '');
+      return sum;
+    } catch (e) {
+      console.warn('[Summary] Local fallback failed:', e);
+      const text = messageList.slice(-4).map(m => m.content).join(' ');
+      const sentences = text.split(/[.!?]+/).filter(s => s.trim()).slice(0, 2);
+      return sentences.join('. ') + (sentences.length ? '.' : '');
+    }
+  }, []);
+
   // Generate evolving conversation summary
   const generateConversationSummary = useCallback(async (messageList: Message[]) => {
     const validMessages = messageList.filter(m => !m.isTyping && m.content);
@@ -1825,6 +1842,19 @@ const ChatMessageItem = useMemo(() => {
       setSummaryLoading(false);
     }
   }, [summaryLoading]);
+
+  // Auto-generate summary on mount/updates
+  useEffect(() => {
+    const valid = messages.filter(m => !m.isTyping && m.content);
+    console.log('[Summary] useEffect - valid messages:', valid.length);
+    if (valid.length >= 2) {
+      if (!conversationSummary) {
+        const fallback = createLocalSummary(messages, currentIdea);
+        if (fallback) setConversationSummary(fallback);
+      }
+      generateConversationSummary(messages);
+    }
+  }, [messages, conversationSummary, currentIdea, createLocalSummary, generateConversationSummary]);
 
   const sendMessageHandler = useCallback(async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
