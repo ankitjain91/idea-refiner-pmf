@@ -68,36 +68,42 @@ serve(async (req) => {
 
     // Extract better keywords from idea - focus on core concepts
     const extractKeywords = (text: string): string => {
-      const lowerText = text.toLowerCase();
-      
-      // Extract noun phrases and key concepts (2-3 word combinations)
-      const words = lowerText.split(/\s+/).filter(w => w.length > 2);
-      
+      // Normalize and tokenize
+      const lower = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+      const words = lower.split(/\s+/).filter(Boolean);
+
       // Common stop words to ignore
-      const stopWords = ['this', 'that', 'with', 'from', 'have', 'been', 'using', 
-                         'for', 'the', 'and', 'or', 'but', 'are', 'was', 'will', 
-                         'can', 'would', 'could', 'should', 'into', 'about'];
-      
-      // Get meaningful words
+      const stopWords = ['this','that','with','from','have','been','using','for','the','and','or','but','are','was','will','can','would','could','should','into','about','your','you','their','they','them'];
+
+      // Keep meaningful words only
       const meaningful = words.filter(w => !stopWords.includes(w) && w.length > 3);
-      
-      // Try to identify key phrases (2 consecutive meaningful words)
+
+      // Build 2-3 word phrases to improve relevance
       const phrases: string[] = [];
       for (let i = 0; i < meaningful.length - 1; i++) {
-        if (meaningful[i].length > 3 && meaningful[i + 1].length > 3) {
-          phrases.push(`"${meaningful[i]} ${meaningful[i + 1]}"`);
+        const a = meaningful[i];
+        const b = meaningful[i + 1];
+        if (a.length > 3 && b.length > 3) phrases.push(`"${a} ${b}"`);
+        if (i < meaningful.length - 2) {
+          const c = meaningful[i + 2];
+          if (c && c.length > 3) phrases.push(`"${a} ${b} ${c}"`);
         }
       }
-      
-      // If we found good phrases, use them
-      if (phrases.length > 0) {
-        // Add the top 2-3 single keywords as alternatives
-        const topKeywords = meaningful.slice(0, 2).map(w => w);
-        return `${phrases.slice(0, 2).join(' OR ')} OR ${topKeywords.join(' OR ')}`;
+
+      const uniq = (arr: string[]) => Array.from(new Set(arr));
+      const topPhrases = uniq(phrases).slice(0, 3);
+      const topKeywords = uniq(meaningful).slice(0, 5);
+
+      // Prefer text discussions and safe-for-work results
+      if (topPhrases.length) {
+        const phrasePart = topPhrases.join(' OR ');
+        const keywordPart = topKeywords.slice(0, 3).join(' OR ');
+        return `title:(${phrasePart}) AND (${keywordPart}) AND self:yes AND over_18:no`;
       }
-      
-      // Fallback to top keywords only
-      return meaningful.slice(0, 4).join(' OR ');
+
+      // Fallback to conjunctive keywords
+      const conjunctive = topKeywords.slice(0, 4).join(' AND ');
+      return `title:(${conjunctive}) AND self:yes AND over_18:no`;
     };
 
     const searchQuery = encodeURIComponent(extractKeywords(idea));
@@ -122,13 +128,30 @@ serve(async (req) => {
 
     console.log('[reddit-sentiment-analyzer] Found', posts.length, 'posts');
 
-    if (posts.length === 0) {
+    // Filter out low-signal/link-only posts; favor text discussions
+    const isLowSignalUrl = (u: string = '') => {
+      const url = u.toLowerCase();
+      return url.startsWith('https://i.redd.it') ||
+             url.startsWith('https://v.redd.it') ||
+             url.includes('/gallery/') ||
+             url.includes('imgur.com');
+    };
+
+    let filteredPosts = posts.filter((p: RedditPost) => (p.selftext && p.selftext.trim().length >= 30) && !isLowSignalUrl(p.url));
+    if (filteredPosts.length < 5) {
+      // If too restrictive, relax to include non-image/video links
+      filteredPosts = posts.filter((p: RedditPost) => !isLowSignalUrl(p.url));
+    }
+
+    console.log('[reddit-sentiment-analyzer] Filtered to', filteredPosts.length, 'posts for analysis');
+
+    if (filteredPosts.length === 0) {
       return new Response(
         JSON.stringify({
           positive: 0,
           neutral: 1,
           negative: 0,
-          summary: "No recent Reddit discussions found for this topic.",
+          summary: "No relevant Reddit discussions found for this topic.",
           topPosts: [],
           totalPosts: 0
         }),
@@ -137,7 +160,7 @@ serve(async (req) => {
     }
 
     // Prepare posts for AI analysis
-    const postsForAnalysis = posts.slice(0, 15).map((post: RedditPost) => ({
+    const postsForAnalysis = filteredPosts.slice(0, 15).map((post: RedditPost) => ({
       title: post.title,
       text: post.selftext?.substring(0, 200) || '',
       score: post.score,
@@ -218,7 +241,7 @@ Rules:
     console.log('[reddit-sentiment-analyzer] AI analysis complete');
 
     // Combine posts with their sentiment - return all posts (up to 30)
-    const postsWithSentiment = posts.map((post: RedditPost, idx: number) => {
+    const postsWithSentiment = filteredPosts.map((post: RedditPost, idx: number) => {
       // Handle both relative and absolute URLs
       let postUrl = post.url;
       if (postUrl.startsWith('/r/')) {
@@ -226,7 +249,7 @@ Rules:
       } else if (!postUrl.startsWith('http')) {
         postUrl = `https://reddit.com${postUrl}`;
       }
-      
+
       return {
         title: post.title,
         url: postUrl,
@@ -253,7 +276,7 @@ Rules:
       negative: sentimentCounts.negative || 0,
       summary: analysis.summary,
       topPosts: postsWithSentiment.sort((a: any, b: any) => b.score - a.score).slice(0, 10),
-      totalPosts: posts.length
+      totalPosts: filteredPosts.length
     };
 
     console.log('[reddit-sentiment-analyzer] Result:', result);
