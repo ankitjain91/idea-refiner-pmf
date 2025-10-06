@@ -1831,48 +1831,54 @@ const ChatMessageItem = useMemo(() => {
   // Generate evolving conversation summary (cumulative)
   const generateConversationSummary = useCallback(async (messageList: Message[]) => {
     const validMessages = messageList.filter(m => !m.isTyping && m.content);
-    
+
     // Only generate if we have new messages since last summary
     if (summaryLoading || validMessages.length <= lastSummaryMessageCount.current) {
       return;
     }
-    
+
     console.log('[Summary] Starting generation. Previous count:', lastSummaryMessageCount.current, 'New count:', validMessages.length);
     lastSummaryMessageCount.current = validMessages.length;
     setSummaryLoading(true);
-    
+
+    const persistSummary = (text: string) => {
+      setConversationSummary(text);
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid) localStorage.setItem(`session_${sid}_summary`, text);
+    };
+
     try {
-      // Get new messages since last summary
-      const newMessages = validMessages.slice(Math.max(0, validMessages.length - 2));
-      
       const { data, error } = await supabase.functions.invoke('groq-conversation-summary', {
-        body: { 
+        body: {
           messages: validMessages,
-          existingSummary: conversationSummary || undefined // Pass existing summary for cumulative update
+          existingSummary: conversationSummary || undefined
         }
       });
-      
+
       if (error) {
-        console.error('[Summary] Error:', error);
-        throw error;
+        console.error('[Summary] Edge function error:', error);
+        // Fallback to local summarizer
+        const fallback = createLocalSummary(validMessages, currentIdea || '');
+        persistSummary(fallback);
+        return;
       }
-      
-      if (data?.summary) {
-        console.log('[Summary] Generated:', data.summary);
-        setConversationSummary(data.summary);
-        
-        // Persist to localStorage
-        const sid = localStorage.getItem('currentSessionId');
-        if (sid) {
-          localStorage.setItem(`session_${sid}_summary`, data.summary);
-        }
+
+      if (data?.summary && typeof data.summary === 'string') {
+        console.log('[Summary] Generated via edge function');
+        persistSummary(data.summary);
+      } else {
+        console.warn('[Summary] No summary in response, using local fallback');
+        const fallback = createLocalSummary(validMessages, currentIdea || '');
+        persistSummary(fallback);
       }
-    } catch (error) {
-      console.error('[Summary] Error generating summary:', error);
+    } catch (err) {
+      console.error('[Summary] Exception generating summary, using local fallback:', err);
+      const fallback = createLocalSummary(validMessages, currentIdea || '');
+      persistSummary(fallback);
     } finally {
       setSummaryLoading(false);
     }
-  }, [summaryLoading, conversationSummary]);
+  }, [summaryLoading, conversationSummary, currentIdea, createLocalSummary]);
 
   const sendMessageHandler = useCallback(async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
