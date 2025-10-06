@@ -2477,20 +2477,40 @@ User submission: """${messageText}"""`;
             variant={conversationSummary ? "default" : "outline"}
             size="sm"
             onClick={() => conversationSummary && setShowSummaryDialog(true)}
-            disabled={summaryLoading || !conversationSummary}
+            disabled={!conversationSummary && !summaryLoading}
             className={cn(
-              "gap-2 w-fit relative overflow-hidden transition-all duration-300",
-              conversationSummary && "shadow-md hover:shadow-lg",
-              summaryLoading && "cursor-wait"
+              "gap-2 w-fit relative overflow-hidden transition-all duration-500",
+              conversationSummary && "bg-gradient-to-r from-primary via-primary/90 to-primary shadow-lg hover:shadow-xl hover:scale-105 animate-in",
+              summaryLoading && "cursor-wait",
+              !conversationSummary && !summaryLoading && "opacity-50"
             )}
           >
-            {/* Progress fill background */}
+            {/* Progress fill background for loading */}
             {summaryLoading && (
               <motion.div
-                className="absolute inset-0 bg-primary/20"
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 3, ease: "easeOut" }}
+                className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/50 to-primary/30"
+                initial={{ x: "-100%" }}
+                animate={{ x: "100%" }}
+                transition={{ 
+                  duration: 2, 
+                  ease: "easeInOut",
+                  repeat: Infinity
+                }}
+              />
+            )}
+            
+            {/* Shimmer effect when ready */}
+            {conversationSummary && (
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                initial={{ x: "-100%" }}
+                animate={{ x: "200%" }}
+                transition={{ 
+                  duration: 2, 
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                  repeatDelay: 1
+                }}
               />
             )}
             
@@ -2499,17 +2519,23 @@ User submission: """${messageText}"""`;
               {summaryLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Generating...</span>
+                  <span>Refining Idea...</span>
                 </>
               ) : conversationSummary ? (
                 <>
-                  <Lightbulb className="h-4 w-4" />
-                  <span>View Idea</span>
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    animate={{ rotate: [0, -10, 10, -10, 0] }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    <Lightbulb className="h-4 w-4 fill-current" />
+                  </motion.div>
+                  <span className="font-semibold">View Your Idea</span>
                 </>
               ) : (
                 <>
                   <Lightbulb className="h-4 w-4 opacity-50" />
-                  <span>No Idea Yet</span>
+                  <span>Chat to unlock...</span>
                 </>
               )}
             </div>
