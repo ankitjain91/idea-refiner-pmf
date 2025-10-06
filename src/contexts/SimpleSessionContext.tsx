@@ -88,8 +88,9 @@ interface SessionContextType {
   renameSession: (sessionId: string, newName: string) => Promise<void>;
   duplicateSession: (sessionId: string) => Promise<void>;
   
-  // Auto-save for all authenticated sessions
+  // Save functions
   saveCurrentSession: () => Promise<void>;
+  saveMessagesNow: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
