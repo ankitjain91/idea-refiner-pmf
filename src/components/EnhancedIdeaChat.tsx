@@ -274,9 +274,16 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       const sid = localStorage.getItem('currentSessionId');
       if (sid) {
         localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
+        
+        // Also save to database (debounced)
+        const saveTimer = setTimeout(() => {
+          saveCurrentSession();
+        }, 2000); // Wait 2 seconds after last message before saving to DB
+        
+        return () => clearTimeout(saveTimer);
       }
     }
-  }, [messages, anonymous]);
+  }, [messages, anonymous, saveCurrentSession]);
 
   useEffect(() => {
     if (messages.length > 1) {
