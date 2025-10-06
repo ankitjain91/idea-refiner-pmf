@@ -159,30 +159,35 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
 
       // Transform the response to match our interface
       const twitterBuzz = response?.twitter_buzz;
+      
+      if (!twitterBuzz) {
+        throw new Error('No Twitter data in response');
+      }
+
       const transformedData: TwitterData = {
-        posts: (twitterBuzz?.raw_tweets || []).map((tweet: any) => ({
+        posts: (twitterBuzz.raw_tweets || []).map((tweet: any) => ({
           id: tweet.id || '',
           text: tweet.text || '',
-          timestamp: tweet.created_at || '',
+          timestamp: tweet.created_at || new Date().toISOString(),
           likes: tweet.metrics?.like_count || 0,
           retweets: tweet.metrics?.retweet_count || 0,
           replies: tweet.metrics?.reply_count || 0,
-          sentiment: (twitterBuzz?.metrics?.overall_sentiment?.positive || 0) > 50 ? 'positive' : 
-                    (twitterBuzz?.metrics?.overall_sentiment?.negative || 0) > 30 ? 'negative' : 'neutral',
+          sentiment: (twitterBuzz.metrics?.overall_sentiment?.positive || 0) > 50 ? 'positive' : 
+                    (twitterBuzz.metrics?.overall_sentiment?.negative || 0) > 30 ? 'negative' : 'neutral',
           engagementScore: (tweet.metrics?.like_count || 0) + (tweet.metrics?.retweet_count || 0) * 2,
-          url: tweet.url || '',
-          username: tweet.author_username || 'unknown',
+          url: tweet.url || `https://twitter.com/i/web/status/${tweet.id}`,
+          username: 'twitter_user',
           relevanceScore: 0.75
         })),
         summary: {
-          totalPosts: twitterBuzz?.metrics?.total_tweets || 0,
-          averageSentiment: (twitterBuzz?.metrics?.overall_sentiment?.positive || 0) / 100,
-          topTopics: twitterBuzz?.metrics?.top_hashtags || [],
+          totalPosts: twitterBuzz.metrics?.total_tweets || 0,
+          averageSentiment: (twitterBuzz.metrics?.overall_sentiment?.positive || 0) / 100,
+          topTopics: twitterBuzz.metrics?.top_hashtags || [],
           engagement: {
-            total: (twitterBuzz?.raw_tweets || []).reduce((sum: number, t: any) => 
+            total: (twitterBuzz.raw_tweets || []).reduce((sum: number, t: any) => 
               sum + (t.metrics?.like_count || 0) + (t.metrics?.retweet_count || 0), 0),
-            average: twitterBuzz?.metrics?.total_tweets ? 
-              ((twitterBuzz?.raw_tweets || []).reduce((sum: number, t: any) => 
+            average: twitterBuzz.metrics?.total_tweets > 0 ? 
+              Math.round((twitterBuzz.raw_tweets || []).reduce((sum: number, t: any) => 
                 sum + (t.metrics?.like_count || 0), 0) / twitterBuzz.metrics.total_tweets) : 0
           }
         }
