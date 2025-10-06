@@ -271,7 +271,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
           console.log(`[EnhancedIdeaChat] ✅ Loaded ${state.chatHistory.length} messages from DB`);
           setMessages(state.chatHistory);
           setConversationStarted(true);
+          // Update BOTH session-specific AND unified keys
           localStorage.setItem(`session_${sid}_messages`, JSON.stringify(state.chatHistory));
+          localStorage.setItem('chatHistory', JSON.stringify(state.chatHistory));
         }
         
         // Restore idea
@@ -279,8 +281,10 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
           console.log('[EnhancedIdeaChat] ✅ Restored idea from DB');
           setCurrentIdea(state.currentIdea);
           setHasValidIdea(true);
-          localStorage.setItem('currentIdea', state.currentIdea);
+          // Update BOTH session-specific AND unified keys
           localStorage.setItem(`session_${sid}_idea`, state.currentIdea);
+          localStorage.setItem('userIdea', state.currentIdea);
+          localStorage.setItem('currentIdea', state.currentIdea);
         }
         
         // Restore wrinkle points
@@ -325,36 +329,33 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, [resetTrigger]);
 
-  // Manual save function - only called on explicit user actions
-  const saveSessionOnUserAction = useCallback(async () => {
+  // Sync state to localStorage keys that SessionContext reads
+  useEffect(() => {
     if (anonymous) return;
     
     const sid = localStorage.getItem('currentSessionId');
     if (!sid) return;
     
-    // Update localStorage
-    const sessionMessagesKey = `session_${sid}_messages`;
-    const sessionIdeaKey = `session_${sid}_idea`;
-    
+    // Update BOTH session-specific keys AND the unified keys
     if (messages.length > 0) {
-      localStorage.setItem(sessionMessagesKey, JSON.stringify(messages));
+      localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
+      localStorage.setItem('chatHistory', JSON.stringify(messages));
     }
+    
     if (currentIdea) {
-      localStorage.setItem(sessionIdeaKey, currentIdea);
+      localStorage.setItem(`session_${sid}_idea`, currentIdea);
+      localStorage.setItem('userIdea', currentIdea);
       localStorage.setItem('currentIdea', currentIdea);
     }
+    
     if (wrinklePoints > 0) {
       localStorage.setItem('wrinklePoints', wrinklePoints.toString());
     }
     
-    // Save to database
-    try {
-      await saveCurrentSession();
-      console.log('[EnhancedIdeaChat] Session saved on user action');
-    } catch (error) {
-      console.error('[EnhancedIdeaChat] Failed to save session:', error);
+    if (conversationSummary) {
+      localStorage.setItem(`session_${sid}_summary`, conversationSummary);
     }
-  }, [messages, currentIdea, wrinklePoints, anonymous, saveCurrentSession]);
+  }, [messages, currentIdea, wrinklePoints, conversationSummary, anonymous]);
 
   useEffect(() => {
     if (messages.length > 1) {
@@ -656,17 +657,9 @@ What's your startup idea?`,
     checkPendingQuestion();
   }, [location, toast]); // Re-run when location changes
 
-  // Persist messages for authenticated users with debouncing
+  // Persist messages to database with debouncing
   useEffect(() => {
     if (!anonymous && messages.length > 0) {
-      // Always save to localStorage immediately for fast recovery
-      const sid = localStorage.getItem('currentSessionId');
-      if (sid) {
-        try {
-          localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
-        } catch {}
-      }
-      
       // Debounce database saves to prevent excessive writes
       const saveTimeout = setTimeout(async () => {
         setPersistenceStatus('saving');
@@ -693,45 +686,7 @@ What's your startup idea?`,
     }
   }, [messages, anonymous, saveCurrentSession]);
   
-  // Persist current idea for authenticated users
-  useEffect(() => {
-    if (!anonymous && currentIdea) {
-      // Validate that this is a real startup idea, not a chat suggestion
-      const isChatSuggestion = 
-        currentIdea.length < 30 ||
-        currentIdea.startsWith('What') ||
-        currentIdea.startsWith('How') ||
-        currentIdea.startsWith('Why') ||
-        currentIdea.includes('would you') ||
-        currentIdea.includes('could you') ||
-        currentIdea.includes('?');
-      
-      if (!isChatSuggestion) {
-        console.log('Persisting validated startup idea:', currentIdea);
-        localStorage.setItem('currentIdea', currentIdea);
-        localStorage.setItem(LS_KEYS.userIdea, currentIdea);
-        localStorage.setItem('dashboardIdea', currentIdea);
-        const sid = localStorage.getItem('currentSessionId');
-        if (sid) {
-          localStorage.setItem(`session_${sid}_idea`, currentIdea);
-        }
-        localStorage.setItem('ideaText', currentIdea);
-        // Trigger session save
-        window.dispatchEvent(new Event('chat:activity'));
-      } else {
-        console.log('Skipping persistence - detected chat suggestion:', currentIdea.substring(0, 50));
-      }
-    }
-  }, [currentIdea, anonymous]);
-  
-  // Persist wrinkle points for authenticated users
-  useEffect(() => {
-    if (!anonymous) {
-      localStorage.setItem('wrinklePoints', String(wrinklePoints));
-      // Trigger session save
-      window.dispatchEvent(new Event('chat:activity'));
-    }
-  }, [wrinklePoints, anonymous]);
+  // Note: Persistence is handled by the unified sync effect above
   
   // Response mode removed - always use detailed
 
@@ -943,9 +898,6 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-    
-    // Save on user action (suggestion click)
-    await saveSessionOnUserAction();
   };
 
   const sendMessage = async (textToSend?: string) => {
@@ -1210,9 +1162,6 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         // Remove typing indicator right before adding the real message
         setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
         setIsTyping(false);
-        
-        // Save session after bot response (user action)
-        await saveSessionOnUserAction();
         
       } catch (error: any) {
         console.error('Error:', error);
