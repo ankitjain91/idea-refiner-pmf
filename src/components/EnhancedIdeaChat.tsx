@@ -240,42 +240,56 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
   useEffect(() => {
     const handleSessionLoad = async () => {
       const sid = localStorage.getItem('currentSessionId');
-      if (!sid) return;
+      if (!sid) {
+        console.log('[EnhancedIdeaChat] No session ID found');
+        return;
+      }
       
-      // Try localStorage first
-      let stored = localStorage.getItem(`session_${sid}_messages`);
+      console.log('[EnhancedIdeaChat] Loading session:', sid);
+      
+      // CRITICAL: Always try database FIRST on page load/refresh
       let parsedMessages = null;
       
-      if (stored) {
-        try {
-          parsedMessages = JSON.parse(stored);
-        } catch (e) {
-          console.error('[EnhancedIdeaChat] Error parsing stored messages:', e);
-        }
-      }
-      
-      // If no localStorage or parsing failed, try to recover from database
-      if (!parsedMessages || parsedMessages.length === 0) {
-        console.log('[EnhancedIdeaChat] Attempting to recover messages from database...');
-        try {
-          const { data } = await supabase
-            .from('brainstorming_sessions')
-            .select('state')
-            .eq('id', sid)
-            .single();
-            
+      try {
+        console.log('[EnhancedIdeaChat] Fetching from database...');
+        const { data, error } = await supabase
+          .from('brainstorming_sessions')
+          .select('state')
+          .eq('id', sid)
+          .single();
+          
+        if (error) {
+          console.error('[EnhancedIdeaChat] Database fetch error:', error);
+        } else {
           const state = data?.state as any;
-          if (state?.chatHistory) {
+          if (state?.chatHistory && Array.isArray(state.chatHistory)) {
             parsedMessages = state.chatHistory;
-            console.log(`[EnhancedIdeaChat] Recovered ${parsedMessages.length} messages from database`);
-            // Save back to localStorage
+            console.log(`[EnhancedIdeaChat] ✅ Loaded ${parsedMessages.length} messages from database`);
+            // Update localStorage to match database
             localStorage.setItem(`session_${sid}_messages`, JSON.stringify(parsedMessages));
+          } else {
+            console.log('[EnhancedIdeaChat] No chatHistory in database state');
           }
-        } catch (e) {
-          console.error('[EnhancedIdeaChat] Failed to recover from database:', e);
+        }
+      } catch (e) {
+        console.error('[EnhancedIdeaChat] Failed to fetch from database:', e);
+      }
+      
+      // Fallback to localStorage if database didn't have messages
+      if (!parsedMessages || parsedMessages.length === 0) {
+        console.log('[EnhancedIdeaChat] Trying localStorage fallback...');
+        const stored = localStorage.getItem(`session_${sid}_messages`);
+        if (stored) {
+          try {
+            parsedMessages = JSON.parse(stored);
+            console.log(`[EnhancedIdeaChat] Found ${parsedMessages?.length || 0} messages in localStorage`);
+          } catch (e) {
+            console.error('[EnhancedIdeaChat] Error parsing stored messages:', e);
+          }
         }
       }
       
+      // Restore messages if we found any
       if (parsedMessages && Array.isArray(parsedMessages) && parsedMessages.length > 0) {
         console.log('[EnhancedIdeaChat] Restoring', parsedMessages.length, 'messages');
         setMessages(parsedMessages);
@@ -290,16 +304,18 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
           setHasValidIdea(true);
         }
         if (restoredWrinkles) setWrinklePoints(parseInt(restoredWrinkles) || 0);
+      } else {
+        console.log('[EnhancedIdeaChat] No messages found to restore');
       }
     };
     
-    // Listen for session load events
-    window.addEventListener('storage', handleSessionLoad);
+    // Run immediately on mount (critical for page refresh)
+    handleSessionLoad();
+    
+    // Also listen for session load events
     window.addEventListener('session:loaded', handleSessionLoad);
-    handleSessionLoad(); // Run immediately on mount
     
     return () => {
-      window.removeEventListener('storage', handleSessionLoad);
       window.removeEventListener('session:loaded', handleSessionLoad);
     };
   }, []);

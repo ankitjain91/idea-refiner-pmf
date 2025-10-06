@@ -621,10 +621,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .update({ updated_at: new Date().toISOString() })
         .eq('id', sessionId);
 
-      console.log(`[SimpleSession] Session loaded: ${session.name} with ${restoredChat.length} messages`);
+      console.log(`[SimpleSession] ✅ Session loaded: ${session.name} with ${restoredChat.length} messages`);
       
-      // Dispatch event to notify components that session data has been restored
-      window.dispatchEvent(new Event('session:loaded'));
+      // CRITICAL: Dispatch event with message count to notify components
+      window.dispatchEvent(new CustomEvent('session:loaded', { 
+        detail: { sessionId, messageCount: restoredChat.length } 
+      }));
 
     } catch (error) {
       console.error('Error loading session:', error);
