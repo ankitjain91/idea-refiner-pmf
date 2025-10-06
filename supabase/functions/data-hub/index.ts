@@ -27,7 +27,7 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 // Recognized tile ids
-const ALLOWED_TILES = new Set(['market_size','competition','sentiment','market_trends','google_trends','web_search','news_analysis','financial_analysis']);
+const ALLOWED_TILES = new Set(['market_size','competition','sentiment','market_trends','google_trends','web_search','news_analysis','financial_analysis','twitter_sentiment','youtube_analysis']);
 
 async function safeLoadCache(ideaHash: string, tile: string): Promise<TileData | null> {
   try {

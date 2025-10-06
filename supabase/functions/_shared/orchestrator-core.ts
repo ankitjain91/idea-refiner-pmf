@@ -51,7 +51,58 @@ export function emptyTile(reason: string): TileData {
 
 // Synthesis placeholder (no mock values) — real providers should populate metrics.
 export async function synthesizeTile(type: string, idea: string): Promise<TileData> {
+  const SUPABASE_URL = (globalThis as any).Deno?.env?.get('SUPABASE_URL') || '';
+  const SERVICE_KEY = (globalThis as any).Deno?.env?.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  
   switch (type) {
+    case 'twitter_sentiment':
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/twitter-search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea, query: idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.twitter_buzz?.metrics || {},
+            explanation: json.twitter_buzz?.summary || 'Twitter sentiment analysis completed',
+            citations: [],
+            charts: [],
+            json: json.twitter_buzz || json,
+            confidence: json.twitter_buzz?.confidence === 'High' ? 0.8 : 0.5,
+            dataQuality: 'high'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] twitter_sentiment error:', e);
+      }
+      return emptyTile('Twitter sentiment data unavailable');
+    
+    case 'youtube_analysis':
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/youtube-search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea_text: idea, idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.summary || {},
+            explanation: `Found ${json.youtube_insights?.length || 0} relevant videos`,
+            citations: [],
+            charts: [],
+            json: json,
+            confidence: json.meta?.confidence === 'High' ? 0.8 : 0.5,
+            dataQuality: 'high'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] youtube_analysis error:', e);
+      }
+      return emptyTile('YouTube analysis data unavailable');
+      
     case 'market_size':
       return emptyTile('Market size data not available yet – connect provider / ingestion pipeline.');
     case 'competition':
