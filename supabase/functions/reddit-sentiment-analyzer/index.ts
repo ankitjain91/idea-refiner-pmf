@@ -64,15 +64,31 @@ serve(async (req) => {
     const { access_token } = await tokenResponse.json();
     console.log('[reddit-sentiment-analyzer] Got Reddit access token');
 
-    // Extract keywords from idea
-    const keywords = idea
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((word: string) => word.length > 3 && !['this', 'that', 'with', 'from', 'have'].includes(word))
-      .slice(0, 3)
-      .join(' ');
+    // Extract better keywords from idea - focus on problem/solution
+    const extractKeywords = (text: string): string => {
+      // Remove common words and get meaningful terms
+      const stopWords = ['this', 'that', 'with', 'from', 'have', 'using', 'for', 'the', 'and', 'or'];
+      const words = text.toLowerCase().split(/\s+/);
+      
+      // Prioritize unique domain-specific words
+      const meaningfulWords = words
+        .filter((word: string) => word.length > 4 && !stopWords.includes(word))
+        .slice(0, 4);
+      
+      // If we have "virtual" + specific domain, combine them
+      const hasVirtual = words.includes('virtual');
+      const domain = meaningfulWords.find((w: string) => 
+        ['travel', 'reality', 'tours', 'experiences'].includes(w)
+      );
+      
+      if (hasVirtual && domain) {
+        return `"virtual ${domain}" OR "${domain} accessibility" OR "immersive ${domain}"`;
+      }
+      
+      return meaningfulWords.slice(0, 3).join(' OR ');
+    };
 
-    const searchQuery = encodeURIComponent(keywords);
+    const searchQuery = encodeURIComponent(extractKeywords(idea));
     
     // Search Reddit posts (limit to 30 for cost efficiency)
     const searchUrl = `https://oauth.reddit.com/search?q=${searchQuery}&limit=30&sort=relevance&t=week&raw_json=1`;
