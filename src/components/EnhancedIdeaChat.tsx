@@ -34,7 +34,6 @@ import { useSession } from '@/contexts/SimpleSessionContext';
 import { LS_KEYS } from '@/lib/storage-keys';
 import { backgroundProcessor } from '@/lib/background-processor';
 import { AsyncDashboardButton } from '@/components/AsyncDashboardButton';
-import { GenerateIdeaButton } from './chat/GenerateIdeaButton';
 import { useIdeaContext } from '@/hooks/useIdeaContext';
 
 // Import refactored components and utilities
@@ -2453,8 +2452,14 @@ User submission: """${messageText}"""`;
         </div>
       </div>
       
-      {conversationSummary && (
-        <div className="flex justify-end mt-3">
+      {/* Idea Generation Progress & View Button */}
+      <div className="flex justify-end mt-3">
+        {summaryLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span>Generating your idea summary...</span>
+          </div>
+        ) : conversationSummary ? (
           <Button
             variant="outline"
             size="sm"
@@ -2464,8 +2469,8 @@ User submission: """${messageText}"""`;
             <Lightbulb className="h-4 w-4" />
             View Idea
           </Button>
-        </div>
-      )}
+        ) : null}
+      </div>
     </div>
 
     {/* Confetti Animation */}
@@ -2538,10 +2543,6 @@ User submission: """${messageText}"""`;
       
       {/* Quick Actions */}
       <div className="flex gap-2 mt-3 max-w-4xl mx-auto flex-wrap">
-        <GenerateIdeaButton 
-          conversationHistory={messages}
-          disabled={isTyping || messages.length === 0}
-        />
         <AsyncDashboardButton />
         <motion.div whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
