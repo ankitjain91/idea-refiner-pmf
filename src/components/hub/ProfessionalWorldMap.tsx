@@ -41,7 +41,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const { lockedIdea } = useLockedIdea();
-  const [cachedRegions, setCachedRegions] = useState<RegionData[]>([]);
+  const [regionalData, setRegionalData] = useState<RegionData[]>([]);
   
   useEffect(() => {
     const el = containerRef.current;
@@ -61,22 +61,29 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   
   // Restore cached data on mount
   useEffect(() => {
-    if (lockedIdea && cachedRegions.length === 0) {
+    if (lockedIdea && regionalData.length === 0) {
       const cacheKey = `worldmap_data_${lockedIdea.slice(0, 50)}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         try {
           const parsedData = JSON.parse(cached);
-          setCachedRegions(parsedData);
+          setRegionalData(parsedData);
           console.log('[ProfessionalWorldMap] Restored cached data:', parsedData.length, 'regions');
         } catch (e) {
           console.error('[ProfessionalWorldMap] Failed to restore cached data:', e);
         }
       }
     }
-  }, [lockedIdea, cachedRegions.length]);
+  }, [lockedIdea]);
   
-  // Extract real data from marketData prop or use intelligent defaults
+  // Extract and update regional data when marketData changes
+  useEffect(() => {
+    if (!marketData) {
+      console.log('[ProfessionalWorldMap] No market data provided');
+      return;
+    }
+  
+  // Extract real data from marketData prop
   const extractRegionalData = (): RegionData[] => {
     const baseRegions = [
       {
@@ -270,27 +277,27 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     }
 
     console.log('[ProfessionalWorldMap] No valid market data available');
-    // Return cached data if available instead of empty array
-    return cachedRegions.length > 0 ? cachedRegions : [];
+    return [];
   };
 
-  const regions = extractRegionalData();
-  
-  // Persist to cache whenever we have new valid data
-  useEffect(() => {
-    if (regions.length > 0 && lockedIdea) {
-      const cacheKey = `worldmap_data_${lockedIdea.slice(0, 50)}`;
-      localStorage.setItem(cacheKey, JSON.stringify(regions));
-      setCachedRegions(regions);
-      console.log('[ProfessionalWorldMap] Cached', regions.length, 'regions');
+  // Update regional data when marketData changes
+    const extracted = extractRegionalData();
+    if (extracted.length > 0) {
+      setRegionalData(extracted);
+      // Persist to cache
+      if (lockedIdea) {
+        const cacheKey = `worldmap_data_${lockedIdea.slice(0, 50)}`;
+        localStorage.setItem(cacheKey, JSON.stringify(extracted));
+        console.log('[ProfessionalWorldMap] Cached', extracted.length, 'regions');
+      }
     }
-  }, [regions.length, lockedIdea]);
+  }, [marketData, lockedIdea]);
   
-  const totalTAM = regions.reduce((sum, r) => sum + r.tam, 0);
-  const totalSAM = regions.reduce((sum, r) => sum + r.sam, 0);
-  const totalSOM = regions.reduce((sum, r) => sum + r.som, 0);
+  const totalTAM = regionalData.reduce((sum, r) => sum + r.tam, 0);
+  const totalSAM = regionalData.reduce((sum, r) => sum + r.sam, 0);
+  const totalSOM = regionalData.reduce((sum, r) => sum + r.som, 0);
 
-  const markers = regions.map((r: any) => ({
+  const markers = regionalData.map((r: any) => ({
     lng: r?.coordinates?.[0] ?? 0,
     lat: r?.coordinates?.[1] ?? 0,
     name: r?.name || r?.region || '',
@@ -337,7 +344,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
   };
 
   // Show empty state if no data
-  if (regions.length === 0 || totalTAM === 0) {
+  if (regionalData.length === 0 || totalTAM === 0) {
     return (
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
@@ -435,7 +442,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
               
               {/* Interactive region markers */}
               {markers.map((m, i) => {
-                const region = regions[i];
+                const region = regionalData[i];
                 const p = project(m.lat, m.lng);
                 const isHovered = hoveredRegion?.name === region.name;
                 const isSelected = selectedRegion?.name === region.name;
@@ -528,7 +535,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
               {/* Connecting lines animation */}
               <svg className="absolute inset-0 pointer-events-none">
                 {hoveredRegion && markers.map((m, i) => {
-                  if (regions[i].name === hoveredRegion.name) return null;
+                  if (regionalData[i].name === hoveredRegion.name) return null;
                   const start = project(hoveredRegion.coordinates[1], hoveredRegion.coordinates[0]);
                   const end = project(m.lat, m.lng);
                   
@@ -761,7 +768,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {regions.sort((a, b) => b.cagr - a.cagr).map((region, i) => (
+                      {regionalData.sort((a, b) => b.cagr - a.cagr).map((region, i) => (
                         <motion.div
                           key={region.name}
                           initial={{ opacity: 0, x: -20 }}
@@ -806,7 +813,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {regions.sort((a, b) => b.marketPenetration - a.marketPenetration).map((region, i) => (
+                      {regionalData.sort((a, b) => b.marketPenetration - a.marketPenetration).map((region, i) => (
                         <motion.div
                           key={region.name}
                           initial={{ opacity: 0, x: -20 }}
