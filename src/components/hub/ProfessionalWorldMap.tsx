@@ -293,6 +293,19 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     }
   }, [marketData, lockedIdea]);
   
+  // Helper functions - must be defined before useMemo
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000000) return `$${(value / 1000000000).toFixed(2)}B`;
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+    return `$${(value / 1000).toFixed(0)}K`;
+  };
+
+  const formatNumber = (value: number) => {
+    if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    return `${(value / 1000).toFixed(0)}K`;
+  };
+  
   // Calculate totals from regional data FIRST
   const totalTAM = regionalData.reduce((sum, r) => sum + r.tam, 0);
   const totalSAM = regionalData.reduce((sum, r) => sum + r.sam, 0);
@@ -329,19 +342,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     const y = ((90 - lat) / 180) * h;
     return { x, y };
   };
-  
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000000) return `$${(value / 1000000000).toFixed(2)}B`;
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-    return `$${(value / 1000).toFixed(0)}K`;
-  };
 
-  const formatNumber = (value: number) => {
-    if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-    return `${(value / 1000).toFixed(0)}K`;
-  };
-  
   const getRegionColor = (region: RegionData) => {
     let value = 0;
     switch(viewType) {
