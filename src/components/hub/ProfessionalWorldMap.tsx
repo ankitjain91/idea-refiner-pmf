@@ -193,31 +193,9 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       }
     }
 
-    // Fallback to intelligent defaults based on global market patterns
-    return baseRegions.map(region => {
-      const digitalMultiplier = region.internetPenetration * region.urbanization;
-      const baseTam = 15000000000; // $15B global market
-      const share = (region.population / 8700000000) * digitalMultiplier * 2;
-      
-      return {
-        name: region.name,
-        coordinates: region.coordinates,
-        tam: baseTam * share,
-        sam: baseTam * share * 0.25,
-        som: baseTam * share * 0.02,
-        cagr: 12 + ((1 - region.internetPenetration) * 15), // Emerging markets grow faster
-        confidence: 0.65 + (digitalMultiplier * 0.3),
-        marketPenetration: 0.02 * digitalMultiplier,
-        competitorDensity: digitalMultiplier * 0.75,
-        regulatoryScore: region.urbanization * 0.85,
-        demographics: {
-          population: region.population,
-          urbanization: region.urbanization,
-          internetPenetration: region.internetPenetration,
-          mobileUsers: region.mobileUsers
-        }
-      };
-    });
+    // No fallback - return empty regions if no valid data
+    console.log('[ProfessionalWorldMap] No valid market data available');
+    return [];
   };
 
   const regions = extractRegionalData();
@@ -271,6 +249,33 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     if (value > 0.2) return "hsl(var(--primary) / 0.6)";
     return "hsl(var(--primary) / 0.4)";
   };
+
+  // Show empty state if no data
+  if (regions.length === 0 || totalTAM === 0) {
+    return (
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Globe2 className="h-5 w-5 text-primary" />
+              </div>
+              <CardTitle className="text-lg font-semibold">Global Market Overview</CardTitle>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Globe2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Market Data Available</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Click "Get PMF Score" or refresh to analyze your idea and load global market data.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
