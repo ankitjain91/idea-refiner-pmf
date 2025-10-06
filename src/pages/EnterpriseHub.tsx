@@ -291,10 +291,7 @@ export default function EnterpriseHub() {
     refresh();
   }, [refresh, currentIdea]);
   
-  // Show full-page loading state when loading and no data loaded yet
-  if (loading && !hasLoadedData) {
-    return <DashboardLoadingState tasks={loadingTasks || []} currentTask={loadingTasks?.find(t => t.status === "loading")?.label} />;
-  }
+  // Removed duplicate loading state - Suspense fallback handles initial load
 
   // No idea state
   if (!currentIdea) {
