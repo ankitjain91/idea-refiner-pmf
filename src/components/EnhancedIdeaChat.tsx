@@ -55,7 +55,6 @@ import { validateFirstIdea } from './enhanced/ideaValidation';
 import { ShareableReportCard } from './share/ShareableReportCard';
 import { ConfettiAnimation } from './share/ConfettiAnimation';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { IdeaLockToggle } from './chat/IdeaLockToggle';
 import { ConversationPinToggle } from './chat/ConversationPinToggle';
 import { PersistenceIndicator } from './chat/PersistenceIndicator';
 import { lockedIdeaManager } from '@/lib/lockedIdeaManager';
@@ -2350,11 +2349,6 @@ User submission: """${messageText}"""`;
       
       {/* Persistence Controls */}
       <div className="flex items-center gap-2 mt-3 flex-wrap">
-        <IdeaLockToggle 
-          currentIdea={currentIdea}
-          hasValidIdea={hasValidIdea}
-        />
-        
         <ConversationPinToggle 
           isPinned={isPinned}
           onToggle={handlePinToggle}
