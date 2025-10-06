@@ -23,7 +23,8 @@ import {
   ListMinus,    // Better icon for summary mode
   Layers,       // Better icon for verbose mode
   RefreshCw,    // For retry button
-  AlertCircle   // For error indicator
+  AlertCircle,  // For error indicator
+  Lightbulb     // For idea button
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -55,7 +56,7 @@ import { validateFirstIdea } from './enhanced/ideaValidation';
 import { ShareableReportCard } from './share/ShareableReportCard';
 import { ConfettiAnimation } from './share/ConfettiAnimation';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { ConversationPinToggle } from './chat/ConversationPinToggle';
+import { IdeaSummaryDialog } from './chat/IdeaSummaryDialog';
 import { PersistenceIndicator } from './chat/PersistenceIndicator';
 import { lockedIdeaManager } from '@/lib/lockedIdeaManager';
 
@@ -122,6 +123,8 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
     return 0;
   });
+  
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false);
   
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -2450,45 +2453,19 @@ User submission: """${messageText}"""`;
         </div>
       </div>
       
-      {/* Evolving Conversation Summary */}
       {conversationSummary && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="mt-4 relative"
-        >
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-4 border border-primary/20">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-1">
-                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                  Conversation Summary
-                  {summaryLoading && (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  )}
-                </h4>
-                <p className="text-sm text-foreground/90 leading-relaxed">
-                  {conversationSummary}
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+        <div className="flex justify-end mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSummaryDialog(true)}
+            className="gap-2"
+          >
+            <Lightbulb className="h-4 w-4" />
+            View Idea
+          </Button>
+        </div>
       )}
-      
-      
-      {/* Persistence Controls */}
-      <div className="flex items-center gap-2 mt-3 flex-wrap">
-        <ConversationPinToggle 
-          isPinned={isPinned}
-          onToggle={handlePinToggle}
-          hasMessages={messages.length > 1}
-          disabled={!conversationSummary}
-        />
-      </div>
     </div>
 
     {/* Confetti Animation */}
@@ -2605,6 +2582,15 @@ User submission: """${messageText}"""`;
     <div className="absolute bottom-3 right-3 flex items-center gap-1 text-slate-500 dark:text-slate-400 fluid-text-xs font-medium">
       <span>Powered by GPT-5</span>
     </div>
+
+    {/* Idea Summary Dialog */}
+    <IdeaSummaryDialog 
+      open={showSummaryDialog}
+      onOpenChange={setShowSummaryDialog}
+      summary={conversationSummary || ''}
+      isPinned={isPinned}
+      onPinToggle={handlePinToggle}
+    />
   </Card>
   </TooltipProvider>
   );
