@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useLockedIdea } from '@/lib/lockedIdeaManager';
 import { supabase } from '@/integrations/supabase/client';
+import { openDB } from 'idb';
 import {
   Twitter,
   RefreshCw,
@@ -16,8 +17,59 @@ import {
   BarChart3,
   ExternalLink,
   AlertCircle,
-  Link2
+  Link2,
+  Clock
 } from 'lucide-react';
+
+// IndexedDB cache settings
+const CACHE_DB_NAME = 'twitter_cache_db';
+const CACHE_STORE_NAME = 'twitter_data';
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+async function getTwitterCache(ideaHash: string) {
+  try {
+    const db = await openDB(CACHE_DB_NAME, 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(CACHE_STORE_NAME)) {
+          db.createObjectStore(CACHE_STORE_NAME);
+        }
+      },
+    });
+    const cached = await db.get(CACHE_STORE_NAME, ideaHash);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+    return null;
+  } catch (error) {
+    console.error('[TwitterCache] Error reading cache:', error);
+    return null;
+  }
+}
+
+async function setTwitterCache(ideaHash: string, data: any) {
+  try {
+    const db = await openDB(CACHE_DB_NAME, 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(CACHE_STORE_NAME)) {
+          db.createObjectStore(CACHE_STORE_NAME);
+        }
+      },
+    });
+    await db.put(CACHE_STORE_NAME, { data, timestamp: Date.now() }, ideaHash);
+  } catch (error) {
+    console.error('[TwitterCache] Error writing cache:', error);
+  }
+}
+
+function hashIdea(idea: string): string {
+  let hash = 0;
+  for (let i = 0; i < idea.length; i++) {
+    const char = idea.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
+}
 
 interface TwitterPost {
   id: string;
@@ -57,6 +109,8 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+  const [cachedAt, setCachedAt] = useState<Date | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   const fetchTwitterData = useCallback(async (force: boolean = false) => {
     if (!hasLockedIdea || !lockedIdea) {
@@ -69,6 +123,21 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
       return;
     }
 
+    const ideaHash = hashIdea(lockedIdea);
+
+    // Check IndexedDB cache first (unless force refresh)
+    if (!force) {
+      const cachedData = await getTwitterCache(ideaHash);
+      if (cachedData) {
+        console.log('[TwitterSentimentTile] Using cached data from IndexedDB');
+        setData(cachedData);
+        setIsFromCache(true);
+        setCachedAt(new Date());
+        setFetchAttempted(true);
+        return;
+      }
+    }
+
     console.log('[TwitterSentimentTile] Starting Twitter analysis fetch:', {
       ideaPreview: lockedIdea.slice(0, 50),
       force,
@@ -79,6 +148,7 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
     setLoading(true);
     setFetchAttempted(true);
     setError(null);
+    setIsFromCache(false);
 
     try {
       const { data: response, error: functionError } = await supabase.functions.invoke('twitter-search', {
@@ -119,7 +189,12 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
       };
 
       setData(transformedData);
-      console.log('[TwitterSentimentTile] Data fetched successfully');
+      setCachedAt(new Date());
+      
+      // Store in IndexedDB cache
+      await setTwitterCache(ideaHash, transformedData);
+      
+      console.log('[TwitterSentimentTile] Data fetched successfully and cached');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch Twitter data';
       console.error('[TwitterSentimentTile] Error:', message);
@@ -235,6 +310,12 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
               <Badge variant="secondary" className="font-normal">
                 {Math.round(data.summary.averageSentiment * 100)}% positive
               </Badge>
+              {isFromCache && cachedAt && (
+                <Badge variant="outline" className="font-normal text-xs">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Cached {Math.round((Date.now() - cachedAt.getTime()) / 60000)}m ago
+                </Badge>
+              )}
             </div>
           </div>
           <Button onClick={() => fetchTwitterData(true)} size="sm" variant="outline" disabled={loading}>

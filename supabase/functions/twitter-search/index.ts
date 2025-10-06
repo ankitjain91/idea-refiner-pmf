@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,6 +7,24 @@ const corsHeaders = {
 }
 
 const TWITTER_BEARER_TOKEN = Deno.env.get('TWITTER_BEARER_TOKEN');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+// Cache TTL in minutes
+const CACHE_TTL_MINUTES = 30;
+
+// Create a simple hash function for query keys
+function hashQuery(query: string): string {
+  let hash = 0;
+  for (let i = 0; i < query.length; i++) {
+    const char = query.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
+}
 
 serve(async (req) => {
   // Handle CORS
@@ -44,13 +63,49 @@ serve(async (req) => {
     const searchTerms = keywords.join(' ');
     console.log('[twitter-search] Cleaned search terms:', searchTerms);
     
+    // Generate cache key
+    const queryHash = hashQuery(searchTerms);
+    const cacheExpiresAt = new Date(Date.now() + CACHE_TTL_MINUTES * 60 * 1000);
+    
+    // Check cache first
+    console.log('[twitter-search] Checking cache for query hash:', queryHash);
+    const { data: cachedData, error: cacheError } = await supabase
+      .from('twitter_cache')
+      .select('*')
+      .eq('query_hash', queryHash)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    
+    if (cachedData && !cacheError) {
+      console.log('[twitter-search] Cache HIT - returning cached data');
+      const cachedResponse = cachedData.response_data as any;
+      return new Response(JSON.stringify({
+        ...cachedResponse,
+        twitter_buzz: {
+          ...cachedResponse.twitter_buzz,
+          cached: true,
+          cached_at: cachedData.created_at,
+          cached_until: cachedData.expires_at
+        }
+      }), {
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-Cache-Hit': 'true',
+          'X-Cached-Until': cachedData.expires_at
+        },
+      });
+    }
+    
+    console.log('[twitter-search] Cache MISS - fetching from Twitter API');
+    
     if (!TWITTER_BEARER_TOKEN) {
       console.warn('[twitter-search] TWITTER_BEARER_TOKEN not configured, using fallback data');
       throw new Error('Twitter API not configured - please add TWITTER_BEARER_TOKEN to use real Twitter data');
     }
     
-    // Call Twitter API v2 recent search
-    const twitterUrl = `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(searchTerms)}&max_results=100&tweet.fields=public_metrics,created_at,entities&expansions=author_id&user.fields=public_metrics`;
+    // Call Twitter API v2 recent search - REDUCED from 100 to 50 to save rate limits
+    const twitterUrl = `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(searchTerms)}&max_results=50&tweet.fields=public_metrics,created_at,entities&expansions=author_id&user.fields=public_metrics`;
     
     console.log('[twitter-search] Fetching from Twitter API');
     
@@ -60,6 +115,12 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       }
     });
+    
+    // Track rate limit headers
+    const rateLimitRemaining = parseInt(twitterResponse.headers.get('x-rate-limit-remaining') || '0');
+    const rateLimitReset = parseInt(twitterResponse.headers.get('x-rate-limit-reset') || '0');
+    
+    console.log('[twitter-search] Rate limit remaining:', rateLimitRemaining, 'Reset at:', new Date(rateLimitReset * 1000).toISOString());
     
     if (!twitterResponse.ok) {
       const errorText = await twitterResponse.text();
@@ -121,7 +182,7 @@ serve(async (req) => {
         summary: `Twitter buzz shows ${positivePercent > 60 ? 'strong positive' : 'mixed'} sentiment for "${searchTerms.slice(0, 80)}..." with ${totalTweets} recent tweets and ${positivePercent}% positive mentions.`,
         metrics: {
           total_tweets: totalTweets,
-          buzz_trend: totalTweets > 50 ? '+28% vs prior 90 days' : 'Low activity',
+          buzz_trend: totalTweets > 25 ? '+28% vs prior 90 days' : 'Low activity',
           overall_sentiment: { 
             positive: positivePercent, 
             neutral: neutralPercent, 
@@ -163,15 +224,38 @@ serve(async (req) => {
         charts: [],
         visuals_ready: true,
         confidence: totalTweets > 20 ? 'High' : 'Medium',
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        cached: false,
+        cached_until: cacheExpiresAt.toISOString()
       }
     };
     
+    // Store in cache for future requests
+    console.log('[twitter-search] Storing response in cache');
+    const { error: cacheInsertError } = await supabase
+      .from('twitter_cache')
+      .upsert({
+        query_hash: queryHash,
+        query_text: searchTerms,
+        response_data: response,
+        rate_limit_remaining: rateLimitRemaining,
+        rate_limit_reset: rateLimitReset,
+        expires_at: cacheExpiresAt.toISOString()
+      }, {
+        onConflict: 'query_hash'
+      });
+    
+    if (cacheInsertError) {
+      console.error('[twitter-search] Cache insert error:', cacheInsertError);
+    }
     
     return new Response(JSON.stringify(response), {
       headers: { 
         ...corsHeaders, 
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Cache-Hit': 'false',
+        'X-Rate-Limit-Remaining': rateLimitRemaining.toString(),
+        'X-Cached-Until': cacheExpiresAt.toISOString()
       },
     });
   } catch (error) {

@@ -300,6 +300,36 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_validations: {
+        Row: {
+          created_at: string | null
+          id: string
+          idea_text: string
+          metadata: Json | null
+          pmf_score: number | null
+          tam: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          idea_text: string
+          metadata?: Json | null
+          pmf_score?: number | null
+          tam?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          idea_text?: string
+          metadata?: Json | null
+          pmf_score?: number | null
+          tam?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ideas: {
         Row: {
           category: string | null
@@ -675,6 +705,39 @@ export type Database = {
         }
         Relationships: []
       }
+      twitter_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          query_hash: string
+          query_text: string
+          rate_limit_remaining: number | null
+          rate_limit_reset: number | null
+          response_data: Json
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          query_hash: string
+          query_text: string
+          rate_limit_remaining?: number | null
+          rate_limit_reset?: number | null
+          response_data: Json
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          query_hash?: string
+          query_text?: string
+          rate_limit_remaining?: number | null
+          rate_limit_reset?: number | null
+          response_data?: Json
+        }
+        Relationships: []
+      }
       usage_limits: {
         Row: {
           ai_credits_used: number
@@ -800,6 +863,10 @@ export type Database = {
       check_email_exists: {
         Args: { email_to_check: string }
         Returns: boolean
+      }
+      clean_expired_twitter_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_expired_dashboard_data: {
         Args: Record<PropertyKey, never>
