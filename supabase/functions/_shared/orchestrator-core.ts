@@ -104,19 +104,172 @@ export async function synthesizeTile(type: string, idea: string): Promise<TileDa
       return emptyTile('YouTube analysis data unavailable');
       
     case 'market_size':
-      return emptyTile('Market size data not available yet – connect provider / ingestion pipeline.');
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/market-size-analysis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.market_size?.metrics || json.metrics || {},
+            explanation: json.market_size?.explanation || json.explanation || 'Market size analysis completed',
+            citations: json.market_size?.citations || json.citations || [],
+            charts: json.market_size?.charts || json.charts || [],
+            json: json,
+            confidence: 0.75,
+            dataQuality: 'high'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] market_size error:', e);
+      }
+      return emptyTile('Market size data not available yet');
+      
     case 'competition':
-      return emptyTile('Competition analysis pending real scraping integration.');
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/competitive-landscape`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.competition?.metrics || json.metrics || {},
+            explanation: json.competition?.explanation || json.summary || 'Competition analysis completed',
+            citations: json.competition?.citations || json.citations || [],
+            charts: json.competition?.charts || json.charts || [],
+            json: json,
+            confidence: 0.75,
+            dataQuality: 'high'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] competition error:', e);
+      }
+      return emptyTile('Competition analysis unavailable');
+      
     case 'sentiment':
-      return emptyTile('Sentiment requires social / reviews ingestion – none connected.');
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/unified-sentiment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.sentiment?.metrics || json.metrics || {},
+            explanation: json.sentiment?.summary || json.summary || 'Sentiment analysis completed',
+            citations: json.sentiment?.citations || json.citations || [],
+            charts: json.sentiment?.charts || json.charts || [],
+            json: json,
+            confidence: 0.70,
+            dataQuality: 'medium'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] sentiment error:', e);
+      }
+      return emptyTile('Sentiment data unavailable');
+      
     case 'market_trends':
-      return emptyTile('Trends not computed – enable trends provider.');
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/market-trends`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.trends?.metrics || json.metrics || {},
+            explanation: json.trends?.summary || json.summary || 'Market trends analysis completed',
+            citations: json.trends?.citations || json.citations || [],
+            charts: json.trends?.charts || json.charts || [],
+            json: json,
+            confidence: 0.75,
+            dataQuality: 'high'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] market_trends error:', e);
+      }
+      return emptyTile('Market trends data unavailable');
+      
     case 'google_trends':
-      return emptyTile('Google Trends API not configured.');
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/google-trends`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.google_trends?.metrics || json.metrics || {},
+            explanation: json.google_trends?.summary || json.summary || 'Google trends analysis completed',
+            citations: json.google_trends?.citations || json.citations || [],
+            charts: json.google_trends?.charts || json.charts || [],
+            json: json,
+            confidence: 0.85,
+            dataQuality: 'high'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] google_trends error:', e);
+      }
+      return emptyTile('Google Trends data unavailable');
+      
     case 'web_search':
-      return emptyTile('Web intelligence unavailable – search providers not configured.');
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/web-search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.web_search?.metrics || json.metrics || {},
+            explanation: json.web_search?.summary || json.summary || 'Web search analysis completed',
+            citations: json.web_search?.citations || json.citations || [],
+            charts: json.web_search?.charts || json.charts || [],
+            json: json,
+            confidence: 0.70,
+            dataQuality: 'medium'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] web_search error:', e);
+      }
+      return emptyTile('Web search data unavailable');
+      
     case 'news_analysis':
-      return emptyTile('News analysis requires news feed API configuration.');
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/news-analysis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            metrics: json.news_analysis?.metrics || json.metrics || {},
+            explanation: json.news_analysis?.summary || json.summary || 'News analysis completed',
+            citations: json.news_analysis?.citations || json.citations || [],
+            charts: json.news_analysis?.charts || json.charts || [],
+            json: json,
+            confidence: 0.75,
+            dataQuality: 'high'
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] news_analysis error:', e);
+      }
+      return emptyTile('News analysis data unavailable');
     default:
       return emptyTile(`Tile "${type}" not implemented.`);
   }
