@@ -176,27 +176,31 @@ export function ComprehensiveTwitterTile({ data, loading }: Props) {
               {rawTweets.map((tweet: any, idx: number) => (
                 <Card key={idx} className="p-4">
                   <div className="space-y-3">
-                    <p className="text-sm">{tweet.text}</p>
+                    <p className="text-sm">{typeof tweet?.text === 'string' ? tweet.text : JSON.stringify(tweet)}</p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Heart className="h-3 w-3" />
-                        {tweet.metrics?.like_count || 0}
+                        {tweet?.metrics?.like_count ?? tweet?.likes ?? 0}
                       </span>
                       <span className="flex items-center gap-1">
                         <Repeat2 className="h-3 w-3" />
-                        {tweet.metrics?.retweet_count || 0}
+                        {tweet?.metrics?.retweet_count ?? tweet?.retweets ?? 0}
                       </span>
                       <span className="flex items-center gap-1">
                         <MessageCircle className="h-3 w-3" />
-                        {tweet.metrics?.reply_count || 0}
+                        {tweet?.metrics?.reply_count ?? tweet?.replies ?? 0}
                       </span>
-                      <span className="ml-auto">{new Date(tweet.created_at).toLocaleDateString()}</span>
-                      <Button variant="ghost" size="sm" className="h-6 text-xs" asChild>
-                        <a href={tweet.url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          View
-                        </a>
-                      </Button>
+                      {tweet?.created_at && (
+                        <span className="ml-auto">{new Date(tweet.created_at).toLocaleDateString()}</span>
+                      )}
+                      {tweet?.url && (
+                        <Button variant="ghost" size="sm" className="h-6 text-xs" asChild>
+                          <a href={tweet.url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            View
+                          </a>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card>

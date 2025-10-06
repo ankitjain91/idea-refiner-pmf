@@ -538,32 +538,34 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
             <h3 className="text-sm font-semibold">Recent Tweets</h3>
             <ScrollArea className="h-[300px] pr-4">
               <div className="space-y-3">
-                {data.raw_tweets.map((tweet) => (
-                  <div key={tweet.id} className="p-4 rounded-lg border bg-card/50 space-y-2">
-                    <p className="text-sm leading-relaxed">{tweet.text}</p>
+                {data.raw_tweets.map((tweet, idx) => (
+                  <div key={(tweet as any).id ?? idx} className="p-4 rounded-lg border bg-card/50 space-y-2">
+                    <p className="text-sm leading-relaxed">{typeof (tweet as any)?.text === 'string' ? (tweet as any).text : JSON.stringify(tweet)}</p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex gap-3">
                         <span className="flex items-center gap-1">
                           <ThumbsUp className="h-3 w-3" />
-                          {tweet.metrics.like_count}
+                          {(tweet as any)?.metrics?.like_count ?? (tweet as any)?.likes ?? 0}
                         </span>
                         <span className="flex items-center gap-1">
                           <Repeat2 className="h-3 w-3" />
-                          {tweet.metrics.retweet_count}
+                          {(tweet as any)?.metrics?.retweet_count ?? (tweet as any)?.retweets ?? 0}
                         </span>
                         <span className="flex items-center gap-1">
                           <MessageCircle className="h-3 w-3" />
-                          {tweet.metrics.reply_count}
+                          {(tweet as any)?.metrics?.reply_count ?? (tweet as any)?.replies ?? 0}
                         </span>
                       </div>
-                      <a 
-                        href={tweet.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[#1DA1F2] hover:underline flex items-center gap-1"
-                      >
-                        View <ExternalLink className="h-3 w-3" />
-                      </a>
+                      {(tweet as any)?.url && (
+                        <a 
+                          href={(tweet as any).url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[#1DA1F2] hover:underline flex items-center gap-1"
+                        >
+                          View <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}

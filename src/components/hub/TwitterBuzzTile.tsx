@@ -420,27 +420,23 @@ export function TwitterBuzzTile({ data, loading = false, onRefresh }: TwitterBuz
               (data as any).raw_tweets.map((tweet: any, idx: number) => (
                 <Card key={idx} className="p-4">
                   <div className="space-y-3">
-                    <p className="text-sm">{tweet.text}</p>
+                    <p className="text-sm">{typeof tweet?.text === 'string' ? tweet.text : JSON.stringify(tweet)}</p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {tweet.created_at && (
                         <span>{new Date(tweet.created_at).toLocaleDateString()}</span>
                       )}
-                      {tweet.metrics && (
-                        <>
-                          <span className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            {tweet.metrics.like_count || 0}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Repeat2 className="h-3 w-3" />
-                            {tweet.metrics.retweet_count || 0}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MessageCircle className="h-3 w-3" />
-                            {tweet.metrics.reply_count || 0}
-                          </span>
-                        </>
-                      )}
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" />
+                        {tweet?.metrics?.like_count ?? tweet?.likes ?? 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Repeat2 className="h-3 w-3" />
+                        {tweet?.metrics?.retweet_count ?? tweet?.retweets ?? 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" />
+                        {tweet?.metrics?.reply_count ?? tweet?.replies ?? 0}
+                      </span>
                     </div>
                     {tweet.url && (
                       <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
