@@ -208,46 +208,47 @@ class DashboardDataService {
   }
 
   private async fetchRedditData(idea: string): Promise<TileData> {
-    const data = await invokeSupabaseFunction('reddit-search', { query: idea });
+    // Use reddit-research which returns summary, posts, insights suited for EnhancedRedditTile
+    const data = await invokeSupabaseFunction('reddit-research', { idea });
     if (!data) throw new Error('No data received');
-    
+
+    const summary = data.summary || {};
+    const insights = data.insights || {};
+
     return {
       metrics: {
-        posts: data?.postCount || 0,
-        upvotes: data?.totalUpvotes || 0,
-        comments: data?.totalComments || 0,
-        activeSubreddits: data?.subreddits?.length || 0,
-        sentiment: data?.sentiment?.score || 0,
-        engagement: data?.engagement || 0
+        posts: summary.total_posts_analyzed || 0,
+        activeSubreddits: (summary.top_subreddits?.length) || 0,
+        sentiment: insights.sentiment_distribution?.positive || 0,
+        engagement: (data.posts?.reduce((sum: number, p: any) => sum + (p.score || 0) + (p.comments || 0), 0)) || 0
       },
-      explanation: data?.summary || 'Reddit community analysis.',
-      confidence: data?.confidence || 0.75,
+      explanation: `Analyzed ${summary.total_posts_analyzed || 0} Reddit posts across ${summary.top_subreddits?.length || 0} subreddits`,
+      confidence: 0.8,
       dataQuality: 'high',
-      citations: data?.topPosts?.slice(0, 5) || [],
+      citations: data.posts?.slice(0, 5).map((p: any) => ({ title: p.title, url: p.permalink })) || [],
       charts: [],
       json: data
     };
   }
 
   private async fetchTwitterData(idea: string): Promise<TileData> {
-    const data = await invokeSupabaseFunction('twitter-search', { query: idea });
+    const data = await invokeSupabaseFunction('twitter-search', { idea });
     if (!data) throw new Error('No data received');
-    
+
+    const twitterBuzz = data.twitter_buzz || data;
+
     return {
       metrics: {
-        tweets: data?.tweetCount || 0,
-        retweets: data?.retweets || 0,
-        likes: data?.likes || 0,
-        reach: data?.reach || 0,
-        influencers: data?.influencers || 0,
-        sentiment: data?.sentiment || 0
+        tweets: twitterBuzz?.metrics?.total_tweets || 0,
+        sentiment: twitterBuzz?.metrics?.overall_sentiment?.positive || 0,
+        influencers: twitterBuzz?.metrics?.influencers?.length || 0
       },
-      explanation: data?.summary || 'Twitter buzz analysis.',
-      confidence: data?.confidence || 0.7,
+      explanation: twitterBuzz?.summary || 'Twitter buzz analysis.',
+      confidence: twitterBuzz?.confidence === 'High' ? 0.9 : twitterBuzz?.confidence === 'Medium' ? 0.7 : 0.5,
       dataQuality: 'medium',
-      citations: data?.topTweets?.slice(0, 5) || [],
-      charts: [],
-      json: data
+      citations: twitterBuzz?.clusters?.[0]?.citations || [],
+      charts: twitterBuzz?.charts || [],
+      json: twitterBuzz
     };
   }
 
@@ -274,22 +275,23 @@ class DashboardDataService {
   }
 
   private async fetchYouTubeData(idea: string): Promise<TileData> {
-    const data = await invokeSupabaseFunction('youtube-search', { query: idea });
+    const data = await invokeSupabaseFunction('youtube-search', { idea_text: idea, time_window: 'year' });
     if (!data) throw new Error('No data received');
-    
+
+    const summary = data.summary || {};
+
     return {
       metrics: {
-        videos: data?.videoCount || 0,
-        views: data?.totalViews || 0,
-        likes: data?.totalLikes || 0,
-        channels: data?.channelCount || 0,
-        avgWatchTime: data?.avgWatchTime || '0:00',
-        engagement: data?.engagement || 0
+        videos: summary.total_videos || (data.youtube_insights?.length || 0),
+        views: summary.total_views || 0,
+        likes: summary.total_likes || 0,
+        channels: summary.top_channels?.length || 0,
+        engagement: Math.round(((summary.total_likes || 0) / Math.max(1, summary.total_views || 0)) * 100)
       },
-      explanation: data?.summary || 'YouTube content analysis.',
-      confidence: data?.confidence || 0.85,
+      explanation: `Analyzed ${summary.total_videos || 0} YouTube videos`,
+      confidence: data.meta?.confidence === 'High' ? 0.9 : data.meta?.confidence === 'Medium' ? 0.7 : 0.5,
       dataQuality: 'high',
-      citations: data?.topVideos?.slice(0, 5) || [],
+      citations: (data.youtube_insights || []).slice(0, 5).map((v: any) => ({ title: v.title, url: v.url })),
       charts: [],
       json: data
     };

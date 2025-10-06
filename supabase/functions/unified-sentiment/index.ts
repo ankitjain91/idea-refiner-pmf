@@ -83,36 +83,71 @@ serve(async (req) => {
 });
 
 function aggregateRealSentiment(idea: string, reddit: any, twitter: any, youtube: any, news: any) {
-  const redditData = reddit?.data || reddit || {};
-  const twitterData = twitter?.data || twitter || {};
-  const youtubeData = youtube?.data || youtube || {};
-  const newsData = news?.data || news || {};
+  // Normalize inputs from various functions
+  const redditRaw = reddit?.data || reddit || {};
+  const twitterBuzz = twitter?.twitter_buzz || twitter?.data?.twitter_buzz || null;
+  const youtubeRaw = youtube?.data || youtube || {};
+  const newsRaw = news?.data || news || {};
+
+  // Reddit normalized metrics
+  const redditMetrics = {
+    totalPosts: redditRaw.totalPosts ?? redditRaw.metrics?.totalPosts ?? 0,
+    positive: redditRaw.positive ?? redditRaw.sentiment?.positive ?? 0,
+    neutral: redditRaw.neutral ?? redditRaw.sentiment?.neutral ?? 0,
+    negative: redditRaw.negative ?? redditRaw.sentiment?.negative ?? 0,
+    themes: redditRaw.themes || [],
+    painPoints: redditRaw.painPoints || [],
+    samplePosts: redditRaw.samplePosts || redditRaw.posts || []
+  } as any;
+
+  // Twitter normalized metrics
+  const twitterMetrics = {
+    total_tweets: twitterBuzz?.metrics?.total_tweets ?? 0,
+    overall_sentiment: twitterBuzz?.metrics?.overall_sentiment ?? { positive: 0, neutral: 0, negative: 0 },
+    top_hashtags: twitterBuzz?.metrics?.top_hashtags ?? [],
+    sample_tweets: twitterBuzz?.raw_tweets ?? twitterBuzz?.sample_tweets ?? []
+  } as any;
+
+  // YouTube normalized metrics
+  const videos = youtubeRaw.youtube_insights || [];
+  const avgRelevance = youtubeRaw.summary?.avg_relevance ?? 0;
+  const ytCount = videos.length || 0;
+  const ytPos = ytCount ? Math.round((videos.filter((v: any) => (v.relevance ?? 0) > 0.6).length / ytCount) * 100) : 0;
+  const ytNeu = ytCount ? Math.round((videos.filter((v: any) => (v.relevance ?? 0) >= 0.4 && (v.relevance ?? 0) <= 0.6).length / ytCount) * 100) : 0;
+  const ytNeg = ytCount ? Math.max(0, 100 - ytPos - ytNeu) : 0;
+
+  // News normalized metrics
+  const articles = newsRaw.articles || [];
+  const artCount = articles.length || 0;
+  const newsPos = artCount ? Math.round((articles.filter((a: any) => (a.sentiment_score || 0) > 0.2).length / artCount) * 100) : 0;
+  const newsNeu = artCount ? Math.round((articles.filter((a: any) => Math.abs(a.sentiment_score || 0) <= 0.2).length / artCount) * 100) : 0;
+  const newsNeg = artCount ? Math.max(0, 100 - newsPos - newsNeu) : 0;
 
   // Extract keywords
   const keywords = new Set<string>();
-  if (redditData.themes) redditData.themes.forEach((t: string) => keywords.add(t));
-  if (twitterData.top_hashtags) twitterData.top_hashtags.forEach((h: string) => keywords.add(h.replace('#', '')));
+  if (redditMetrics.themes) redditMetrics.themes.forEach((t: string) => keywords.add(t));
+  if (twitterMetrics.top_hashtags) twitterMetrics.top_hashtags.forEach((h: string) => keywords.add(h.replace('#', '')));
 
   // Build thematic clusters from real data
-  const clusters = [];
+  const clusters: any[] = [];
 
   // Reddit cluster
-  if (redditData.totalPosts > 0) {
+  if (redditMetrics.totalPosts > 0) {
     clusters.push({
       theme: 'Community Discussion & Feedback',
-      insight: `${redditData.totalPosts} Reddit discussions analyzed with ${redditData.positive}% positive sentiment`,
+      insight: `${redditMetrics.totalPosts} Reddit discussions analyzed with ${redditMetrics.positive}% positive sentiment`,
       sentiment: {
-        positive: redditData.positive || 0,
-        neutral: redditData.neutral || 0,
-        negative: redditData.negative || 0
+        positive: redditMetrics.positive || 0,
+        neutral: redditMetrics.neutral || 0,
+        negative: redditMetrics.negative || 0
       },
-      quotes: redditData.samplePosts?.slice(0, 3).map((p: any) => ({
+      quotes: redditMetrics.samplePosts?.slice(0, 3).map((p: any) => ({
         text: p.excerpt || p.body?.substring(0, 150) || p.title,
         sentiment: p.sentiment || 'neutral',
         source: 'reddit'
       })) || [],
-      citations: redditData.samplePosts?.slice(0, 2).map((p: any) => ({
-        source: `r/${p.subreddit}`,
+      citations: redditMetrics.samplePosts?.slice(0, 2).map((p: any) => ({
+        source: p.subreddit ? `r/${p.subreddit}` : 'Reddit',
         url: p.permalink || '#',
         title: p.title
       })) || []
@@ -120,63 +155,60 @@ function aggregateRealSentiment(idea: string, reddit: any, twitter: any, youtube
   }
 
   // Twitter cluster
-  if (twitterData.total_tweets > 0) {
+  if ((twitterMetrics.total_tweets || 0) > 0) {
     clusters.push({
       theme: 'Social Media Buzz & Trends',
-      insight: `${twitterData.total_tweets} tweets analyzed with ${twitterData.top_hashtags?.length || 0} trending hashtags`,
+      insight: `${twitterMetrics.total_tweets} tweets analyzed with ${twitterMetrics.top_hashtags?.length || 0} trending hashtags`,
       sentiment: {
-        positive: twitterData.positive || 0,
-        neutral: twitterData.neutral || 0,
-        negative: twitterData.negative || 0
+        positive: twitterMetrics.overall_sentiment?.positive || 0,
+        neutral: twitterMetrics.overall_sentiment?.neutral || 0,
+        negative: twitterMetrics.overall_sentiment?.negative || 0
       },
-      quotes: twitterData.sample_tweets?.slice(0, 3).map((t: any) => ({
+      quotes: twitterMetrics.sample_tweets?.slice(0, 3).map((t: any) => ({
         text: t.text?.substring(0, 150) || '',
-        sentiment: t.sentiment || 'neutral',
+        sentiment: (twitterMetrics.overall_sentiment?.positive || 0) > (twitterMetrics.overall_sentiment?.negative || 0) ? 'positive' : 'neutral',
         source: 'twitter'
       })) || [],
-      citations: twitterData.sample_tweets?.slice(0, 2).map((t: any) => ({
+      citations: twitterMetrics.sample_tweets?.slice(0, 2).map((t: any) => ({
         source: 'Twitter',
         url: `https://twitter.com/i/web/status/${t.id}`,
-        title: `Tweet by @${t.author_username}`
+        title: `Tweet ${t.id}`
       })) || []
     });
   }
 
   // YouTube cluster
-  if (youtubeData.youtube_insights?.length > 0) {
-    const videos = youtubeData.youtube_insights;
-    const avgRelevance = youtubeData.summary?.avg_relevance || 50;
+  if (ytCount > 0) {
     clusters.push({
       theme: 'Video Content & Engagement',
-      insight: `${videos.length} videos analyzed with average relevance of ${Math.round(avgRelevance)}%`,
+      insight: `${ytCount} videos analyzed with average relevance of ${Math.round(avgRelevance * 100)}%`,
       sentiment: {
-        positive: Math.round(videos.filter((v: any) => v.relevance > 60).length / videos.length * 100),
-        neutral: Math.round(videos.filter((v: any) => v.relevance >= 40 && v.relevance <= 60).length / videos.length * 100),
-        negative: Math.round(videos.filter((v: any) => v.relevance < 40).length / videos.length * 100)
+        positive: ytPos,
+        neutral: ytNeu,
+        negative: ytNeg
       },
       quotes: videos.slice(0, 3).map((v: any) => ({
         text: v.title,
-        sentiment: v.relevance > 60 ? 'positive' : v.relevance < 40 ? 'negative' : 'neutral',
+        sentiment: (v.relevance ?? 0) > 0.6 ? 'positive' : (v.relevance ?? 0) < 0.4 ? 'negative' : 'neutral',
         source: 'youtube'
       })),
       citations: videos.slice(0, 2).map((v: any) => ({
         source: 'YouTube',
-        url: `https://youtube.com/watch?v=${v.video_id}`,
+        url: v.url || (v.videoId ? `https://youtu.be/${v.videoId}` : '#'),
         title: v.title
       }))
     });
   }
 
   // News cluster
-  if (newsData.articles?.length > 0) {
-    const articles = newsData.articles;
+  if (artCount > 0) {
     clusters.push({
       theme: 'News Coverage & Media Analysis',
-      insight: `${articles.length} news articles analyzed from various sources`,
+      insight: `${artCount} news articles analyzed from various sources`,
       sentiment: {
-        positive: Math.round(articles.filter((a: any) => (a.sentiment_score || 0) > 0.2).length / articles.length * 100),
-        neutral: Math.round(articles.filter((a: any) => Math.abs(a.sentiment_score || 0) <= 0.2).length / articles.length * 100),
-        negative: Math.round(articles.filter((a: any) => (a.sentiment_score || 0) < -0.2).length / articles.length * 100)
+        positive: newsPos,
+        neutral: newsNeu,
+        negative: newsNeg
       },
       quotes: articles.slice(0, 3).map((a: any) => ({
         text: a.title,
@@ -209,13 +241,12 @@ function aggregateRealSentiment(idea: string, reddit: any, twitter: any, youtube
     negative: Math.round(totalNegative / totalVolume)
   } : { positive: 0, neutral: 0, negative: 0 };
 
-  // Extract positive drivers and concerns
+  // Positive drivers and concerns
   const positiveDrivers: string[] = [];
   const concerns: string[] = [];
-
-  if (redditData.themes) positiveDrivers.push(...redditData.themes.slice(0, 2));
-  if (redditData.painPoints) concerns.push(...redditData.painPoints.slice(0, 2));
-  if (twitterData.top_hashtags) positiveDrivers.push(...twitterData.top_hashtags.slice(0, 2));
+  if (redditMetrics.themes) positiveDrivers.push(...redditMetrics.themes.slice(0, 2));
+  if (redditMetrics.painPoints) concerns.push(...redditMetrics.painPoints.slice(0, 2));
+  if (twitterMetrics.top_hashtags) positiveDrivers.push(...twitterMetrics.top_hashtags.slice(0, 2));
 
   const metrics = {
     overall_distribution: overallDistribution,
@@ -223,18 +254,17 @@ function aggregateRealSentiment(idea: string, reddit: any, twitter: any, youtube
     top_positive_drivers: positiveDrivers.slice(0, 4),
     top_negative_concerns: concerns.slice(0, 4),
     source_breakdown: {
-      reddit: redditData.totalPosts || 0,
-      twitter: twitterData.total_tweets || 0,
-      youtube: youtubeData.youtube_insights?.length || 0,
-      news: newsData.articles?.length || 0
+      reddit: { positive: redditMetrics.positive || 0, neutral: redditMetrics.neutral || 0, negative: redditMetrics.negative || 0 },
+      twitter: twitterMetrics.overall_sentiment || { positive: 0, neutral: 0, negative: 0 },
+      youtube: { positive: ytPos, neutral: ytNeu, negative: ytNeg },
+      news: { positive: newsPos, neutral: newsNeu, negative: newsNeg }
     },
     trend_delta: `${overallDistribution.positive > 50 ? '+' : ''}${overallDistribution.positive - 50}% vs neutral`
-  };
+  } as any;
 
-  const totalMentions = (redditData.totalPosts || 0) + (twitterData.total_tweets || 0) + 
-                       (youtubeData.youtube_insights?.length || 0) + (newsData.articles?.length || 0);
+  const totalMentions = (redditMetrics.totalPosts || 0) + (twitterMetrics.total_tweets || 0) + ytCount + artCount;
 
-  const summary = totalMentions > 0 
+  const summary = totalMentions > 0
     ? `Analyzed ${totalMentions} mentions across ${clusters.length} platforms. Sentiment is ${
         overallDistribution.positive > 60 ? 'predominantly positive' :
         overallDistribution.positive > 40 ? 'moderately positive' :
