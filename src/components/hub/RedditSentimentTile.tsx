@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   MessageSquare, TrendingUp, TrendingDown, Users, 
   ThumbsUp, AlertCircle, Quote, Activity, Hash,
-  Calendar, ChevronRight, ExternalLink, Sparkles, RefreshCw
+  Calendar, ChevronRight, ExternalLink, Sparkles, RefreshCw, Brain
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
@@ -158,9 +158,27 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
     try {
       // Use the new reddit-research endpoint for comprehensive analysis
+      console.log('[Reddit] Calling reddit-research function with idea:', idea.slice(0, 50));
+      
+      // DEBUGGING: Add cache bypass for now to see fresh data
+      const debugForceRefresh = new URLSearchParams(window.location.search).get('debug') === '1';
+      if (debugForceRefresh) {
+        console.log('[Reddit] DEBUG MODE: Bypassing cache');
+      }
+      
       const response = await optimizedQueue.invokeFunction('reddit-research', {
         idea_text: idea,
-        time_window: 'year'
+        time_window: 'year',
+        ...(debugForceRefresh && { _cache_bypass: Date.now() }) // Force cache miss
+      });
+      
+      console.log('[Reddit] Backend response received:', {
+        hasResponse: !!response,
+        hasRedditSentiment: !!response?.reddit_sentiment,
+        hasData: !!response?.data,
+        responseKeys: response ? Object.keys(response) : [],
+        responseType: typeof response,
+        fullResponse: response // TEMPORARY: Log full response to see structure
       });
 
       // Helper: shallow de-duplicate posts (by url then title) and clone to prevent shared refs
@@ -220,6 +238,90 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
         return Array.from(map.values());
       };
 
+      // Groq-based relevance filtering
+      const filterByGroqRelevance = async (posts: RedditItem[], idea: string): Promise<RedditItem[]> => {
+        if (!posts.length) return posts;
+        
+        try {
+          console.log('[Reddit] Filtering', posts.length, 'posts with Groq for relevance to:', idea.slice(0, 50));
+          
+          // Batch posts for Groq analysis (max 10 at a time to avoid token limits)
+          const batchSize = 10;
+          const filteredPosts: RedditItem[] = [];
+          
+          for (let i = 0; i < posts.length; i += batchSize) {
+            const batch = posts.slice(i, i + batchSize);
+            
+            const response = await optimizedQueue.invokeFunction('groq-data-extraction', {
+              tileType: 'reddit_relevance_filter',
+              idea: idea,
+              groqQuery: `
+Analyze each Reddit post below and determine if it's HIGHLY RELEVANT to the business idea: "${idea}"
+
+For each post, respond with ONLY a JSON array containing relevance scores:
+[{"index": 0, "relevant": true, "confidence": 0.85, "reason": "specific reason"}, ...]
+
+Rules:
+- relevant: true only if the post discusses problems, solutions, or experiences directly related to the idea
+- confidence: 0.0-1.0 (how sure you are)
+- Only include posts with confidence > 0.7
+- Focus on genuine user problems, feedback, or discussions about similar solutions
+
+Posts to analyze:
+${batch.map((post, idx) => `${idx}. Title: "${post.title}"
+   Content: "${(post.snippet || '').slice(0, 200)}..."
+   Source: ${post.source}`).join('\n\n')}
+              `,
+              rawData: batch.map((post, idx) => ({
+                index: idx,
+                title: post.title,
+                snippet: post.snippet || '',
+                source: post.source,
+                score: post.score,
+                url: post.url
+              }))
+            });
+            
+            if (response?.extractedData) {
+              try {
+                const relevanceResults = Array.isArray(response.extractedData) 
+                  ? response.extractedData 
+                  : JSON.parse(response.extractedData);
+                
+                relevanceResults.forEach((result: any) => {
+                  if (result.relevant && result.confidence > 0.7 && result.index < batch.length) {
+                    const originalPost = batch[result.index];
+                    filteredPosts.push({
+                      ...originalPost,
+                      _groqRelevance: result.confidence,
+                      _groqReason: result.reason
+                    } as any);
+                  }
+                });
+              } catch (parseError) {
+                console.warn('[Reddit] Groq parse error for batch, including all:', parseError);
+                filteredPosts.push(...batch); // Include all if parsing fails
+              }
+            } else {
+              console.warn('[Reddit] No Groq response for batch, including all');
+              filteredPosts.push(...batch); // Include all if Groq fails
+            }
+            
+            // Rate limiting between batches
+            if (i + batchSize < posts.length) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+          
+          console.log('[Reddit] Groq filtered:', filteredPosts.length, 'relevant posts from', posts.length, 'total');
+          return filteredPosts;
+          
+        } catch (error) {
+          console.error('[Reddit] Groq filtering error, returning all posts:', error);
+          return posts; // Fallback to showing all posts if Groq fails
+        }
+      };
+
       if (response?.reddit_sentiment) {
         const raw = response.reddit_sentiment as RedditSentimentData;
         const originalCounts = {
@@ -232,13 +334,19 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
         // De-dupe items BEFORE trimming so we keep max variety
         const dedupedItems = dedupePosts(raw.items);
         const afterCross = collapseCrossPosts(dedupedItems);
+        
+        // GROQ FILTERING: Only show relevant posts
+        const groqFiltered = await filterByGroqRelevance(afterCross, idea);
+        
         const duplicatesRemoved = (raw.items?.length || 0) - dedupedItems.length;
         const crossCollapsed = dedupedItems.length - afterCross.length;
+        const groqFiltered_count = afterCross.length - groqFiltered.length;
+        
         // Create trimmed shallow copy
         const trimmed: RedditSentimentData = {
           ...raw,
           clusters: (raw.clusters || []).slice(0, 8),
-          items: afterCross.slice(0, MAX_POSTS_STORE),
+          items: groqFiltered.slice(0, MAX_POSTS_STORE),
           themes: (raw.themes || []).slice(0, 20),
             pain_points: (raw.pain_points || []).slice(0, 20),
           top_subreddits: (raw.top_subreddits || []).slice(0, 10)
@@ -249,8 +357,10 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
         if (originalCounts.items > (trimmed.items?.length || 0)) notes.push(`posts ${(trimmed.items?.length || 0)}/${originalCounts.items}`);
         if (duplicatesRemoved > 0) notes.push(`dedup -${duplicatesRemoved}`);
         if (crossCollapsed > 0) notes.push(`cross -${crossCollapsed}`);
+        if (groqFiltered_count > 0) notes.push(`groq -${groqFiltered_count}`);
         if (originalCounts.themes > (trimmed.themes?.length || 0)) notes.push(`themes ${(trimmed.themes?.length || 0)}/${originalCounts.themes}`);
         if (originalCounts.pain > (trimmed.pain_points?.length || 0)) notes.push(`pain ${(trimmed.pain_points?.length || 0)}/${originalCounts.pain}`);
+        if (originalCounts.subreddits > (trimmed.top_subreddits?.length || 0)) notes.push(`subs ${(trimmed.top_subreddits?.length || 0)}/${originalCounts.subreddits}`);
         if (originalCounts.subreddits > (trimmed.top_subreddits?.length || 0)) notes.push(`subs ${(trimmed.top_subreddits?.length || 0)}/${originalCounts.subreddits}`);
         if (notes.length) setTruncatedInfo(notes.join(', '));
         console.log('[Reddit] trimmed payload', notes);
@@ -289,9 +399,8 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
       }
     } catch (err) {
       console.error('Error fetching Reddit sentiment:', err);
-      setError('Failed to fetch Reddit sentiment data');
-      // Use synthetic data as fallback
-      setData(generateSyntheticData(idea));
+      setError(`Failed to fetch Reddit sentiment data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -486,18 +595,32 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
   if (loading) {
     return (
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Reddit Sentiment
+      <Card className={cn("h-full relative border-0 bg-gradient-to-br from-orange-50/50 via-white/80 to-red-50/30 dark:from-orange-950/20 dark:via-background/90 dark:to-red-950/10 backdrop-blur-sm shadow-xl", className)}>
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-red-500/5 pointer-events-none" />
+        <CardHeader className="relative">
+          <CardTitle className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 shadow-lg animate-pulse">
+              <MessageSquare className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent font-bold">
+                Reddit Sentiment
+              </span>
+              <div className="h-0.5 w-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full mt-1 animate-pulse" />
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative">
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 bg-muted animate-pulse rounded" />
+              <div key={i} className="h-20 bg-gradient-to-r from-orange-100/50 to-red-100/50 animate-pulse rounded-xl border border-orange-200/30" />
             ))}
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-3 text-orange-600">
+                <Activity className="h-5 w-5 animate-spin" />
+                <span className="text-sm font-medium">Analyzing Reddit discussions...</span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -506,17 +629,46 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
   if (error && !data) {
     return (
-      <Card className={cn("h-full", className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Reddit Sentiment
+      <Card className={cn("h-full relative border-0 bg-gradient-to-br from-red-50/50 via-white/80 to-orange-50/30 dark:from-red-950/20 dark:via-background/90 dark:to-orange-950/10 backdrop-blur-sm shadow-xl", className)}>
+        <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-orange-500/5 pointer-events-none" />
+        <CardHeader className="relative">
+          <CardTitle className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 shadow-lg">
+              <MessageSquare className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <span className="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent font-bold">
+                Reddit Sentiment
+              </span>
+              <div className="h-0.5 w-12 bg-gradient-to-r from-red-500 to-orange-500 rounded-full mt-1" />
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">{error}</span>
+        <CardContent className="relative">
+          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl border border-red-200/50">
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">Reddit Analysis Unavailable</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>
+              <details className="mt-2">
+                <summary className="text-xs text-red-500 cursor-pointer hover:text-red-700">Technical Details</summary>
+                <p className="text-[10px] text-red-500 mt-1 font-mono bg-red-50 dark:bg-red-900/10 p-2 rounded border">
+                  Check browser console for backend response details. 
+                  Likely causes: reddit-research function not deployed, rate limits, or API issues.
+                </p>
+              </details>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              className="flex-shrink-0 border-red-300 text-red-700 hover:bg-red-50"
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Retry
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -537,57 +689,110 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
       })();
 
   return (
-    <Card className={cn("h-full overflow-hidden animate-fade-in", className)}>
-      <CardHeader className="pb-3">
+    <Card className={cn("h-full overflow-hidden animate-fade-in relative border-0 bg-gradient-to-br from-orange-50/50 via-white/80 to-red-50/30 dark:from-orange-950/20 dark:via-background/90 dark:to-red-950/10 backdrop-blur-sm shadow-xl", className)}>
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-red-500/5 pointer-events-none" />
+      <CardHeader className="pb-3 relative">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MessageSquare className="h-5 w-5 text-orange-500" />
-            Reddit Sentiment Analysis
+          <CardTitle className="flex items-center gap-3 text-lg">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 shadow-lg">
+              <MessageSquare className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent font-bold">
+                Reddit Sentiment Analysis
+              </span>
+              <div className="h-0.5 w-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full mt-1" />
+            </div>
           </CardTitle>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowAIChat(true)}
-              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs"
+              className="gap-1 px-3 py-1.5 h-auto whitespace-nowrap text-xs bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200/50 transition-all duration-200"
             >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">AI Analysis</span>
+              <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+              <span className="hidden sm:inline text-purple-700 font-medium">AI Analysis</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing || loading}
+              className="hover:bg-orange-50 transition-all duration-200"
             >
-              <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 text-orange-600 ${(isRefreshing || loading) ? 'animate-spin' : ''}`} />
             </Button>
-            <Badge variant={data.confidence === 'High' ? 'default' : 'secondary'}>
+            {/* DEBUGGING: Test button */}
+            {new URLSearchParams(window.location.search).get('debug') === '1' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  console.log('[Reddit] MANUAL TEST: Calling reddit-research directly');
+                  try {
+                    const testResponse = await optimizedQueue.invokeFunction('reddit-research', {
+                      idea_text: 'AI chatbot for customer service',
+                      time_window: 'month'
+                    });
+                    console.log('[Reddit] MANUAL TEST RESULT:', testResponse);
+                    alert('Check console for test result');
+                  } catch (err) {
+                    console.error('[Reddit] MANUAL TEST ERROR:', err);
+                    alert('Test failed - check console');
+                  }
+                }}
+                className="text-xs bg-yellow-50 border-yellow-300"
+              >
+                🧪 Test API
+              </Button>
+            )}
+            <Badge 
+              variant={data.confidence === 'High' ? 'default' : 'secondary'}
+              className={cn(
+                "shadow-sm border-0 font-medium",
+                data.confidence === 'High' 
+                  ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white" 
+                  : "bg-gradient-to-r from-yellow-500 to-orange-500 text-white"
+              )}
+            >
               {data.confidence} Confidence
             </Badge>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">{summaryText}</p>
+        {truncatedInfo && (
+          <div className="px-4 pb-2">
+            <div className="text-[10px] text-orange-600/70 bg-orange-50/50 dark:bg-orange-900/20 px-2 py-1 rounded-md border border-orange-200/30">
+              ℹ️ Dataset optimized: {truncatedInfo}
+            </div>
+          </div>
+        )}
+        <p className="text-sm text-muted-foreground mt-2 px-4">{summaryText}</p>
       </CardHeader>
 
-      <CardContent className="p-0">
+      <CardContent className="p-0 relative">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 px-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="themes">Themes</TabsTrigger>
-            <TabsTrigger value="clusters">Clusters</TabsTrigger>
-            <TabsTrigger value="quotes">Quotes</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-          </TabsList>
+          <div className="px-4 pb-2">
+            <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-orange-100/50 to-red-100/50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200/30 rounded-xl p-1">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200">Overview</TabsTrigger>
+              <TabsTrigger value="posts" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200">Posts</TabsTrigger>
+              <TabsTrigger value="themes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200">Themes</TabsTrigger>
+              <TabsTrigger value="clusters" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200">Clusters</TabsTrigger>
+              <TabsTrigger value="quotes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200">Quotes</TabsTrigger>
+              <TabsTrigger value="trends" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200">Trends</TabsTrigger>
+            </TabsList>
+          </div>
 
           <ScrollArea className="h-[400px]">
             <TabsContent value="overview" className="px-4 space-y-4">
               {/* Overall sentiment donut */}
               {data.overall_sentiment && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="p-4">
-                    <h4 className="text-sm font-medium mb-3">Overall Sentiment</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="p-6 bg-gradient-to-br from-white/80 to-purple-50/30 dark:from-background/80 dark:to-purple-950/20 border-0 shadow-lg backdrop-blur-sm">
+                    <h4 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" />
+                      Overall Sentiment Distribution
+                    </h4>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
                         <Pie
@@ -626,21 +831,33 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
                     </div>
                   </Card>
 
-                  <Card className="p-4">
-                    <h4 className="text-sm font-medium mb-3">Engagement Stats</h4>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Total Posts</span>
-                        <span className="font-medium">{data.overall_sentiment.total_posts}</span>
+                  <Card className="p-6 bg-gradient-to-br from-white/80 to-blue-50/30 dark:from-background/80 dark:to-blue-950/20 border-0 shadow-lg backdrop-blur-sm">
+                    <h4 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full" />
+                      Engagement Analytics
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl">
+                        <span className="text-sm text-blue-700 dark:text-blue-300 font-medium flex items-center gap-2">
+                          <Activity className="h-3.5 w-3.5" />
+                          Total Posts
+                        </span>
+                        <span className="font-bold text-blue-800 dark:text-blue-200">{data.overall_sentiment.total_posts.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Total Comments</span>
-                        <span className="font-medium">{data.overall_sentiment.total_comments}</span>
+                      <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl">
+                        <span className="text-sm text-green-700 dark:text-green-300 font-medium flex items-center gap-2">
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          Total Comments
+                        </span>
+                        <span className="font-bold text-green-800 dark:text-green-200">{data.overall_sentiment.total_comments.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Avg Engagement</span>
-                        <span className="font-medium">
-                          {Math.round(data.overall_sentiment.total_comments / data.overall_sentiment.total_posts)} comments/post
+                      <div className="flex justify-between items-center p-3 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl">
+                        <span className="text-sm text-orange-700 dark:text-orange-300 font-medium flex items-center gap-2">
+                          <TrendingUp className="h-3.5 w-3.5" />
+                          Avg Engagement
+                        </span>
+                        <span className="font-bold text-orange-800 dark:text-orange-200">
+                          {Math.round(data.overall_sentiment.total_comments / data.overall_sentiment.total_posts)} per post
                         </span>
                       </div>
                     </div>
@@ -650,21 +867,33 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
               {/* Top subreddits */}
               {data.top_subreddits && (
-                <Card className="p-4">
-                  <h4 className="text-sm font-medium mb-3">Top Subreddits</h4>
-                  <div className="space-y-2">
+                <Card className="p-6 bg-gradient-to-br from-white/80 to-orange-50/30 dark:from-background/80 dark:to-orange-950/20 border-0 shadow-lg backdrop-blur-sm">
+                  <h4 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-full" />
+                    Top Community Engagement
+                  </h4>
+                  <div className="space-y-3">
                     {data.top_subreddits.map((sub, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Hash className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm font-medium">{sub.name}</span>
+                      <div key={idx} className="group hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/50 dark:hover:from-orange-900/10 dark:hover:to-red-900/10 p-3 rounded-xl transition-all duration-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg shadow-sm">
+                              <Hash className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-sm font-semibold group-hover:text-orange-700 transition-colors">{sub.name}</span>
+                          </div>
+                          <Badge variant="outline" className="bg-orange-50/50 border-orange-200 text-orange-700 font-medium">
+                            {sub.posts} posts
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs text-muted-foreground">{sub.posts} posts</span>
                           <Progress 
                             value={sub.sentiment_score * 100} 
-                            className="w-20 h-2"
+                            className="flex-1 h-2.5 bg-gradient-to-r from-gray-100 to-gray-200"
                           />
+                          <span className="text-xs font-medium text-orange-600 min-w-[3rem] text-right">
+                            {Math.round(sub.sentiment_score * 100)}% ❤️
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -676,23 +905,25 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
             <TabsContent value="posts" className="px-4 space-y-3">
               {data.items && data.items.length > 0 ? (
                 data.items.slice(0, postPage * POST_PAGE_SIZE).map((item, idx) => (
-                  <Card key={(item as any).url || (item as any).title || idx} className="p-4">
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
+                  <Card key={(item as any).url || (item as any).title || idx} className="p-4 group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-r from-white/80 to-orange-50/30 dark:from-background/80 dark:to-orange-950/20 backdrop-blur-sm hover:scale-[1.02] hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/30">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
-                          <h4 className="font-medium text-sm">{item.title}</h4>
+                          <h4 className="font-semibold text-sm leading-relaxed group-hover:text-orange-700 transition-colors duration-200">{item.title}</h4>
                           {(item as any)._crosspostCount > 1 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              <Badge variant="secondary" className="text-[10px]">
-                                {(item as any)._crosspostCount}× cross-posts
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              <Badge variant="secondary" className="text-[10px] bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 shadow-sm">
+                                <Users className="h-2.5 w-2.5 mr-1" />
+                                {(item as any)._crosspostCount}× communities
                               </Badge>
                               {(item as any)._sources?.slice(0, 3).map((src: any, i: number) => (
-                                <Badge key={i} variant="outline" className="text-[10px]">
+                                <Badge key={i} variant="outline" className="text-[10px] bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 transition-colors">
+                                  <Hash className="h-2 w-2 mr-0.5" />
                                   {src.subreddit || 'reddit'}
                                 </Badge>
                               ))}
                               {(item as any)._sources?.length > 3 && (
-                                <Badge variant="outline" className="text-[10px]">
+                                <Badge variant="outline" className="text-[10px] bg-gradient-to-r from-gray-100 to-gray-200 border-gray-300 text-gray-600">
                                   +{(item as any)._sources.length - 3} more
                                 </Badge>
                               )}
@@ -700,38 +931,64 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
                           )}
                         </div>
                         {item.score !== undefined && (
-                          <Badge variant="outline" className="flex-shrink-0">
-                            <ThumbsUp className="h-3 w-3 mr-1" />
-                            {item.score}
+                          <Badge variant="outline" className="flex-shrink-0 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700 shadow-sm">
+                            <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
+                            {item.score.toLocaleString()}
+                          </Badge>
+                        )}
+                        {/* Groq Relevance Score */}
+                        {(item as any)._groqRelevance && (
+                          <Badge variant="default" className="flex-shrink-0 bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm">
+                            <Brain className="h-3 w-3 mr-1" />
+                            {Math.round((item as any)._groqRelevance * 100)}% relevant
                           </Badge>
                         )}
                       </div>
                       {item.snippet && (
                         <p className="text-xs text-muted-foreground line-clamp-2">{item.snippet}</p>
                       )}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        {item.source && <span>{item.source}</span>}
-                        {item.num_comments !== undefined && (
-                          <span className="flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3" />
-                            {item.num_comments}
-                          </span>
-                        )}
-                        {item.published && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {item.published}
-                          </span>
+                      {/* Groq Relevance Reasoning */}
+                      {(item as any)._groqReason && (
+                        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-2 rounded-lg border border-purple-200/50">
+                          <div className="flex items-start gap-2">
+                            <Brain className="h-3.5 w-3.5 text-purple-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <span className="text-[10px] text-purple-600 font-medium">AI Relevance Analysis:</span>
+                              <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">{(item as any)._groqReason}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs">
+                          {item.source && (
+                            <Badge variant="outline" className="text-[10px] bg-orange-50/50 border-orange-200/50 text-orange-600">
+                              <Hash className="h-2.5 w-2.5 mr-1" />
+                              {item.source}
+                            </Badge>
+                          )}
+                          {item.num_comments !== undefined && (
+                            <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                              <MessageSquare className="h-3 w-3" />
+                              <span className="font-medium">{item.num_comments}</span>
+                            </span>
+                          )}
+                          {item.published && (
+                            <span className="flex items-center gap-1 text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                              <Calendar className="h-3 w-3" />
+                              <span className="font-medium">{item.published}</span>
+                            </span>
+                          )}
+                        </div>
+                        {item.url && (
+                          <Button variant="ghost" size="sm" className="h-7 px-3 text-xs bg-gradient-to-r from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 border border-orange-200/50 text-orange-700 hover:text-orange-800 transition-all duration-200 shadow-sm" asChild>
+                            <a href={item.url.startsWith('http') ? item.url : `https://reddit.com${item.url}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3 mr-1.5" />
+                              <span className="font-medium">View Post</span>
+                            </a>
+                          </Button>
                         )}
                       </div>
-                      {item.url && (
-                        <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
-                          <a href={item.url.startsWith('http') ? item.url : `https://reddit.com${item.url}`} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View Post
-                          </a>
-                        </Button>
-                      )}
                       {!item.url && (item as any).permalink && (
                         <Button variant="ghost" size="sm" className="h-6 text-xs p-0" asChild>
                           <a href={`https://reddit.com${(item as any).permalink}`} target="_blank" rel="noopener noreferrer">
@@ -744,14 +1001,43 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
                   </Card>
                 ))
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No Reddit posts found</p>
+                <div className="text-center py-12">
+                  <div className="mx-auto mb-4 p-4 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-2xl w-16 h-16 flex items-center justify-center">
+                    <Brain className="h-8 w-8 text-purple-500 opacity-60" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">No Relevant Reddit Discussions Found</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
+                    Our AI analyzed Reddit posts but couldn't find discussions highly relevant to your specific idea. 
+                    Try refreshing or consider broadening your idea description.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleRefresh}
+                      className="bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200/50 text-purple-700"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                      Try Again
+                    </Button>
+                    {/* Debug info */}
+                    {new URLSearchParams(window.location.search).get('debug') === '1' && (
+                      <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-300">
+                        🧪 AI Filter Active
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               )}
               {data.items && data.items.length > postPage * POST_PAGE_SIZE && (
-                <div className="flex justify-center pt-2">
-                  <Button size="sm" variant="outline" onClick={() => setPostPage(p => p + 1)} className="text-xs">
+                <div className="flex justify-center pt-4">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setPostPage(p => p + 1)} 
+                    className="bg-gradient-to-r from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 border-orange-200/50 text-orange-700 hover:text-orange-800 transition-all duration-200 shadow-sm font-medium"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5 mr-1.5" />
                     Load more ({data.items.length - postPage * POST_PAGE_SIZE} remaining)
                   </Button>
                 </div>

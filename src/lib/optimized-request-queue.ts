@@ -113,6 +113,7 @@ export class OptimizedRequestQueue {
   private getTTLForFunction(functionName: string): number {
     const ttlMap: Record<string, number> = {
       'reddit-sentiment': 43200000, // 12 hours for Reddit data
+      'reddit-research': 43200000, // 12 hours for Reddit research data
       'unified-sentiment': 43200000, // 12 hours for unified sentiment
       'market-trends': 86400000, // 24 hours for market trends
       'google-trends': 86400000, // 24 hours for Google trends
