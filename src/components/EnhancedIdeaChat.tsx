@@ -325,41 +325,35 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
   }, [resetTrigger]);
 
-  // Consolidated persistence: debounced save for all state changes
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
+  // Manual save function - only called on explicit user actions
+  const saveSessionOnUserAction = useCallback(async () => {
     if (anonymous) return;
     
     const sid = localStorage.getItem('currentSessionId');
     if (!sid) return;
     
-    // Update localStorage immediately (sync)
+    // Update localStorage
+    const sessionMessagesKey = `session_${sid}_messages`;
+    const sessionIdeaKey = `session_${sid}_idea`;
+    
     if (messages.length > 0) {
-      localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
+      localStorage.setItem(sessionMessagesKey, JSON.stringify(messages));
     }
     if (currentIdea) {
-      localStorage.setItem(`session_${sid}_idea`, currentIdea);
+      localStorage.setItem(sessionIdeaKey, currentIdea);
       localStorage.setItem('currentIdea', currentIdea);
     }
     if (wrinklePoints > 0) {
       localStorage.setItem('wrinklePoints', wrinklePoints.toString());
     }
     
-    // Debounce database save (500ms)
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    // Save to database
+    try {
+      await saveCurrentSession();
+      console.log('[EnhancedIdeaChat] Session saved on user action');
+    } catch (error) {
+      console.error('[EnhancedIdeaChat] Failed to save session:', error);
     }
-    
-    saveTimeoutRef.current = setTimeout(() => {
-      saveCurrentSession();
-    }, 500);
-    
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
   }, [messages, currentIdea, wrinklePoints, anonymous, saveCurrentSession]);
 
   useEffect(() => {
@@ -942,13 +936,16 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
     localStorage.setItem('ideaSummaryName', idea);
   };
 
-  const handleSuggestionClick = (suggestionText: string) => {
+  const handleSuggestionClick = async (suggestionText: string) => {
     // Put suggestion in input for user to edit
     setInput(suggestionText);
     // Focus the input
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
+    
+    // Save on user action (suggestion click)
+    await saveSessionOnUserAction();
   };
 
   const sendMessage = async (textToSend?: string) => {
@@ -1214,15 +1211,8 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
         setIsTyping(false);
         
-        // Immediately save session after bot response
-        if (!anonymous) {
-          try {
-            await saveCurrentSession();
-            console.log('[EnhancedIdeaChat] Session saved after bot response');
-          } catch (error) {
-            console.error('[EnhancedIdeaChat] Failed to save session after response:', error);
-          }
-        }
+        // Save session after bot response (user action)
+        await saveSessionOnUserAction();
         
       } catch (error: any) {
         console.error('Error:', error);
