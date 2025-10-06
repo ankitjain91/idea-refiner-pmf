@@ -143,25 +143,6 @@ export const IdeaSummaryDialog: React.FC<IdeaSummaryDialogProps> = ({
                 )}
               </Button>
               
-              <Button
-                variant={isCurrentIdeaLocked ? "default" : "outline"}
-                size="sm"
-                onClick={handleLockToggle}
-                disabled={!refinedSummary}
-                className="gap-2"
-              >
-                {isCurrentIdeaLocked ? (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    Locked
-                  </>
-                ) : (
-                  <>
-                    <Unlock className="h-4 w-4" />
-                    Lock Idea
-                  </>
-                )}
-              </Button>
             </div>
             
             <ConversationPinToggle 
