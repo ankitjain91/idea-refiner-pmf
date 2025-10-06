@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { CacheIndicator } from '@/components/hub/CacheIndicator';
 import { TileAIChat } from './TileAIChat';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 
 interface OptimizedDataTileProps {
   title: string;
@@ -45,10 +46,8 @@ export function OptimizedDataTile({
   const [showAIChat, setShowAIChat] = useState(false);
   const { currentSession } = useSession();
 
-  const currentIdea = localStorage.getItem('dashboardIdea') || 
-                     currentSession?.data?.currentIdea || 
-                     localStorage.getItem('currentIdea') || 
-                     localStorage.getItem('userIdea') || '';
+  // SINGLE SOURCE OF TRUTH: Use locked idea manager only
+  const { idea: currentIdea } = useLockedIdea();
   
   // Prevent rendering [object Object] in metric values
   const formatMetricValue = (val: any): string => {

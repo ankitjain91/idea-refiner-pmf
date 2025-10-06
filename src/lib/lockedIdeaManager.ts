@@ -3,13 +3,21 @@
  * 
  * This is the SINGLE SOURCE OF TRUTH for the locked idea across the dashboard.
  * Only the idea locked via "Lock My Idea" button should be used everywhere.
+ * 
+ * Features:
+ * - Persists to database (profiles.locked_idea)
+ * - Syncs across devices
+ * - Clears from DB on reset
  */
+
+import { supabase } from '@/integrations/supabase/client';
 
 const LOCKED_IDEA_KEY = 'pmfCurrentIdea';
 
 export class LockedIdeaManager {
   private static instance: LockedIdeaManager;
   private listeners: Set<(idea: string) => void> = new Set();
+  private dbSyncInProgress = false;
 
   static getInstance(): LockedIdeaManager {
     if (!LockedIdeaManager.instance) {
@@ -20,12 +28,18 @@ export class LockedIdeaManager {
 
   /**
    * Get the current locked idea - THE ONLY IDEA THAT SHOULD BE USED
+   * First checks localStorage, then syncs from database if needed
    */
   getLockedIdea(): string {
     if (typeof window === 'undefined') return '';
 
     // First check the primary storage key
     let idea = localStorage.getItem(LOCKED_IDEA_KEY);
+    
+    // If no local idea, trigger DB sync (async, won't block)
+    if (!idea || idea.trim().length === 0) {
+      this.syncFromDatabase().catch(e => console.warn('[LockedIdeaManager] DB sync failed:', e));
+    }
     
     // If no idea found, check other known keys and migrate if found
     if (!idea || idea.trim().length === 0) {
@@ -75,6 +89,7 @@ export class LockedIdeaManager {
 
   /**
    * Set the locked idea (only called by "Lock My Idea" button)
+   * Persists to both localStorage AND database
    */
   setLockedIdea(idea: string): void {
     if (typeof window === 'undefined') return;
@@ -85,6 +100,7 @@ export class LockedIdeaManager {
       return;
     }
 
+    // Save to localStorage immediately
     localStorage.setItem(LOCKED_IDEA_KEY, trimmedIdea);
     
     // Clean up all other idea keys to avoid confusion
@@ -92,6 +108,11 @@ export class LockedIdeaManager {
     
     // Notify all listeners
     this.notifyListeners(trimmedIdea);
+    
+    // Persist to database (async, don't block UI)
+    this.saveToDatabase(trimmedIdea).catch(e => 
+      console.error('[LockedIdeaManager] Failed to save to database:', e)
+    );
     
     console.log('[LockedIdeaManager] Idea locked:', trimmedIdea.slice(0, 50) + '...');
   }
@@ -107,6 +128,7 @@ export class LockedIdeaManager {
 
   /**
    * Clear the locked idea (logout/reset)
+   * Removes from both localStorage AND database
    */
   clearLockedIdea(): void {
     if (typeof window === 'undefined') return;
@@ -115,7 +137,12 @@ export class LockedIdeaManager {
     this.cleanupOldIdeaKeys();
     this.notifyListeners('');
     
-    console.log('[LockedIdeaManager] Idea cleared');
+    // Clear from database (async, don't block UI)
+    this.clearFromDatabase().catch(e => 
+      console.error('[LockedIdeaManager] Failed to clear from database:', e)
+    );
+    
+    console.log('[LockedIdeaManager] Idea cleared from all sources');
   }
 
   /**
@@ -209,6 +236,103 @@ export class LockedIdeaManager {
   }
 
   /**
+   * Save locked idea to database
+   */
+  private async saveToDatabase(idea: string): Promise<void> {
+    if (this.dbSyncInProgress) return;
+    
+    try {
+      this.dbSyncInProgress = true;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('[LockedIdeaManager] No user, skipping DB save');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          locked_idea: idea,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+      console.log('[LockedIdeaManager] Saved to database');
+    } catch (error) {
+      console.error('[LockedIdeaManager] Database save error:', error);
+      throw error;
+    } finally {
+      this.dbSyncInProgress = false;
+    }
+  }
+
+  /**
+   * Clear locked idea from database
+   */
+  private async clearFromDatabase(): Promise<void> {
+    if (this.dbSyncInProgress) return;
+    
+    try {
+      this.dbSyncInProgress = true;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ locked_idea: null })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      console.log('[LockedIdeaManager] Cleared from database');
+    } catch (error) {
+      console.error('[LockedIdeaManager] Database clear error:', error);
+      throw error;
+    } finally {
+      this.dbSyncInProgress = false;
+    }
+  }
+
+  /**
+   * Sync locked idea from database to localStorage
+   */
+  private async syncFromDatabase(): Promise<void> {
+    if (this.dbSyncInProgress) return;
+    
+    try {
+      this.dbSyncInProgress = true;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('locked_idea')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data?.locked_idea && data.locked_idea.trim().length >= 20) {
+        const dbIdea = data.locked_idea.trim();
+        const localIdea = localStorage.getItem(LOCKED_IDEA_KEY);
+        
+        // Only update if different from local
+        if (dbIdea !== localIdea) {
+          localStorage.setItem(LOCKED_IDEA_KEY, dbIdea);
+          this.notifyListeners(dbIdea);
+          console.log('[LockedIdeaManager] Synced from database:', dbIdea.slice(0, 50));
+        }
+      }
+    } catch (error) {
+      console.warn('[LockedIdeaManager] Database sync error:', error);
+    } finally {
+      this.dbSyncInProgress = false;
+    }
+  }
+
+  /**
    * Get debug info about current state
    */
   getDebugInfo(): object {
@@ -219,6 +343,7 @@ export class LockedIdeaManager {
       hasLocked: this.hasLockedIdea(),
       isPinned: this.isPinned(),
       listenerCount: this.listeners.size,
+      dbSyncInProgress: this.dbSyncInProgress,
       allLocalStorageIdeas: {
         pmfCurrentIdea: localStorage.getItem('pmfCurrentIdea'),
         currentIdea: localStorage.getItem('currentIdea'),

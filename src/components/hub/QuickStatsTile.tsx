@@ -11,12 +11,12 @@ import { TrendingUp, TrendingDown, Brain, Globe, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { Button } from '@/components/ui/button';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 
 interface QuickStatsTileProps {
   title: string;
   icon: any;
   tileType: 'pmf_score' | 'market_size' | 'competition' | 'sentiment';
-  currentIdea: string;
   onAnalyze?: () => void;
 }
 
@@ -24,9 +24,10 @@ export function QuickStatsTile({
   title,
   icon,
   tileType,
-  currentIdea,
   onAnalyze
 }: QuickStatsTileProps) {
+  // SINGLE SOURCE OF TRUTH: Use locked idea manager
+  const { idea: currentIdea } = useLockedIdea();
   const [showInsights, setShowInsights] = useState(false);
   const [showSmoothBrainsDialog, setShowSmoothBrainsDialog] = useState(false);
   const [showMarketSizeDialog, setShowMarketSizeDialog] = useState(false);

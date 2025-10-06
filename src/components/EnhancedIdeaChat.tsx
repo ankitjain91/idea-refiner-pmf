@@ -1708,12 +1708,16 @@ const ChatMessageItem = useMemo(() => {
   const resetChatHandler = useCallback(async () => {
     console.log('[EnhancedIdeaChat] Resetting chat - clearing idea from everywhere');
     
-    // Clear idea using the hook properly
-    const currentIdeaText = ideaContext.getIdea();
+    // SINGLE SOURCE OF TRUTH: Clear locked idea (clears from DB too)
+    const manager = lockedIdeaManager;
+    if (manager.hasLockedIdea()) {
+      console.log('[EnhancedIdeaChat] Clearing locked idea:', manager.getLockedIdea().substring(0, 100));
+      manager.clearLockedIdea(); // This also clears from database
+    }
     
-    // Clear idea from database and localStorage using useIdeaContext
+    // Also clear via context for backward compat
+    const currentIdeaText = ideaContext.getIdea();
     if (currentIdeaText) {
-      console.log('[EnhancedIdeaChat] Clearing idea:', currentIdeaText.substring(0, 100));
       await ideaContext.clearIdea();
     }
     

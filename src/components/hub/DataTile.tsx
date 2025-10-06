@@ -23,6 +23,7 @@ import { TileInsightsDialog } from './TileInsightsDialog';
 import { useTileData } from './BaseTile';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 
 interface DataTileProps {
   title: string;
@@ -125,7 +126,11 @@ export function DataTile({
   };
   // Get current idea for AI insights
   const ideaText = filters?.idea_keywords?.join(' ') || 
-    (typeof window !== 'undefined' ? (localStorage.getItem('dashboardIdea') || localStorage.getItem('currentIdea') || localStorage.getItem('pmfCurrentIdea') || '') : '');
+    '';
+  
+  // SINGLE SOURCE OF TRUTH: Use locked idea manager
+  const { idea: lockedIdea } = useLockedIdea();
+  const currentIdea = lockedIdea;
   
   // Use database-first loading with useTileData hook
   const { data, isLoading: loading, error, loadData } = useTileData(fetchFunction, [tileType, filters], {

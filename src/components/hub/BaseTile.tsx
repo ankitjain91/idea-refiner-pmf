@@ -11,6 +11,7 @@ import { TileAIChat } from "./TileAIChat";
 
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { useSession } from '@/contexts/SimpleSessionContext';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 
 export interface BaseTileProps {
   title: string;
@@ -68,10 +69,8 @@ export function BaseTile({
   const { user } = useAuth();
   const { currentSession } = useSession();
 
-  const currentIdea = localStorage.getItem('dashboardIdea') || 
-                     currentSession?.data?.currentIdea || 
-                     localStorage.getItem('currentIdea') || 
-                     localStorage.getItem('userIdea') || '';
+  // SINGLE SOURCE OF TRUTH: Use locked idea manager only
+  const { idea: currentIdea } = useLockedIdea();
 
   // Auto-load on mount if enabled
   useEffect(() => {

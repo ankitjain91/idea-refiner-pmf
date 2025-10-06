@@ -5,6 +5,7 @@ import { TileData } from "@/lib/data-hub-orchestrator";
 import { dashboardDataService } from '@/services/dashboardDataService';
 import { toast } from 'sonner';
 import { useSession } from "@/contexts/SimpleSessionContext";
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 import { 
   Search, MessageSquare, Twitter, ShoppingBag, 
   Youtube, AlertTriangle, TrendingUp, Globe, Users,
@@ -29,10 +30,8 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
   const [tileData, setTileData] = useState<Record<string, TileData | null>>({});
   const [tileLoading, setTileLoading] = useState<Record<string, boolean>>({});
   const { currentSession } = useSession();
-  const currentIdea = localStorage.getItem('dashboardIdea') || 
-                     currentSession?.data?.currentIdea || 
-                     localStorage.getItem('currentIdea') || 
-                     localStorage.getItem('userIdea') || '';
+  // SINGLE SOURCE OF TRUTH: Use locked idea manager only
+  const { idea: currentIdea } = useLockedIdea();
 
   // Load tile data on first expansion
   const loadTileData = useCallback(async (tileId: string) => {

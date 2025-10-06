@@ -11,20 +11,19 @@ import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { saveIdeaToLeaderboard } from "@/utils/saveIdeaToLeaderboard";
-import { useIdeaContext } from "@/hooks/useIdeaContext";
+import { useLockedIdea } from "@/hooks/useLockedIdea";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { subscription, usage } = useSubscription();
   const { user } = useAuth();
-  const { getIdea } = useIdeaContext();
+  const { idea: currentIdea } = useLockedIdea(); // SINGLE SOURCE OF TRUTH
   const isPro = subscription.tier === 'pro' || subscription.tier === 'enterprise';
   const limits = SUBSCRIPTION_TIERS[subscription.tier].features;
 
   // Update leaderboard when dashboard loads
   useEffect(() => {
     const updateLeaderboard = async () => {
-      const currentIdea = getIdea();
       const sessionData = localStorage.getItem('sessionData');
       const sessionName = localStorage.getItem('currentSessionName') || 'Untitled Session';
       
@@ -43,22 +42,10 @@ export default function Dashboard() {
         }
       }
       
-      if (pmfScore > 0) {
-        // Get AI-generated summary from useIdeaContext
-        const aiSummary = localStorage.getItem('appIdea');
-        let ideaSummary = currentIdea;
-        if (aiSummary) {
-          try {
-            const parsed = JSON.parse(aiSummary);
-            ideaSummary = parsed.summary || currentIdea;
-          } catch (e) {
-            console.error('Failed to parse AI summary:', e);
-          }
-        }
-        
+      if (pmfScore > 0 && currentIdea) {
         await saveIdeaToLeaderboard({
           idea: currentIdea,
-          refinedIdea: ideaSummary, // Use AI-generated summary here
+          refinedIdea: currentIdea, // Use locked idea as-is
           pmfScore,
           sessionName,
           category,

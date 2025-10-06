@@ -509,6 +509,7 @@ export type Database = {
           id: string
           linkedin_url: string | null
           location: string | null
+          locked_idea: string | null
           marketing_emails: boolean | null
           phone: string | null
           role: string | null
@@ -532,6 +533,7 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           location?: string | null
+          locked_idea?: string | null
           marketing_emails?: boolean | null
           phone?: string | null
           role?: string | null
@@ -555,6 +557,7 @@ export type Database = {
           id?: string
           linkedin_url?: string | null
           location?: string | null
+          locked_idea?: string | null
           marketing_emails?: boolean | null
           phone?: string | null
           role?: string | null
