@@ -345,28 +345,27 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
     return { tam: safeTam, sam: safeSam, som: safeSom };
   };
   
-  // Calculate totals from regional data FIRST
+  // Calculate totals from regional data for fallback only
   const totalTAM = regionalData.reduce((sum, r) => sum + r.tam, 0);
   const totalSAM = regionalData.reduce((sum, r) => sum + r.sam, 0);
   const totalSOM = regionalData.reduce((sum, r) => sum + r.som, 0);
   
-  // Extract overall metrics from marketData (matching ExecutiveMarketSizeTile)
-  // This ensures consistency between Market Analysis and Global Market Overview
+  // Extract overall metrics from marketData (MUST match ExecutiveMarketSizeTile exactly)
+  // Use the SAME exact source: marketData.metrics.tam/sam/som
   const overallMetrics = useMemo(() => {
     const metrics = marketData?.market_size?.metrics || marketData?.metrics;
+    
     if (metrics && (metrics.tam || metrics.sam || metrics.som)) {
-      // Parse the metrics and sanitize
-      const tamRaw = parseDollarAmount(metrics.tam);
-      const samRaw = parseDollarAmount(metrics.sam);
-      const somRaw = parseDollarAmount(metrics.som);
-      const sane = ensureMarketHierarchy(tamRaw, samRaw, somRaw);
-      
+      // Use the metrics DIRECTLY without any parsing or modification
+      // This ensures 100% consistency with ExecutiveMarketSizeTile display
       return {
-        tam: formatCurrency(sane.tam > 0 ? sane.tam : totalTAM),
-        sam: formatCurrency(sane.sam > 0 ? sane.sam : totalSAM),
-        som: formatCurrency(sane.som > 0 ? sane.som : totalSOM)
+        tam: metrics.tam || formatCurrency(totalTAM),
+        sam: metrics.sam || formatCurrency(totalSAM),
+        som: metrics.som || formatCurrency(totalSOM)
       };
     }
+    
+    // Only use calculated totals as fallback if no metrics available
     const saneTotals = ensureMarketHierarchy(totalTAM, totalSAM, totalSOM);
     return {
       tam: formatCurrency(saneTotals.tam),
