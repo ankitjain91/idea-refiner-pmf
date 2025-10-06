@@ -2482,17 +2482,12 @@ User submission: """${messageText}"""`;
       
       {/* Persistence Controls */}
       <div className="flex items-center gap-2 mt-3 flex-wrap">
-        {conversationSummary ? (
-          <ConversationPinToggle 
-            isPinned={isPinned}
-            onToggle={handlePinToggle}
-            hasMessages={messages.length > 1}
-          />
-        ) : (
-          <div className="text-xs text-muted-foreground italic">
-            Chat a bit more to generate a summary you can lock in
-          </div>
-        )}
+        <ConversationPinToggle 
+          isPinned={isPinned}
+          onToggle={handlePinToggle}
+          hasMessages={messages.length > 1}
+          disabled={!conversationSummary}
+        />
       </div>
     </div>
 
