@@ -20,9 +20,9 @@ import {
 import { cn } from '@/lib/utils';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { TileAIChat } from './TileAIChat';
+import { useLockedIdea } from '@/lib/lockedIdeaManager';
 
 interface RedditSentimentTileProps {
-  idea: string;
   className?: string;
 }
 
@@ -125,7 +125,11 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))'
 ];
 
-export function RedditSentimentTile({ idea, className }: RedditSentimentTileProps) {
+export function RedditSentimentTile({ className }: RedditSentimentTileProps) {
+  const { lockedIdea, hasLockedIdea } = useLockedIdea();
+  
+  console.log('[Reddit] Component mounted with locked idea:', lockedIdea?.slice(0, 50));
+  
   const [data, setData] = useState<RedditSentimentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,14 +144,18 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
   const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
-    if (idea) {
+    if (lockedIdea && hasLockedIdea) {
       fetchRedditSentiment();
+    } else {
+      console.log('[Reddit] No locked idea available, showing empty state');
+      setLoading(false);
+      setError('No idea locked. Please use "Lock My Idea" button first.');
     }
-  }, [idea]);
+  }, [lockedIdea, hasLockedIdea]);
 
   const fetchRedditSentiment = async () => {
-    if (!idea) {
-      setError('No idea provided');
+    if (!lockedIdea || !hasLockedIdea) {
+      setError('No locked idea available');
       setLoading(false);
       return;
     }
@@ -158,7 +166,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
 
     try {
       // Use the new reddit-research endpoint for comprehensive analysis
-      console.log('[Reddit] Calling reddit-research function with idea:', idea.slice(0, 50));
+      console.log('[Reddit] Calling reddit-research function with locked idea:', lockedIdea.slice(0, 50));
       
       // DEBUGGING: Add cache bypass for now to see fresh data
       const debugForceRefresh = new URLSearchParams(window.location.search).get('debug') === '1';
@@ -167,7 +175,7 @@ export function RedditSentimentTile({ idea, className }: RedditSentimentTileProp
       }
       
       const response = await optimizedQueue.invokeFunction('reddit-research', {
-        idea_text: idea,
+        idea_text: lockedIdea,
         time_window: 'year',
         ...(debugForceRefresh && { _cache_bypass: Date.now() }) // Force cache miss
       });
@@ -336,7 +344,7 @@ ${batch.map((post, idx) => `${idx}. Title: "${post.title}"
         const afterCross = collapseCrossPosts(dedupedItems);
         
         // GROQ FILTERING: Only show relevant posts
-        const groqFiltered = await filterByGroqRelevance(afterCross, idea);
+        const groqFiltered = await filterByGroqRelevance(afterCross, lockedIdea);
         
         const duplicatesRemoved = (raw.items?.length || 0) - dedupedItems.length;
         const crossCollapsed = dedupedItems.length - afterCross.length;
@@ -393,9 +401,10 @@ ${batch.map((post, idx) => `${idx}. Title: "${post.title}"
         direct.items = afterCross.slice(0, MAX_POSTS_STORE);
         setData(direct);
       } else {
-        // Generate synthetic data for demonstration
-        console.log('[Reddit] No response data, using synthetic');
-        setData(generateSyntheticData(idea));
+        // No valid response data
+        console.error('[Reddit] Backend returned no usable data:', response);
+        setError('Backend returned no Reddit data. The reddit-research function may be unavailable or returning empty results.');
+        setData(null);
       }
     } catch (err) {
       console.error('Error fetching Reddit sentiment:', err);
@@ -1228,7 +1237,7 @@ ${batch.map((post, idx) => `${idx}. Title: "${post.title}"
         onOpenChange={setShowAIChat}
         tileData={data as any}
         tileTitle="Reddit Sentiment"
-        idea={idea}
+        idea={lockedIdea}
       />
     </Card>
   );

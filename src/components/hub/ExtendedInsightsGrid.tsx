@@ -370,7 +370,6 @@ export function ExtendedInsightsGrid({ tiles, loading }: ExtendedInsightsGridPro
         {/* Reddit Sentiment Tile - Full Width */}
         <div className="col-span-full">
           <RedditSentimentTile 
-            idea={currentIdea} 
             className="h-full"
           />
         </div>

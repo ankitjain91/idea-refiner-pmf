@@ -7,6 +7,7 @@ import { SimpleGoogleTrendsTile } from "./SimpleGoogleTrendsTile";
 import { SimpleNewsTile } from "./SimpleNewsTile";
 import { MarketTrendsTile } from "./MarketTrendsTile";
 import { WebSearchTile } from "./WebSearchTile";
+import { useLockedIdea } from "@/lib/lockedIdeaManager";
 
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,8 @@ interface MainAnalysisGridProps {
 
 export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTile }: MainAnalysisGridProps) {
   const { currentSession } = useSession();
+  const { lockedIdea, hasLockedIdea } = useLockedIdea();
+  
   const [fetchedTiles, setFetchedTiles] = useState<Record<string, any>>({});
   const [tileErrors, setTileErrors] = useState<Record<string, string>>({});
   const [networkLoading, setNetworkLoading] = useState(false);
@@ -51,18 +54,18 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
   const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1';
 
-  const currentIdea = useMemo(() => {
-    const base = localStorage.getItem('currentIdea') || currentSession?.data?.currentIdea || '';
-    return base.trim();
-  }, [currentSession?.data?.currentIdea]);
+  // Log when locked idea changes
+  useEffect(() => {
+    console.log('[MainAnalysisGrid] Locked idea changed:', lockedIdea?.slice(0, 50));
+  }, [lockedIdea]);
 
   const requestedTileIds = useMemo(() => Object.keys(tiles || {}), [tiles]);
 
   // Hydrate from local cache instantly
   useEffect(() => {
-    if (!currentIdea) return;
+    if (!lockedIdea || !hasLockedIdea) return;
     try {
-      const raw = localStorage.getItem(ideaHashKey(currentIdea));
+      const raw = localStorage.getItem(ideaHashKey(lockedIdea));
       if (raw) {
         const parsed: CachedBundle = JSON.parse(raw);
         // 10 minute freshness window
@@ -72,21 +75,24 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
         }
       }
     } catch {}
-  }, [currentIdea]);
+  }, [lockedIdea, hasLockedIdea]);
 
   const persistCache = useCallback((tilesObj: Record<string, any>, metaObj: any) => {
-    if (!currentIdea) return;
+    if (!lockedIdea || !hasLockedIdea) return;
     try {
       const bundle: CachedBundle = { tiles: tilesObj, meta: metaObj, ts: Date.now() };
-      localStorage.setItem(ideaHashKey(currentIdea), JSON.stringify(bundle));
+      localStorage.setItem(ideaHashKey(lockedIdea), JSON.stringify(bundle));
     } catch {}
-  }, [currentIdea]);
+  }, [lockedIdea, hasLockedIdea]);
 
   const hydrateFromServer = useCallback(async (force?: boolean) => {
-    if (!currentIdea || requestedTileIds.length === 0) return;
+    if (!lockedIdea || !hasLockedIdea || requestedTileIds.length === 0) {
+      console.log('[MainAnalysisGrid] No locked idea available, skipping fetch');
+      return;
+    }
     setNetworkLoading(true);
     try {
-      const res = await fetchTiles(currentIdea, { tiles: requestedTileIds, forceRefresh: force });
+      const res = await fetchTiles(lockedIdea, { tiles: requestedTileIds, forceRefresh: force });
       if (res?.tiles) {
         setFetchedTiles(res.tiles);
         setTileErrors({});
@@ -99,16 +105,19 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
     } finally {
       setNetworkLoading(false);
     }
-  }, [currentIdea, requestedTileIds, persistCache]);
+  }, [lockedIdea, hasLockedIdea, requestedTileIds, persistCache]);
 
   useEffect(() => { hydrateFromServer(false); }, [hydrateFromServer]);
 
   const handleSingleRefresh = async (id: string) => {
-    if (!currentIdea) return;
+    if (!lockedIdea || !hasLockedIdea) {
+      console.log('[MainAnalysisGrid] No locked idea for refresh');
+      return;
+    }
     // Circuit breaker check
     if (cooldowns[id] && cooldowns[id] > Date.now()) return;
     try {
-      const res = await refreshTile(currentIdea, id);
+      const res = await refreshTile(lockedIdea, id);
       if (res?.tile) {
         setFetchedTiles(prev => ({ ...prev, [id]: res.tile }));
         setTileErrors(prev => { const copy = { ...prev }; delete copy[id]; return copy; });
@@ -185,8 +194,8 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <ExecutiveMarketSizeTile 
-                  idea={currentIdea}
-                  ideaContext={currentIdea}
+                  idea={lockedIdea}
+                  ideaContext={lockedIdea}
                   dataHub={tiles}
                   onRefresh={() => handleSingleRefresh('market_size')}
                 />
@@ -196,7 +205,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
           if (tile.id === 'competition') {
             return (
               <div key={tile.id} className={tile.span}>
-                <CompetitionAnalysis idea={currentIdea} />
+                <CompetitionAnalysis idea={lockedIdea} />
               </div>
             );
           }
@@ -217,14 +226,14 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
           if (tile.id === 'market_trends') {
             return (
               <div key={tile.id} className={tile.span}>
-                <MarketTrendsTile idea={currentIdea} className="h-full" />
+                <MarketTrendsTile idea={lockedIdea} className="h-full" />
               </div>
             );
           }
           if (tile.id === 'web_search') {
             return (
               <div key={tile.id} className={tile.span}>
-                <WebSearchTile idea={currentIdea} className="h-full" />
+                <WebSearchTile idea={lockedIdea} className="h-full" />
               </div>
             );
           }
