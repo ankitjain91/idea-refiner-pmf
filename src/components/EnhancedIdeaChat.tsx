@@ -2469,27 +2469,50 @@ User submission: """${messageText}"""`;
         </div>
       </div>
       
-      {/* Idea Generation Progress & View Button */}
-      {(summaryLoading || conversationSummary) && (
-        <div className="flex justify-end mt-3">
-          {summaryLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span>Generating your idea summary...</span>
-            </div>
-          ) : conversationSummary ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSummaryDialog(true)}
-              className="gap-2"
-            >
-              <Lightbulb className="h-4 w-4" />
-              View Idea
-            </Button>
-          ) : null}
-        </div>
-      )}
+      {/* Idea Summary Button with Progress */}
+      <div className="flex justify-end mt-3">
+        <Button
+          variant={conversationSummary ? "default" : "outline"}
+          size="sm"
+          onClick={() => conversationSummary && setShowSummaryDialog(true)}
+          disabled={summaryLoading || !conversationSummary}
+          className={cn(
+            "gap-2 min-w-[140px] relative overflow-hidden transition-all duration-300",
+            conversationSummary && "shadow-md hover:shadow-lg",
+            summaryLoading && "cursor-wait"
+          )}
+        >
+          {/* Progress fill background */}
+          {summaryLoading && (
+            <motion.div
+              className="absolute inset-0 bg-primary/20"
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 3, ease: "easeOut" }}
+            />
+          )}
+          
+          {/* Button content */}
+          <div className="relative z-10 flex items-center gap-2">
+            {summaryLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Generating...</span>
+              </>
+            ) : conversationSummary ? (
+              <>
+                <Lightbulb className="h-4 w-4" />
+                <span>View Idea</span>
+              </>
+            ) : (
+              <>
+                <Lightbulb className="h-4 w-4 opacity-50" />
+                <span>No Idea Yet</span>
+              </>
+            )}
+          </div>
+        </Button>
+      </div>
     </div>
 
     {/* Confetti Animation */}
