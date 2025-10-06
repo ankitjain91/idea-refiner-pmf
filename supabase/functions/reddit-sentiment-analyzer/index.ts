@@ -220,7 +220,7 @@ Rules:
     // Combine posts with their sentiment - return all posts (up to 30)
     const postsWithSentiment = posts.map((post: RedditPost, idx: number) => ({
       title: post.title,
-      url: `https://reddit.com${post.url}`,
+      url: post.url.startsWith('http') ? post.url : `https://reddit.com${post.url}`,
       sentiment: idx < 15 ? (analysis.sentiments[idx] || 'neutral') : 'neutral',
       score: post.score,
       author: post.author,
