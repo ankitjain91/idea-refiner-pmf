@@ -23,7 +23,7 @@ import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
 import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
 import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
 import { CacheClearButton } from "@/components/hub/CacheClearButton";
-import { RedditSentimentAnalyzer } from "@/components/hub/RedditSentimentAnalyzer";
+
 import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -714,12 +714,12 @@ export default function EnterpriseHub() {
                   tiles={{
                     twitter_sentiment: tiles.twitter_sentiment,
                     youtube_analysis: tiles.youtube_analysis,
+                    reddit_sentiment: tiles.reddit_sentiment,
                   }}
                   loading={loading}
                   viewMode="deep"
                   onRefreshTile={refreshTile}
                 />
-                <RedditSentimentAnalyzer idea={currentIdea} />
               </div>
             )}
           </TabsContent>

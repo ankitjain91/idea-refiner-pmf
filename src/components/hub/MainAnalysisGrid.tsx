@@ -10,6 +10,7 @@ import { WebSearchTile } from "./WebSearchTile";
 import { TwitterSentimentTile } from "../social/TwitterSentimentTile";
 import { YouTubeAnalysisTile } from "../social/YouTubeAnalysisTile";
 import { RedditSentimentTile } from "./RedditSentimentTile";
+import { ComprehensiveRedditTile } from "./ComprehensiveRedditTile";
 import { useLockedIdea } from "@/lib/lockedIdeaManager";
 
 import { useSession } from "@/contexts/SimpleSessionContext";
@@ -41,6 +42,7 @@ interface MainAnalysisGridProps {
     news_analysis?: TileData | null;
     twitter_sentiment?: TileData | null;
     youtube_analysis?: TileData | null;
+    reddit_sentiment?: TileData | null;
   };
   loading?: boolean;
   viewMode: "executive" | "deep";
@@ -250,6 +252,13 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             return (
               <div key={tile.id} className={tile.span}>
                 <YouTubeAnalysisTile className="h-full" />
+              </div>
+            );
+          }
+          if (tile.id === 'reddit_sentiment') {
+            return (
+              <div key={tile.id} className={tile.span}>
+                <ComprehensiveRedditTile data={tiles.reddit_sentiment} loading={loading} />
               </div>
             );
           }
