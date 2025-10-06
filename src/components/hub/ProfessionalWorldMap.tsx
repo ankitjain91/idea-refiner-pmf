@@ -639,7 +639,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                           <div className="text-[10px] space-y-1">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Growth:</span>
-                              <span className="font-semibold text-green-500">{region.cagr}%</span>
+                              <span className="font-semibold text-green-500">{region.cagr.toFixed(2)}%</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">SOM:</span>
@@ -736,7 +736,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                           <TrendingUp className="h-3 w-3" />
                           Growth Rate
                         </span>
-                        <span className="font-bold text-sm text-green-500">{hoveredRegion.cagr}%</span>
+                        <span className="font-bold text-sm text-green-500">{hoveredRegion.cagr.toFixed(2)}%</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -907,7 +907,7 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
                           </div>
                           <div className="flex items-center gap-2">
                             <Progress value={(region.cagr / 25) * 100} className="w-24 h-2" />
-                            <span className="text-lg font-bold text-green-500">{region.cagr}%</span>
+                            <span className="text-lg font-bold text-green-500">{region.cagr.toFixed(2)}%</span>
                           </div>
                         </motion.div>
                       ))}
