@@ -182,13 +182,21 @@ serve(async (req) => {
             content: `You are a sentiment analysis expert. Analyze Reddit posts and return JSON with this exact structure:
 {
   "sentiments": ["positive", "neutral", "negative", ...],
-  "summary": "Brief summary of overall community sentiment (max 150 chars)"
+  "summary": "Brief summary of overall community sentiment (max 150 chars)",
+  "themes": ["theme1", "theme2", "theme3"],
+  "pain_points": ["pain point 1", "pain point 2", "pain point 3"],
+  "engagement_score": 75,
+  "positivity_score": 65
 }
 
 Rules:
 - "sentiments" array must have exactly one sentiment per post (in same order)
 - Each sentiment must be: "positive", "neutral", or "negative"
-- Summary should highlight key themes and overall mood`
+- Summary should highlight key themes and overall mood
+- themes: 3-5 key discussion topics
+- pain_points: 3-5 common user complaints or concerns
+- engagement_score: 0-100 based on upvotes/comments
+- positivity_score: 0-100 overall positivity`
           },
           {
             role: 'user',
@@ -212,9 +220,27 @@ Rules:
                   summary: {
                     type: "string",
                     description: "Brief overall sentiment summary (max 150 chars)"
+                  },
+                  themes: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "3-5 key discussion themes"
+                  },
+                  pain_points: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "3-5 common user pain points or concerns"
+                  },
+                  engagement_score: {
+                    type: "number",
+                    description: "Engagement score 0-100 based on upvotes and comments"
+                  },
+                  positivity_score: {
+                    type: "number",
+                    description: "Overall positivity score 0-100"
                   }
                 },
-                required: ["sentiments", "summary"],
+                required: ["sentiments", "summary", "themes", "pain_points", "engagement_score", "positivity_score"],
                 additionalProperties: false
               }
             }
@@ -275,6 +301,10 @@ Rules:
       neutral: sentimentCounts.neutral || 0,
       negative: sentimentCounts.negative || 0,
       summary: analysis.summary,
+      themes: analysis.themes || [],
+      pain_points: analysis.pain_points || [],
+      engagement_score: analysis.engagement_score || 50,
+      positivity_score: analysis.positivity_score || 50,
       topPosts: postsWithSentiment.sort((a: any, b: any) => b.score - a.score).slice(0, 10),
       totalPosts: filteredPosts.length
     };
