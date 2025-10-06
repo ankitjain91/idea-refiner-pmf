@@ -2839,6 +2839,13 @@ User submission: """${messageText}"""`;
       summary={conversationSummary || ''}
       isPinned={isPinned}
       onPinToggle={handlePinToggle}
+      messages={messages}
+      onRefine={(refinedIdea) => {
+        setConversationSummary(refinedIdea);
+        setCurrentIdea(refinedIdea);
+        localStorage.setItem('currentIdea', refinedIdea);
+        window.dispatchEvent(new CustomEvent('idea:changed', { detail: { idea: refinedIdea } }));
+      }}
     />
   </Card>
   </TooltipProvider>
