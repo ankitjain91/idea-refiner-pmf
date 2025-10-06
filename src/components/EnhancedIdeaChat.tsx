@@ -2360,12 +2360,6 @@ User submission: """${messageText}"""`;
           onToggle={handlePinToggle}
           hasMessages={messages.length > 1}
         />
-        
-        <PersistenceIndicator 
-          status={persistenceStatus}
-          errorMessage={persistenceError}
-          onRetry={handleSaveRetry}
-        />
       </div>
     </div>
 
