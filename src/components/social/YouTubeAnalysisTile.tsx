@@ -90,13 +90,42 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
     setError(null);
 
     try {
-      const { data: response, error: functionError } = await supabase.functions.invoke('youtube-analysis', {
-        body: { idea: lockedIdea }
+      const { data: response, error: functionError } = await supabase.functions.invoke('youtube-search', {
+        body: { idea_text: lockedIdea, idea: lockedIdea }
       });
 
       if (functionError) throw new Error(functionError.message);
 
-      setData(response);
+      // Transform the response to match our interface
+      const transformedData: YouTubeData = {
+        videos: (response?.youtube_insights || []).map((video: any) => ({
+          id: video.videoId || video.id || '',
+          title: video.title || '',
+          channelTitle: video.channel || '',
+          description: '',
+          publishedAt: video.published_at || '',
+          viewCount: video.views || 0,
+          likeCount: video.likes || 0,
+          commentCount: video.comments || 0,
+          url: video.url || '',
+          thumbnailUrl: video.thumbnail || '',
+          relevanceScore: video.relevance || 0,
+          sentiment: (video.relevance || 0) > 0.6 ? 'positive' : (video.relevance || 0) < 0.4 ? 'negative' : 'neutral',
+          topComments: []
+        })),
+        summary: {
+          totalVideos: response?.summary?.total_videos || 0,
+          totalViews: response?.summary?.total_views || 0,
+          averageSentiment: response?.summary?.avg_relevance || 0,
+          topChannels: response?.summary?.top_channels?.map((c: any) => c.channel) || [],
+          engagement: {
+            total: response?.summary?.total_likes || 0,
+            average: response?.summary?.total_videos ? (response?.summary?.total_likes / response?.summary?.total_videos) : 0
+          }
+        }
+      };
+
+      setData(transformedData);
       console.log('[YouTubeAnalysisTile] Data fetched successfully');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch YouTube data';

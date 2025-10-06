@@ -81,13 +81,44 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
     setError(null);
 
     try {
-      const { data: response, error: functionError } = await supabase.functions.invoke('twitter-sentiment', {
-        body: { idea: lockedIdea }
+      const { data: response, error: functionError } = await supabase.functions.invoke('twitter-search', {
+        body: { idea: lockedIdea, query: lockedIdea }
       });
 
       if (functionError) throw new Error(functionError.message);
 
-      setData(response);
+      // Transform the response to match our interface
+      const twitterBuzz = response?.twitter_buzz;
+      const transformedData: TwitterData = {
+        posts: (twitterBuzz?.raw_tweets || []).map((tweet: any) => ({
+          id: tweet.id || '',
+          text: tweet.text || '',
+          timestamp: tweet.created_at || '',
+          likes: tweet.metrics?.like_count || 0,
+          retweets: tweet.metrics?.retweet_count || 0,
+          replies: tweet.metrics?.reply_count || 0,
+          sentiment: (twitterBuzz?.metrics?.overall_sentiment?.positive || 0) > 50 ? 'positive' : 
+                    (twitterBuzz?.metrics?.overall_sentiment?.negative || 0) > 30 ? 'negative' : 'neutral',
+          engagementScore: (tweet.metrics?.like_count || 0) + (tweet.metrics?.retweet_count || 0) * 2,
+          url: tweet.url || '',
+          username: tweet.author_username || 'unknown',
+          relevanceScore: 0.75
+        })),
+        summary: {
+          totalPosts: twitterBuzz?.metrics?.total_tweets || 0,
+          averageSentiment: (twitterBuzz?.metrics?.overall_sentiment?.positive || 0) / 100,
+          topTopics: twitterBuzz?.metrics?.top_hashtags || [],
+          engagement: {
+            total: (twitterBuzz?.raw_tweets || []).reduce((sum: number, t: any) => 
+              sum + (t.metrics?.like_count || 0) + (t.metrics?.retweet_count || 0), 0),
+            average: twitterBuzz?.metrics?.total_tweets ? 
+              ((twitterBuzz?.raw_tweets || []).reduce((sum: number, t: any) => 
+                sum + (t.metrics?.like_count || 0), 0) / twitterBuzz.metrics.total_tweets) : 0
+          }
+        }
+      };
+
+      setData(transformedData);
       console.log('[TwitterSentimentTile] Data fetched successfully');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch Twitter data';
