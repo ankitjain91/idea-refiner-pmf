@@ -72,6 +72,19 @@ function hashIdea(idea: string): string {
   return Math.abs(hash).toString(36);
 }
 
+function isValidTwitterBuzzData(obj: any): obj is TwitterBuzzData {
+  try {
+    return !!(
+      obj && typeof obj === 'object' &&
+      obj.metrics && typeof obj.metrics.total_tweets === 'number' &&
+      obj.metrics.overall_sentiment &&
+      typeof obj.metrics.overall_sentiment.positive === 'number'
+    );
+  } catch {
+    return false;
+  }
+}
+
 interface TwitterBuzzData {
   summary: string;
   metrics: {
@@ -159,12 +172,14 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
     // Check IndexedDB cache first (unless force refresh)
     if (!force) {
       const cachedData = await getTwitterCache(ideaHash);
-      if (cachedData) {
+      if (cachedData && isValidTwitterBuzzData(cachedData)) {
         console.log('[TwitterSentimentTile] Using cached data from IndexedDB');
         setData(cachedData);
         setIsFromCache(true);
         setFetchAttempted(true);
         return;
+      } else if (cachedData) {
+        console.warn('[TwitterSentimentTile] Ignoring stale cached shape; refetching fresh data');
       }
     }
 
@@ -294,14 +309,14 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <Badge variant="secondary" className="font-normal">
                 <MessageCircle className="h-3 w-3 mr-1" />
-                {data.metrics.total_tweets} tweets
+                {data.metrics?.total_tweets ?? 0} tweets
               </Badge>
               <Badge variant="secondary" className="font-normal">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                {data.metrics.buzz_trend}
+                {data.metrics?.buzz_trend ?? '—'}
               </Badge>
               <Badge variant="outline" className={cn('font-normal', getSentimentColor('positive'))}>
-                {data.metrics.overall_sentiment.positive}% positive
+                {(data.metrics?.overall_sentiment?.positive ?? 0)}% positive
               </Badge>
               {isFromCache && data.cached_at && (
                 <Badge variant="outline" className="font-normal text-xs">
@@ -338,33 +353,33 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
             <div className="p-3 rounded-lg border bg-green-500/5 border-green-500/20">
               <div className="text-xs text-muted-foreground mb-1">Positive</div>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {data.metrics.overall_sentiment.positive}%
+                {data.metrics?.overall_sentiment?.positive ?? 0}%
               </div>
             </div>
             <div className="p-3 rounded-lg border bg-yellow-500/5 border-yellow-500/20">
               <div className="text-xs text-muted-foreground mb-1">Neutral</div>
               <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                {data.metrics.overall_sentiment.neutral}%
+                {data.metrics?.overall_sentiment?.neutral ?? 0}%
               </div>
             </div>
             <div className="p-3 rounded-lg border bg-red-500/5 border-red-500/20">
               <div className="text-xs text-muted-foreground mb-1">Negative</div>
               <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {data.metrics.overall_sentiment.negative}%
+                {data.metrics?.overall_sentiment?.negative ?? 0}%
               </div>
             </div>
           </div>
         </div>
 
         {/* Top Hashtags */}
-        {data.metrics.top_hashtags && data.metrics.top_hashtags.length > 0 && (
+        {data.metrics?.top_hashtags?.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <Hash className="h-4 w-4" />
               Trending Hashtags
             </h3>
             <div className="flex flex-wrap gap-2">
-              {data.metrics.top_hashtags.map((tag, i) => (
+              {data.metrics?.top_hashtags?.map((tag, i) => (
                 <Badge key={i} variant="secondary" className="font-normal">
                   #{tag}
                 </Badge>
@@ -374,14 +389,14 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
         )}
 
         {/* Influencers */}
-        {data.metrics.influencers && data.metrics.influencers.length > 0 && (
+        {data.metrics?.influencers?.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <Users className="h-4 w-4" />
               Top Influencers
             </h3>
             <div className="grid gap-2">
-              {data.metrics.influencers.map((influencer, i) => (
+              {data.metrics?.influencers?.map((influencer, i) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
                   <div>
                     <div className="font-medium text-sm">{influencer.handle}</div>
