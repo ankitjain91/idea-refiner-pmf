@@ -72,11 +72,32 @@ interface MarketSizeData {
 export class RealTimeMarketService {
   private static instance: RealTimeMarketService;
   private cache: Map<string, { data: MarketSizeData; expires: number }> = new Map();
-  private CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days for heavy caching
+  private CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days - never expire unless explicitly cleared
   private circuitBreaker: CircuitBreaker;
   
   private constructor() {
     this.circuitBreaker = createTileCircuitBreaker('RealTimeMarket');
+    this.loadCacheFromLocalStorage();
+  }
+  
+  private loadCacheFromLocalStorage() {
+    try {
+      const keys = Object.keys(localStorage);
+      const cacheKeys = keys.filter(k => k.startsWith('pmf.market_data:'));
+      
+      for (const key of cacheKeys) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          const ideaKey = key.replace('pmf.market_data:', '');
+          this.cache.set(`market_${ideaKey}`, parsed);
+        }
+      }
+      
+      console.log(`[RealTimeMarket] Loaded ${cacheKeys.length} items from localStorage`);
+    } catch (e) {
+      console.warn('[RealTimeMarket] Failed to load cache from localStorage:', e);
+    }
   }
   
   static getInstance(): RealTimeMarketService {
@@ -87,14 +108,33 @@ export class RealTimeMarketService {
   }
   
   async fetchMarketSize(idea: string, forceRefresh = false, sessionId: string | null = null): Promise<MarketSizeData | null> {
-    const cacheKey = `market_${idea}`;
+    const normalizedIdea = idea.trim().toLowerCase();
+    const cacheKey = `market_${normalizedIdea}`;
+    const localStorageKey = `pmf.market_data:${normalizedIdea}`;
     
-    // Check cache first unless force refresh
+    // Check cache first (both memory and localStorage) unless force refresh
     if (!forceRefresh) {
+      // Check memory cache
       const cached = this.cache.get(cacheKey);
       if (cached && cached.expires > Date.now()) {
-        console.log('[RealTimeMarket] Returning cached data for:', idea);
+        console.log('[RealTimeMarket] Returning memory-cached data for:', idea);
         return cached.data;
+      }
+      
+      // Check localStorage cache
+      try {
+        const localData = localStorage.getItem(localStorageKey);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          if (parsed.expires > Date.now()) {
+            console.log('[RealTimeMarket] Returning localStorage-cached data for:', idea);
+            // Restore to memory cache
+            this.cache.set(cacheKey, parsed);
+            return parsed.data;
+          }
+        }
+      } catch (e) {
+        console.warn('[RealTimeMarket] Failed to read localStorage cache:', e);
       }
     }
     
@@ -127,11 +167,20 @@ export class RealTimeMarketService {
         }
       }
       
-      // Cache the result
-      this.cache.set(cacheKey, {
+      // Cache the result in both memory and localStorage
+      const cacheData = {
         data: marketData,
         expires: Date.now() + this.CACHE_DURATION
-      });
+      };
+      
+      this.cache.set(cacheKey, cacheData);
+      
+      // Persist to localStorage
+      try {
+        localStorage.setItem(localStorageKey, JSON.stringify(cacheData));
+      } catch (e) {
+        console.warn('[RealTimeMarket] Failed to persist to localStorage:', e);
+      }
       
       console.log('[RealTimeMarket] Enriched market data fetched:', {
         TAM: marketData.TAM,
@@ -384,9 +433,15 @@ export class RealTimeMarketService {
   
   clearCache(idea?: string) {
     if (idea) {
-      this.cache.delete(`market_${idea}`);
+      const normalizedIdea = idea.trim().toLowerCase();
+      this.cache.delete(`market_${normalizedIdea}`);
+      // Also clear from localStorage
+      localStorage.removeItem(`pmf.market_data:${normalizedIdea}`);
     } else {
       this.cache.clear();
+      // Clear all market data from localStorage
+      const keys = Object.keys(localStorage);
+      keys.filter(k => k.startsWith('pmf.market_data:')).forEach(k => localStorage.removeItem(k));
     }
   }
 }

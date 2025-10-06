@@ -6,6 +6,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
 import { useIdeaContext } from '@/hooks/useIdeaContext';
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
+import { CacheRestorationService } from '@/services/cacheRestorationService';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -212,6 +213,20 @@ export default function EnterpriseHub() {
 
   const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime, loadingTasks } = dataHub;
 
+  // Restore cache on mount
+  useEffect(() => {
+    const restoreCache = async () => {
+      try {
+        const cacheService = CacheRestorationService.getInstance();
+        await cacheService.restore();
+        console.log('[EnterpriseHub] Cache restoration complete');
+      } catch (error) {
+        console.error('[EnterpriseHub] Cache restoration failed:', error);
+      }
+    };
+    
+    restoreCache();
+  }, []);
 
   // Set up real-time refresh
   useEffect(() => {

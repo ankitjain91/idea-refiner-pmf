@@ -25,9 +25,9 @@ export class OptimizedDashboardService {
   private groqService: GroqQueryService;
   private ongoingFetches: Map<string, Promise<any>>;
   private circuitBreakers: Map<string, CircuitBreaker>;
-  // Heavy caching configuration
-  private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour for heavy caching
-  private readonly LOCAL_CACHE_TTL = 30 * 60 * 1000; // 30 minutes local cache
+  // Long-term caching configuration - never auto-expire
+  private readonly CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days - only expire manually
+  private readonly LOCAL_CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days local cache
   
   private constructor() {
     this.cache = UnifiedResponseCache.getInstance();

@@ -90,17 +90,21 @@ export function CacheClearButton({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Clear All Cache?</AlertDialogTitle>
+          <AlertDialogTitle>⚠️ Clear All Cache?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will remove all cached data including:
-            <ul className="mt-2 ml-4 list-disc text-sm">
-              <li>API response cache</li>
-              <li>Dashboard data cache</li>
-              <li>Tile data cache</li>
-              <li>IndexedDB storage</li>
-              <li>Local storage (except auth)</li>
-            </ul>
-            <p className="mt-3">The page will reload to fetch fresh data from the API.</p>
+            <div className="space-y-3">
+              <p className="font-semibold text-destructive">Warning: This will permanently remove all cached data!</p>
+              <p>This action will clear:</p>
+              <ul className="mt-2 ml-4 list-disc text-sm space-y-1">
+                <li>All API response cache (IndexedDB)</li>
+                <li>All dashboard and tile data</li>
+                <li>Market analysis results</li>
+                <li>Sentiment and trend data</li>
+                <li>All localStorage cache (except authentication)</li>
+              </ul>
+              <p className="mt-3 font-medium">After clearing, you'll need to reload data for ALL your ideas from the API again.</p>
+              <p className="text-xs text-muted-foreground mt-2">Tip: Only use this if you're experiencing data issues. Cached data helps load your analysis instantly!</p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

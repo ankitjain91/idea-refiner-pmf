@@ -1,11 +1,12 @@
 /**
  * Utility to clear all cache data from the application
+ * WARNING: Only call this when user explicitly requests cache clearing
  */
 
 import { UnifiedResponseCache } from '@/lib/cache/unifiedResponseCache';
 
 export async function clearAllCache(): Promise<void> {
-  console.log('🧹 Starting complete cache cleanup...');
+  console.warn('🧹 Starting MANUAL cache cleanup (user requested)...');
   
   try {
     // 1. Clear IndexedDB (UnifiedResponseCache)
@@ -21,15 +22,20 @@ export async function clearAllCache(): Promise<void> {
       }
     }
     
-    // 2. Clear localStorage
+    // 2. Clear localStorage (keep auth and important keys)
     const localStorageKeys = Object.keys(localStorage);
-    localStorageKeys.forEach(key => {
-      // Keep auth-related keys
-      if (!key.includes('supabase') && !key.includes('auth')) {
-        localStorage.removeItem(key);
-      }
-    });
-    console.log(`✅ Cleared ${localStorageKeys.length} localStorage items`);
+    const keysToRemove = localStorageKeys.filter(key => 
+      // Only remove cache-related keys
+      key.startsWith('pmf.v2.') ||
+      key.startsWith('tile_cache_') ||
+      key.startsWith('cache:') ||
+      key.startsWith('market-trends-cache:') ||
+      key.startsWith('market_size_data:') ||
+      key.startsWith('datahub_')
+    );
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`✅ Cleared ${keysToRemove.length} cache items from localStorage (kept ${localStorageKeys.length - keysToRemove.length} non-cache items)`);
     
     // 3. Clear sessionStorage
     const sessionStorageKeys = Object.keys(sessionStorage);

@@ -2,11 +2,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Clear all dashboard data from the database
- * This is a one-time cleanup to remove any mock data
+ * WARNING: Only call this when user explicitly requests it
  */
 export async function clearAllDashboardData() {
   try {
-    console.log('Starting dashboard data cleanup...');
+    console.warn('⚠️ MANUAL dashboard data cleanup requested (user action)...');
     
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -29,19 +29,9 @@ export async function clearAllDashboardData() {
     
     console.log(`✅ Successfully cleared ${count || 0} dashboard data records`);
     
-    // Clear localStorage cache as well
-    const keys = Object.keys(localStorage);
-    const cacheKeys = keys.filter(k => 
-      k.startsWith('tile_cache_') || 
-      k.startsWith('cache:') || 
-      k.startsWith('market-trends-cache:')
-    );
-    
-    cacheKeys.forEach(key => {
-      localStorage.removeItem(key);
-    });
-    
-    console.log(`✅ Cleared ${cacheKeys.length} localStorage cache entries`);
+    // REMOVED: No longer auto-clear localStorage
+    // Cache should only be cleared via explicit user action through CacheClearButton
+    console.log('ℹ️ Skipping localStorage clear - use CacheClearButton for manual cache clearing');
     
     return true;
   } catch (error) {

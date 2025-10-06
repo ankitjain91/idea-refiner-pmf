@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SimpleSessionContext';
 import { LS_KEYS } from '@/lib/storage-keys';
+import { getCacheKeyForIdea, getCacheForIdea, setCacheForIdea } from '@/lib/cache-utils';
 
 export interface MarketSizeData {
   TAM: string;
@@ -96,7 +97,6 @@ export function useMarketSizeData(idea?: string) {
 
   const resolvedIdea = resolveIdea();
   const normalizedIdea = resolvedIdea ? resolvedIdea.trim().toLowerCase() : '';
-  const CACHE_KEY = normalizedIdea ? `pmf.market_size:${normalizedIdea}` : '';
 
   const fetchMarketData = async () => {
     if (!resolvedIdea) {
@@ -121,15 +121,9 @@ export function useMarketSizeData(idea?: string) {
 
       if (result) {
         setData(result);
-        // Cache per-idea to persist across tab changes and reloads
-        try {
-          if (CACHE_KEY) {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(result));
-            localStorage.setItem('lastFetchedIdea', normalizedIdea);
-          }
-        } catch (e) {
-          console.warn('Failed to cache market size data', e);
-        }
+        // CRITICAL: Persist using centralized cache utils
+        setCacheForIdea('market_size', normalizedIdea, result);
+        console.log('[useMarketSizeData] ✅ Persisted market data to cache for:', resolvedIdea.substring(0, 50));
       }
     } catch (err) {
       console.error('Failed to fetch market data:', err);
@@ -140,26 +134,21 @@ export function useMarketSizeData(idea?: string) {
   };
 
   useEffect(() => {
-    if (!resolvedIdea) return;
+    if (!resolvedIdea || !normalizedIdea) return;
 
-    // Try to load cached data for this idea first
-    try {
-      if (CACHE_KEY) {
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          setData(parsed);
-          setError(null);
-          localStorage.setItem('lastFetchedIdea', normalizedIdea);
-          return; // Skip network fetch when cache exists
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to read cached market size data', e);
+    // CRITICAL: Check cache FIRST before any loading/fetching
+    const cached = getCacheForIdea<MarketSizeData>('market_size', normalizedIdea);
+    if (cached) {
+      console.log('[useMarketSizeData] ✅ Loading from persistent cache for:', resolvedIdea.substring(0, 50));
+      setData(cached);
+      setError(null);
+      setLoading(false);
+      return; // Skip network fetch completely
     }
 
-    // No cache: fetch once
+    // Only fetch if we don't have cached data
     if (!data) {
+      console.log('[useMarketSizeData] Cache miss, fetching from API for:', resolvedIdea.substring(0, 50));
       fetchMarketData();
     }
   }, [normalizedIdea]);

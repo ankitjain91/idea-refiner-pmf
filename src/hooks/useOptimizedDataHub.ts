@@ -10,6 +10,7 @@ import { getPMFInsights } from '@/lib/pmf-category';
 import { RealTimeMarketService } from '@/services/realTimeMarketService';
 import { formatMoney, formatPercent, sanitizeTileData } from '@/utils/dataFormatting';
 import { CACHE_DURATIONS } from '@/hooks/useCachedSWR';
+import { getCacheKeyForIdea, getCacheForIdea, setCacheForIdea } from '@/lib/cache-utils';
 
 interface DataHubState {
   indices: DataHubIndices | null;
@@ -99,6 +100,22 @@ export function useOptimizedDataHub(input: DataHubInput) {
       return;
     }
 
+    const normalizedIdea = input.idea.trim().toLowerCase();
+    
+    // CRITICAL: Check cache FIRST before any loading state
+    if (!forceRefresh) {
+      const cachedData = getCacheForIdea<DataHubState>('datahub', normalizedIdea);
+      if (cachedData && cachedData.tiles && Object.keys(cachedData.tiles).length > 0) {
+        console.log('[OptimizedDataHub] ✅ Loading from persistent cache for:', input.idea.substring(0, 50));
+        setState({
+          ...cachedData,
+          loading: false,
+          error: null
+        });
+        return; // Skip fetch completely
+      }
+    }
+
     // Get session_id from SimpleSessionContext
     const sessionId = input.session_id || null;
     console.log('[OptimizedDataHub] Fetching with session_id:', sessionId);
@@ -122,7 +139,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
         const mockTiles = generateMockTiles();
         const mockIndices = generateMockIndices();
         
-        setState({
+        const newState = {
           indices: mockIndices,
           tiles: mockTiles,
           loading: false,
@@ -131,7 +148,12 @@ export function useOptimizedDataHub(input: DataHubInput) {
           lastFetchTime: new Date().toISOString(),
           cacheStats: { hits: 0, misses: 0, apiCalls: 0 },
           loadingTasks: []
-        });
+        };
+        
+        setState(newState);
+        
+        // Persist to cache
+        setCacheForIdea('datahub', normalizedIdea, newState);
         
       } else {
         // Use optimized data loading
@@ -179,11 +201,8 @@ export function useOptimizedDataHub(input: DataHubInput) {
         
         const tiles: Record<string, TileData> = {};
         
-        // Clear cache if force refresh to ensure real API calls
-        if (forceRefresh) {
-          console.log('🔄 Force refresh: Clearing cache for idea:', input.idea);
-          await cache.current.clearForIdea(input.idea);
-        }
+        // REMOVED: No longer clear cache on force refresh
+        // Data persists indefinitely unless user explicitly clears it
         
         // Fetch all tile data with deduplication
         // Update state as each tile loads for progressive rendering
@@ -560,7 +579,7 @@ export function useOptimizedDataHub(input: DataHubInput) {
         const cachedResponses = await cache.current.getResponsesForIdea(input.idea);
         const indices = generateIndicesFromResponses(cachedResponses);
         
-        setState({
+        const newState = {
           indices,
           tiles,
           loading: false,
@@ -569,7 +588,13 @@ export function useOptimizedDataHub(input: DataHubInput) {
           lastFetchTime: new Date().toISOString(),
           cacheStats: cacheStatsTracker,
           loadingTasks: []
-        });
+        };
+        
+        setState(newState);
+        
+        // CRITICAL: Persist to cache for future tab switches/relogins
+        setCacheForIdea('datahub', normalizedIdea, newState);
+        console.log('[OptimizedDataHub] ✅ Persisted data to cache for:', input.idea.substring(0, 50));
         
         hasFetchedRef.current = true;
         

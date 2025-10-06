@@ -30,7 +30,7 @@ export class UnifiedResponseCache {
   private db: IndexedDBManager;
   private memoryCache: Map<string, CachedApiResponse>;
   private readonly MAX_MEMORY_ITEMS = 500; // Increased for heavy caching
-  private readonly DEFAULT_TTL_MS = 86400000; // 24 hours default TTL for heavy caching
+  private readonly DEFAULT_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days default TTL - never auto-expire
   
   private constructor() {
     this.db = IndexedDBManager.getInstance();
