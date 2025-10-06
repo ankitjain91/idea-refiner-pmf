@@ -593,7 +593,7 @@ export default function EnterpriseHub() {
                 <ComprehensiveRedditTile data={tiles.reddit_sentiment?.json} loading={loading} />
                 <ComprehensiveTwitterTile data={tiles.twitter_buzz?.json} loading={loading} />
                 <ComprehensiveYouTubeTile data={tiles.youtube_analytics?.json} loading={loading} />
-                <SimpleNewsTile idea={currentIdea} />
+                <SimpleNewsTile />
               </div>
             )}
           </TabsContent>
