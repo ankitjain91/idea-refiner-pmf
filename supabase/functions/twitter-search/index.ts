@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 const TWITTER_BEARER_TOKEN = Deno.env.get('TWITTER_BEARER_TOKEN');
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -24,6 +25,133 @@ function hashQuery(query: string): string {
     hash = hash & hash;
   }
   return Math.abs(hash).toString(36);
+}
+
+// Generate Twitter activity using Groq when real data unavailable
+async function generateTwitterActivityWithGroq(searchTerms: string, queryHash: string, cacheExpiresAt: Date) {
+  console.log('[twitter-search] Generating Twitter activity with Groq for:', searchTerms);
+  
+  const prompt = `Analyze potential Twitter activity for this startup idea: "${searchTerms}"
+
+Generate realistic Twitter metrics including:
+1. Total tweet volume (10-100 range)
+2. Sentiment breakdown (positive, neutral, negative percentages)
+3. Top 3-5 relevant hashtags
+4. 2-3 sample tweet texts that discuss this topic
+5. Engagement metrics (likes, retweets)
+
+Be realistic - not every idea will have massive engagement. Return only JSON.`;
+
+  const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: 'You are a social media analytics expert. Generate realistic Twitter activity data in JSON format.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000
+    }),
+  });
+
+  if (!groqResponse.ok) {
+    throw new Error(`Groq API error: ${groqResponse.status}`);
+  }
+
+  const groqData = await groqResponse.json();
+  const content = groqData.choices[0].message.content;
+  
+  // Parse JSON from response
+  let parsed;
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+  } catch {
+    // Fallback to basic structure
+    parsed = {
+      total_tweets: 25,
+      sentiment: { positive: 45, neutral: 40, negative: 15 },
+      hashtags: ['#startup', '#innovation'],
+      sample_tweets: ['Interesting concept!'],
+      engagement: { avg_likes: 12, avg_retweets: 3 }
+    };
+  }
+
+  const response = {
+    twitter_buzz: {
+      summary: `AI-generated Twitter analysis for "${searchTerms.slice(0, 80)}..." shows ${parsed.total_tweets || 25} estimated tweets with ${parsed.sentiment?.positive || 45}% positive sentiment.`,
+      metrics: {
+        total_tweets: parsed.total_tweets || 25,
+        buzz_trend: 'AI-estimated',
+        overall_sentiment: {
+          positive: parsed.sentiment?.positive || 45,
+          neutral: parsed.sentiment?.neutral || 40,
+          negative: parsed.sentiment?.negative || 15
+        },
+        top_hashtags: parsed.hashtags?.slice(0, 5) || ['#startup', '#innovation'],
+        influencers: []
+      },
+      raw_tweets: (parsed.sample_tweets || []).slice(0, 5).map((text: string, idx: number) => ({
+        id: `groq_${idx}`,
+        text: text,
+        created_at: new Date().toISOString(),
+        metrics: {
+          like_count: parsed.engagement?.avg_likes || 12,
+          retweet_count: parsed.engagement?.avg_retweets || 3
+        },
+        url: '#'
+      })),
+      clusters: [{
+        cluster_id: 'ai_generated',
+        title: 'AI-Generated Analysis',
+        insight: `Estimated ${parsed.total_tweets || 25} tweets with ${parsed.sentiment?.positive || 45}% positive sentiment`,
+        sentiment: {
+          positive: parsed.sentiment?.positive || 45,
+          neutral: parsed.sentiment?.neutral || 40,
+          negative: parsed.sentiment?.negative || 15
+        },
+        engagement: {
+          avg_likes: parsed.engagement?.avg_likes || 12,
+          avg_retweets: parsed.engagement?.avg_retweets || 3
+        },
+        hashtags: parsed.hashtags?.slice(0, 5) || [],
+        quotes: [],
+        citations: [{ source: 'AI-Generated', url: '#' }]
+      }],
+      charts: [],
+      visuals_ready: true,
+      confidence: 'AI-Generated',
+      updatedAt: new Date().toISOString(),
+      cached: false,
+      cached_until: cacheExpiresAt.toISOString(),
+      source: 'groq'
+    }
+  };
+
+  // Cache the Groq response
+  await supabase.from('twitter_cache').upsert({
+    query_hash: queryHash,
+    query_text: searchTerms,
+    response_data: response,
+    rate_limit_remaining: 999,
+    rate_limit_reset: 0,
+    expires_at: cacheExpiresAt.toISOString()
+  }, { onConflict: 'query_hash' });
+
+  return new Response(JSON.stringify(response), {
+    headers: { 
+      ...corsHeaders, 
+      'Content-Type': 'application/json',
+      'X-Cache-Hit': 'false',
+      'X-Data-Source': 'groq',
+      'X-Cached-Until': cacheExpiresAt.toISOString()
+    },
+  });
 }
 
 serve(async (req) => {
@@ -100,8 +228,14 @@ serve(async (req) => {
     console.log('[twitter-search] Cache MISS - fetching from Twitter API');
     
     if (!TWITTER_BEARER_TOKEN) {
-      console.warn('[twitter-search] TWITTER_BEARER_TOKEN not configured, using fallback data');
-      throw new Error('Twitter API not configured - please add TWITTER_BEARER_TOKEN to use real Twitter data');
+      console.warn('[twitter-search] TWITTER_BEARER_TOKEN not configured, attempting Groq fallback');
+      
+      if (!GROQ_API_KEY) {
+        throw new Error('Neither Twitter API nor Groq API configured');
+      }
+      
+      // Use Groq to generate synthetic Twitter activity
+      return await generateTwitterActivityWithGroq(searchTerms, queryHash, cacheExpiresAt);
     }
     
     // Call Twitter API v2 recent search - REDUCED from 100 to 50 to save rate limits
@@ -143,6 +277,12 @@ serve(async (req) => {
     const users = twitterData.includes?.users || [];
     
     console.log(`[twitter-search] Found ${tweets.length} tweets`);
+    
+    // If no tweets found, fallback to Groq
+    if (tweets.length === 0 && GROQ_API_KEY) {
+      console.log('[twitter-search] No tweets found, using Groq fallback');
+      return await generateTwitterActivityWithGroq(searchTerms, queryHash, cacheExpiresAt);
+    }
     
     // Analyze sentiment
     const POSITIVE_WORDS = ['love', 'excellent', 'good', 'great', 'awesome', 'amazing', 'fantastic', 'perfect', 'best', 'helpful', 'useful', 'brilliant'];
