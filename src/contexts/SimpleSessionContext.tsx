@@ -443,9 +443,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .select('*')
         .eq('id', sessionId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid errors if session doesn't exist
 
       if (error) throw error;
+      if (!data) {
+        throw new Error(`Session not found: ${sessionId}`);
+      }
 
       const rawState: any = (data.state as any) || {};
       const sessionData: SessionData = {

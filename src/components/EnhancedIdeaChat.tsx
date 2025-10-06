@@ -256,11 +256,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
           .from('brainstorming_sessions')
           .select('state')
           .eq('id', sid)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid errors if session doesn't exist
           
         if (error) {
           console.error('[EnhancedIdeaChat] Database fetch error:', error);
-        } else {
+        } else if (data) {
           const state = data?.state as any;
           if (state?.chatHistory && Array.isArray(state.chatHistory)) {
             parsedMessages = state.chatHistory;
@@ -270,6 +270,8 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
           } else {
             console.log('[EnhancedIdeaChat] No chatHistory in database state');
           }
+        } else {
+          console.log('[EnhancedIdeaChat] No session found in database with ID:', sid);
         }
       } catch (e) {
         console.error('[EnhancedIdeaChat] Failed to fetch from database:', e);
