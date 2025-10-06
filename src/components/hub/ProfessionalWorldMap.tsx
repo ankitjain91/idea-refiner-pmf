@@ -115,32 +115,39 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
       // Try multiple possible data structures
       const metrics = marketData.metrics || marketData.data?.metrics || marketData;
       const totalTam = 
-        metrics?.tam || 
-        metrics?.total_addressable_market || 
-        marketData?.tam ||
-        marketData?.total_addressable_market ||
-        marketData?.marketSize?.tam ||
+        metrics?.tam ?? 
+        metrics?.total_addressable_market ?? 
+        marketData?.tam ??
+        marketData?.total_addressable_market ??
+        marketData?.marketSize?.tam ??
         null;
       
       const totalSam = 
-        metrics?.sam || 
-        metrics?.serviceable_addressable_market || 
-        marketData?.sam ||
-        marketData?.serviceable_addressable_market ||
-        marketData?.marketSize?.sam ||
+        metrics?.sam ?? 
+        metrics?.serviceable_addressable_market ?? 
+        marketData?.sam ??
+        marketData?.serviceable_addressable_market ??
+        marketData?.marketSize?.sam ??
         null;
         
       const totalSom = 
-        metrics?.som || 
-        metrics?.serviceable_obtainable_market || 
-        marketData?.som ||
-        marketData?.serviceable_obtainable_market ||
-        marketData?.marketSize?.som ||
+        metrics?.som ?? 
+        metrics?.serviceable_obtainable_market ?? 
+        marketData?.som ??
+        marketData?.serviceable_obtainable_market ??
+        marketData?.marketSize?.som ??
         null;
       
       console.log('[ProfessionalWorldMap] Extracted values:', { totalTam, totalSam, totalSom });
       
-      if (totalTam && totalSam && totalSom) {
+      // Check if values exist (even if zero) and are not all zero
+      if ((totalTam !== null && totalTam !== undefined) && 
+          (totalSam !== null && totalSam !== undefined) && 
+          (totalSom !== null && totalSom !== undefined) &&
+          (totalTam > 0 || totalSam > 0 || totalSom > 0)) {
+        
+        console.log('[ProfessionalWorldMap] Using actual market data:', { totalTam, totalSam, totalSom });
+        
         // Regional market share based on digital economy size and internet penetration
         const regionalShares = {
           "North America": 0.28,      // Highest per-capita spending
@@ -181,6 +188,8 @@ export function ProfessionalWorldMap({ marketData, loading }: ProfessionalWorldM
             }
           };
         });
+      } else {
+        console.log('[ProfessionalWorldMap] Market data is zero or invalid, using fallback');
       }
     }
 
