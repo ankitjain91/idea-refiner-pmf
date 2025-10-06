@@ -96,6 +96,7 @@ interface TwitterData {
       average: number;
     };
   };
+  summaryText?: string;
 }
 
 interface TwitterSentimentTileProps {
@@ -193,8 +194,9 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
         }
       };
 
-      setData(transformedData);
-      setCachedAt(new Date());
+      setData({ ...transformedData, summaryText: twitterBuzz.summary || '' });
+      setIsFromCache(Boolean(twitterBuzz.cached));
+      setCachedAt(new Date(twitterBuzz.cached_at || Date.now()));
       
       // Store in IndexedDB cache
       await setTwitterCache(ideaHash, transformedData);
@@ -337,6 +339,27 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
             {data.summary.topTopics.map((topic, i) => (
               <Badge key={i} variant="outline">#{topic}</Badge>
             ))}
+          </div>
+        )}
+
+        {data.posts.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+            <AlertCircle className="h-6 w-6 text-muted-foreground mx-auto" />
+            <p className="text-sm text-muted-foreground">
+              {data.summaryText ? data.summaryText : 'No recent tweets found for this idea. Try refining your idea or check again later.'}
+            </p>
+            <div className="flex gap-2">
+              <a href={`https://twitter.com/search?q=${encodeURIComponent(lockedIdea || '')}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Twitter Search
+                </Button>
+              </a>
+              <Button onClick={() => fetchTwitterData(true)} size="sm" variant="outline" disabled={loading}>
+                <RefreshCw className={cn('h-4 w-4 mr-2', loading && 'animate-spin')} />
+                Refresh
+              </Button>
+            </div>
           </div>
         )}
 
