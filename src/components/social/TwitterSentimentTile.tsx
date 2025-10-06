@@ -325,10 +325,6 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
               )}
             </div>
           </div>
-          <Button onClick={() => fetchTwitterData(true)} size="sm" variant="outline" disabled={loading}>
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-            Refresh
-          </Button>
         </div>
       </CardHeader>
 
@@ -348,18 +344,12 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
             <p className="text-sm text-muted-foreground">
               {data.summaryText ? data.summaryText : 'No recent tweets found for this idea. Try refining your idea or check again later.'}
             </p>
-            <div className="flex gap-2">
-              <a href={`https://twitter.com/search?q=${encodeURIComponent(lockedIdea || '')}`} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Twitter Search
-                </Button>
-              </a>
-              <Button onClick={() => fetchTwitterData(true)} size="sm" variant="outline" disabled={loading}>
-                <RefreshCw className={cn('h-4 w-4 mr-2', loading && 'animate-spin')} />
-                Refresh
+            <a href={`https://twitter.com/search?q=${encodeURIComponent(lockedIdea || '')}`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Twitter Search
               </Button>
-            </div>
+            </a>
           </div>
         )}
 
