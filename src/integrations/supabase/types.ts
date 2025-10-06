@@ -54,6 +54,8 @@ export type Database = {
           idea: string
           insights: Json | null
           is_active: boolean | null
+          is_locked: boolean | null
+          is_pinned: boolean | null
           last_accessed: string | null
           metadata: Json | null
           pmf_score: number | null
@@ -69,6 +71,8 @@ export type Database = {
           idea: string
           insights?: Json | null
           is_active?: boolean | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
           last_accessed?: string | null
           metadata?: Json | null
           pmf_score?: number | null
@@ -84,6 +88,8 @@ export type Database = {
           idea?: string
           insights?: Json | null
           is_active?: boolean | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
           last_accessed?: string | null
           metadata?: Json | null
           pmf_score?: number | null

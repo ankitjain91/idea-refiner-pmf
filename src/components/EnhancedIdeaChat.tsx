@@ -2282,6 +2282,27 @@ User submission: """${messageText}"""`;
     }
   }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, toast]); // Properly close the sendMessageHandler function
 
+  // Handle pin toggle
+  const handlePinToggle = useCallback(() => {
+    const newPinned = !isPinned;
+    setIsPinned(newPinned);
+    lockedIdeaManager.setPinned(newPinned);
+  }, [isPinned]);
+
+  // Handle save retry
+  const handleSaveRetry = useCallback(async () => {
+    setPersistenceStatus('saving');
+    try {
+      await saveCurrentSession();
+      setPersistenceStatus('saved');
+      setPersistenceError(undefined);
+      setTimeout(() => setPersistenceStatus('idle'), 2000);
+    } catch (error) {
+      setPersistenceStatus('error');
+      setPersistenceError('Failed to save');
+    }
+  }, [saveCurrentSession]);
+
   return (
     <TooltipProvider>
     <Card className="h-full w-full flex flex-col relative overflow-visible border-2 border-always-visible chat-shell fluid-pad-sm z-0">
@@ -2325,6 +2346,26 @@ User submission: """${messageText}"""`;
           </p>
           </div>
         </div>
+      </div>
+      
+      {/* Persistence Controls */}
+      <div className="flex items-center gap-2 mt-3 flex-wrap">
+        <IdeaLockToggle 
+          currentIdea={currentIdea}
+          hasValidIdea={hasValidIdea}
+        />
+        
+        <ConversationPinToggle 
+          isPinned={isPinned}
+          onToggle={handlePinToggle}
+          hasMessages={messages.length > 1}
+        />
+        
+        <PersistenceIndicator 
+          status={persistenceStatus}
+          errorMessage={persistenceError}
+          onRetry={handleSaveRetry}
+        />
       </div>
     </div>
 
