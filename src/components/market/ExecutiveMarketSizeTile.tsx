@@ -414,51 +414,75 @@ export function ExecutiveMarketSizeTile({
             <p className="text-sm leading-relaxed">{marketData.summary}</p>
           </div>
 
-          {/* Key Metrics Cards */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Key Metrics Cards - TAM SAM SOM */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div 
-              className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 cursor-pointer transition-all hover:scale-105"
+              className="relative overflow-hidden bg-gradient-to-br from-chart-1/10 via-chart-1/5 to-transparent border-2 border-chart-1/20 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg group"
               onMouseEnter={() => setHoveredMetric('tam')}
               onMouseLeave={() => setHoveredMetric(null)}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">TAM</span>
-                <DollarSign className="h-3 w-3 text-primary" />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-chart-1/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform" />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Addressable</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-chart-1 to-chart-1/70 bg-clip-text text-transparent">TAM</p>
+                  </div>
+                  <div className="p-2.5 bg-chart-1/10 rounded-lg">
+                    <Globe className="h-5 w-5 text-chart-1" />
+                  </div>
+                </div>
+                <p className="text-3xl font-extrabold mb-1 text-foreground">{marketData.metrics.tam}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {hoveredMetric === 'tam' ? 'Entire market opportunity across all segments and regions' : 'Global market size'}
+                </p>
               </div>
-              <p className="text-xl font-bold">{marketData.metrics.tam}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {hoveredMetric === 'tam' ? 'Total Addressable Market' : `≈ $${parseValue(marketData.metrics.tam).toFixed(1)}B`}
-              </p>
             </div>
 
             <div 
-              className="bg-gradient-to-br from-secondary/5 to-secondary/10 rounded-lg p-3 cursor-pointer transition-all hover:scale-105"
+              className="relative overflow-hidden bg-gradient-to-br from-chart-2/10 via-chart-2/5 to-transparent border-2 border-chart-2/20 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg group"
               onMouseEnter={() => setHoveredMetric('sam')}
               onMouseLeave={() => setHoveredMetric(null)}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">SAM</span>
-                <Target className="h-3 w-3 text-secondary" />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-chart-2/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform" />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Serviceable Available</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-chart-2 to-chart-2/70 bg-clip-text text-transparent">SAM</p>
+                  </div>
+                  <div className="p-2.5 bg-chart-2/10 rounded-lg">
+                    <Target className="h-5 w-5 text-chart-2" />
+                  </div>
+                </div>
+                <p className="text-3xl font-extrabold mb-1 text-foreground">{marketData.metrics.sam}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {hoveredMetric === 'sam' ? 'Market you can serve with your current/planned capabilities' : `~${((parseValue(marketData.metrics.sam) / parseValue(marketData.metrics.tam)) * 100).toFixed(0)}% of TAM`}
+                </p>
               </div>
-              <p className="text-xl font-bold">{marketData.metrics.sam}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {hoveredMetric === 'sam' ? 'Serviceable Available Market' : `≈ $${parseValue(marketData.metrics.sam).toFixed(1)}B`}
-              </p>
             </div>
 
             <div 
-              className="bg-gradient-to-br from-accent/5 to-accent/10 rounded-lg p-3 cursor-pointer transition-all hover:scale-105"
+              className="relative overflow-hidden bg-gradient-to-br from-chart-3/10 via-chart-3/5 to-transparent border-2 border-chart-3/20 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg group"
               onMouseEnter={() => setHoveredMetric('som')}
               onMouseLeave={() => setHoveredMetric(null)}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">SOM</span>
-                <Zap className="h-3 w-3 text-accent" />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-chart-3/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform" />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Serviceable Obtainable</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-chart-3 to-chart-3/70 bg-clip-text text-transparent">SOM</p>
+                  </div>
+                  <div className="p-2.5 bg-chart-3/10 rounded-lg">
+                    <Zap className="h-5 w-5 text-chart-3" />
+                  </div>
+                </div>
+                <p className="text-3xl font-extrabold mb-1 text-foreground">{marketData.metrics.som}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {hoveredMetric === 'som' ? 'Realistic market share you can capture in 3-5 years' : `~${((parseValue(marketData.metrics.som) / parseValue(marketData.metrics.sam)) * 100).toFixed(0)}% of SAM`}
+                </p>
               </div>
-              <p className="text-xl font-bold">{marketData.metrics.som}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {hoveredMetric === 'som' ? 'Serviceable Obtainable Market' : `≈ $${parseValue(marketData.metrics.som).toFixed(1)}B`}
-              </p>
             </div>
           </div>
 
