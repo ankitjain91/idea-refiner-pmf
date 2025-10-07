@@ -407,6 +407,43 @@ export function useOptimizedDataHub(input: DataHubInput) {
             }
           }
 
+          // Handle reddit_sentiment with direct endpoint call
+          if (tileType === 'reddit_sentiment') {
+            try {
+              const { data: redditData, error: redditError } = await supabase.functions.invoke('reddit-sentiment-analyzer', {
+                body: { idea: input.idea }
+              });
+
+              if (!redditError && redditData) {
+                const tileData: TileData = {
+                  metrics: {
+                    positivity_score: redditData.positivity_score || 0,
+                    engagement_score: redditData.engagement_score || 0,
+                    total_posts: redditData.posts?.length || 0,
+                    themes_count: redditData.themes?.length || 0,
+                  },
+                  explanation: redditData.summary || 'Reddit community analysis',
+                  citations: [],
+                  charts: [],
+                  json: redditData,
+                  confidence: 0.8,
+                  dataQuality: 'high'
+                };
+
+                setState(prev => ({
+                  ...prev,
+                  tiles: { ...prev.tiles, [tileType]: tileData },
+                  loadingTasks: prev.loadingTasks.map(t =>
+                    t.id === tileType ? { ...t, status: 'complete' as const } : t
+                  )
+                }));
+                return;
+              }
+            } catch (e) {
+              console.warn('[OptimizedDataHub] reddit_sentiment fetch failed, falling back', e);
+            }
+          }
+
           // Use optimized service for other tiles
           const optimizedData = await optimizedService.current.getDataForTile(tileType, input.idea);
           
