@@ -270,6 +270,46 @@ export async function synthesizeTile(type: string, idea: string): Promise<TileDa
         console.error('[synthesizeTile] news_analysis error:', e);
       }
       return emptyTile('News analysis data unavailable');
+      
+    case 'reddit_sentiment':
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/reddit-sentiment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
+          body: JSON.stringify({ idea })
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          const rs = json.reddit_sentiment || json;
+          const getMetric = (name: string) => Array.isArray(rs.metrics) ? (rs.metrics.find((m: any) => m.name === name)?.value ?? null) : null;
+          const confidenceMap: Record<string, number> = { High: 0.85, Moderate: 0.7, Low: 0.5 };
+          const citationsArr = (rs.clusters?.[0]?.citations || rs.citations || []).map((c: any) => ({
+            url: c.url || '#',
+            title: c.title || c.label || 'Reddit Source',
+            source: c.source || 'Reddit',
+            relevance: 0.8,
+          }));
+          return {
+            metrics: {
+              positive: rs.overall_sentiment?.positive ?? null,
+              neutral: rs.overall_sentiment?.neutral ?? null,
+              negative: rs.overall_sentiment?.negative ?? null,
+              total_posts: rs.overall_sentiment?.total_posts ?? null,
+              engagement_score: getMetric('engagement_score'),
+              community_positivity_score: getMetric('community_positivity_score'),
+            },
+            explanation: rs.clusters?.[0]?.insight || 'Reddit community sentiment analysis',
+            citations: citationsArr,
+            charts: rs.charts || [],
+            json: rs,
+            confidence: confidenceMap[String(rs.confidence)] ?? 0.7,
+            dataQuality: 'high',
+          };
+        }
+      } catch (e: any) {
+        console.error('[synthesizeTile] reddit_sentiment error:', e);
+      }
+      return emptyTile('Reddit sentiment data unavailable');
     default:
       return emptyTile(`Tile "${type}" not implemented.`);
   }
