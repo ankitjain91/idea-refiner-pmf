@@ -57,20 +57,21 @@ export async function synthesizeTile(type: string, idea: string): Promise<TileDa
   switch (type) {
     case 'twitter_sentiment':
       try {
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/twitter-search`, {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/twitter-ai-insights`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
-          body: JSON.stringify({ idea, query: idea })
+          body: JSON.stringify({ idea, idea_text: idea, lang: 'en' })
         });
         if (resp.ok) {
           const json = await resp.json();
+          const total = json.metrics?.total_tweets ?? (Array.isArray(json.tweets) ? json.tweets.length : 0);
           return {
-            metrics: json.twitter_buzz?.metrics || {},
-            explanation: json.twitter_buzz?.summary || 'Twitter sentiment analysis completed',
+            metrics: json.metrics || {},
+            explanation: total ? `Estimated ${total} tweets with ${json.sentiment?.positive ?? 0}% positive sentiment` : 'Twitter sentiment analysis completed',
             citations: [],
             charts: [],
-            json: json.twitter_buzz || json,
-            confidence: json.twitter_buzz?.confidence === 'High' ? 0.8 : 0.5,
+            json: json,
+            confidence: 0.6,
             dataQuality: 'high'
           };
         }
@@ -81,20 +82,21 @@ export async function synthesizeTile(type: string, idea: string): Promise<TileDa
     
     case 'youtube_analysis':
       try {
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/youtube-search`, {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/youtube-ai-insights`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}` },
-          body: JSON.stringify({ idea_text: idea, idea })
+          body: JSON.stringify({ idea_text: idea, idea, time_window: 'year', regionCode: 'US' })
         });
         if (resp.ok) {
           const json = await resp.json();
+          const count = Array.isArray(json.youtube_insights) ? json.youtube_insights.length : 0;
           return {
             metrics: json.summary || {},
-            explanation: `Found ${json.youtube_insights?.length || 0} relevant videos`,
+            explanation: `Found ${count} relevant videos`,
             citations: [],
             charts: [],
             json: json,
-            confidence: json.meta?.confidence === 'High' ? 0.8 : 0.5,
+            confidence: 0.6,
             dataQuality: 'high'
           };
         }
