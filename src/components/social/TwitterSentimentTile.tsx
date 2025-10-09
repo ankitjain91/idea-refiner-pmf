@@ -194,23 +194,32 @@ function normalizeTwitterBuzzData(obj: any): TwitterBuzzData {
 
 interface TwitterSentimentTileProps {
   className?: string;
+  data?: any;
+  loading?: boolean;
 }
 
-export function TwitterSentimentTile({ className = '' }: TwitterSentimentTileProps) {
+export function TwitterSentimentTile({ className = '', data: externalData, loading: externalLoading }: TwitterSentimentTileProps) {
   const { lockedIdea, hasLockedIdea } = useLockedIdea();
-  const [data, setData] = useState<TwitterBuzzData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [internalData, setInternalData] = useState<TwitterBuzzData | null>(null);
+  const [internalLoading, setInternalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
 
+  // Use external data if provided, otherwise use internal state
+  const data = externalData ? normalizeTwitterBuzzData(externalData.json || externalData) : internalData;
+  const loading = externalLoading !== undefined ? externalLoading : internalLoading;
+
   const fetchTwitterData = useCallback(async (force: boolean = false) => {
+    // Skip if external data is provided
+    if (externalData) return;
+    
     if (!hasLockedIdea || !lockedIdea) {
       console.warn('[TwitterSentimentTile] Fetch attempt without a locked idea');
       return;
     }
 
-    if (loading && !force) {
+    if (internalLoading && !force) {
       console.log('[TwitterSentimentTile] Fetch already in progress');
       return;
     }
@@ -222,7 +231,7 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
       const cachedData = await getTwitterCache(ideaHash);
       if (cachedData && isValidTwitterBuzzData(cachedData)) {
         console.log('[TwitterSentimentTile] Using cached data from IndexedDB');
-        setData(normalizeTwitterBuzzData(cachedData));
+        setInternalData(normalizeTwitterBuzzData(cachedData));
         setIsFromCache(true);
         setFetchAttempted(true);
         return;
@@ -233,7 +242,7 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
 
     console.log('[TwitterSentimentTile] Starting Twitter analysis fetch');
 
-    setLoading(true);
+    setInternalLoading(true);
     setFetchAttempted(true);
     setError(null);
     setIsFromCache(false);
@@ -251,7 +260,7 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
         throw new Error('No Twitter data in response');
       }
 
-      setData(normalizeTwitterBuzzData(twitterBuzz));
+      setInternalData(normalizeTwitterBuzzData(twitterBuzz));
       setIsFromCache(Boolean(twitterBuzz.cached));
       
       // Store in IndexedDB cache
@@ -264,9 +273,9 @@ export function TwitterSentimentTile({ className = '' }: TwitterSentimentTilePro
       setError(message);
       toast.error('Failed to fetch Twitter analysis');
     } finally {
-      setLoading(false);
+      setInternalLoading(false);
     }
-  }, [lockedIdea, hasLockedIdea, loading]);
+  }, [lockedIdea, hasLockedIdea, internalLoading, externalData]);
 
   useEffect(() => {
     if (hasLockedIdea && lockedIdea && !data && !fetchAttempted) {

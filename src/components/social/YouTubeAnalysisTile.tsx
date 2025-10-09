@@ -58,16 +58,25 @@ interface YouTubeData {
 interface YouTubeAnalysisTileProps {
   idea?: string;
   className?: string;
+  data?: any;
+  loading?: boolean;
 }
 
-export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps) {
+export function YouTubeAnalysisTile({ className = '', data: externalData, loading: externalLoading }: YouTubeAnalysisTileProps) {
   const { lockedIdea, hasLockedIdea } = useLockedIdea();
-  const [data, setData] = useState<YouTubeData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [internalData, setInternalData] = useState<YouTubeData | null>(null);
+  const [internalLoading, setInternalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+  
+  // Use external data if provided, otherwise use internal state
+  const data = externalData ? (externalData.json || externalData) : internalData;
+  const loading = externalLoading !== undefined ? externalLoading : internalLoading;
 
   const fetchYouTubeData = useCallback(async (force: boolean = false) => {
+    // Skip if external data is provided
+    if (externalData) return;
+    
     if (!hasLockedIdea || !lockedIdea) {
       console.warn('[YouTubeAnalysisTile] Fetch attempt without a locked idea');
       return;
@@ -80,7 +89,7 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
       if (cached) {
         try {
           const cachedData = JSON.parse(cached);
-          setData(cachedData);
+          setInternalData(cachedData);
           console.log('[YouTubeAnalysisTile] Loaded from cache');
           return;
         } catch (e) {
@@ -89,7 +98,7 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
       }
     }
 
-    if (loading && !force) {
+    if (internalLoading && !force) {
       console.log('[YouTubeAnalysisTile] Fetch already in progress');
       return;
     }
@@ -101,7 +110,7 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
       hasExistingData: !!data
     });
 
-    setLoading(true);
+    setInternalLoading(true);
     setFetchAttempted(true);
     setError(null);
 
@@ -145,11 +154,11 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
         const msg = response?.summary?.error || 'No relevant YouTube videos found. Try refining your idea keywords and refresh.';
         setError(msg);
         // Do not cache empty results to allow future successful fetches
-        setLoading(false);
+        setInternalLoading(false);
         return;
       }
 
-      setData(transformedData);
+      setInternalData(transformedData);
       
       // Cache the result
       const cacheKey = `youtube_analysis_${lockedIdea.slice(0, 50)}`;
@@ -162,9 +171,9 @@ export function YouTubeAnalysisTile({ className = '' }: YouTubeAnalysisTileProps
       setError(message);
       toast.error('Failed to fetch YouTube analysis');
     } finally {
-      setLoading(false);
+      setInternalLoading(false);
     }
-  }, [lockedIdea, hasLockedIdea, loading, data]);
+  }, [lockedIdea, hasLockedIdea, internalLoading, data, externalData]);
 
   useEffect(() => {
     if (hasLockedIdea && lockedIdea && !data && !fetchAttempted) {

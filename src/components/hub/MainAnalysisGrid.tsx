@@ -243,16 +243,18 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             );
           }
           if (tile.id === 'twitter_sentiment') {
+            const twitterData = mergedTileData('twitter_sentiment');
             return (
               <div key={tile.id} className={tile.span}>
-                <TwitterSentimentTile className="h-full" />
+                <TwitterSentimentTile data={twitterData} loading={loading || (networkLoading && !twitterData)} className="h-full" />
               </div>
             );
           }
           if (tile.id === 'youtube_analysis') {
+            const youtubeData = mergedTileData('youtube_analysis');
             return (
               <div key={tile.id} className={tile.span}>
-                <YouTubeAnalysisTile className="h-full" />
+                <YouTubeAnalysisTile data={youtubeData} loading={loading || (networkLoading && !youtubeData)} className="h-full" />
               </div>
             );
           }
