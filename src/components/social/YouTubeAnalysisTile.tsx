@@ -85,8 +85,28 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
         })
       : [];
     
+    // Extract and transform videos
+    const rawVideos = json.youtube_insights || json.videos || [];
+    const transformedVideos: YouTubeVideo[] = Array.isArray(rawVideos)
+      ? rawVideos.map((video: any) => ({
+          id: video.videoId || video.id || '',
+          title: video.title || '',
+          channelTitle: video.channel || video.channelTitle || '',
+          description: video.description || '',
+          publishedAt: video.published_at || video.publishedAt || '',
+          viewCount: video.views || video.viewCount || 0,
+          likeCount: video.likes || video.likeCount || 0,
+          commentCount: video.comments || video.commentCount || 0,
+          url: video.url || '',
+          thumbnailUrl: video.thumbnail || video.thumbnailUrl || '',
+          relevanceScore: video.relevance || video.relevanceScore || 0,
+          sentiment: (video.relevance || 0) > 0.6 ? 'positive' : (video.relevance || 0) < 0.4 ? 'negative' : 'neutral',
+          topComments: video.topComments || []
+        }))
+      : [];
+    
     return {
-      videos: [],
+      videos: transformedVideos,
       summary: {
         totalVideos: metrics.total_videos ?? 0,
         totalViews: metrics.total_views ?? 0,
