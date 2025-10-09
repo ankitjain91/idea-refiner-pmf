@@ -76,13 +76,22 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
     const json = ext.json || ext;
     const metrics = ext.metrics || {};
     
+    // Normalize top_channels into array of channel names (strings)
+    const normalizedTopChannels: string[] = Array.isArray(metrics.top_channels)
+      ? metrics.top_channels.map((c: any) => {
+          if (typeof c === 'string') return c;
+          if (c && typeof c === 'object' && 'channel' in c) return String(c.channel);
+          return String(c ?? 'Unknown');
+        })
+      : [];
+    
     return {
       videos: [],
       summary: {
         totalVideos: metrics.total_videos ?? 0,
         totalViews: metrics.total_views ?? 0,
         averageSentiment: 0,
-        topChannels: metrics.top_channels ?? [],
+        topChannels: normalizedTopChannels,
         engagement: {
           total: metrics.total_likes ?? 0,
           average: metrics.avg_relevance ?? 0
