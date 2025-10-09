@@ -62,14 +62,14 @@ export function ComprehensiveRedditTile({ data, loading }: Props) {
 
   const metrics = data.metrics || {};
   const json = data.json || {};
-  const topPosts = json.topPosts || [];
+  const topPosts = (json.items as any[]) || [];
   const themes = json.themes || [];
   const painPoints = json.pain_points || [];
   
-  const positive = json.positive || 0;
-  const neutral = json.neutral || 0;
-  const negative = json.negative || 0;
-  const total = positive + neutral + negative;
+  const positive = (metrics.positive ?? json.overall_sentiment?.positive) ?? 0;
+  const neutral = (metrics.neutral ?? json.overall_sentiment?.neutral) ?? 0;
+  const negative = (metrics.negative ?? json.overall_sentiment?.negative) ?? 0;
+  const total = (metrics.total_posts ?? json.overall_sentiment?.total_posts) ?? (positive + neutral + negative);
 
   const sentimentData = [
     { name: 'Positive', value: positive, color: SENTIMENT_COLORS.positive },
@@ -88,14 +88,21 @@ export function ComprehensiveRedditTile({ data, loading }: Props) {
     }
   };
 
-  const getRelativeTime = (timestamp: number) => {
+  const getRelativeTime = (ts: number | string) => {
+    let timestampSec: number;
+    if (typeof ts === 'string') {
+      const d = new Date(ts);
+      timestampSec = isNaN(d.getTime()) ? Number(ts) : d.getTime() / 1000;
+    } else {
+      timestampSec = ts;
+    }
     const now = Date.now() / 1000;
-    const diff = now - timestamp;
+    const diff = now - timestampSec;
     
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-    return new Date(timestamp * 1000).toLocaleDateString();
+    return new Date(timestampSec * 1000).toLocaleDateString();
   };
 
   return (
@@ -107,20 +114,20 @@ export function ComprehensiveRedditTile({ data, loading }: Props) {
             Reddit Community Pulse
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{json.totalPosts || 0} posts</Badge>
+            <Badge variant="outline">{total || 0} posts</Badge>
             <Badge variant="secondary">{data.confidence ? Math.round(data.confidence * 100) + '%' : 'Medium'}</Badge>
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">{data.explanation || json.summary}</p>
-        {json.engagement_score && (
+        {metrics.engagement_score != null && (
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">
               <TrendingUp className="h-3 w-3 mr-1" />
-              Engagement: {json.engagement_score}/100
+              Engagement: {metrics.engagement_score}/100
             </Badge>
-            {json.positivity_score && (
+            {metrics.community_positivity_score != null && (
               <Badge variant="outline" className="text-xs">
-                Positivity: {json.positivity_score}/100
+                Positivity: {metrics.community_positivity_score}/100
               </Badge>
             )}
           </div>
@@ -228,7 +235,7 @@ export function ComprehensiveRedditTile({ data, loading }: Props) {
                       className="block p-4 rounded-lg border hover:border-primary/40 hover:bg-accent/50 transition-all"
                     >
                       <div className="flex items-start gap-3">
-                        {getSentimentIcon(post.sentiment)}
+                        {getSentimentIcon((post as any).sentiment || (post as any).evidence?.[0] || 'neutral')}
                         <div className="flex-1 space-y-2">
                           <h4 className="text-sm font-medium line-clamp-2">{post.title}</h4>
                           {post.selftext && (
@@ -252,7 +259,7 @@ export function ComprehensiveRedditTile({ data, loading }: Props) {
                                 {post.num_comments}
                               </span>
                             )}
-                            <span>{getRelativeTime(post.created)}</span>
+                            <span>{getRelativeTime((post as any).created ?? (post as any).published)}</span>
                           </div>
                         </div>
                       </div>
