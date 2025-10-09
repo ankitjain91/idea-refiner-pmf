@@ -64,14 +64,14 @@ export async function synthesizeTile(type: string, idea: string): Promise<TileDa
         });
         if (resp.ok) {
           const json = await resp.json();
-          const total = json.metrics?.total_tweets ?? (Array.isArray(json.tweets) ? json.tweets.length : 0);
+          // Pass through raw json - TwitterSentimentTile will normalize it
           return {
             metrics: json.metrics || {},
-            explanation: total ? `Estimated ${total} tweets with ${json.sentiment?.positive ?? 0}% positive sentiment` : 'Twitter sentiment analysis completed',
+            explanation: json.summary || 'Twitter sentiment analysis completed',
             citations: [],
             charts: [],
-            json: json,
-            confidence: 0.6,
+            json: json, // Contains all data: summary, metrics, clusters, raw_tweets
+            confidence: 0.7,
             dataQuality: 'high'
           };
         }
