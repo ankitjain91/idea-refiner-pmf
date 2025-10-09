@@ -257,9 +257,10 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
             );
           }
           if (tile.id === 'reddit_sentiment') {
+            const redditData = mergedTileData('reddit_sentiment');
             return (
               <div key={tile.id} className={tile.span}>
-                <ComprehensiveRedditTile data={tiles.reddit_sentiment} loading={loading} />
+                <ComprehensiveRedditTile data={redditData} loading={loading || (networkLoading && !redditData)} />
               </div>
             );
           }
