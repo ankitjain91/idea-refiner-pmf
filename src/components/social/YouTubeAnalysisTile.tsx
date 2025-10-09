@@ -124,6 +124,12 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
   const data = externalData ? transformExternalData(externalData) : internalData;
   const loading = externalLoading !== undefined ? externalLoading : internalLoading;
 
+  // Memoize sorted videos to prevent re-sorting on every render
+  const videosSorted = useMemo(
+    () => (Array.isArray(data?.videos) ? [...data.videos].sort((a, b) => b.relevanceScore - a.relevanceScore) : []),
+    [data?.videos]
+  );
+
   const fetchYouTubeData = useCallback(async (force: boolean = false) => {
     // Skip if external data is provided
     if (externalData) return;
@@ -315,11 +321,6 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
   }
 
   if (!data) return null;
-
-  const videosSorted = useMemo(
-    () => (Array.isArray(data?.videos) ? [...data.videos].sort((a, b) => b.relevanceScore - a.relevanceScore) : []),
-    [data?.videos]
-  );
 
   // Show an informative empty state when no videos are available (e.g., API error)
   if ((data.summary?.totalVideos ?? 0) === 0) {
