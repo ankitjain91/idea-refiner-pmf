@@ -287,6 +287,32 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
 
   if (!data) return null;
 
+  // Show an informative empty state when no videos are available (e.g., API error)
+  if ((data.summary?.totalVideos ?? 0) === 0) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Youtube className="h-5 w-5 text-[#FF0000]" />
+            YouTube Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 space-y-4">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
+            <p className="text-sm text-muted-foreground">
+              {(data as any)?.summary?.error || 'No relevant YouTube videos found. Try refining your idea keywords and refresh.'}
+            </p>
+            <Button onClick={() => fetchYouTubeData(true)} size="sm" variant="outline" disabled={loading}>
+              <RefreshCw className={cn('h-4 w-4 mr-2', loading && 'animate-spin')} />
+              Refresh
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={className}>
       <CardHeader>
