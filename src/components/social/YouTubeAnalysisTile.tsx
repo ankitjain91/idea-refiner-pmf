@@ -137,8 +137,8 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
     setError(null);
 
     try {
-      const { data: response, error: functionError } = await supabase.functions.invoke('youtube-search', {
-        body: { idea_text: lockedIdea, idea: lockedIdea, time_window: 'year', regionCode: 'US', relevanceLanguage: 'en' }
+      const { data: response, error: functionError } = await supabase.functions.invoke('youtube-ai-insights', {
+        body: { idea_text: lockedIdea, idea: lockedIdea, time_window: 'year', regionCode: 'US' }
       });
 
       if (functionError) throw new Error(functionError.message);

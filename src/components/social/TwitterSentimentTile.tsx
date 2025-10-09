@@ -248,13 +248,13 @@ export function TwitterSentimentTile({ className = '', data: externalData, loadi
     setIsFromCache(false);
 
     try {
-      const { data: response, error: functionError } = await supabase.functions.invoke('twitter-search', {
-        body: { idea: lockedIdea, query: lockedIdea }
+      const { data: response, error: functionError } = await supabase.functions.invoke('twitter-ai-insights', {
+        body: { idea: lockedIdea, idea_text: lockedIdea, lang: 'en' }
       });
 
       if (functionError) throw new Error(functionError.message);
 
-      const twitterBuzz = response?.twitter_buzz;
+      const twitterBuzz = response;
       
       if (!twitterBuzz) {
         throw new Error('No Twitter data in response');
