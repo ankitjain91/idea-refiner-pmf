@@ -157,6 +157,7 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
     { id: 'google_trends', title: 'Google Trends', icon: Search },
     { id: 'news_analysis', title: 'News Analysis', icon: Newspaper },
     { id: 'twitter_sentiment', title: 'Twitter Insights', icon: MessageSquare },
+    { id: 'reddit_sentiment', title: 'Reddit Insights', icon: MessageSquare },
     { id: 'youtube_analysis', title: 'YouTube Analysis', icon: Activity },
     { id: 'financial_analysis', title: 'Financial Analysis', icon: DollarSign }
   ]
