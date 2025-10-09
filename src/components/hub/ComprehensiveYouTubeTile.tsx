@@ -58,7 +58,15 @@ export function ComprehensiveYouTubeTile({ data, loading }: Props) {
   const videos = data.youtube_insights || [];
   const summary = data.summary || {};
   const meta = data.meta || {};
-  const topChannels = summary.top_channels || [];
+  
+  // Normalize topChannels to ensure proper structure
+  const rawTopChannels = summary.top_channels || [];
+  const topChannels = Array.isArray(rawTopChannels) 
+    ? rawTopChannels.filter((ch: any) => ch && typeof ch === 'object').map((ch: any) => ({
+        channel: typeof ch.channel === 'string' ? ch.channel : String(ch.channel || 'Unknown'),
+        video_count: typeof ch.video_count === 'number' ? ch.video_count : Number(ch.video_count || 0)
+      }))
+    : [];
 
   const relevanceData = [
     { name: 'High (>60%)', value: videos.filter((v: any) => v.relevance > 0.6).length, color: '#10b981' },

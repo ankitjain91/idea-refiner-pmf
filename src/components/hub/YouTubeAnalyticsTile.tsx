@@ -156,7 +156,15 @@ export function YouTubeAnalyticsTile({ data, loading = false, onRefresh }: YouTu
 
   const videos = data.youtube_insights || [];
   const summary = data.summary;
-  const topChannels = summary.top_channels || [];
+  
+  // Normalize topChannels to ensure proper structure
+  const rawTopChannels = summary.top_channels || [];
+  const topChannels = Array.isArray(rawTopChannels)
+    ? rawTopChannels.filter((ch: any) => ch && typeof ch === 'object').map((ch: any) => ({
+        channel: typeof ch.channel === 'string' ? ch.channel : String(ch.channel || 'Unknown'),
+        video_count: typeof ch.video_count === 'number' ? ch.video_count : Number(ch.video_count || 0)
+      }))
+    : [];
   
   // Prepare channel chart data
   const channelChartData = topChannels.slice(0, 5).map(ch => ({
