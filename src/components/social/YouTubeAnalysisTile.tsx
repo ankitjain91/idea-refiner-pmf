@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -316,6 +316,11 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
 
   if (!data) return null;
 
+  const videosSorted = useMemo(
+    () => (Array.isArray(data?.videos) ? [...data.videos].sort((a, b) => b.relevanceScore - a.relevanceScore) : []),
+    [data?.videos]
+  );
+
   // Show an informative empty state when no videos are available (e.g., API error)
   if ((data.summary?.totalVideos ?? 0) === 0) {
     return (
@@ -386,9 +391,7 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
         {/* Videos List */}
         <ScrollArea className="h-[500px] pr-4">
           <div className="space-y-4">
-            {data.videos
-              .sort((a, b) => b.relevanceScore - a.relevanceScore)
-              .map((video) => (
+            {videosSorted.map((video) => (
                 <div
                   key={video.id}
                   className="p-4 rounded-lg border bg-card/50 hover:bg-accent/5 transition-colors space-y-3"
