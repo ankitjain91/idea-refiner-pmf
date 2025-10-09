@@ -170,6 +170,27 @@ function normalizeTwitterBuzzData(obj: any): TwitterBuzzData {
     };
   };
 
+  const normalizeCluster = (c: any) => {
+    const sentiment = c?.sentiment || {};
+    return {
+      cluster_id: c?.cluster_id ?? String(Math.random()),
+      title: c?.title ?? 'Discussion Cluster',
+      insight: c?.insight ?? '',
+      sentiment: {
+        positive: Number(sentiment?.positive ?? 0),
+        neutral: Number(sentiment?.neutral ?? 0),
+        negative: Number(sentiment?.negative ?? 0),
+      },
+      engagement: {
+        avg_likes: Number(c?.engagement?.avg_likes ?? 0),
+        avg_retweets: Number(c?.engagement?.avg_retweets ?? 0),
+      },
+      hashtags: Array.isArray(c?.hashtags) ? c.hashtags : [],
+      quotes: Array.isArray(c?.quotes) ? c.quotes : [],
+      citations: Array.isArray(c?.citations) ? c.citations : [],
+    };
+  };
+
   return {
     summary: obj?.summary ?? '',
     metrics: {
@@ -183,7 +204,7 @@ function normalizeTwitterBuzzData(obj: any): TwitterBuzzData {
       top_hashtags: Array.isArray(metrics?.top_hashtags) ? metrics.top_hashtags : [],
       influencers: Array.isArray(metrics?.influencers) ? metrics.influencers : [],
     },
-    clusters: Array.isArray(obj?.clusters) ? obj.clusters : [],
+    clusters: Array.isArray(obj?.clusters) ? obj.clusters.map(normalizeCluster) : [],
     raw_tweets: Array.isArray(obj?.raw_tweets) ? obj.raw_tweets.map((t: any, i: number) => normalizeTweet(t, i)) : [],
     confidence: obj?.confidence ?? 'Low',
     cached: obj?.cached,
