@@ -70,7 +70,29 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
   const [fetchAttempted, setFetchAttempted] = useState(false);
   
   // Use external data if provided, otherwise use internal state
-  const data = externalData ? (externalData.json || externalData) : internalData;
+  // Transform external data to match expected interface
+  const transformExternalData = (ext: any): YouTubeData | null => {
+    if (!ext) return null;
+    const json = ext.json || ext;
+    const metrics = ext.metrics || {};
+    
+    return {
+      videos: [],
+      summary: {
+        totalVideos: metrics.total_videos ?? 0,
+        totalViews: metrics.total_views ?? 0,
+        averageSentiment: 0,
+        topChannels: metrics.top_channels ?? [],
+        engagement: {
+          total: metrics.total_likes ?? 0,
+          average: metrics.avg_relevance ?? 0
+        },
+        error: metrics.error || json.error
+      } as any
+    };
+  };
+  
+  const data = externalData ? transformExternalData(externalData) : internalData;
   const loading = externalLoading !== undefined ? externalLoading : internalLoading;
 
   const fetchYouTubeData = useCallback(async (force: boolean = false) => {
@@ -190,7 +212,8 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
     }
   };
 
-  const formatNumber = (num: number): string => {
+  const formatNumber = (num: number | undefined): string => {
+    if (num === undefined || num === null || isNaN(num)) return '0';
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
