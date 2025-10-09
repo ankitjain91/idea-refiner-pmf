@@ -133,8 +133,23 @@ export class LockedIdeaManager {
   clearLockedIdea(): void {
     if (typeof window === 'undefined') return;
     
-    localStorage.removeItem(LOCKED_IDEA_KEY);
+    // First clean up all alternate keys to prevent re-migration
     this.cleanupOldIdeaKeys();
+    
+    // Then clear the primary key
+    localStorage.removeItem(LOCKED_IDEA_KEY);
+    
+    // Clear conversation-related state
+    localStorage.removeItem('conversation_pinned');
+    localStorage.removeItem('conversationSummary');
+    localStorage.removeItem('ideaSummaryName');
+    
+    // Clear session-related idea storage
+    const sessionId = localStorage.getItem('currentSessionId');
+    if (sessionId) {
+      localStorage.removeItem(`session_${sessionId}_idea`);
+    }
+    
     this.notifyListeners('');
     
     // Clear from database (async, don't block UI)
@@ -142,7 +157,7 @@ export class LockedIdeaManager {
       console.error('[LockedIdeaManager] Failed to clear from database:', e)
     );
     
-    console.log('[LockedIdeaManager] Idea cleared from all sources');
+    console.log('[LockedIdeaManager] Idea cleared from all sources including alternate keys');
   }
 
   /**
