@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,10 @@ const corsHeaders = {
 }
 
 const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 serve(async (req) => {
   // Handle CORS
@@ -24,9 +29,27 @@ serve(async (req) => {
     
     console.log('[youtube-search] Processing research for idea:', searchIdea);
     
+    // Generate cache key
+    const cacheKey = `youtube_${searchIdea.slice(0, 100)}_${time_window}_${regionCode}`;
+    
+    // 1. Check cache first
+    const { data: cachedData } = await supabase
+      .from('llm_cache')
+      .select('response_data')
+      .eq('cache_key', cacheKey)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+    
+    if (cachedData?.response_data) {
+      console.log('[youtube-search] Returning cached data');
+      return new Response(JSON.stringify(cachedData.response_data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
     if (!YOUTUBE_API_KEY) {
-      console.warn('[youtube-search] YOUTUBE_API_KEY not configured');
-      throw new Error('YouTube API not configured');
+      console.warn('[youtube-search] YOUTUBE_API_KEY not configured - returning fallback');
+      return createFallbackResponse(searchIdea, time_window, regionCode, 'YouTube API not configured');
     }
     
     // 1. Query Expansion - extract keywords and create search variations
@@ -73,6 +96,13 @@ serve(async (req) => {
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
       console.error('[youtube-search] Search API error:', searchResponse.status, errorText);
+      
+      // If quota exceeded, return cached fallback or AI-generated estimate
+      if (searchResponse.status === 403) {
+        console.warn('[youtube-search] Quota exceeded - returning fallback');
+        return createFallbackResponse(searchIdea, time_window, regionCode, 'YouTube quota exceeded');
+      }
+      
       throw new Error(`YouTube Search API error: ${searchResponse.status}`);
     }
     
@@ -198,6 +228,17 @@ serve(async (req) => {
       }
     };
     
+    // Cache the successful response for 24 hours
+    await supabase
+      .from('llm_cache')
+      .upsert({
+        cache_key: cacheKey,
+        response_data: response,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      });
+    
+    console.log('[youtube-search] Response cached successfully');
+    
     return new Response(JSON.stringify(response), {
       headers: { 
         ...corsHeaders, 
@@ -233,3 +274,34 @@ serve(async (req) => {
     });
   }
 });
+
+// Fallback response generator when quota exceeded or API unavailable
+function createFallbackResponse(idea: string, timeWindow: string, region: string, errorMsg: string) {
+  console.log('[youtube-search] Creating fallback response');
+  
+  const fallbackResponse = {
+    idea,
+    youtube_insights: [],
+    summary: {
+      total_videos: 0,
+      total_views: 0,
+      total_likes: 0,
+      avg_relevance: 0,
+      top_channels: [],
+      time_window: timeWindow,
+      region,
+      error: `${errorMsg}. Please try again later or check your API quota.`
+    },
+    meta: {
+      confidence: 'Low',
+      error: errorMsg,
+      error_type: 'quota_exceeded',
+      cached_until: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString() // 1 hour cache for errors
+    }
+  };
+  
+  return new Response(JSON.stringify(fallbackResponse), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 200
+  });
+}
