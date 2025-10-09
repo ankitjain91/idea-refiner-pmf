@@ -412,11 +412,10 @@ export function YouTubeAnalysisTile({ className = '', data: externalData, loadin
                             href={video.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="shrink-0"
+                            className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#FF0000]/10 text-[#FF0000] hover:bg-[#FF0000]/20 transition-colors text-sm font-medium"
                           >
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
+                            <ExternalLink className="h-4 w-4" />
+                            Watch
                           </a>
                         )}
                       </div>

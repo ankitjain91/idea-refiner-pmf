@@ -551,9 +551,10 @@ export function TwitterSentimentTile({ className = '', data: externalData, loadi
                                 href={quote.url} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="text-xs text-[#1DA1F2] hover:underline flex items-center gap-1"
+                                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-[#1DA1F2]/10 text-[#1DA1F2] hover:bg-[#1DA1F2]/20 transition-colors"
                               >
-                                View tweet <ExternalLink className="h-3 w-3" />
+                                <ExternalLink className="h-3 w-3" />
+                                View Tweet
                               </a>
                             )}
                           </div>
@@ -614,9 +615,10 @@ export function TwitterSentimentTile({ className = '', data: externalData, loadi
                           href={(tweet as any).url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-[#1DA1F2] hover:underline flex items-center gap-1"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#1DA1F2]/10 text-[#1DA1F2] hover:bg-[#1DA1F2]/20 transition-colors"
                         >
-                          View <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="h-3 w-3" />
+                          View Tweet
                         </a>
                       )}
                     </div>

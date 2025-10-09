@@ -194,12 +194,15 @@ export function ComprehensiveTwitterTile({ data, loading }: Props) {
                         <span className="ml-auto">{new Date(tweet.created_at).toLocaleDateString()}</span>
                       )}
                       {tweet?.url && tweet.url !== '#' && tweet.url !== '' && (
-                        <Button variant="ghost" size="sm" className="h-6 text-xs" asChild>
-                          <a href={tweet.url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View
-                          </a>
-                        </Button>
+                        <a 
+                          href={tweet.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#1DA1F2]/10 text-[#1DA1F2] hover:bg-[#1DA1F2]/20 transition-colors text-xs"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View Tweet
+                        </a>
                       )}
                     </div>
                   </div>
