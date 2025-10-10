@@ -9,7 +9,6 @@ const corsHeaders = {
 }
 
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -240,22 +239,15 @@ async function computePMFWithAI(context: any) {
   `
 
   try {
-    // Try Groq first (faster)
-    if (GROQ_API_KEY) {
-      try {
-        const result = await callGroqAPI(prompt)
-        if (result) return result
-      } catch (groqError) {
-        console.log('Groq failed, trying OpenAI:', groqError.message)
-      }
+    // Use Groq API for AI computation
+    if (!GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY not configured')
     }
-
-    // Fallback to OpenAI
-    if (OPENAI_API_KEY) {
-      return await callOpenAIAPI(prompt)
-    }
-
-    throw new Error('No AI APIs configured')
+    
+    const result = await callGroqAPI(prompt)
+    if (result) return result
+    
+    throw new Error('Failed to get response from Groq API')
   } catch (error) {
     console.error('AI computation failed:', error)
     // Return fallback score
@@ -323,44 +315,6 @@ async function callGroqAPI(prompt: string) {
 
   if (!content) {
     throw new Error('No content returned from Groq')
-  }
-
-  return JSON.parse(content)
-}
-
-async function callOpenAIAPI(prompt: string) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a senior startup advisor and business analyst. Always respond with valid JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 3000
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  const content = data.choices?.[0]?.message?.content
-
-  if (!content) {
-    throw new Error('No content returned from OpenAI')
   }
 
   return JSON.parse(content)
