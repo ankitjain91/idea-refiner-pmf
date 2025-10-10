@@ -35,25 +35,27 @@ export function useLockedIdea() {
   
   // Use locked idea if available, otherwise use current idea from chat
   const activeIdea = manager.lockedIdea || currentIdea;
+  const hasLockedIdea = !!manager.lockedIdea && manager.lockedIdea.trim().length >= 20;
+  const hasIdea = !!activeIdea && activeIdea.trim().length >= 20;
   
   return {
     // The active idea (locked or current from chat)
     idea: activeIdea,
-    hasIdea: !!activeIdea && activeIdea.length >= 20,
-    
-    // Locked idea specifically
+    hasIdea, // preferred new flag (either locked or working idea)
+    // Backward compatibility for existing components expecting these
     lockedIdea: manager.lockedIdea,
+    hasLockedIdea, // legacy flag used across tiles
     isLocked: !!manager.lockedIdea,
-    
-    // Current idea from chat (not locked)
-    currentIdea: currentIdea,
-    
-    // Lock/unlock actions
+    // Current (unlocked) working idea from chat
+    currentIdea,
+    // Actions (new names)
     lockIdea: manager.setLockedIdea,
     unlockIdea: manager.clearLockedIdea,
-    
+    // Backward compatibility action names
+    setLockedIdea: manager.setLockedIdea,
+    clearLockedIdea: manager.clearLockedIdea,
     // Pin status
     isPinned: manager.isPinned,
     setPinned: manager.setPinned,
-  };
+  } as const;
 }

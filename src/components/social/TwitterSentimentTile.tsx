@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useLockedIdea } from '@/lib/lockedIdeaManager';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 import { supabase } from '@/integrations/supabase/client';
 import { openDB } from 'idb';
 import {

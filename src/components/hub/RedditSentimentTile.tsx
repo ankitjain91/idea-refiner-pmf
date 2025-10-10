@@ -20,7 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { optimizedQueue } from '@/lib/optimized-request-queue';
 import { TileAIChat } from './TileAIChat';
-import { useLockedIdea } from '@/lib/lockedIdeaManager';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 
 interface RedditSentimentTileProps {
   className?: string;

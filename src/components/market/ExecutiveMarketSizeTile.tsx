@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { TileAIChat } from '@/components/hub/TileAIChat';
 import { useSession } from '@/contexts/SimpleSessionContext';
-import { useLockedIdea } from '@/lib/lockedIdeaManager';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {

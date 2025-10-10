@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useLockedIdea } from '@/lib/lockedIdeaManager';
+import { useLockedIdea } from '@/hooks/useLockedIdea';
 
 interface CompetitorData {
   name: string;
