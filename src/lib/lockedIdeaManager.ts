@@ -108,6 +108,14 @@ export class LockedIdeaManager {
     
     // Notify all listeners
     this.notifyListeners(trimmedIdea);
+
+    // Mark as locked for current session and notify globally
+    try {
+      sessionStorage.setItem('idea_locked_this_session', 'true');
+    } catch {}
+    try {
+      window.dispatchEvent(new Event('idea:locked'));
+    } catch {}
     
     // Persist to database (async, don't block UI)
     this.saveToDatabase(trimmedIdea).catch(e => 
@@ -151,6 +159,14 @@ export class LockedIdeaManager {
     }
     
     this.notifyListeners('');
+
+    // Clear session lock flag and broadcast event
+    try {
+      sessionStorage.removeItem('idea_locked_this_session');
+    } catch {}
+    try {
+      window.dispatchEvent(new Event('idea:unlocked'));
+    } catch {}
     
     // Clear from database (async, don't block UI)
     this.clearFromDatabase().catch(e => 
