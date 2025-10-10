@@ -4,14 +4,19 @@ import { CollaborationPanel } from "@/components/dashboard/CollaborationPanel";
 import { AICreditsUsageCard } from "@/components/dashboard/AICreditsUsageCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, HelpCircle, MessageSquare, Badge as BadgeIcon, BarChart3, TrendingUp, DollarSign, Users } from "lucide-react";
+import { BookOpen, HelpCircle, MessageSquare, Badge as BadgeIcon, BarChart3, TrendingUp, DollarSign, Users, Sparkles, Brain } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { saveIdeaToLeaderboard } from "@/utils/saveIdeaToLeaderboard";
 import { useLockedIdea } from "@/hooks/useLockedIdea";
+import { LiveContextCard } from "@/components/ai/LiveContextCard";
+import { usePMF } from "@/hooks/usePMF";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -20,6 +25,38 @@ export default function Dashboard() {
   const { idea: currentIdea } = useLockedIdea(); // SINGLE SOURCE OF TRUTH
   const isPro = subscription.tier === 'pro' || subscription.tier === 'enterprise';
   const limits = SUBSCRIPTION_TIERS[subscription.tier].features;
+  const { toast } = useToast();
+  
+  const [ideaId, setIdeaId] = useState<string | null>(null);
+  const { currentScore, actions, loading, computePMF } = usePMF(ideaId || '');
+  
+  // Get or create idea ID for current locked idea
+  useEffect(() => {
+    const fetchOrCreateIdea = async () => {
+      if (!currentIdea || !user?.id) return;
+      
+      const { data: existingIdea } = await supabase
+        .from('ideas')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('original_idea', currentIdea)
+        .maybeSingle();
+      
+      if (existingIdea) {
+        setIdeaId(existingIdea.id);
+      } else {
+        const { data: newIdea } = await supabase
+          .from('ideas')
+          .insert({ user_id: user.id, original_idea: currentIdea })
+          .select('id')
+          .single();
+        
+        if (newIdea) setIdeaId(newIdea.id);
+      }
+    };
+    
+    fetchOrCreateIdea();
+  }, [currentIdea, user?.id]);
 
   // Update leaderboard when dashboard loads
   useEffect(() => {
@@ -191,6 +228,120 @@ export default function Dashboard() {
 
         {/* AI Credits Usage Card */}
         <AICreditsUsageCard />
+
+        {/* AI Insights Section */}
+        {currentIdea && ideaId && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/20">
+                  <Brain className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                    AI Insights
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Real-time analysis for your locked idea</p>
+                </div>
+              </div>
+              {!currentScore && ideaId && (
+                <Button 
+                  onClick={async () => {
+                    try {
+                      await computePMF(ideaId);
+                      toast({
+                        title: "PMF Computed",
+                        description: "Your Product-Market Fit score has been calculated",
+                      });
+                    } catch (error: any) {
+                      toast({
+                        title: "Computation Failed",
+                        description: error.message,
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {loading ? "Computing..." : "Calculate PMF Score"}
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* PMF Score Card */}
+              {currentScore && (
+                <Card className="border-primary/20 bg-gradient-to-br from-card to-card/80 backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-primary" />
+                        PMF Score
+                      </span>
+                      <Badge variant="default" className="text-lg px-4 py-1">
+                        {currentScore.pmf_score}/100
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>Product-Market Fit Analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {currentScore.score_breakdown && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {Object.entries(currentScore.score_breakdown).map(([key, value]) => (
+                          <div key={key} className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                            <p className="text-xs text-muted-foreground capitalize mb-1">{key.replace(/_/g, ' ')}</p>
+                            <p className="text-lg font-semibold">{String(value)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      AI Confidence: {(currentScore.ai_confidence * 100).toFixed(1)}%
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Top Actions Card */}
+              {actions && actions.length > 0 && (
+                <Card className="border-accent/20 bg-gradient-to-br from-card to-card/80 backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-accent" />
+                      Next Steps
+                    </CardTitle>
+                    <CardDescription>Recommended actions to improve PMF</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {actions.slice(0, 3).map((action) => (
+                        <div 
+                          key={action.id} 
+                          className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:border-primary/30 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <p className="text-sm font-medium">{action.title}</p>
+                            <Badge variant={action.priority >= 8 ? 'default' : 'secondary'} className="text-xs">
+                              {action.priority >= 8 ? 'high' : action.priority >= 5 ? 'medium' : 'low'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{action.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Live Context Card */}
+              <div className="lg:col-span-2">
+                <LiveContextCard ideaId={ideaId} />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent Ideas */}
         <RecentIdeas />
