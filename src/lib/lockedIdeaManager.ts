@@ -400,7 +400,7 @@ export function useLockedIdea(): {
 
   return {
     lockedIdea,
-    hasLockedIdea: lockedIdea.length > 0,
+    hasLockedIdea: lockedIdea.trim().length >= 20,
     setLockedIdea: (idea: string) => manager.setLockedIdea(idea),
     clearLockedIdea: () => manager.clearLockedIdea(),
     isPinned,
