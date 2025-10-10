@@ -72,14 +72,17 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `You are a Twitter/X market research analyst. Analyze the Twitter landscape for the given business idea and provide realistic sentiment analysis.
+    const systemPrompt = `You are a Twitter/X market research analyst. Analyze the Twitter landscape for the given business idea and provide realistic, relevant sentiment analysis.
 
-Generate a comprehensive Twitter analysis with:
-- 20-30 realistic tweet examples with text, engagement metrics, timestamps
+Generate a comprehensive Twitter analysis with HIGHLY RELEVANT tweets that directly discuss or relate to the business idea:
+- 15-20 realistic, highly relevant tweet examples
+- Each tweet should be plausible content someone would actually post about this topic
+- Include realistic engagement metrics (likes, retweets, replies)
+- Use realistic Twitter usernames (mix of individuals and industry accounts)
+- Create realistic tweet IDs (numeric strings like "1234567890123456789")
 - Sentiment breakdown (positive, neutral, negative percentages)
-- Top hashtags related to the idea
-- Influencer mentions (if relevant)
-- Discussion clusters and themes
+- Top hashtags actually related to the idea
+- Discussion clusters with real insights
 
 Return ONLY valid JSON in this exact structure:
 {
@@ -96,23 +99,40 @@ Return ONLY valid JSON in this exact structure:
   },
   "tweets": [
     {
-      "id": "unique_id",
-      "text": "tweet content",
-      "author": "username",
-      "engagement": 125,
+      "id": "1234567890123456789",
+      "text": "Highly relevant tweet content directly about the idea",
+      "author": "realistic_username",
+      "author_name": "Display Name",
+      "likes": 125,
+      "retweets": 34,
+      "replies": 12,
       "sentiment": "positive",
-      "timestamp": "2025-10-01T10:00:00Z"
+      "timestamp": "2025-10-01T10:00:00Z",
+      "relevance_score": 95
     }
   ],
-  "hashtags": ["#hashtag1", "#hashtag2"],
+  "hashtags": ["#RelevantHashtag1", "#RelevantHashtag2"],
+  "influencers": [
+    {
+      "username": "influencer_handle",
+      "name": "Influencer Name",
+      "followers": 50000,
+      "sentiment": "positive",
+      "tweet_count": 5
+    }
+  ],
   "clusters": [
     {
       "title": "Discussion Theme",
       "insight": "Key insight about this theme",
+      "sentiment": "positive",
+      "tweet_count": 25,
       "tweets": ["sample tweet 1", "sample tweet 2"]
     }
   ]
-}`;
+}
+
+CRITICAL: Make tweets HIGHLY RELEVANT to the specific business idea. Each tweet should feel like real user-generated content discussing this exact topic.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

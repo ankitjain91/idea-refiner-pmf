@@ -173,41 +173,91 @@ export function ComprehensiveTwitterTile({ data, loading }: Props) {
 
             {/* Tweets */}
             <TabsContent value="tweets" className="px-4 space-y-3">
-              {rawTweets.map((tweet: any, idx: number) => (
-                <Card key={tweet?.id ?? tweet?.tweet_id ?? `${tweet?.author_id ?? 'unk'}-${tweet?.created_at ?? idx}-${idx}` } className="p-4">
-                  <div className="space-y-3">
-                    <p className="text-sm">{typeof tweet?.text === 'string' ? tweet.text : (typeof tweet?.text?.text === 'string' ? tweet.text.text : JSON.stringify(tweet))}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Heart className="h-3 w-3" />
-                        {tweet?.metrics?.like_count ?? tweet?.likes ?? 0}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Repeat2 className="h-3 w-3" />
-                        {tweet?.metrics?.retweet_count ?? tweet?.retweets ?? 0}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MessageCircle className="h-3 w-3" />
-                        {tweet?.metrics?.reply_count ?? tweet?.replies ?? 0}
-                      </span>
-                      {tweet?.created_at && (
-                        <span className="ml-auto">{new Date(tweet.created_at).toLocaleDateString()}</span>
-                      )}
-                      {tweet?.url && tweet.url !== '#' && tweet.url !== '' && (
-                        <a 
-                          href={tweet.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#1DA1F2]/10 text-[#1DA1F2] hover:bg-[#1DA1F2]/20 transition-colors text-xs"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          View Tweet
-                        </a>
-                      )}
+              {rawTweets.length > 0 ? (
+                [...rawTweets]
+                  .sort((a: any, b: any) => (b.relevance_score || 0) - (a.relevance_score || 0))
+                  .map((tweet: any) => (
+                  <Card key={tweet?.id ?? tweet?.tweet_id ?? `${tweet?.author ?? 'unk'}-${tweet?.timestamp ?? Date.now()}`} className="p-4 hover:bg-accent/5 transition-colors">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">
+                            {tweet.author_name || `@${tweet.author || tweet.username}`}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            @{tweet.author || tweet.username}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {tweet.relevance_score && (
+                            <Badge variant="outline" className="text-xs">
+                              {tweet.relevance_score}% relevant
+                            </Badge>
+                          )}
+                          {tweet.sentiment && (
+                            <Badge variant={
+                              tweet.sentiment === 'positive' ? 'default' :
+                              tweet.sentiment === 'negative' ? 'destructive' : 'secondary'
+                            }>
+                              {tweet.sentiment}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm leading-relaxed">
+                        {typeof tweet?.text === 'string' ? tweet.text : (typeof tweet?.text?.text === 'string' ? tweet.text.text : JSON.stringify(tweet))}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Heart className="h-3 w-3" />
+                            {(tweet?.likes ?? tweet?.metrics?.like_count ?? 0).toLocaleString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Repeat2 className="h-3 w-3" />
+                            {(tweet?.retweets ?? tweet?.metrics?.retweet_count ?? 0).toLocaleString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            {(tweet?.replies ?? tweet?.metrics?.reply_count ?? 0).toLocaleString()}
+                          </span>
+                          {(tweet?.timestamp || tweet?.created_at) && (
+                            <span>{new Date(tweet.timestamp || tweet.created_at).toLocaleDateString()}</span>
+                          )}
+                        </div>
+                        {tweet?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-3 text-xs hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2]"
+                            onClick={() => window.open(`https://twitter.com/i/web/status/${tweet.id}`, '_blank')}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            View on X
+                          </Button>
+                        )}
+                        {tweet?.url && tweet.url !== '#' && tweet.url !== '' && !tweet.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-3 text-xs hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2]"
+                            onClick={() => window.open(tweet.url, '_blank')}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            View Tweet
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No tweets available
+                </div>
+              )}
             </TabsContent>
 
             {/* Hashtags */}
