@@ -165,13 +165,17 @@ export function createConversationSummary(messages: ChatMessage[], originalIdea?
   if (sentence1.length > 150) {
     const truncated = sentence1.substring(0, 147);
     const lastSpace = truncated.lastIndexOf(' ');
-    sentence1 = truncated.substring(0, lastSpace) + '...';
+    sentence1 = lastSpace > 0
+      ? truncated.substring(0, lastSpace) + '...'
+      : truncated + '...'; // Fallback if no space found
   }
-  
+
   if (sentence2.length > 150) {
     const truncated = sentence2.substring(0, 147);
     const lastSpace = truncated.lastIndexOf(' ');
-    sentence2 = truncated.substring(0, lastSpace) + '...';
+    sentence2 = lastSpace > 0
+      ? truncated.substring(0, lastSpace) + '...'
+      : truncated + '...'; // Fallback if no space found
   }
   
   // Combine the two sentences

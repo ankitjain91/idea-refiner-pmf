@@ -400,12 +400,23 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const pmfScoreRaw = localStorage.getItem('pmfScore');
   const pmfScore = pmfScoreRaw ? parseInt(pmfScoreRaw) : 0;
 
-      const parsedAnswers = answers ? JSON.parse(answers) : {};
-      const parsedMetadata = metadata ? JSON.parse(metadata) : {};
-      const parsedRefinements = refinements ? JSON.parse(refinements) : [];
-      const parsedChat = chatHistory ? JSON.parse(chatHistory) : [];
-      const parsedFeatures = pmfFeatures ? JSON.parse(pmfFeatures) : [];
-      const parsedTabHistory = pmfTabHistory ? JSON.parse(pmfTabHistory) : [];
+      // Safe JSON parsing helper to handle corrupted localStorage data
+      const safeParse = <T,>(value: string | null, fallback: T): T => {
+        if (!value) return fallback;
+        try {
+          return JSON.parse(value) as T;
+        } catch (e) {
+          console.warn('Failed to parse localStorage value:', e);
+          return fallback;
+        }
+      };
+
+      const parsedAnswers = safeParse(answers, {});
+      const parsedMetadata = safeParse(metadata, {});
+      const parsedRefinements = safeParse(refinements, []);
+      const parsedChat = safeParse(chatHistory, []);
+      const parsedFeatures = safeParse(pmfFeatures, []);
+      const parsedTabHistory = safeParse(pmfTabHistory, []);
 
       const currentState: SessionState = {
         currentPath: window.location.pathname,
