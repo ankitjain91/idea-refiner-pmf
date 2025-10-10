@@ -34,6 +34,7 @@ import { useSession } from '@/contexts/SimpleSessionContext';
 import { LS_KEYS } from '@/lib/storage-keys';
 import { backgroundProcessor } from '@/lib/background-processor';
 import { AsyncDashboardButton } from '@/components/AsyncDashboardButton';
+import { IdeaLockToggle } from '@/components/chat/IdeaLockToggle';
 import { useIdeaContext } from '@/hooks/useIdeaContext';
 
 // Import refactored components and utilities
@@ -2778,6 +2779,7 @@ User submission: """${messageText}"""`;
       
       {/* Quick Actions */}
       <div className="flex gap-2 mt-3 max-w-4xl mx-auto flex-wrap">
+        <IdeaLockToggle currentIdea={conversationSummary || currentIdea} hasValidIdea={hasValidIdea} />
         <AsyncDashboardButton />
         <motion.div whileTap={hasValidIdea ? { scale: 0.98 } : {}}>
           <Button
