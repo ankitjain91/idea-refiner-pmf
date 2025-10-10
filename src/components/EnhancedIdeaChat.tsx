@@ -2486,60 +2486,42 @@ User submission: """${messageText}"""`;
     }
   }, [input, isTyping, messages, wrinklePoints, currentIdea, hasValidIdea, toast, generateConversationSummary]); // Properly close the sendMessageHandler function
 
-  // Handle pin toggle - locks in the conversation summary
+  // Handle pin toggle - only works if idea is already locked via Lock button
   const handlePinToggle = useCallback(async () => {
     const newPinned = !isPinned;
     
     if (newPinned && conversationSummary) {
-      // Lock the idea and create ledger ownership
-      lockedIdeaManager.setLockedIdea(conversationSummary);
-      lockedIdeaManager.setPinned(true);
+      // Check if idea is already locked in this session via Lock button
+      const currentLockedIdea = lockedIdeaManager.getLockedIdea();
+      const isIdeaLocked = currentLockedIdea && currentLockedIdea.trim().length >= 20;
       
-      // Create ledger ownership
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        try {
-          const ideaId = crypto.randomUUID();
-          const { data: ledgerData, error: ledgerError } = await supabase.functions.invoke('idea-ledger', {
-            body: {
-              operation: 'create',
-              idea_id: ideaId,
-              user_id: user.id,
-              data: { 
-                idea: conversationSummary,
-                userId: user.id,
-                timestamp: Date.now()
-              },
-              signature: await generateSignature(user.id, { idea: conversationSummary })
-            }
-          });
-          
-          if (ledgerError) {
-            console.error('[EnhancedIdeaChat] Failed to create ledger ownership:', ledgerError);
-          } else {
-            console.log('[EnhancedIdeaChat] Ledger ownership created');
-          }
-        } catch (error) {
-          console.error('[EnhancedIdeaChat] Error creating ledger ownership:', error);
-        }
+      if (!isIdeaLocked) {
+        toast({
+          title: "Lock Your Idea First! 🔒",
+          description: "Please use the Lock button to secure your idea before pinning.",
+          variant: "destructive"
+        });
+        return;
       }
       
-      console.log('[EnhancedIdeaChat] Idea locked and pinned');
+      // Just set pinned status - idea is already locked
+      lockedIdeaManager.setPinned(true);
+      console.log('[EnhancedIdeaChat] Conversation pinned');
       toast({
-        title: "Idea Locked! 🔒",
-        description: "Your idea is locked and secured on the blockchain. Dashboard enabled!",
+        title: "Conversation Pinned! 📌",
+        description: "Your conversation is now pinned.",
       });
     } else if (!newPinned) {
-      // Clear lock when unpinning
-      lockedIdeaManager.clearLockedIdea();
+      // Just unpin, don't unlock the idea
+      lockedIdeaManager.setPinned(false);
+      console.log('[EnhancedIdeaChat] Conversation unpinned');
       toast({
-        title: "Idea Unlocked",
-        description: "You can now work on a different idea.",
+        title: "Conversation Unpinned",
+        description: "Your conversation is no longer pinned.",
       });
     }
     
     setIsPinned(newPinned);
-    lockedIdeaManager.setPinned(newPinned);
   }, [isPinned, conversationSummary, toast]);
 
   // Helper function to generate cryptographic signatures
