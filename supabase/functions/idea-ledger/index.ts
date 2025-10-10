@@ -138,12 +138,18 @@ async function verifyOwnership(supabase: any, ideaId: string, userId: string) {
       .from('idea_ownership')
       .select('*')
       .eq('idea_id', ideaId)
-      .single()
+      .maybeSingle()
 
     if (ownershipError) throw ownershipError
 
     if (!ownership) {
-      throw new Error('No ownership record found')
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'No ownership record found for this idea'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404
+      })
     }
 
     // Verify ledger integrity for this idea
@@ -335,9 +341,19 @@ async function getOwnershipProof(supabase: any, ideaId: string) {
       .from('ownership_verification')
       .select('*')
       .eq('idea_id', ideaId)
-      .single()
+      .maybeSingle()
 
     if (ownershipError) throw ownershipError
+
+    if (!ownership) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'No ownership record found for this idea'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404
+      })
+    }
 
     // Get ledger history
     const { data: ledgerHistory, error: ledgerError } = await supabase
