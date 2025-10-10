@@ -62,6 +62,9 @@ export function OwnershipVerification({ ideaId, className }: OwnershipVerificati
     const proof = await getOwnershipProof(ideaId)
     if (proof) {
       setOwnershipProof(proof)
+    } else {
+      // No ownership record found - show message
+      setOwnershipProof(null)
     }
   }
 
@@ -148,36 +151,51 @@ export function OwnershipVerification({ ideaId, className }: OwnershipVerificati
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Verification Status */}
-        <div className="space-y-4">
-          <Button 
-            onClick={handleVerifyOwnership}
-            disabled={loading}
-            className="w-full"
-          >
-            <Shield className="h-4 w-4 mr-2" />
-            Verify Ownership
-          </Button>
-
-          {isVerified !== null && (
-            <div className={cn(
-              'p-3 rounded-lg border',
-              isVerified && isOwner ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-            )}>
-              <div className="flex items-center gap-2">
-                {isVerified && isOwner ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                ) : (
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                )}
-                <span className="font-medium">
-                  {isVerified && isOwner ? 'Verified Owner' : 
-                   !isOwner ? 'Not Current Owner' : 'Verification Failed'}
-                </span>
-              </div>
+        {/* No ownership record message */}
+        {!ownershipProof && !loading && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <span className="font-medium text-amber-900">No Ownership Record</span>
             </div>
-          )}
-        </div>
+            <p className="text-sm text-amber-700">
+              This idea hasn't been registered on the blockchain yet. Ownership will be automatically created when you calculate PMF score.
+            </p>
+          </div>
+        )}
+
+        {/* Verification Status */}
+        {ownershipProof && (
+          <div className="space-y-4">
+            <Button 
+              onClick={handleVerifyOwnership}
+              disabled={loading}
+              className="w-full"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Verify Ownership
+            </Button>
+
+            {isVerified !== null && (
+              <div className={cn(
+                'p-3 rounded-lg border',
+                isVerified && isOwner ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+              )}>
+                <div className="flex items-center gap-2">
+                  {isVerified && isOwner ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                  )}
+                  <span className="font-medium">
+                    {isVerified && isOwner ? 'Verified Owner' : 
+                     !isOwner ? 'Not Current Owner' : 'Verification Failed'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Ownership Details */}
         {ownershipProof && (
@@ -326,7 +344,7 @@ export function OwnershipVerification({ ideaId, className }: OwnershipVerificati
         )}
 
         {/* Challenge Creation */}
-        {user && (
+        {user && ownershipProof && (
           <div className="space-y-4">
             <Separator />
             
