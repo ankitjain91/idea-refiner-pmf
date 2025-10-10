@@ -12,9 +12,30 @@ interface LiveContextCardProps {
 
 export function LiveContextCard({ ideaId }: LiveContextCardProps) {
   const [context, setContext] = useState<any>(null);
+  const [parsedData, setParsedData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
+
+  // Parse the JSON data from summary field
+  useEffect(() => {
+    if (context?.data?.summary) {
+      try {
+        // Remove markdown code block markers and parse JSON
+        const jsonString = context.data.summary
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
+        const parsed = JSON.parse(jsonString);
+        setParsedData(parsed);
+      } catch (error) {
+        console.error('Error parsing context data:', error);
+        setParsedData(null);
+      }
+    } else {
+      setParsedData(null);
+    }
+  }, [context]);
 
   useEffect(() => {
     loadContext();
@@ -133,24 +154,15 @@ export function LiveContextCard({ ideaId }: LiveContextCardProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {context.data?.summary && (
-              <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
-                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <span className="w-1 h-4 bg-primary rounded-full" />
-                  Market Summary
-                </h4>
-                <p className="text-sm text-foreground leading-relaxed">{context.data.summary}</p>
-              </div>
-            )}
-
-            {context.data?.insights && context.data.insights.length > 0 && (
+            {/* Key Market Insights */}
+            {parsedData?.key_market_insights && parsedData.key_market_insights.length > 0 && (
               <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
                 <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <span className="w-1 h-4 bg-accent rounded-full" />
-                  Key Insights
+                  <span className="w-1 h-4 bg-primary rounded-full" />
+                  Key Market Insights
                 </h4>
                 <ul className="space-y-2">
-                  {context.data.insights.map((insight: string, i: number) => (
+                  {parsedData.key_market_insights.map((insight: string, i: number) => (
                     <li key={i} className="text-sm text-foreground flex items-start gap-3 pl-2">
                       <span className="text-primary mt-1.5">•</span>
                       <span className="flex-1">{insight}</span>
@@ -160,14 +172,44 @@ export function LiveContextCard({ ideaId }: LiveContextCardProps) {
               </div>
             )}
 
-            {context.data?.opportunity_score !== undefined && (
+            {/* Recent Trends */}
+            {parsedData?.recent_trends && parsedData.recent_trends.length > 0 && (
+              <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-accent rounded-full" />
+                  Recent Trends
+                </h4>
+                <ul className="space-y-2">
+                  {parsedData.recent_trends.map((trend: string, i: number) => (
+                    <li key={i} className="text-sm text-foreground flex items-start gap-3 pl-2">
+                      <span className="text-accent mt-1.5">•</span>
+                      <span className="flex-1">{trend}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Competitive Landscape */}
+            {parsedData?.competitive_landscape_summary && (
+              <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-secondary rounded-full" />
+                  Competitive Landscape
+                </h4>
+                <p className="text-sm text-foreground leading-relaxed">{parsedData.competitive_landscape_summary}</p>
+              </div>
+            )}
+
+            {/* Market Opportunity Score */}
+            {parsedData?.overall_market_opportunity_score !== undefined && (
               <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   <span className="text-sm font-semibold">Market Opportunity Score</span>
                 </div>
                 <Badge variant="default" className="text-base px-3 py-1">
-                  {context.data.opportunity_score}/100
+                  {parsedData.overall_market_opportunity_score}/100
                 </Badge>
               </div>
             )}
