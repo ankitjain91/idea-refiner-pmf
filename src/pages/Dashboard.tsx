@@ -32,30 +32,38 @@ export default function Dashboard() {
   
   // Get or create idea ID for current locked idea
   useEffect(() => {
-    const fetchOrCreateIdea = async () => {
-      if (!currentIdea || !user?.id) return;
-      
-      const { data: existingIdea } = await supabase
-        .from('ideas')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('original_idea', currentIdea)
-        .maybeSingle();
-      
-      if (existingIdea) {
-        setIdeaId(existingIdea.id);
-      } else {
-        const { data: newIdea } = await supabase
+    if (!currentIdea || !user?.id) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const run = async () => {
+      try {
+        // Debounce: wait briefly in case idea is still being edited/refined
+        await new Promise(r => setTimeout(r, 250));
+        if (cancelled) return;
+        const { data: existingIdea } = await supabase
+          .from('ideas')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('original_idea', currentIdea)
+          .maybeSingle();
+        if (cancelled) return;
+        if (existingIdea) {
+          setIdeaId(existingIdea.id);
+          return;
+        }
+        const { data: newIdea, error } = await supabase
           .from('ideas')
           .insert({ user_id: user.id, original_idea: currentIdea })
           .select('id')
           .single();
-        
-        if (newIdea) setIdeaId(newIdea.id);
+        if (!cancelled && newIdea) setIdeaId(newIdea.id);
+        if (error) console.warn('[Dashboard] Idea insert error:', error.message);
+      } catch (e) {
+        if (!cancelled) console.warn('[Dashboard] fetchOrCreateIdea aborted/error', e);
       }
     };
-    
-    fetchOrCreateIdea();
+    run();
+    return () => { cancelled = true; controller.abort(); };
   }, [currentIdea, user?.id]);
 
   // Update leaderboard when dashboard loads
@@ -92,7 +100,7 @@ export default function Dashboard() {
     };
     
     updateLeaderboard();
-  }, []);
+  }, [currentIdea]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">

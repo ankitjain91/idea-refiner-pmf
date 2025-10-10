@@ -95,10 +95,18 @@ const App = () => {
         e.preventDefault();
         setCmdOpen(o => !o);
       }
-      // Shift+D toggle dashboard (handled within pages via hash navigation)
+      // Shift+D toggle main dashboard (prefer /home, fallback /dashboard /enterprisehub)
       if (e.shiftKey && e.key.toLowerCase() === 'd') {
-        const dashboardLink = document.querySelector('a[href="/dashboard"]') as HTMLAnchorElement | null;
-        if (dashboardLink) dashboardLink.click();
+        e.preventDefault();
+        const selectorOrder = [
+          'a[href="/home"]',
+          'a[href="/dashboard"]',
+          'a[href="/enterprisehub"]'
+        ];
+        for (const sel of selectorOrder) {
+          const link = document.querySelector(sel) as HTMLAnchorElement | null;
+            if (link) { link.click(); break; }
+        }
       }
     };
     window.addEventListener('keydown', handler);

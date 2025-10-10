@@ -66,6 +66,19 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
     console.log('[MainAnalysisGrid] Locked idea changed:', lockedIdea?.slice(0, 50));
   }, [lockedIdea]);
 
+  // Reset fetched tiles when the locked idea changes (avoid showing stale previous-idea data)
+  const previousIdeaRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!lockedIdea || !hasLockedIdea) return;
+    if (previousIdeaRef.current && previousIdeaRef.current !== lockedIdea) {
+      setFetchedTiles({});
+      setTileErrors({});
+      setMeta(null);
+      console.log('[MainAnalysisGrid] Cleared tiles due to locked idea change');
+    }
+    previousIdeaRef.current = lockedIdea;
+  }, [lockedIdea, hasLockedIdea]);
+
   const requestedTileIds = useMemo(() => Object.keys(tiles || {}), [tiles]);
 
   // Hydrate from local cache instantly
@@ -114,7 +127,11 @@ export function MainAnalysisGrid({ tiles, loading = false, viewMode, onRefreshTi
     }
   }, [lockedIdea, hasLockedIdea, requestedTileIds, persistCache]);
 
-  useEffect(() => { hydrateFromServer(false); }, [hydrateFromServer]);
+  // Debounce initial server hydration to allow cache hydration + layout settle
+  useEffect(() => {
+    const t = setTimeout(() => { hydrateFromServer(false); }, 150);
+    return () => clearTimeout(t);
+  }, [hydrateFromServer]);
 
   const handleSingleRefresh = async (id: string) => {
     if (!lockedIdea || !hasLockedIdea) {
