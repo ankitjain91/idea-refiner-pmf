@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canUpvote, setCanUpvote] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -26,15 +27,40 @@ export default function LeaderboardPage() {
         .order('pmf_score', { ascending: false })
         .limit(50);
 
-      console.log('[LeaderboardPage] Query result:', { data, error });
+      console.log('[LeaderboardPage] Leaderboard table result:', { count: data?.length || 0, error });
 
       if (error) {
-        console.error('[LeaderboardPage] Error:', error);
+        console.error('[LeaderboardPage] Error on leaderboard table:', error);
         throw error;
       }
-      
-      console.log('[LeaderboardPage] Loaded items:', data?.length || 0);
-      setLeaderboard(data || []);
+
+      if (data && data.length > 0) {
+        setCanUpvote(true);
+        setLeaderboard(data);
+      } else {
+        console.log('[LeaderboardPage] Fallback to ideas table...');
+        const { data: ideas, error: ideasErr } = await supabase
+          .from('ideas')
+          .select('id, original_idea, pmf_score, is_public')
+          .eq('is_public', true)
+          .order('pmf_score', { ascending: false })
+          .limit(50);
+
+        if (ideasErr) {
+          console.error('[LeaderboardPage] Ideas fallback error:', ideasErr);
+          throw ideasErr;
+        }
+
+        const mapped = (ideas || []).map((i: any) => ({
+          id: i.id,
+          idea_text: i.original_idea,
+          pmf_score: i.pmf_score ?? 0,
+          upvotes: 0,
+          is_public: i.is_public,
+        }));
+        setCanUpvote(false);
+        setLeaderboard(mapped);
+      }
     } catch (error: any) {
       console.error('[LeaderboardPage] Error loading leaderboard:', error);
       toast({
@@ -118,15 +144,22 @@ export default function LeaderboardPage() {
                           <TrendingUp className="h-3 w-3" />
                           PMF: {item.pmf_score}/100
                         </Badge>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleUpvote(item.id)}
-                          className="gap-1"
-                        >
-                          <ThumbsUp className="h-3 w-3" />
-                          {item.upvotes}
-                        </Button>
+                        {canUpvote ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleUpvote(item.id)}
+                            className="gap-1"
+                          >
+                            <ThumbsUp className="h-3 w-3" />
+                            {item.upvotes}
+                          </Button>
+                        ) : (
+                          <Badge variant="outline" className="gap-1">
+                            <ThumbsUp className="h-3 w-3" />
+                            {item.upvotes ?? 0}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
