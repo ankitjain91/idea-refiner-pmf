@@ -1,8 +1,26 @@
-# Welcome to your Lovable project
+# 🧠 SmoothBrains AI Assistant - Lovable Project
+
+[![Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4.svg)](https://lovable.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+
+## 🚀 **AI-Powered Idea Refinement Platform**
+
+**Production-ready platform with blockchain ownership verification, optimized for Lovable development**
+
+### **🎯 Key Features**
+- **🤖 AI Chat** - Real-time idea conversations with Groq
+- **📊 PMF Analysis** - AI-powered market fit scoring
+- **🔐 Blockchain Ledger** - Secure ownership verification
+- **📈 Market Intelligence** - Live competitive analysis
+- **🎨 Modern UI** - shadcn/ui components with dark/light themes
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/dd93c2d5-2d11-4e00-af0b-70599a8050b5
+**Supabase**: https://wppwfiiomxmnjyokxnin.supabase.co
+**Status**: ✅ Production Ready with AI & Blockchain features
 
 ## How can I edit this code?
 

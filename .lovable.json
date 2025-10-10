@@ -1,0 +1,59 @@
+{
+  "name": "SmoothBrains AI Assistant",
+  "description": "AI-powered idea refinement platform with blockchain ownership verification",
+  "version": "1.0.0",
+  "main": "src/main.tsx",
+  "framework": "react",
+  "ui": "shadcn-ui",
+  "styling": "tailwindcss",
+  "bundler": "vite",
+  "features": {
+    "ai": {
+      "enabled": true,
+      "provider": "groq",
+      "models": ["llama-3.1-8b-instant"],
+      "capabilities": ["chat", "analysis", "content-generation", "market-intelligence"]
+    },
+    "blockchain": {
+      "enabled": true,
+      "type": "ownership-ledger",
+      "features": ["immutable-records", "cryptographic-verification", "public-proof"]
+    },
+    "realtime": {
+      "enabled": true,
+      "provider": "supabase"
+    },
+    "authentication": {
+      "enabled": true,
+      "provider": "supabase-auth"
+    }
+  },
+  "backend": {
+    "provider": "supabase",
+    "url": "https://wppwfiiomxmnjyokxnin.supabase.co",
+    "functions": [
+      "idea-chat",
+      "compute-pmf-and-next-steps", 
+      "refresh-live-context",
+      "generate-pitch-deck",
+      "idea-ledger"
+    ]
+  },
+  "pages": {
+    "/": "Landing page with AI features showcase",
+    "/auth": "User authentication flow",
+    "/home": "PMF analytics dashboard", 
+    "/ideachat": "AI-powered idea refinement chat",
+    "/ai-insights": "Market intelligence and analysis",
+    "/ideajournal": "Session history and idea tracking"
+  },
+  "keyComponents": {
+    "EnhancedIdeaChat": "AI conversation interface",
+    "PMFAnalyzer": "Market fit analysis dashboard",
+    "OwnershipVerification": "Blockchain ownership verification",
+    "AppSidebar": "Main navigation component",
+    "AppLayout": "Application layout wrapper"
+  },
+  "devReady": true,
+  "productionReady": true
+}
