@@ -66,6 +66,12 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       icon: BookOpen,
       badge: null
     },
+    { 
+      title: "AI Insights", 
+      url: "/ai-insights", 
+      icon: Brain,
+      badge: "NEW"
+    },
   ];
 
   const bottomNav = [

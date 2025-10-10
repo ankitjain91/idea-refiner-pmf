@@ -38,6 +38,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const PublicLeaderboard = lazy(() => import('./pages/PublicLeaderboard'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const AuthPage = lazy(() => import('./pages/Auth'));
+const AIInsights = lazy(() => import('./pages/AIInsights'));
 
 const RouteTransitionWrapper = () => {
   const location = useLocation();
@@ -61,6 +62,7 @@ const RouteTransitionWrapper = () => {
           <Route path="/hub" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Hub /></Suspense>} />
           <Route path="/ideachat" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><IdeaChat /></Suspense>} />
           <Route path="/ideajournal" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><IdeaJournal /></Suspense>} />
+          <Route path="/ai-insights" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><AIInsights /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Settings /></Suspense>} />
           <Route path="/pricing" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Pricing /></Suspense>} />
           <Route path="/subscription-success" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Dashboard /></Suspense>} />
