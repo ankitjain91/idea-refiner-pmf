@@ -75,7 +75,7 @@ serve(async (req) => {
       const { data: cachedData } = await supabase
         .from('dashboard_data')
         .select('*')
-        .eq('idea', actualIdea)
+        .eq('idea_text', actualIdea)
         .in('tile_type', ['market_intelligence', 'web_search', 'news_trends', 'funding_tracker'])
         .order('created_at', { ascending: false })
         .limit(10);
