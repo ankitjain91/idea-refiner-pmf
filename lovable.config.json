@@ -1,0 +1,170 @@
+{
+  "name": "SmoothBrains AI Assistant",
+  "description": "AI-powered idea refinement platform with blockchain ownership verification",
+  "version": "1.0.0",
+  "framework": "react-typescript",
+  "buildTool": "vite",
+  "uiLibrary": "shadcn-ui",
+  "styling": "tailwindcss",
+  "features": {
+    "ai": {
+      "enabled": true,
+      "provider": "groq",
+      "models": ["llama-3.1-8b-instant"],
+      "capabilities": [
+        "chat",
+        "analysis", 
+        "content-generation",
+        "market-intelligence"
+      ]
+    },
+    "blockchain": {
+      "enabled": true,
+      "type": "ownership-ledger",
+      "features": [
+        "immutable-records",
+        "cryptographic-verification",
+        "public-proof",
+        "challenge-system"
+      ]
+    },
+    "realtime": {
+      "enabled": true,
+      "provider": "supabase",
+      "features": ["live-updates", "collaboration"]
+    },
+    "authentication": {
+      "enabled": true,
+      "provider": "supabase-auth",
+      "methods": ["email", "social"]
+    }
+  },
+  "pages": [
+    {
+      "path": "/",
+      "component": "LandingPage",
+      "description": "Marketing landing page with AI features showcase"
+    },
+    {
+      "path": "/auth",
+      "component": "AuthPage", 
+      "description": "User authentication flow"
+    },
+    {
+      "path": "/home",
+      "component": "Dashboard",
+      "description": "Main dashboard with PMF analytics",
+      "protected": true
+    },
+    {
+      "path": "/ideachat",
+      "component": "IdeaChat",
+      "description": "AI-powered idea refinement chat",
+      "protected": true
+    },
+    {
+      "path": "/ai-insights",
+      "component": "AIInsights",
+      "description": "Market intelligence and AI analysis",
+      "protected": true,
+      "new": true
+    },
+    {
+      "path": "/ideajournal",
+      "component": "IdeaJournal", 
+      "description": "Session history and idea tracking",
+      "protected": true
+    }
+  ],
+  "components": {
+    "layout": {
+      "AppLayout": "Main application layout with sidebar",
+      "AppSidebar": "Navigation sidebar with user menu"
+    },
+    "ai": {
+      "EnhancedIdeaChat": "AI conversation interface",
+      "PMFAnalyzer": "Market fit analysis dashboard",
+      "AICoachSidebar": "AI coaching recommendations"
+    },
+    "blockchain": {
+      "OwnershipVerification": "Blockchain ownership verification UI",
+      "LedgerHistory": "Ownership history display"
+    },
+    "ui": {
+      "source": "shadcn-ui",
+      "components": [
+        "button", "card", "dialog", "form", "input", 
+        "select", "tabs", "toast", "sidebar", "avatar"
+      ]
+    }
+  },
+  "hooks": {
+    "useAuth": "Enhanced authentication with session management",
+    "usePMF": "PMF scoring and analysis",
+    "useLiveContext": "Real-time market data",
+    "useLedger": "Blockchain ownership operations",
+    "useIdea": "Idea CRUD operations"
+  },
+  "contexts": {
+    "AuthProvider": "User authentication state",
+    "SubscriptionProvider": "Premium features management", 
+    "SessionProvider": "Chat session state",
+    "ThemeProvider": "Dark/light mode support",
+    "AlertProvider": "Global notifications"
+  },
+  "api": {
+    "supabase": {
+      "url": "https://wppwfiiomxmnjyokxnin.supabase.co",
+      "functions": [
+        "idea-chat",
+        "compute-pmf-and-next-steps",
+        "refresh-live-context",
+        "generate-pitch-deck",
+        "idea-ledger"
+      ]
+    },
+    "external": {
+      "groq": "AI inference",
+      "serper": "Market research"
+    }
+  },
+  "database": {
+    "provider": "supabase-postgres",
+    "features": ["rls", "realtime", "edge-functions"],
+    "tables": [
+      "ideas",
+      "idea_versions", 
+      "idea_scores",
+      "idea_ledger",
+      "idea_ownership",
+      "sessions"
+    ]
+  },
+  "deployment": {
+    "platforms": ["vercel", "netlify"],
+    "config": {
+      "vercel": "vercel.json",
+      "build": "npm run build",
+      "output": "dist"
+    }
+  },
+  "development": {
+    "port": 8080,
+    "hotReload": true,
+    "typeChecking": true,
+    "linting": true
+  },
+  "accessibility": {
+    "wcag": "AA",
+    "features": [
+      "keyboard-navigation",
+      "screen-reader-support", 
+      "high-contrast",
+      "focus-management"
+    ]
+  },
+  "responsive": {
+    "breakpoints": ["mobile", "tablet", "desktop"],
+    "approach": "mobile-first"
+  }
+}
