@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLockedIdea } from '@/hooks/useLockedIdea';
 import { usePMF } from '@/hooks/usePMF';
+import { useLedger } from '@/hooks/useLedger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Brain, Sparkles, RefreshCw } from 'lucide-react';
@@ -9,6 +10,7 @@ import { ActionsPanel } from '@/components/ai/ActionsPanel';
 import { LiveContextCard } from '@/components/ai/LiveContextCard';
 import { AICoachSidebar } from '@/components/ai/AICoachSidebar';
 import { ScoreHistoryChart } from '@/components/ai/ScoreHistoryChart';
+import { OwnershipVerification } from '@/components/ownership/OwnershipVerification';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,6 +18,7 @@ export default function AIInsights() {
   const { idea, lockedIdea, hasIdea } = useLockedIdea();
   const [ideaId, setIdeaId] = useState<string>('');
   const { currentScore, scoreHistory, actions, loading, computePMF } = usePMF(ideaId);
+  const { createOwnership, getOwnershipProof } = useLedger();
   const { toast } = useToast();
   const [calculating, setCalculating] = useState(false);
 
@@ -72,6 +75,35 @@ export default function AIInsights() {
     fetchIdeaId();
   }, [idea]);
 
+  // Real-time ownership challenge notifications
+  useEffect(() => {
+    if (!ideaId) return;
+
+    const channel = supabase
+      .channel('ownership-challenges')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ownership_challenges',
+          filter: `idea_id=eq.${ideaId}`
+        },
+        (payload) => {
+          toast({
+            title: '⚠️ Ownership Challenge',
+            description: 'Someone has challenged your ownership of this idea',
+            duration: 10000,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ideaId, toast]);
+
   const handleCalculatePMF = async () => {
     if (!ideaId) {
       toast({
@@ -85,12 +117,34 @@ export default function AIInsights() {
     setCalculating(true);
     try {
       await computePMF(ideaId, true);
+      
+      // Auto-create ownership on first PMF calculation
+      const existingProof = await getOwnershipProof(ideaId);
+      if (!existingProof) {
+        await createOwnership(ideaId, {
+          title: idea || 'Untitled Idea',
+          idea_text: idea,
+          pmf_score: currentScore?.pmf_score || 0,
+          created_via: 'pmf_calculation'
+        });
+        
+        toast({
+          title: '🔐 Ownership Secured!',
+          description: 'Your idea has been registered on the blockchain',
+          duration: 6000
+        });
+      } else {
+        toast({
+          title: '✨ PMF Score Calculated',
+          description: 'Your AI insights have been updated.',
+        });
+      }
+    } catch (error) {
+      console.error('PMF calculation error:', error);
       toast({
         title: '✨ PMF Score Calculated',
         description: 'Your AI insights have been updated.',
       });
-    } catch (error) {
-      console.error('PMF calculation error:', error);
     } finally {
       setCalculating(false);
     }
@@ -155,6 +209,7 @@ export default function AIInsights() {
             currentScore={currentScore} 
             loading={loading}
             onRecalculate={handleCalculatePMF}
+            ideaId={ideaId}
           />
 
           {/* Score History Chart */}
@@ -173,6 +228,11 @@ export default function AIInsights() {
           {/* Live Market Context */}
           {ideaId && (
             <LiveContextCard ideaId={ideaId} />
+          )}
+
+          {/* Blockchain Ownership Verification */}
+          {ideaId && (
+            <OwnershipVerification ideaId={ideaId} />
           )}
 
           {/* Actions Panel */}

@@ -2,16 +2,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, Minus, RefreshCw, Target } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Target, Shield } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useLedger } from '@/hooks/useLedger';
+import { useEffect, useState } from 'react';
 
 interface PMFScoreCardProps {
   currentScore: any;
   loading: boolean;
   onRecalculate: () => void;
+  ideaId?: string;
 }
 
-export function PMFScoreCard({ currentScore, loading, onRecalculate }: PMFScoreCardProps) {
+export function PMFScoreCard({ currentScore, loading, onRecalculate, ideaId }: PMFScoreCardProps) {
+  const { getOwnershipProof } = useLedger();
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    const checkOwnership = async () => {
+      if (!ideaId) return;
+      const proof = await getOwnershipProof(ideaId);
+      setIsOwner(!!proof);
+    };
+    checkOwnership();
+  }, [ideaId, getOwnershipProof]);
+
   if (loading && !currentScore) {
     return (
       <Card>
@@ -115,10 +130,16 @@ export function PMFScoreCard({ currentScore, loading, onRecalculate }: PMFScoreC
           </div>
           
           <div className="flex-1 space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={getScoreVariant(score)} className="text-sm px-3 py-1">
                 {getScoreLabel(score)}
               </Badge>
+              {isOwner && (
+                <Badge variant="outline" className="text-xs">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Verified Owner
+                </Badge>
+              )}
               {currentScore.ai_confidence && (
                 <span className="text-xs text-muted-foreground">
                   AI Confidence: {(currentScore.ai_confidence * 100).toFixed(0)}%
