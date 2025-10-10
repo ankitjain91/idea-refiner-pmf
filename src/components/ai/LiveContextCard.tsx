@@ -91,7 +91,7 @@ export function LiveContextCard({ ideaId }: LiveContextCardProps) {
   }
 
   return (
-    <Card>
+    <Card className="border-primary/20 bg-gradient-to-br from-card to-card/80 backdrop-blur">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -103,6 +103,7 @@ export function LiveContextCard({ ideaId }: LiveContextCardProps) {
             variant="ghost"
             onClick={refreshContext}
             disabled={refreshing}
+            className="hover:bg-primary/10"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </Button>
@@ -110,46 +111,80 @@ export function LiveContextCard({ ideaId }: LiveContextCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {!context ? (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground mb-3">No live data available</p>
-            <Button onClick={refreshContext} disabled={refreshing}>
-              Fetch Live Data
+          <div className="text-center py-8">
+            <div className="mb-4 mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/20">
+              <TrendingUp className="h-8 w-8 text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">No live market data available yet</p>
+            <Button 
+              onClick={refreshContext} 
+              disabled={refreshing}
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+            >
+              {refreshing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Fetching...
+                </>
+              ) : (
+                'Fetch Live Market Data'
+              )}
             </Button>
           </div>
         ) : (
-          <>
+          <div className="space-y-4">
             {context.data?.summary && (
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Summary</h4>
-                <p className="text-xs text-muted-foreground">{context.data.summary}</p>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-primary rounded-full" />
+                  Market Summary
+                </h4>
+                <p className="text-sm text-foreground leading-relaxed">{context.data.summary}</p>
               </div>
             )}
 
             {context.data?.insights && context.data.insights.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Key Insights</h4>
-                <ul className="space-y-1">
+              <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-accent rounded-full" />
+                  Key Insights
+                </h4>
+                <ul className="space-y-2">
                   {context.data.insights.map((insight: string, i: number) => (
-                    <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      <span>{insight}</span>
+                    <li key={i} className="text-sm text-foreground flex items-start gap-3 pl-2">
+                      <span className="text-primary mt-1.5">•</span>
+                      <span className="flex-1">{insight}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {context.data?.opportunity_score && (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border">
-                <span className="text-sm font-medium">Market Opportunity</span>
-                <Badge variant="default">{context.data.opportunity_score}/100</Badge>
+            {context.data?.opportunity_score !== undefined && (
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span className="text-sm font-semibold">Market Opportunity Score</span>
+                </div>
+                <Badge variant="default" className="text-base px-3 py-1">
+                  {context.data.opportunity_score}/100
+                </Badge>
               </div>
             )}
 
-            <div className="text-xs text-muted-foreground pt-2 border-t">
-              Last updated: {new Date(context.last_refreshed).toLocaleString()}
+            <div className="flex items-center justify-between pt-3 border-t text-xs text-muted-foreground">
+              <span>Last updated: {new Date(context.last_refreshed).toLocaleString()}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={refreshContext}
+                disabled={refreshing}
+                className="h-7 text-xs hover:text-primary"
+              >
+                Refresh
+              </Button>
             </div>
-          </>
+          </div>
         )}
       </CardContent>
     </Card>
