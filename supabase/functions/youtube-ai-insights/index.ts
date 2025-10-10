@@ -63,14 +63,14 @@ serve(async (req) => {
     const cacheKey = `youtube_ai_${searchIdea.slice(0, 100)}_${time_window}_${regionCode}`;
     const { data: cachedData } = await supabase
       .from('llm_cache')
-      .select('response_data')
+      .select('response')
       .eq('cache_key', cacheKey)
       .gt('expires_at', new Date().toISOString())
       .single();
     
-    if (cachedData?.response_data) {
+    if (cachedData?.response) {
       console.log('[youtube-ai] Returning cached data');
-      return new Response(JSON.stringify(cachedData.response_data), {
+      return new Response(JSON.stringify(cachedData.response), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -168,7 +168,9 @@ Return ONLY valid JSON in this exact structure:
       .from('llm_cache')
       .upsert({
         cache_key: cacheKey,
-        response_data: result,
+        prompt_hash: cacheKey,
+        model: 'google/gemini-2.5-flash',
+        response: result,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       });
 
