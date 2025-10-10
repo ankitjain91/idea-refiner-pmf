@@ -37,6 +37,7 @@ const Documentation = lazy(() => import('./pages/Documentation'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const PublicLeaderboard = lazy(() => import('./pages/PublicLeaderboard'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const AuthPage = lazy(() => import('./pages/Auth'));
 
 const RouteTransitionWrapper = () => {
   const location = useLocation();
@@ -45,11 +46,12 @@ const RouteTransitionWrapper = () => {
       <Routes>
         <Route path="/logged-out" element={<LoggedOut />} />
         <Route path="/" element={<LandingPage />} />
-          <Route path="/leaderboard" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><LeaderboardPage /></Suspense>} />
-          <Route path="/logout" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Logout /></Suspense>} />
-          <Route path="/documentation" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Documentation /></Suspense>} />
-          {/* Hub now nested under shared layout for instant render */}
-          <Route path="/deep-dive" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><DeepDive /></Suspense>} />
+        <Route path="/auth" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><AuthPage /></Suspense>} />
+        <Route path="/leaderboard" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><LeaderboardPage /></Suspense>} />
+        <Route path="/logout" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Logout /></Suspense>} />
+        <Route path="/documentation" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Documentation /></Suspense>} />
+        {/* Hub now nested under shared layout for instant render */}
+        <Route path="/deep-dive" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><DeepDive /></Suspense>} />
         
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

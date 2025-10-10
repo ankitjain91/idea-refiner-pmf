@@ -124,6 +124,11 @@ export default function LeaderboardPage() {
           <p className="text-muted-foreground">
             Top-rated ideas ranked by PMF score and community votes
           </p>
+          {!canUpvote && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Viewing public ideas only. Sign in to upvote and see your ideas appear here.
+            </p>
+          )}
         </div>
 
         <div className="grid gap-4">
