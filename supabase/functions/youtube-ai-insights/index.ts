@@ -75,6 +75,44 @@ serve(async (req) => {
       });
     }
 
+    // Try real YouTube search first for valid, available videos
+    try {
+      const { data: ytRes, error: ytErr } = await supabase.functions.invoke('youtube-search', {
+        body: { idea_text: searchIdea, time_window, regionCode }
+      });
+
+      if (!ytErr && ytRes && Array.isArray(ytRes.youtube_insights) && ytRes.youtube_insights.length > 0) {
+        const result = {
+          idea: searchIdea,
+          youtube_insights: ytRes.youtube_insights,
+          summary: ytRes.summary,
+          meta: {
+            ...(ytRes.meta || {}),
+            ai_generated: false,
+            cached_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          }
+        };
+
+        // Cache for 24 hours
+        await supabase
+          .from('llm_cache')
+          .upsert({
+            cache_key: cacheKey,
+            prompt_hash: cacheKey,
+            model: 'youtube-search',
+            response: result,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          });
+
+        console.log('[youtube-ai] Served from youtube-search real data');
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } catch (e) {
+      console.warn('[youtube-ai] youtube-search fallback failed, using AI ranking', e);
+    }
+
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }

@@ -35,14 +35,14 @@ serve(async (req) => {
     // 1. Check cache first
     const { data: cachedData } = await supabase
       .from('llm_cache')
-      .select('response_data')
+      .select('response')
       .eq('cache_key', cacheKey)
       .gt('expires_at', new Date().toISOString())
       .single();
     
-    if (cachedData?.response_data) {
+    if (cachedData?.response) {
       console.log('[youtube-search] Returning cached data');
-      return new Response(JSON.stringify(cachedData.response_data), {
+      return new Response(JSON.stringify(cachedData.response), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -233,7 +233,9 @@ serve(async (req) => {
       .from('llm_cache')
       .upsert({
         cache_key: cacheKey,
-        response_data: response,
+        prompt_hash: cacheKey,
+        model: 'youtube-search',
+        response: response,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       });
     
