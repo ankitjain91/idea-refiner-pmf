@@ -18,6 +18,7 @@ export default function LeaderboardPage() {
   const loadLeaderboard = async () => {
     setLoading(true);
     try {
+      console.log('[LeaderboardPage] Fetching leaderboard data...');
       const { data, error } = await supabase
         .from('leaderboard')
         .select('*')
@@ -25,15 +26,23 @@ export default function LeaderboardPage() {
         .order('pmf_score', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      console.log('[LeaderboardPage] Query result:', { data, error });
+
+      if (error) {
+        console.error('[LeaderboardPage] Error:', error);
+        throw error;
+      }
+      
+      console.log('[LeaderboardPage] Loaded items:', data?.length || 0);
       setLeaderboard(data || []);
     } catch (error: any) {
-      console.error('Error loading leaderboard:', error);
+      console.error('[LeaderboardPage] Error loading leaderboard:', error);
       toast({
         title: 'Error',
-        description: 'Could not load leaderboard',
+        description: error.message || 'Could not load leaderboard',
         variant: 'destructive',
       });
+      setLeaderboard([]);
     } finally {
       setLoading(false);
     }
