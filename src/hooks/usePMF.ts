@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/EnhancedAuthContext'
 import { useToast } from '@/hooks/use-toast'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
 
 export interface PMFScore {
   id: string
@@ -78,13 +73,11 @@ export function usePMF(ideaId?: string): UsePMFReturn {
         .eq('idea_id', id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
-      if (scoreError && scoreError.code !== 'PGRST116') { // PGRST116 = no rows
-        throw scoreError
-      }
+      if (scoreError) throw scoreError
 
-      setCurrentScore(latestScore)
+      setCurrentScore(latestScore as unknown as PMFScore | null)
 
       // Get score history
       const { data: history, error: historyError } = await supabase
@@ -95,18 +88,19 @@ export function usePMF(ideaId?: string): UsePMFReturn {
 
       if (historyError) throw historyError
 
-      setScoreHistory(history || [])
+      setScoreHistory((history || []) as unknown as PMFScore[])
 
       // Get pending actions
       const { data: actionsData, error: actionsError } = await supabase
         .from('actions')
         .select('*')
         .eq('idea_id', id)
-        .order('priority', { ascending: true })
+        .in('status', ['pending', 'in_progress'])
+        .order('priority', { ascending: false })
 
       if (actionsError) throw actionsError
 
-      setActions(actionsData || [])
+      setActions((actionsData || []) as unknown as Action[])
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch PMF data'
       setError(errorMessage)
@@ -140,10 +134,11 @@ export function usePMF(ideaId?: string): UsePMFReturn {
       const { data, error: computeError } = await supabase.functions.invoke('compute-pmf-and-next-steps', {
         body: {
           idea_id: ideaId,
-          idea_text: `${idea.title}: ${idea.description}`,
+          idea_text: idea.original_idea,
           user_context: {
             category: idea.category,
-            target_market: idea.target_market
+            target_age: idea.target_age,
+            market_size: idea.market_size
           },
           force_recalculate: forceRecalculate
         }
@@ -218,7 +213,7 @@ export function usePMF(ideaId?: string): UsePMFReturn {
 
       // Update local state
       setActions(prev => prev.map(action => 
-        action.id === actionId ? { ...action, ...updatedAction } : action
+        action.id === actionId ? { ...action, ...(updatedAction as unknown as Action) } : action
       ))
 
       toast({
@@ -250,8 +245,9 @@ export function usePMF(ideaId?: string): UsePMFReturn {
 
       if (error) throw error
 
-      setScoreHistory(data || [])
-      return data || []
+      const typedData = (data || []) as unknown as PMFScore[]
+      setScoreHistory(typedData)
+      return typedData
     } catch (err) {
       console.error('Failed to fetch score history:', err)
       return []
@@ -268,8 +264,9 @@ export function usePMF(ideaId?: string): UsePMFReturn {
 
       if (error) throw error
 
-      setActions(data || [])
-      return data || []
+      const typedData = (data || []) as unknown as Action[]
+      setActions(typedData)
+      return typedData
     } catch (err) {
       console.error('Failed to refresh actions:', err)
       return []
