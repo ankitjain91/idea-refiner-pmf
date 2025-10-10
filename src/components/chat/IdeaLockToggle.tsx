@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Lock, Unlock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLockedIdea } from '@/lib/lockedIdeaManager';
+import { useLedger } from '@/hooks/useLedger';
+import { useAuth } from '@/contexts/EnhancedAuthContext';
 
 interface IdeaLockToggleProps {
   currentIdea: string;
@@ -11,13 +13,23 @@ interface IdeaLockToggleProps {
 
 export const IdeaLockToggle: React.FC<IdeaLockToggleProps> = ({ currentIdea, hasValidIdea }) => {
   const { lockedIdea, setLockedIdea, clearLockedIdea } = useLockedIdea();
+  const { createOwnership } = useLedger();
+  const { user } = useAuth();
   const isLocked = !!lockedIdea && lockedIdea === currentIdea;
 
-  const handleToggle = () => {
+  const handleToggle = async () => {
     if (isLocked) {
       clearLockedIdea();
-    } else if (hasValidIdea && currentIdea) {
+    } else if (hasValidIdea && currentIdea && user) {
       setLockedIdea(currentIdea);
+      
+      // Create ledger ownership when locking
+      const ideaId = crypto.randomUUID();
+      await createOwnership(ideaId, { 
+        idea: currentIdea,
+        userId: user.id,
+        timestamp: Date.now()
+      });
     }
   };
 
