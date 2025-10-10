@@ -390,6 +390,109 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_ledger: {
+        Row: {
+          block_number: number
+          created_at: string
+          data_hash: string
+          id: string
+          idea_id: string
+          metadata: Json | null
+          operation_type: string
+          previous_hash: string | null
+          signature: string
+          status: string
+          timestamp: string
+          transaction_hash: string
+          user_id: string
+        }
+        Insert: {
+          block_number: number
+          created_at?: string
+          data_hash: string
+          id?: string
+          idea_id: string
+          metadata?: Json | null
+          operation_type: string
+          previous_hash?: string | null
+          signature: string
+          status?: string
+          timestamp?: string
+          transaction_hash: string
+          user_id: string
+        }
+        Update: {
+          block_number?: number
+          created_at?: string
+          data_hash?: string
+          id?: string
+          idea_id?: string
+          metadata?: Json | null
+          operation_type?: string
+          previous_hash?: string | null
+          signature?: string
+          status?: string
+          timestamp?: string
+          transaction_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_ledger_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_ownership: {
+        Row: {
+          created_at: string
+          current_owner_id: string
+          id: string
+          idea_id: string
+          last_transfer_block: number | null
+          metadata: Json | null
+          original_creator_id: string
+          ownership_token: string
+          proof_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_owner_id: string
+          id?: string
+          idea_id: string
+          last_transfer_block?: number | null
+          metadata?: Json | null
+          original_creator_id: string
+          ownership_token: string
+          proof_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_owner_id?: string
+          id?: string
+          idea_id?: string
+          last_transfer_block?: number | null
+          metadata?: Json | null
+          original_creator_id?: string
+          ownership_token?: string
+          proof_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_ownership_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: true
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idea_scores: {
         Row: {
           ai_confidence: number
@@ -691,6 +794,53 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      ownership_challenges: {
+        Row: {
+          challenge_data: Json
+          challenge_type: string
+          challenger_id: string
+          created_at: string
+          evidence_hash: string
+          id: string
+          idea_id: string
+          resolution: Json | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          challenge_data: Json
+          challenge_type: string
+          challenger_id: string
+          created_at?: string
+          evidence_hash: string
+          id?: string
+          idea_id: string
+          resolution?: Json | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          challenge_data?: Json
+          challenge_type?: string
+          challenger_id?: string
+          created_at?: string
+          evidence_hash?: string
+          id?: string
+          idea_id?: string
+          resolution?: Json | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ownership_challenges_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1061,7 +1211,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ownership_verification: {
+        Row: {
+          created_at: string | null
+          current_owner_id: string | null
+          id: string | null
+          idea_id: string | null
+          last_transfer_block: number | null
+          ledger_entry_count: number | null
+          metadata: Json | null
+          original_creator_id: string | null
+          ownership_token: string | null
+          pending_challenges_count: number | null
+          proof_hash: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_ownership_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: true
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_email_exists: {
@@ -1079,6 +1253,21 @@ export type Database = {
       cleanup_expired_llm_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_ledger_entry: {
+        Args: {
+          p_data_hash: string
+          p_idea_id: string
+          p_metadata?: Json
+          p_operation_type: string
+          p_signature: string
+          p_user_id: string
+        }
+        Returns: number
+      }
+      generate_ownership_token: {
+        Args: { p_idea_id: string; p_user_id: string }
+        Returns: string
       }
       get_current_billing_period: {
         Args: Record<PropertyKey, never>
@@ -1130,6 +1319,15 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      verify_ledger_integrity: {
+        Args: { end_block?: number; start_block?: number }
+        Returns: {
+          actual_hash: string
+          block_number: number
+          expected_hash: string
+          is_valid: boolean
+        }[]
       }
     }
     Enums: {
