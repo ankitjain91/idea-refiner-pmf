@@ -20,8 +20,18 @@ export const IdeaLockToggle: React.FC<IdeaLockToggleProps> = ({ currentIdea, has
   const handleToggle = async () => {
     if (isLocked) {
       clearLockedIdea();
+      try {
+        sessionStorage.removeItem('idea_locked_this_session');
+      } catch {}
+      window.dispatchEvent(new Event('idea:unlocked'));
     } else if (hasValidIdea && currentIdea && user) {
       setLockedIdea(currentIdea);
+
+      // Mark locked in current session and notify listeners
+      try {
+        sessionStorage.setItem('idea_locked_this_session', 'true');
+      } catch {}
+      window.dispatchEvent(new Event('idea:locked'));
       
       // Create ledger ownership when locking
       const ideaId = crypto.randomUUID();
