@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      actions: {
+        Row: {
+          ai_confidence: number
+          category: string
+          completed_at: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          estimated_effort: string
+          id: string
+          idea_id: string
+          metadata: Json | null
+          priority: number
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number
+          category: string
+          completed_at?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          estimated_effort: string
+          id?: string
+          idea_id: string
+          metadata?: Json | null
+          priority: number
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          estimated_effort?: string
+          id?: string
+          idea_id?: string
+          metadata?: Json | null
+          priority?: number
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_credits_usage: {
         Row: {
           billing_period_end: string
@@ -306,6 +357,78 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_evolution: {
+        Row: {
+          changes: Json
+          created_at: string
+          id: string
+          idea_id: string
+          idea_text: string
+          pmf_score: number | null
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          changes: Json
+          created_at?: string
+          id?: string
+          idea_id: string
+          idea_text: string
+          pmf_score?: number | null
+          user_id: string
+          version_number: number
+        }
+        Update: {
+          changes?: Json
+          created_at?: string
+          id?: string
+          idea_id?: string
+          idea_text?: string
+          pmf_score?: number | null
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
+      idea_scores: {
+        Row: {
+          ai_confidence: number
+          created_at: string
+          data_sources: string[]
+          id: string
+          idea_id: string
+          metadata: Json | null
+          pmf_score: number
+          score_breakdown: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number
+          created_at?: string
+          data_sources?: string[]
+          id?: string
+          idea_id: string
+          metadata?: Json | null
+          pmf_score: number
+          score_breakdown?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number
+          created_at?: string
+          data_sources?: string[]
+          id?: string
+          idea_id?: string
+          metadata?: Json | null
+          pmf_score?: number
+          score_breakdown?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       idea_validations: {
         Row: {
           created_at: string | null
@@ -430,6 +553,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leaderboard: {
+        Row: {
+          created_at: string
+          id: string
+          idea_id: string
+          idea_text: string
+          is_public: boolean
+          pmf_score: number
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idea_id: string
+          idea_text: string
+          is_public?: boolean
+          pmf_score: number
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idea_id?: string
+          idea_text?: string
+          is_public?: boolean
+          pmf_score?: number
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      live_context: {
+        Row: {
+          context_type: string
+          created_at: string
+          data: Json
+          expires_at: string
+          id: string
+          idea_id: string
+          last_refreshed: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          context_type: string
+          created_at?: string
+          data: Json
+          expires_at: string
+          id?: string
+          idea_id: string
+          last_refreshed?: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          context_type?: string
+          created_at?: string
+          data?: Json
+          expires_at?: string
+          id?: string
+          idea_id?: string
+          last_refreshed?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       llm_cache: {
         Row: {
