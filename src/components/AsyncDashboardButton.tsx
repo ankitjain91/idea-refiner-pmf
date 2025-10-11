@@ -51,17 +51,17 @@ export const AsyncDashboardButton = () => {
             <span>View Analysis Dashboard</span>
           </Button>
         </TooltipTrigger>
-        {!enabled && (
-          <TooltipContent side="bottom" className="max-w-[240px] text-xs leading-relaxed">
-            <p>
-              {!hasIdea 
+        <TooltipContent side="bottom" className="max-w-[240px] text-xs leading-relaxed">
+          <p>
+            {enabled 
+              ? 'View your idea analysis dashboard' 
+              : !hasIdea 
                 ? 'Chat to describe your idea (at least 20 characters)' 
                 : !hasLockedIdea 
                   ? 'After 3 messages, view your idea and click "Lock My Idea" to enable analysis' 
                   : 'Refresh the page or click elsewhere to sync your locked idea'}
-            </p>
-          </TooltipContent>
-        )}
+          </p>
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
