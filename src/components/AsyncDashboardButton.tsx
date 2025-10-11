@@ -34,22 +34,24 @@ export const AsyncDashboardButton = () => {
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            onClick={handleClick}
-            variant="outline"
-            size="sm"
-            disabled={!enabled}
-            data-state={enabled ? 'ready' : 'disabled'}
-            data-locked={isLocked}
-            className="hover:border-primary/50 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {enabled ? (
-              <LayoutDashboard className="h-4 w-4 mr-2" />
-            ) : (
-              <Lock className="h-4 w-4 mr-2 opacity-50" />
-            )}
-            <span>View Analysis Dashboard</span>
-          </Button>
+          <span className="inline-flex" aria-disabled={!enabled}>
+            <Button
+              onClick={handleClick}
+              variant="outline"
+              size="sm"
+              disabled={!enabled}
+              data-state={enabled ? 'ready' : 'disabled'}
+              data-locked={isLocked}
+              className="hover:border-primary/50 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {enabled ? (
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+              ) : (
+                <Lock className="h-4 w-4 mr-2 opacity-50" />
+              )}
+              <span>View Analysis Dashboard</span>
+            </Button>
+          </span>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-[240px] text-xs leading-relaxed">
           <p>
