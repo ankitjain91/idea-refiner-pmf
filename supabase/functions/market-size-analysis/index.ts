@@ -185,9 +185,9 @@ serve(async (req) => {
                   "market_size": {
                     "summary": "One paragraph executive summary with TAM, SAM, SOM and why it matters for the idea",
                     "metrics": {
-                      "tam": "Use format like $X.XB or $XXXM based on actual analysis",
-                      "sam": "30-45% of TAM", 
-                      "som": "5-15% of SAM",
+                      "tam": "$X.XB or $XXXM - Total Addressable Market",
+                      "sam": "$X.XB or $XXXM - Calculate as 30-45% of TAM based on serviceable portion",
+                      "som": "$X.XB or $XXXM - Calculate as 5-15% of SAM based on realistic capture",
                       "growth_rate_cagr": "XX%",
                       "regional_split": {
                         "NA": "Based on data",
