@@ -308,6 +308,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         dashboardData: {} // Initialize empty dashboard data
       };
       
+      // CRITICAL: Clear locked idea when creating new session
+      import('@/lib/lockedIdeaManager').then(({ lockedIdeaManager }) => {
+        lockedIdeaManager.clearLockedIdea();
+      });
+      
       // Clear idea using centralized hook
       clearIdea();
       
@@ -322,6 +327,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem('pmf.analysis.completed');
       localStorage.removeItem(LS_KEYS.ideaMetadata);
       localStorage.removeItem('wrinklePoints');
+      localStorage.removeItem('conversationSummary');
       
       // Clear dashboard specific data
       localStorage.removeItem('dashboardValidation');

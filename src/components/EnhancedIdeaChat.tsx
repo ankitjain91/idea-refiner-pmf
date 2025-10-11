@@ -587,6 +587,9 @@ What's your startup idea?`,
         return;
       }
       
+      // CRITICAL: Always clear locked idea when resetting session
+      lockedIdeaManager.clearLockedIdea();
+      
       // Clear messages unless pinned
       setMessages([]);
       
@@ -603,6 +606,7 @@ What's your startup idea?`,
       setPersistenceLevel(0);
       setOffTopicAttempts(0);
       setInput('');
+      setConversationSummary('');
       
       // Show welcome message for the new session after a brief delay
       setTimeout(() => {
