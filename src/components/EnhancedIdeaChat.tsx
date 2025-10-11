@@ -2833,8 +2833,6 @@ User submission: """${messageText}"""`;
       open={showSummaryDialog}
       onOpenChange={setShowSummaryDialog}
       summary={conversationSummary || ''}
-      isPinned={isPinned}
-      onPinToggle={handlePinToggle}
       messages={messages}
       onRefine={(refinedIdea) => {
         setConversationSummary(refinedIdea);

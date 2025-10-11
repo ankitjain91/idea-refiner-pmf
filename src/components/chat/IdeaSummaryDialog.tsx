@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ConversationPinToggle } from './ConversationPinToggle';
 import { Button } from '@/components/ui/button';
 import { Lightbulb, Sparkles, Lock, Unlock, Loader2 } from 'lucide-react';
 import { useLockedIdea } from '@/hooks/useLockedIdea';
@@ -10,8 +9,6 @@ interface IdeaSummaryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   summary: string;
-  isPinned: boolean;
-  onPinToggle: () => void;
   onRefine?: (refinedSummary: string) => void;
   messages?: any[]; // Conversation history for refinement
 }
@@ -20,8 +17,6 @@ export const IdeaSummaryDialog: React.FC<IdeaSummaryDialogProps> = ({
   open,
   onOpenChange,
   summary,
-  isPinned,
-  onPinToggle,
   onRefine,
   messages = []
 }) => {
@@ -121,55 +116,46 @@ export const IdeaSummaryDialog: React.FC<IdeaSummaryDialogProps> = ({
             <p className="text-sm leading-relaxed">{refinedSummary}</p>
           </div>
           
-          <div className="flex justify-between items-center gap-2">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefine}
-                disabled={isRefining || !refinedSummary}
-                className="gap-2"
-              >
-                {isRefining ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Refining...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Refine Idea
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                variant={isCurrentIdeaLocked ? "destructive" : "default"}
-                size="sm"
-                onClick={handleLockToggle}
-                disabled={!refinedSummary}
-                className="gap-2"
-              >
-                {isCurrentIdeaLocked ? (
-                  <>
-                    <Unlock className="h-4 w-4" />
-                    Unlock Idea
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    Lock My Idea
-                  </>
-                )}
-              </Button>
-            </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefine}
+              disabled={isRefining || !refinedSummary}
+              className="gap-2"
+            >
+              {isRefining ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Refining...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Refine Idea
+                </>
+              )}
+            </Button>
             
-            <ConversationPinToggle 
-              isPinned={isPinned}
-              onToggle={onPinToggle}
-              hasMessages={true}
-              disabled={false}
-            />
+            <Button
+              variant={isCurrentIdeaLocked ? "destructive" : "default"}
+              size="sm"
+              onClick={handleLockToggle}
+              disabled={!refinedSummary}
+              className="gap-2"
+            >
+              {isCurrentIdeaLocked ? (
+                <>
+                  <Unlock className="h-4 w-4" />
+                  Unlock Idea
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4" />
+                  Lock My Idea
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>
