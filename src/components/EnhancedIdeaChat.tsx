@@ -394,11 +394,10 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       setMessages(allMessages);
       setConversationStarted(allMessages.length > 0);
       
-        
-        // Update localStorage with the merged result
-        localStorage.setItem(`session_${currentSession.id}_messages`, JSON.stringify(allMessages));
-        localStorage.setItem('chatHistory', JSON.stringify(allMessages));
-        
+      // Update localStorage with the merged result
+      localStorage.setItem(`session_${currentSession.id}_messages`, JSON.stringify(allMessages));
+      localStorage.setItem('chatHistory', JSON.stringify(allMessages));
+      
       } catch (error) {
         console.error('[EnhancedIdeaChat] Error during message restoration:', error);
         setMessageLoadError(`Failed to load messages: ${error.message}`);
@@ -407,7 +406,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
         setMessages([]);
         setConversationStarted(false);
       }
-    };    restoreMessages().finally(() => {
+    };
+    
+    restoreMessages().finally(() => {
       // Always clear loading state
       setLoadingSessionMessages(false);
     });
