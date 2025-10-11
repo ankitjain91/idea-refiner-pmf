@@ -144,7 +144,7 @@ export const IdeaSummaryDialog: React.FC<IdeaSummaryDialogProps> = ({
               </Button>
               
               <Button
-                variant={isCurrentIdeaLocked ? "default" : "outline"}
+                variant={isCurrentIdeaLocked ? "destructive" : "default"}
                 size="sm"
                 onClick={handleLockToggle}
                 disabled={!refinedSummary}
