@@ -62,7 +62,7 @@ export const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteP
   if (requireAuth && !user && initialized) {
     console.log("ProtectedRoute redirecting to / with auth modal:", { initialized, loading, hasUser: !!user, path: location.pathname });
     // Redirect to landing page and open auth modal, preserving original location
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ openAuthModal: true, from: location }} replace />;
   }
 
   // Redirect authenticated users from root to /home
