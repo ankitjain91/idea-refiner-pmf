@@ -251,7 +251,7 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     const sessionData = currentSession.data;
     
     // Restore chat history
-    if (sessionData?.chatHistory && Array.isArray(sessionData.chatHistory)) {
+    if (sessionData?.chatHistory && Array.isArray(sessionData.chatHistory) && sessionData.chatHistory.length > 0) {
       console.log(`[EnhancedIdeaChat] ✅ Loaded ${sessionData.chatHistory.length} messages from session`);
       setMessages(sessionData.chatHistory);
       setConversationStarted(sessionData.chatHistory.length > 0);
@@ -259,6 +259,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       // Update localStorage for persistence
       localStorage.setItem(`session_${currentSession.id}_messages`, JSON.stringify(sessionData.chatHistory));
       localStorage.setItem('chatHistory', JSON.stringify(sessionData.chatHistory));
+    } else {
+      // No messages in this session, reset to empty
+      console.log('[EnhancedIdeaChat] No messages in session, resetting');
+      setMessages([]);
+      setConversationStarted(false);
     }
     
     // Restore idea and locked idea
