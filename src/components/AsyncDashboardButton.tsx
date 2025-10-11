@@ -27,7 +27,7 @@ export const AsyncDashboardButton = () => {
   const enabled = (hasLockedIdea || (isLocked && hasIdea)) && sessionLocked;
 
   const handleClick = () => {
-    if (enabled) navigate('/home');
+    if (enabled) navigate('/hub');
   };
 
   return (
