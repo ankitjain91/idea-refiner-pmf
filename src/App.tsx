@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useLocation } from 'react-router-dom';
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/EnhancedAuthContext";
-import { SessionProvider } from "@/contexts/SimpleSessionContext";
+import { SessionProvider } from "@/contexts/SessionContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AlertProvider } from "@/contexts/AlertContext";
 import { DataModeProvider } from "@/contexts/DataModeContext";
@@ -22,14 +22,15 @@ import CommandPalette from '@/components/CommandPalette';
 import EngagingLoader from '@/components/engagement/EngagingLoader';
 import { useAuth } from '@/contexts/EnhancedAuthContext';
 import { IdeasInitializer } from '@/components/IdeasInitializer';
+import IdeaJournal from './pages/IdeaJournal';
+import Homepage from './pages/Homepage';
 
 // Lazy load only heavy pages
-const EnterpriseHub = lazy(() => import('./pages/EnterpriseHub'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Hub = lazy(() => import('./pages/Hub'));
 const DeepDive = lazy(() => import('./pages/DeepDive'));
 const IdeaChat = lazy(() => import('./pages/EnhancedIdeaChatPage'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const IdeaJournal = lazy(() => import('./pages/IdeaJournal'));
+const EnterpriseHub = lazy(() => import('./pages/EnterpriseHub'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Logout = lazy(() => import('./pages/Logout'));
@@ -37,8 +38,8 @@ const Documentation = lazy(() => import('./pages/Documentation'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const PublicLeaderboard = lazy(() => import('./pages/PublicLeaderboard'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
-
 const AIInsights = lazy(() => import('./pages/AIInsights'));
+const OwnedIdeas = lazy(() => import('./pages/OwnedIdeas'));
 
 const RouteTransitionWrapper = () => {
   const location = useLocation();
@@ -46,26 +47,41 @@ const RouteTransitionWrapper = () => {
     <div className="flex-1 flex flex-col">
       <Routes>
         <Route path="/logged-out" element={<LoggedOut />} />
-        <Route path="/" element={<LandingPage />} />
-        
+        <Route path="/" element={<ProtectedRoute requireAuth={false}><LandingPage /></ProtectedRoute>} />
         <Route path="/leaderboard" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><LeaderboardPage /></Suspense>} />
         <Route path="/logout" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Logout /></Suspense>} />
         <Route path="/documentation" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Documentation /></Suspense>} />
-        {/* Hub now nested under shared layout for instant render */}
-        <Route path="/deep-dive" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><DeepDive /></Suspense>} />
-        
+        {/*
+         * The deep-dive analysis view renders detailed market insights for a user's idea.
+         * Because this page surfaces personalized data, it should only be accessible
+         * to authenticated users. Previously it was available without authentication,
+         * which resulted in an empty page and confusing UX. Wrapping it in
+         * ProtectedRoute ensures non‑signed‑in visitors are redirected to the
+         * auth flow before accessing the deep-dive.
+         */}
+        <Route
+          path="/deep-dive"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<EngagingLoader active={true} scope='generic' />}>
+                <DeepDive />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Protected routes with shared layout */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-          <Route path="/home" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Dashboard /></Suspense>} />
-          <Route path="/dashboard" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><EnterpriseHub /></Suspense>} />
-          <Route path="/enterprisehub" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><EnterpriseHub /></Suspense>} />
+          <Route path="/home" element={<Homepage />} />
+          <Route path="/dashboard" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Dashboard /></Suspense>} />
           <Route path="/hub" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Hub /></Suspense>} />
           <Route path="/ideachat" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><IdeaChat /></Suspense>} />
           <Route path="/ideajournal" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><IdeaJournal /></Suspense>} />
+          <Route path="/owned-ideas" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><OwnedIdeas /></Suspense>} />
           <Route path="/ai-insights" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><AIInsights /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Settings /></Suspense>} />
           <Route path="/pricing" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Pricing /></Suspense>} />
-          <Route path="/subscription-success" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><Dashboard /></Suspense>} />
+          <Route path="/subscription-success" element={<Homepage />} />
         </Route>
         <Route path="*" element={<Suspense fallback={<EngagingLoader active={true} scope='generic' />}><NotFound /></Suspense>} />
       </Routes>
@@ -95,13 +111,12 @@ const App = () => {
         e.preventDefault();
         setCmdOpen(o => !o);
       }
-      // Shift+D toggle main dashboard (prefer /home, fallback /dashboard /enterprisehub)
+      // Shift+D toggle main dashboard (prefer /home, fallback /dashboard)
       if (e.shiftKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         const selectorOrder = [
           'a[href="/home"]',
           'a[href="/dashboard"]',
-          'a[href="/enterprisehub"]'
         ];
         for (const sel of selectorOrder) {
           const link = document.querySelector(sel) as HTMLAnchorElement | null;
