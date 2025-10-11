@@ -67,6 +67,12 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       badge: null
     },
     { 
+      title: "Owned Ideas", 
+      url: "/owned-ideas", 
+      icon: Crown,
+      badge: null
+    },
+    { 
       title: "AI Insights", 
       url: "/ai-insights", 
       icon: Brain,

@@ -24,6 +24,7 @@ import {
   Layers,       // Better icon for verbose mode
   RefreshCw,    // For retry button
   AlertCircle,  // For error indicator
+  AlertTriangle, // For message load errors
   Lightbulb     // For idea button
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ import { LS_KEYS } from '@/lib/storage-keys';
 import { backgroundProcessor } from '@/lib/background-processor';
 import { AsyncDashboardButton } from '@/components/AsyncDashboardButton';
 import { useIdeaContext } from '@/hooks/useIdeaContext';
+import { IdeaOwnership } from '@/components/ownership/IdeaOwnership';
 
 // Import refactored components and utilities
 import { Message, SuggestionItem } from './chat/types';
@@ -76,10 +78,11 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
 }) => {
   const navigate = useNavigate();
   // State management
-  const { currentSession, saveCurrentSession, saveMessagesNow, loading: sessionLoading } = useSession();
+  const { currentSession, saveCurrentSession, saveMessagesNow, loadSession, loading: sessionLoading } = useSession();
   const ideaContext = useIdeaContext(); // Hook must be called at component level
   const [anonymous, setAnonymous] = useState(false);
   const [loadingSessionMessages, setLoadingSessionMessages] = useState(false);
+  const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
   const isDefaultSessionName = !currentSession?.name;
   const displaySessionName = currentSession?.name || sessionName || 'New Chat Session';
   
@@ -96,6 +99,9 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
     return '';
   });
+  
+  // State for tracking the database idea ID for ownership
+  const [ideaId, setIdeaId] = useState<string | null>(null);
   
   const [messages, setMessages] = useState<Message[]>(() => {
     if (!anonymous) {
@@ -151,6 +157,41 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     }
     return '';
   });
+  
+  // Track if the current session's idea was manually locked
+  const [sessionIdeaLocked, setSessionIdeaLocked] = useState<boolean>(() => {
+    const sessionId = sessionStorage.getItem('currentSessionId');
+    return sessionId ? sessionStorage.getItem(`session_${sessionId}_locked`) === 'true' : false;
+  });
+
+  // Listen for idea lock/unlock events to track session-specific locking
+  useEffect(() => {
+    const handleIdeaLocked = () => {
+      const sessionId = sessionStorage.getItem('currentSessionId');
+      if (sessionId) {
+        sessionStorage.setItem(`session_${sessionId}_locked`, 'true');
+        setSessionIdeaLocked(true);
+        console.log('[EnhancedIdeaChat] Session idea locked:', sessionId);
+      }
+    };
+
+    const handleIdeaUnlocked = () => {
+      const sessionId = sessionStorage.getItem('currentSessionId');
+      if (sessionId) {
+        sessionStorage.removeItem(`session_${sessionId}_locked`);
+        setSessionIdeaLocked(false);
+        console.log('[EnhancedIdeaChat] Session idea unlocked:', sessionId);
+      }
+    };
+
+    window.addEventListener('idea:locked', handleIdeaLocked);
+    window.addEventListener('idea:unlocked', handleIdeaUnlocked);
+
+    return () => {
+      window.removeEventListener('idea:locked', handleIdeaLocked);
+      window.removeEventListener('idea:unlocked', handleIdeaUnlocked);
+    };
+  }, []);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [lastSummaryGeneration, setLastSummaryGeneration] = useState(() => {
@@ -250,38 +291,146 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
     
     const sessionData = currentSession.data;
     
-    // Restore chat history
-    if (sessionData?.chatHistory && Array.isArray(sessionData.chatHistory) && sessionData.chatHistory.length > 0) {
-      console.log(`[EnhancedIdeaChat] ✅ Loaded ${sessionData.chatHistory.length} messages from session`);
-      setMessages(sessionData.chatHistory);
-      setConversationStarted(sessionData.chatHistory.length > 0);
+    // Comprehensive message restoration from multiple sources with deduplication
+    const restoreMessages = async () => {
+      try {
+        setMessageLoadError(null); // Clear any previous errors
+        
+        const sources: { name: string; messages: any[] }[] = [];
+        
+        // Source 1: Session data from database
+        if (sessionData?.chatHistory && Array.isArray(sessionData.chatHistory)) {
+          sources.push({
+            name: 'database',
+            messages: sessionData.chatHistory
+          });
+        }
+        
+        // Source 2: Session-specific localStorage cache
+        try {
+          const sessionStoredMessages = localStorage.getItem(`session_${currentSession.id}_messages`);
+          if (sessionStoredMessages) {
+            const parsed = JSON.parse(sessionStoredMessages);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              sources.push({
+                name: 'session_localStorage',
+                messages: parsed
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('[EnhancedIdeaChat] Failed to parse session localStorage:', error);
+        }
+        
+        // Source 3: General localStorage fallback
+        try {
+          const generalStoredMessages = localStorage.getItem('chatHistory');
+          if (generalStoredMessages) {
+            const parsed = JSON.parse(generalStoredMessages);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              sources.push({
+                name: 'general_localStorage',
+                messages: parsed
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('[EnhancedIdeaChat] Failed to parse general localStorage:', error);
+        }
+        
+        console.log(`[EnhancedIdeaChat] Found ${sources.length} message sources:`, sources.map(s => `${s.name}(${s.messages.length})`));
       
-      // Update localStorage for persistence
-      localStorage.setItem(`session_${currentSession.id}_messages`, JSON.stringify(sessionData.chatHistory));
-      localStorage.setItem('chatHistory', JSON.stringify(sessionData.chatHistory));
-    } else {
-      // No messages in this session, reset to empty
-      console.log('[EnhancedIdeaChat] No messages in session, resetting');
-      setMessages([]);
-      setConversationStarted(false);
-    }
+      if (sources.length === 0) {
+        console.log('[EnhancedIdeaChat] No messages found in any source, checking if we need to refresh from DB...');
+        
+        // If we have a session but no messages, try to reload the session from database
+        if (currentSession && !sessionData?.chatHistory?.length) {
+          console.log('[EnhancedIdeaChat] Session exists but no messages, attempting fresh reload...');
+          try {
+            // Reload the session to get fresh data from database
+            await loadSession(currentSession.id);
+            console.log('[EnhancedIdeaChat] Session reloaded, restoration will retry automatically');
+            return; // The useEffect will re-run with fresh data
+          } catch (error) {
+            console.error('[EnhancedIdeaChat] Failed to reload session from DB:', error);
+          }
+        }
+        
+        setMessages([]);
+        setConversationStarted(false);
+        setLoadingSessionMessages(false);
+        return;
+      }
+      
+      // Merge and deduplicate messages from all sources
+      const allMessages: any[] = [];
+      const seenIds = new Set<string>();
+      
+      // Process sources in priority order (database first, then localStorage)
+      for (const source of sources) {
+        for (const message of source.messages) {
+          if (!message.id) {
+            // Generate ID for messages without one
+            message.id = `${message.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          }
+          
+          if (!seenIds.has(message.id)) {
+            seenIds.add(message.id);
+            allMessages.push({
+              ...message,
+              timestamp: message.timestamp ? new Date(message.timestamp) : new Date(),
+              _source: source.name // Track source for debugging
+            });
+          } else {
+            console.log(`[EnhancedIdeaChat] Skipped duplicate message ${message.id} from ${source.name}`);
+          }
+        }
+      }
+      
+      // Sort messages by timestamp to ensure correct order
+      allMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      
+      console.log(`[EnhancedIdeaChat] ✅ Restored ${allMessages.length} unique messages`);
+      setMessages(allMessages);
+      setConversationStarted(allMessages.length > 0);
+      
+        
+        // Update localStorage with the merged result
+        localStorage.setItem(`session_${currentSession.id}_messages`, JSON.stringify(allMessages));
+        localStorage.setItem('chatHistory', JSON.stringify(allMessages));
+        
+      } catch (error) {
+        console.error('[EnhancedIdeaChat] Error during message restoration:', error);
+        setMessageLoadError(`Failed to load messages: ${error.message}`);
+        
+        // Fallback to empty state
+        setMessages([]);
+        setConversationStarted(false);
+      }
+    };    restoreMessages().finally(() => {
+      // Always clear loading state
+      setLoadingSessionMessages(false);
+    });
     
-    // Restore idea and locked idea
+    // Restore idea
     if (sessionData?.currentIdea) {
       console.log('[EnhancedIdeaChat] ✅ Restored idea from session');
       setCurrentIdea(sessionData.currentIdea);
       setHasValidIdea(true);
+      setIdeaSummaryName(sessionData.currentIdea); // Use idea as summary name
       
       // Update localStorage
       localStorage.setItem(`session_${currentSession.id}_idea`, sessionData.currentIdea);
       localStorage.setItem('userIdea', sessionData.currentIdea);
       localStorage.setItem('currentIdea', sessionData.currentIdea);
       
-      // CRITICAL: Restore locked idea if it's valid
-      if (sessionData.currentIdea.trim().length >= 20) {
-        console.log('[EnhancedIdeaChat] ✅ Restoring locked idea:', sessionData.currentIdea.slice(0, 50));
-        lockedIdeaManager.setLockedIdea(sessionData.currentIdea);
-      }
+      // DON'T automatically lock ideas from session restore anymore
+      // This was causing the ownership logic to trigger incorrectly
+    } else {
+      // No idea in session, reset idea-related state
+      setCurrentIdea('');
+      setHasValidIdea(false);
+      setIdeaSummaryName('');
     }
     
     // Restore wrinkle points
@@ -295,16 +444,66 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       setConversationSummary(sessionData.conversationSummary);
       localStorage.setItem(`session_${currentSession.id}_summary`, sessionData.conversationSummary);
       
-      // CRITICAL: If we have a summary, also restore it as locked idea
-      if (sessionData.conversationSummary.trim().length >= 20) {
-        console.log('[EnhancedIdeaChat] ✅ Restoring locked idea from summary:', sessionData.conversationSummary.slice(0, 50));
-        lockedIdeaManager.setLockedIdea(sessionData.conversationSummary);
+      // DON'T automatically lock ideas from session restore
+      // Let the user manually lock via the modal if they want to claim ownership
+      console.log('[EnhancedIdeaChat] ✅ Restored summary (not auto-locking):', sessionData.conversationSummary.slice(0, 50));
+    } else {
+      // Check if there's a cached summary in localStorage
+      const cachedSummary = localStorage.getItem(`session_${currentSession.id}_summary`);
+      if (cachedSummary) {
+        setConversationSummary(cachedSummary);
+        console.log('[EnhancedIdeaChat] ✅ Restored summary from localStorage cache');
+      } else {
+        setConversationSummary('');
       }
     }
     
+    // Restore idea summary name
+    const cachedSummaryName = localStorage.getItem(`session_${currentSession.id}_summaryName`) || 
+                             localStorage.getItem('ideaSummaryName');
+    if (cachedSummaryName) {
+      setIdeaSummaryName(cachedSummaryName);
+      console.log('[EnhancedIdeaChat] ✅ Restored idea summary name');
+    }
+    
+    // Restore other missing state variables that should persist across sessions
+    // These are currently lost because they're not saved to session data
+    
+    // Reset chat state variables to defaults (these should start fresh each session)
+    setPersistenceLevel(0);
+    setOffTopicAttempts(0);
+    setIsRefining(false);
+    setIsTyping(false);
+    
+    // Check if we have user message count to restore conversation started state
+    const userMessages = sessionData?.chatHistory?.filter((m: any) => m.type === 'user') || [];
+    setConversationStarted(userMessages.length > 0);
+    
+    // Update user message count based on restored messages
+    const validUserMessages = userMessages.filter((m: any) => m.content && m.content.length > 5);
+    setUserMessageCount(validUserMessages.length);
+    
     // Small delay to show the loading animation
     setTimeout(() => setLoadingSessionMessages(false), 300);
-  }, [currentSession?.id]); // Re-run when session ID changes
+  }, [currentSession?.id, loadSession]); // Re-run when session ID changes
+  
+  // Manual retry function for message loading
+  const retryMessageLoading = useCallback(async () => {
+    if (!currentSession) return;
+    
+    console.log('[EnhancedIdeaChat] Manual retry: Reloading session from database...');
+    setLoadingSessionMessages(true);
+    setMessageLoadError(null);
+    
+    try {
+      await loadSession(currentSession.id);
+      // The useEffect will automatically run again with fresh data
+    } catch (error) {
+      console.error('[EnhancedIdeaChat] Manual retry failed:', error);
+      setMessageLoadError(`Retry failed: ${error.message}`);
+      setLoadingSessionMessages(false);
+    }
+  }, [currentSession, loadSession]);
   
   // Update user message count whenever messages change
   useEffect(() => {
@@ -322,6 +521,49 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       resetChat();
     }
   }, [resetTrigger]);
+
+  // Create or get idea ID when idea is locked for ownership
+  useEffect(() => {
+    const createOrGetIdeaId = async () => {
+      if (!currentIdea || !hasValidIdea || anonymous) return;
+      
+      try {
+        // Check if idea already exists in database
+        const { data: existingIdea } = await supabase
+          .from('ideas')
+          .select('id')
+          .eq('original_idea', currentIdea)
+          .maybeSingle();
+        
+        if (existingIdea) {
+          setIdeaId(existingIdea.id);
+        } else {
+          // Create new idea in database
+          const { data: newIdea, error } = await supabase
+            .from('ideas')
+            .insert([{
+              original_idea: currentIdea,
+              refined_idea: null,
+              user_id: anonymous ? null : (await supabase.auth.getUser()).data.user?.id,
+              category: null,
+              is_public: false
+            }])
+            .select('id')
+            .single();
+          
+          if (error) {
+            console.error('Failed to create idea in database:', error);
+          } else if (newIdea) {
+            setIdeaId(newIdea.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error creating/getting idea ID:', error);
+      }
+    };
+
+    createOrGetIdeaId();
+  }, [currentIdea, hasValidIdea, anonymous]);
 
   // Sync state to localStorage keys that SessionContext reads
   useEffect(() => {
@@ -346,10 +588,18 @@ const EnhancedIdeaChat: React.FC<EnhancedIdeaChatProps> = ({
       localStorage.setItem('wrinklePoints', wrinklePoints.toString());
     }
     
+    // Save conversation summary
     if (conversationSummary) {
       localStorage.setItem(`session_${sid}_summary`, conversationSummary);
+      localStorage.setItem('conversationSummary', conversationSummary);
     }
-  }, [messages, currentIdea, wrinklePoints, conversationSummary, anonymous]);
+    
+    // Save idea summary name
+    if (ideaSummaryName) {
+      localStorage.setItem(`session_${sid}_summaryName`, ideaSummaryName);
+      localStorage.setItem('ideaSummaryName', ideaSummaryName);
+    }
+  }, [messages, currentIdea, wrinklePoints, conversationSummary, ideaSummaryName, anonymous]);
 
   useEffect(() => {
     if (messages.length > 1) {
@@ -655,34 +905,66 @@ What's your startup idea?`,
     checkPendingQuestion();
   }, [location, toast]); // Re-run when location changes
 
-  // Persist messages to database with debouncing
+  // Persist messages to database with immediate + debounced saves
   useEffect(() => {
-    if (!anonymous && messages.length > 0) {
-      // Debounce database saves to prevent excessive writes
-      const saveTimeout = setTimeout(async () => {
-        setPersistenceStatus('saving');
-        try {
-          await saveCurrentSession();
-          console.log('[EnhancedIdeaChat] Session saved to database');
-          setPersistenceStatus('saved');
-          setPersistenceError(undefined);
-          
-          // Clear "saved" indicator after 2 seconds
-          setTimeout(() => setPersistenceStatus('idle'), 2000);
-        } catch (error) {
-          console.error('[EnhancedIdeaChat] Failed to save session:', error);
-          setPersistenceStatus('error');
-          setPersistenceError('Failed to save');
-        }
-      }, 2000); // Wait 2 seconds before saving to DB
-      
-      // Save immediately on unmount
-      return () => {
-        clearTimeout(saveTimeout);
-        saveCurrentSession().catch(console.error);
-      };
+    if (anonymous || messages.length === 0) return;
+    
+    // Always save to localStorage first (sync, reliable)
+    const sid = localStorage.getItem('currentSessionId');
+    if (sid) {
+      localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
+      localStorage.setItem('chatHistory', JSON.stringify(messages));
     }
-  }, [messages, anonymous, saveCurrentSession]);
+    
+    // Then save to database (async, can fail)
+    const saveToDatabase = async () => {
+      try {
+        setPersistenceStatus('saving');
+        await saveMessagesNow();
+        console.log('[EnhancedIdeaChat] ✅ Messages saved to database');
+        setPersistenceStatus('saved');
+        setPersistenceError(undefined);
+        setTimeout(() => setPersistenceStatus('idle'), 1500);
+      } catch (error) {
+        console.error('[EnhancedIdeaChat] ❌ Failed to save messages to database:', error);
+        setPersistenceStatus('error');
+        setPersistenceError('Failed to save to database');
+        
+        // Retry after 5 seconds
+        setTimeout(() => {
+          saveToDatabase().catch(console.error);
+        }, 5000);
+      }
+    };
+    
+    // Debounce database saves to avoid excessive API calls
+    const saveTimeout = setTimeout(saveToDatabase, 1000);
+    return () => clearTimeout(saveTimeout);
+  }, [messages, anonymous, saveMessagesNow]);
+
+  // Save messages when user navigates away or refreshes page
+  useEffect(() => {
+    if (anonymous) return;
+
+    const handleBeforeUnload = () => {
+      // Use synchronous localStorage save as backup since async may not complete
+      const sid = localStorage.getItem('currentSessionId');
+      if (sid && messages.length > 0) {
+        localStorage.setItem(`session_${sid}_messages`, JSON.stringify(messages));
+        localStorage.setItem('chatHistory', JSON.stringify(messages));
+      }
+      
+      // Try immediate save but don't block page unload
+      if (messages.length > 0) {
+        saveMessagesNow().catch(error => {
+          console.error('[EnhancedIdeaChat] Failed to save on beforeunload:', error);
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [anonymous, messages, saveMessagesNow]);
   
   // Note: Persistence is handled by the unified sync effect above
   
@@ -946,7 +1228,27 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
       timestamp: new Date()
     };
     
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => {
+      const newMessages = [...prev, userMessage];
+      
+      // Save to localStorage immediately when state updates
+      if (!anonymous) {
+        const sid = localStorage.getItem('currentSessionId');
+        if (sid) {
+          localStorage.setItem(`session_${sid}_messages`, JSON.stringify(newMessages));
+          localStorage.setItem('chatHistory', JSON.stringify(newMessages));
+        }
+      }
+      
+      return newMessages;
+    });
+    
+    // Also try database save (async, best effort)
+    if (!anonymous) {
+      saveMessagesNow().catch(error => {
+        console.warn('[EnhancedIdeaChat] User message DB save failed (will retry):', error);
+      });
+    }
     
     // Create an AbortController for this specific request
     const controller = new AbortController();
@@ -1459,17 +1761,27 @@ Tell me: WHO has WHAT problem and HOW you'll solve it profitably.`,
         };
         
         // Remove typing indicator right before adding the real message
-        setMessages(prev => [...prev.filter(msg => !msg.isTyping), botMessage]);
+        setMessages(prev => {
+          const newMessages = [...prev.filter(msg => !msg.isTyping), botMessage];
+          
+          // Save to localStorage immediately when state updates
+          if (!anonymous) {
+            const sid = localStorage.getItem('currentSessionId');
+            if (sid) {
+              localStorage.setItem(`session_${sid}_messages`, JSON.stringify(newMessages));
+              localStorage.setItem('chatHistory', JSON.stringify(newMessages));
+            }
+          }
+          
+          return newMessages;
+        });
         setIsTyping(false);
         
-        // Immediately save session after bot response
+        // Also try database save (async, best effort)
         if (!anonymous) {
-          try {
-            await saveCurrentSession();
-            console.log('[EnhancedIdeaChat] Session saved after bot response');
-          } catch (error) {
-            console.error('[EnhancedIdeaChat] Failed to save session after response:', error);
-          }
+          saveMessagesNow().catch(error => {
+            console.warn('[EnhancedIdeaChat] Bot response DB save failed (will retry):', error);
+          });
         }
       }
     } catch (error) {
@@ -1684,6 +1996,13 @@ const ChatMessageItem = useMemo(() => {
     
     // Clear idea summary state
     setIdeaSummaryName('');
+    
+    // Clear session-specific lock flag
+    const sessionId = sessionStorage.getItem('currentSessionId');
+    if (sessionId) {
+      sessionStorage.removeItem(`session_${sessionId}_locked`);
+    }
+    setSessionIdeaLocked(false);
     
     // Clear ALL persisted state - both generic and session-specific
     const keysToRemove = [
@@ -1993,7 +2312,27 @@ const ChatMessageItem = useMemo(() => {
       awaitingResponse: true // Mark as awaiting response
     };
     
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => {
+      const newMessages = [...prev, userMessage];
+      
+      // Save to localStorage immediately when state updates
+      if (!anonymous) {
+        const sid = localStorage.getItem('currentSessionId');
+        if (sid) {
+          localStorage.setItem(`session_${sid}_messages`, JSON.stringify(newMessages));
+          localStorage.setItem('chatHistory', JSON.stringify(newMessages));
+        }
+      }
+      
+      return newMessages;
+    });
+    
+    // Also try database save (async, best effort)
+    if (!anonymous) {
+      saveMessagesNow().catch(error => {
+        console.warn('[EnhancedIdeaChat] User message DB save failed (will retry):', error);
+      });
+    }
     
     // Detect and save persona JSON
     try {
@@ -2568,9 +2907,11 @@ User submission: """${messageText}"""`;
 
   return (
     <TooltipProvider>
-    <Card className="h-full w-full flex flex-col relative overflow-visible border-2 border-always-visible chat-shell fluid-pad-sm z-0">
-      {/* Animated background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-50" />
+    <div className="h-full w-full flex gap-4 relative">
+      {/* Main Chat Card */}
+      <Card className="flex-1 flex flex-col relative overflow-visible border-2 border-always-visible chat-shell fluid-pad-sm z-0">
+        {/* Animated background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-50" />
     
     {/* Header */}
 <div className="relative fluid-pad-sm lg:fluid-pad-md border-b border-border backdrop-blur-sm bg-card/80 z-30">
@@ -2720,8 +3061,34 @@ User submission: """${messageText}"""`;
           </motion.div>
         )}
         
+        {/* Message Load Error */}
+        {messageLoadError && !loadingSessionMessages && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-8 space-y-4 bg-destructive/10 rounded-lg border border-destructive/20"
+          >
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <span className="font-medium">Failed to Load Messages</span>
+            </div>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              {messageLoadError}
+            </p>
+            <Button
+              onClick={retryMessageLoading}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry Loading
+            </Button>
+          </motion.div>
+        )}
+        
         {/* Messages */}
-        {!loadingSessionMessages && (
+        {!loadingSessionMessages && !messageLoadError && (
           <AnimatePresence mode="popLayout">
             {messages.map((message) => (
               <ChatMessageItem
@@ -2821,6 +3188,8 @@ User submission: """${messageText}"""`;
           </Button>
         </motion.div>
       </div>
+      
+      {/* Idea Ownership Section - Removed from here, moved to right panel */}
     </div>
     
     {/* GPT-5 Powered - Floating text */}
@@ -2841,7 +3210,72 @@ User submission: """${messageText}"""`;
         window.dispatchEvent(new CustomEvent('idea:changed', { detail: { idea: refinedIdea } }));
       }}
     />
-  </Card>
+    </Card>
+
+    {/* Right Panel - Idea Ownership */}
+    <div className="w-80 flex flex-col">
+      {(() => {
+        // Session-specific ownership logic: Only show when the current session has generated and locked an idea
+        const userMessageCount = messages.filter(m => m.type === 'user' && m.content.length > 10).length;
+        const hasCurrentSessionIdea = currentIdea && currentIdea.trim().length >= 50;
+        const hasCompletedChat = userMessageCount >= 3 && conversationSummary;
+        
+        // Key fix: Only show ownership if the idea was locked in THIS session
+        const shouldShow = hasValidIdea && 
+                          hasCurrentSessionIdea && 
+                          ideaId && 
+                          hasCompletedChat &&
+                          sessionIdeaLocked; // Must be locked in current session
+        
+        console.log('[OwnershipCheck - Session Specific]', {
+          hasValidIdea,
+          currentIdeaLength: currentIdea?.length || 0,
+          userMessageCount,
+          hasConversationSummary: !!conversationSummary,
+          hasCompletedChat,
+          sessionIdeaLocked,
+          shouldShow
+        });
+        
+        if (shouldShow) {
+          return (
+            <Card className="h-full border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+              <div className="p-6 h-full flex flex-col">
+                <IdeaOwnership 
+                  ideaId={ideaId}
+                  ideaText={currentIdea}
+                  compact={false} // Full mode for right panel
+                />
+              </div>
+            </Card>
+          );
+        }
+        
+        // Show placeholder when conditions aren't met
+        return (
+          <Card className="h-full border-2 border-dashed border-muted bg-muted/10">
+            <div className="p-6 h-full flex flex-col items-center justify-center text-center space-y-4">
+              <div className="rounded-full bg-muted p-6">
+                <Shield className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-muted-foreground">Idea Ownership</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Complete your 3-message conversation, generate summary, and lock your idea to claim blockchain ownership
+                </p>
+                <div className="text-xs text-muted-foreground/70 mt-2">
+                  Progress: {userMessageCount}/3 messages
+                  {hasCompletedChat ? " ✓ Summary ready" : " • Chat pending"}
+                  {hasCompletedChat && !sessionIdeaLocked ? " • Lock via modal" : ""}
+                  {sessionIdeaLocked ? " ✓ Idea locked" : ""}
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
+    </div>
+  </div>
   </TooltipProvider>
   );
 };
