@@ -1,303 +1,752 @@
-import { UsageWarnings } from "@/components/dashboard/UsageWarnings";
-import { RecentIdeas } from "@/components/dashboard/RecentIdeas";
-import { CollaborationPanel } from "@/components/dashboard/CollaborationPanel";
-import { AICreditsUsageCard } from "@/components/dashboard/AICreditsUsageCard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BookOpen, HelpCircle, MessageSquare, Badge as BadgeIcon, BarChart3, TrendingUp, DollarSign, Users, Sparkles, Crown } from "lucide-react";
-import { useSubscription } from "@/contexts/SubscriptionContext";
-import { SUBSCRIPTION_TIERS } from "@/contexts/SubscriptionContext";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useDataHubWrapper } from "@/hooks/useDataHubWrapper";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { saveIdeaToLeaderboard } from "@/utils/saveIdeaToLeaderboard";
-import { useLockedIdea } from "@/hooks/useLockedIdea";
-import { LiveContextCard } from "@/components/ai/LiveContextCard";
+import { useSession } from "@/contexts/SimpleSessionContext";
+import { useDataMode } from "@/contexts/DataModeContext";
+import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
+import { useIdeaContext } from '@/hooks/useIdeaContext';
+import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
+import { lockedIdeaManager } from '@/lib/lockedIdeaManager';
+import { CacheRestorationService } from '@/services/cacheRestorationService';
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { HeroSection } from "@/components/hub/HeroSection";
+import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
+import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
+import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
+import { CacheClearButton } from "@/components/hub/CacheClearButton";
 
+import { createConversationSummary } from "@/utils/conversationUtils";
+import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+
+// Dashboard - Comprehensive market analysis and data hub
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const { subscription, usage } = useSubscription();
   const { user } = useAuth();
-  const { idea: currentIdea } = useLockedIdea(); // SINGLE SOURCE OF TRUTH
-  const isPro = subscription.tier === 'pro' || subscription.tier === 'enterprise';
-  const limits = SUBSCRIPTION_TIERS[subscription.tier].features;
-  const { toast } = useToast();
+  const { currentSession, saveCurrentSession } = useSession();
+  const { useMockData, setUseMockData } = useDataMode();
+  const { isRealTime, setIsRealTime, refreshInterval } = useRealTimeDataMode();
+  const [currentIdea, setCurrentIdea] = useState("");
+  const [conversationSummary, setConversationSummary] = useState("");
+  const [sessionName, setSessionName] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [hasExistingAnalysis, setHasExistingAnalysis] = useState(false);
+  const [summaryExpanded, setSummaryExpanded] = useState(() => {
+    return localStorage.getItem('dashboard_summaryExpanded') !== 'false';
+  });
+  const [advancedControlsOpen, setAdvancedControlsOpen] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout>();
   
-  const [ideaId, setIdeaId] = useState<string | null>(null);
+  // Tile selection for selective refresh
+  const [selectedTiles, setSelectedTiles] = useState<Set<string>>(() => new Set([
+    'twitter_sentiment',
+    'youtube_analysis',
+    'reddit_sentiment',
+    'market_size',
+    'google_trends',
+    'news_trends',
+    'sentiment',
+    'web_search'
+  ]));
+  const [refreshPopoverOpen, setRefreshPopoverOpen] = useState(false);
   
-  // Get or create idea ID for current locked idea
+  // Save summary expanded state
   useEffect(() => {
-    if (!currentIdea || !user?.id) return;
-    let cancelled = false;
-    const controller = new AbortController();
-    const run = async () => {
-      try {
-        // Debounce: wait briefly in case idea is still being edited/refined
-        await new Promise(r => setTimeout(r, 250));
-        if (cancelled) return;
-        const { data: existingIdea } = await supabase
-          .from('ideas')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('original_idea', currentIdea)
-          .maybeSingle();
-        if (cancelled) return;
-        if (existingIdea) {
-          setIdeaId(existingIdea.id);
-          return;
-        }
-        const { data: newIdea, error } = await supabase
-          .from('ideas')
-          .insert({ user_id: user.id, original_idea: currentIdea })
-          .select('id')
-          .single();
-        if (!cancelled && newIdea) setIdeaId(newIdea.id);
-        if (error) console.warn('[Dashboard] Idea insert error:', error.message);
-      } catch (e) {
-        if (!cancelled) console.warn('[Dashboard] fetchOrCreateIdea aborted/error', e);
+    localStorage.setItem('dashboard_summaryExpanded', summaryExpanded.toString());
+  }, [summaryExpanded]);
+  
+  // Update idea from current session
+  const updateIdeaFromSession = useCallback(() => {
+    // FIRST: Check for locked idea - this takes priority over everything
+    const lockedIdea = lockedIdeaManager.getLockedIdea();
+    if (lockedIdea) {
+      console.log("[Dashboard] Using locked idea:", lockedIdea.substring(0, 100));
+      setCurrentIdea(lockedIdea);
+      setConversationSummary(lockedIdea);
+      setSessionName(currentSession?.name || "Locked Idea Session");
+      return; // Skip all other checks
+    }
+    
+    // Second, check for the generated idea from GenerateIdeaButton (appIdea)
+    let storedIdea = "";
+    let hasGeneratedIdea = false;
+    try {
+      const appIdeaData = localStorage.getItem("appIdea");
+      if (appIdeaData) {
+        const parsed = JSON.parse(appIdeaData);
+        storedIdea = cleanIdeaText(parsed.summary || "");
+        hasGeneratedIdea = !!storedIdea;
+        console.log("[Dashboard] Using generated idea from appIdea:", storedIdea.substring(0, 100));
       }
+    } catch (e) {
+      console.error("[Dashboard] Error parsing appIdea:", e);
+    }
+    
+    // If no generated idea, fall back to other stored ideas (with validation)
+    if (!storedIdea) {
+      const ideaSources = [
+        localStorage.getItem("pmfCurrentIdea"),
+        localStorage.getItem("dashboardIdea"),
+        localStorage.getItem("currentIdea"),
+        localStorage.getItem("userIdea")
+      ];
+      
+      // Find the first valid idea that's not a chat suggestion
+      for (const rawIdea of ideaSources) {
+        if (!rawIdea) continue;
+        
+        const cleaned = cleanIdeaText(rawIdea);
+        
+        // Skip if it's a chat suggestion/question
+        const isChatSuggestion = 
+          cleaned.length < 30 ||
+          cleaned.startsWith('What') ||
+          cleaned.startsWith('How') ||
+          cleaned.startsWith('Why') ||
+          cleaned.includes('would you') ||
+          cleaned.includes('could you') ||
+          cleaned.includes('?');
+        
+        if (!isChatSuggestion && cleaned.length > 0) {
+          storedIdea = cleaned;
+          console.log("[Dashboard] Using validated idea:", storedIdea.substring(0, 100));
+          break;
+        }
+      }
+    }
+    
+    console.log("[Dashboard] Checking all localStorage keys:", {
+      appIdea: localStorage.getItem("appIdea")?.substring(0, 50),
+      pmfCurrentIdea: localStorage.getItem("pmfCurrentIdea")?.substring(0, 50),
+      dashboardIdea: localStorage.getItem("dashboardIdea")?.substring(0, 50),
+      currentIdea: localStorage.getItem("currentIdea")?.substring(0, 50),
+      userIdea: localStorage.getItem("userIdea")?.substring(0, 50)
+    });
+    
+    // If we have a stored idea, use it immediately
+    if (storedIdea) {
+      setCurrentIdea(storedIdea);
+      console.log("[Dashboard] Using stored idea:", storedIdea.substring(0, 100));
+      
+      // If the idea was generated via the button, prefer it for the summary and skip chat-derived summary
+      if (hasGeneratedIdea) {
+        setConversationSummary(storedIdea);
+        if (currentSession?.data && !currentSession.data.currentIdea) {
+          currentSession.data.currentIdea = storedIdea;
+          saveCurrentSession();
+        }
+        setSessionName(currentSession?.name || "Untitled Session");
+        return; // Do not override with chat summary
+      }
+      
+      // Otherwise, enhance with chat history when available
+      if (currentSession) {
+        const { chatHistory, currentIdea: sessionIdea } = currentSession.data || {};
+        
+        if (chatHistory && chatHistory.length > 0) {
+          const summary = createConversationSummary(chatHistory, sessionIdea || storedIdea);
+          const cleanedSummary = cleanIdeaText(summary);
+          setConversationSummary(cleanedSummary);
+          if (cleanedSummary !== storedIdea) {
+            setCurrentIdea(cleanedSummary);
+          }
+        } else {
+          setConversationSummary(storedIdea);
+        }
+        
+        if (!sessionIdea && currentSession.data) {
+          currentSession.data.currentIdea = storedIdea;
+          saveCurrentSession();
+        }
+        
+        setSessionName(currentSession.name || "Untitled Session");
+      } else {
+        // No session, just use the stored idea as summary
+        setConversationSummary(storedIdea);
+      }
+    } else if (currentSession?.data) {
+      // No stored idea, try to get from session
+      const { chatHistory, currentIdea: sessionIdea } = currentSession.data;
+      
+      if (sessionIdea || (chatHistory && chatHistory.length > 0)) {
+        const summary = chatHistory && chatHistory.length > 0 
+          ? createConversationSummary(chatHistory, sessionIdea)
+          : sessionIdea || "";
+        
+        const cleanedSummary = cleanIdeaText(summary);
+        if (cleanedSummary) {
+          setCurrentIdea(cleanedSummary);
+          setConversationSummary(cleanedSummary);
+          // Using useIdeaContext for idea management
+          console.log("[Dashboard] Got idea from session:", cleanedSummary.substring(0, 100));
+        }
+      }
+      
+      setSessionName(currentSession.name || "Untitled Session");
+    }
+  }, [currentSession, saveCurrentSession]);
+  
+  // Watch for session changes and idea updates
+  useEffect(() => {
+    updateIdeaFromSession();
+    
+    // Listen for idea:changed event from GenerateIdeaButton
+    const handleIdeaChanged = () => {
+      console.log("[Dashboard] Idea changed event received");
+      updateIdeaFromSession();
     };
-    run();
-    return () => { cancelled = true; controller.abort(); };
-  }, [currentIdea, user?.id]);
+    
+    window.addEventListener('idea:changed', handleIdeaChanged);
+    
+    return () => {
+      window.removeEventListener('idea:changed', handleIdeaChanged);
+    };
+  }, [updateIdeaFromSession]);
 
-  // Update leaderboard when dashboard loads
+  // Use the data hub hook with current idea and session_id
+  // IMPORTANT: Must call hooks before any conditional returns
+  console.log('[Dashboard] Using idea for data hub:', currentIdea?.substring(0, 100));
+  const dataHub = useDataHubWrapper({
+    idea: currentIdea || '',
+    session_id: currentSession?.id || null,
+    targetMarkets: ["US", "EU", "APAC"],
+    audienceProfiles: ["early_adopters", "enterprise"],
+    geos: ["global"],
+    timeHorizon: "12_months",
+    competitorHints: []
+  });
+
+  const { indices, tiles, loading, error, refresh, refreshTile, lastFetchTime, loadingTasks } = dataHub;
+
+  // Restore cache on mount
   useEffect(() => {
-    const updateLeaderboard = async () => {
-      const sessionData = localStorage.getItem('sessionData');
-      const sessionName = localStorage.getItem('currentSessionName') || 'Untitled Session';
-      
-      if (!currentIdea) return;
-      
-      let pmfScore = 0;
-      let category = 'Uncategorized';
-      
-      if (sessionData) {
-        try {
-          const parsed = JSON.parse(sessionData);
-          pmfScore = parsed.pmfScore || parsed.dashboardData?.smoothBrainsScore || 0;
-          category = parsed.category || 'Uncategorized';
-        } catch (e) {
-          console.error('[Dashboard] Failed to parse session data:', e);
-        }
-      }
-      
-      if (pmfScore > 0 && currentIdea) {
-        await saveIdeaToLeaderboard({
-          idea: currentIdea,
-          refinedIdea: currentIdea, // Use locked idea as-is
-          pmfScore,
-          sessionName,
-          category,
-          isPublic: true
-        });
+    const restoreCache = async () => {
+      try {
+        const cacheService = CacheRestorationService.getInstance();
+        await cacheService.restore();
+        console.log('[Dashboard] Cache restoration complete');
+      } catch (error) {
+        console.error('[Dashboard] Cache restoration failed:', error);
       }
     };
     
-    updateLeaderboard();
-  }, [currentIdea]);
+    restoreCache();
+  }, []);
+
+  // NO AUTO-REFRESH - Only manual refresh via button clicks
+  useEffect(() => {
+    // Clear any existing interval on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
+  
+  // Check if we have existing analysis data
+  useEffect(() => {
+    const checkExistingData = () => {
+      // Check if we have any tile data already
+      const hasTileData = tiles && (
+        tiles.pmf_score || 
+        tiles.market_size || 
+        tiles.competition || 
+        tiles.sentiment
+      );
+      
+      // Check localStorage for previous analysis
+      const previousAnalysis = localStorage.getItem('dashboardAnalyzed');
+      const wrinklePoints = parseInt(localStorage.getItem('wrinklePoints') || '0');
+      
+      // If we have tile data or previous analysis with the same idea, skip the intro
+      if (hasTileData || (previousAnalysis === currentIdea && wrinklePoints > 0)) {
+        setHasLoadedData(true);
+        setHasExistingAnalysis(true);
+      }
+    };
+    
+    checkExistingData();
+  }, [tiles, currentIdea]);
+  
+  // Custom refresh that refreshes only selected tiles
+  const handleRefresh = useCallback(async () => {
+    updateIdeaFromSession();
+    setHasLoadedData(true);
+    // Store that this idea has been analyzed
+    if (currentIdea) {
+      localStorage.setItem('dashboardAnalyzed', currentIdea);
+    }
+    
+    // If all tiles are selected, do a full refresh
+    if (selectedTiles.size === 8) {
+      await refresh();
+      toast.success('All tiles refreshed');
+    } else if (selectedTiles.size > 0) {
+      // Refresh only selected tiles
+      const refreshPromises = Array.from(selectedTiles).map(tileKey => 
+        refreshTile(tileKey as any)
+      );
+      await Promise.all(refreshPromises);
+      toast.success(`Refreshed ${selectedTiles.size} tile${selectedTiles.size > 1 ? 's' : ''}`);
+    } else {
+      toast.error('Please select at least one tile to refresh');
+    }
+    
+    setRefreshPopoverOpen(false);
+  }, [updateIdeaFromSession, refresh, refreshTile, currentIdea, selectedTiles]);
+  
+  const toggleTileSelection = (tileKey: string) => {
+    setSelectedTiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tileKey)) {
+        newSet.delete(tileKey);
+      } else {
+        newSet.add(tileKey);
+      }
+      return newSet;
+    });
+  };
+  
+  const toggleAllTiles = () => {
+    if (selectedTiles.size === 8) {
+      setSelectedTiles(new Set());
+    } else {
+      setSelectedTiles(new Set([
+        'twitter_sentiment',
+        'youtube_analysis',
+        'reddit_sentiment',
+        'market_size',
+        'google_trends',
+        'news_trends',
+        'sentiment',
+        'web_search'
+      ]));
+    }
+  };
+
+  // Handle Get Score button click
+  const handleGetScore = useCallback(() => {
+    setHasLoadedData(true);
+    // Store that this idea has been analyzed
+    if (currentIdea) {
+      localStorage.setItem('dashboardAnalyzed', currentIdea);
+    }
+    refresh();
+  }, [refresh, currentIdea]);
+  
+  // Removed duplicate loading state - Suspense fallback handles initial load
+
+  // No idea state
+  if (!currentIdea) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full p-8 border-border/50">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <Brain className="h-6 w-6 text-foreground" />
+            </div>
+            <h2 className="text-2xl font-semibold">No Active Idea</h2>
+            <p className="text-sm text-muted-foreground">
+              Start by entering your startup idea in the Idea Chat to unlock comprehensive analytics and insights.
+            </p>
+            <Button 
+              onClick={() => window.location.href = '/ideachat'}
+              className="mt-4"
+            >
+              Go to Idea Chat
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Welcome Header */}
-      <div className="border-b bg-gradient-to-r from-card/80 via-card/60 to-card/80 backdrop-blur-xl shadow-sm h-[89px] flex items-center">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/20">
-              <BarChart3 className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}!
-              </h1>
-              <p className="text-muted-foreground text-sm">Here's an overview of your SmoothBrains journey</p>
+    <div className="min-h-screen bg-background">
+      {/* Collapsible Conversation Summary Section */}
+      {conversationSummary && (
+        <Collapsible
+          open={summaryExpanded}
+          onOpenChange={setSummaryExpanded}
+          className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-border"
+        >
+          <div className="container mx-auto px-4 py-3">
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full flex items-center justify-between hover:bg-primary/5 p-3 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Brain className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-sm font-semibold text-foreground">Idea Summary</h2>
+                    {!summaryExpanded && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {conversationSummary.substring(0, 80)}...
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {sessionName && (
+                    <Badge variant="secondary" className="text-xs">
+                      {sessionName}
+                    </Badge>
+                  )}
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform",
+                    summaryExpanded && "rotate-180"
+                  )} />
+                </div>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <div className="flex items-start gap-4 pl-11">
+                <div className="flex-1">
+                  <p className="text-base text-foreground/80 leading-relaxed">
+                    {conversationSummary}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.href = '/ideachat'}
+                  className="gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Refine Idea
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+      )}
+      
+      {/* Fallback if no summary yet */}
+      {!conversationSummary && currentIdea && (
+        <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border/50">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <MessageSquare className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-sm font-semibold text-foreground">Current Analysis</h2>
+                  {sessionName && (
+                    <Badge variant="secondary" className="text-xs">
+                      {sessionName}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {currentIdea}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/ideachat'}
+                className="gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Go to Chat
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      )}
       
-      <div className="container mx-auto px-4 py-8 space-y-6">
-        {/* User Stats - Prominent Display */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-primary/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Ideas Validated</CardTitle>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 group-hover:scale-110 transition-transform">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-1">
-                {usage.ideas_used || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                of {limits.ideasPerMonth === -1 ? '∞ unlimited' : limits.ideasPerMonth} this month
-              </p>
-              <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
-                <div 
-                  className="h-full bg-gradient-to-r from-primary via-accent to-primary transition-all duration-500 rounded-full" 
-                  style={{ 
-                    width: limits.ideasPerMonth === -1 
-                      ? `${Math.min(100, (usage.ideas_used / 10) * 100)}%` 
-                      : `${Math.min(100, (usage.ideas_used / limits.ideasPerMonth) * 100)}%` 
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-secondary/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-muted-foreground">AI Credits Used</CardTitle>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 group-hover:scale-110 transition-transform">
-                <TrendingUp className="h-5 w-5 text-secondary" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-3xl font-bold bg-gradient-to-r from-secondary via-accent to-secondary bg-clip-text text-transparent mb-1">
-                {(usage.ai_credits_used || 0).toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                of {(limits.aiCreditsPerMonth as number).toLocaleString()} this month
-              </p>
-              <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
-                <div 
-                  className="h-full bg-gradient-to-r from-secondary via-accent to-warning transition-all duration-500 rounded-full" 
-                  style={{ width: `${Math.min(100, ((usage.ai_credits_used || 0) / (limits.aiCreditsPerMonth as number)) * 100)}%` }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-warning/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-warning/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Exports</CardTitle>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-warning/20 to-warning/10 group-hover:scale-110 transition-transform">
-                <DollarSign className="h-5 w-5 text-warning" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-3xl font-bold bg-gradient-to-r from-warning via-accent to-warning bg-clip-text text-transparent mb-1">
-                {usage.exports_used || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                of {limits.exportsPerMonth === -1 ? '∞ unlimited' : limits.exportsPerMonth} this month
-              </p>
-              <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden backdrop-blur">
-                <div 
-                  className="h-full bg-gradient-to-r from-warning via-accent to-warning transition-all duration-500 rounded-full" 
-                  style={{ 
-                    width: limits.exportsPerMonth === -1 
-                      ? `${Math.min(100, ((usage.exports_used || 0) / 10) * 100)}%` 
-                      : `${Math.min(100, ((usage.exports_used || 0) / limits.exportsPerMonth) * 100)}%` 
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="group hover:shadow-xl hover:scale-105 transition-all duration-300 border border-accent/20 bg-gradient-to-br from-card to-card/80 backdrop-blur overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Current Plan</CardTitle>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 group-hover:scale-110 transition-transform">
-                <Users className="h-5 w-5 text-accent" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-3xl font-bold capitalize bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent mb-1">
-                {SUBSCRIPTION_TIERS[subscription.tier].name}
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">{SUBSCRIPTION_TIERS[subscription.tier].price}</p>
-              {!isPro && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary hover:to-accent hover:text-primary-foreground border-primary/30 transition-all"
-                  onClick={() => navigate('/pricing')}
-                >
-                  Upgrade Plan
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* AI Credits Usage Card */}
-        <AICreditsUsageCard />
-
-        {/* Live Context Card */}
-        {currentIdea && ideaId && (
-          <LiveContextCard ideaId={ideaId} />
-        )}
-
-        {/* Recent Ideas */}
-        <RecentIdeas />
-
-        {/* Collaboration (Pro+) */}
-        <CollaborationPanel />
-
-        {/* Usage Warnings */}
-        <UsageWarnings />
-
-        {/* Support & Learning */}
-        <Card className="border-primary/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-primary" />
-              Support & Learning
-            </CardTitle>
-            <CardDescription>Get help and learn more about SmoothBrains</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button 
-                variant="outline" 
-                className="justify-start gap-2 hover:border-primary/50"
-                onClick={() => navigate('/documentation')}
+      {/* Top Controls Bar */}
+      <div className="sticky top-0 z-40 backdrop-blur-lg bg-background/95 border-b border-border/50 shadow-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setEvidenceOpen(!evidenceOpen)}
+                variant="outline"
+                size="sm"
               >
-                <BookOpen className="h-4 w-4" />
-                Documentation
+                Evidence Explorer
               </Button>
-              <Button 
-                variant="outline" 
-                className="justify-start gap-2 hover:border-primary/50"
-                onClick={() => navigate('/documentation#faq')}
+              
+              <Popover open={refreshPopoverOpen} onOpenChange={setRefreshPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh ({selectedTiles.size})
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64" align="start">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Select Tiles to Refresh</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Choose which data sources to update
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 pb-2 border-b">
+                        <Checkbox
+                          id="select-all"
+                          checked={selectedTiles.size === 8}
+                          onCheckedChange={toggleAllTiles}
+                        />
+                        <label
+                          htmlFor="select-all"
+                          className="text-sm font-medium cursor-pointer flex-1"
+                        >
+                          Select All
+                        </label>
+                      </div>
+                      
+                      {[
+                        { key: 'twitter_sentiment', label: 'Twitter Sentiment' },
+                        { key: 'youtube_analysis', label: 'YouTube Analysis' },
+                        { key: 'reddit_sentiment', label: 'Reddit Sentiment' },
+                        { key: 'market_size', label: 'Market Size' },
+                        { key: 'google_trends', label: 'Google Trends' },
+                        { key: 'news_trends', label: 'News Trends' },
+                        { key: 'sentiment', label: 'Sentiment Analysis' },
+                        { key: 'web_search', label: 'Web Search' }
+                      ].map(({ key, label }) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <Checkbox
+                            id={key}
+                            checked={selectedTiles.has(key)}
+                            onCheckedChange={() => toggleTileSelection(key)}
+                          />
+                          <label
+                            htmlFor={key}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button 
+                      onClick={handleRefresh} 
+                      disabled={loading || selectedTiles.size === 0}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh Selected
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Collapsible
+                open={advancedControlsOpen}
+                onOpenChange={setAdvancedControlsOpen}
               >
-                <MessageSquare className="h-4 w-4" />
-                FAQs
-              </Button>
-              <Button 
-                variant="outline" 
-                className="justify-start gap-2 relative hover:border-primary/50"
-                onClick={() => window.open('mailto:support@smoothbrains.ai', '_blank')}
-              >
-                <HelpCircle className="h-4 w-4" />
-                Contact Support
-                {isPro && (
-                  <span className="absolute -top-1 -right-1">
-                    <BadgeIcon className="h-4 w-4 text-primary fill-primary" />
-                  </span>
-                )}
-              </Button>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Settings className="h-4 w-4" />
+                    Advanced
+                    <ChevronDown className={cn(
+                      "h-3 w-3 transition-transform",
+                      advancedControlsOpen && "rotate-180"
+                    )} />
+                  </Button>
+                </CollapsibleTrigger>
+              </Collapsible>
             </div>
-            {isPro && (
-              <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
-                <p className="text-xs text-foreground flex items-center gap-2">
-                  <BadgeIcon className="h-3 w-3 text-primary" />
-                  <span className="font-medium">Priority support</span> - Get faster responses with your {SUBSCRIPTION_TIERS[subscription.tier].name} plan
-                </p>
+            
+            <div className="flex items-center gap-2">
+              {lastFetchTime && (
+                <span className="text-xs text-muted-foreground">
+                  Updated: {new Date(lastFetchTime).toLocaleTimeString()}
+                </span>
+              )}
+              <CacheClearButton />
+            </div>
+          </div>
+          
+          {/* Advanced Controls (Collapsible) */}
+          <Collapsible
+            open={advancedControlsOpen}
+            onOpenChange={setAdvancedControlsOpen}
+          >
+            <CollapsibleContent>
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30">
+                {/* Mock Data Toggle */}
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border",
+                  useMockData 
+                    ? "bg-amber-500/10 border-amber-500/30" 
+                    : "bg-emerald-500/10 border-emerald-500/30"
+                )}>
+                  <Label htmlFor="mock-mode" className="text-xs font-medium cursor-pointer">
+                    {useMockData ? "Mock Data" : "Real Data"}
+                  </Label>
+                  <Switch
+                    id="mock-mode"
+                    checked={!useMockData}
+                    onCheckedChange={(checked) => {
+                      setUseMockData(!checked);
+                      if (checked) {
+                        toast.success("Switched to real data");
+                      } else {
+                        toast.warning("Switched to mock data");
+                      }
+                    }}
+                    className="scale-90"
+                  />
+                </div>
+                
+                {/* Real-time Toggle */}
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border",
+                  isRealTime 
+                    ? "bg-primary/10 border-primary/30" 
+                    : "bg-muted/50 border-border/50"
+                )}>
+                  {isRealTime && (
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  )}
+                  <Label htmlFor="realtime-mode" className="text-xs font-medium cursor-pointer">
+                    Realtime
+                  </Label>
+                  <Switch
+                    id="realtime-mode"
+                    checked={isRealTime}
+                    onCheckedChange={setIsRealTime}
+                    className="scale-90"
+                  />
+                </div>
+                
+                {/* Cache Clear Button */}
+                <CacheClearButton 
+                  variant="outline"
+                  size="sm"
+                  onCacheCleared={() => {
+                    console.log("Cache cleared, refreshing data...");
+                  }}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      </div>
+
+      {/* Main Content with Tabs */}
+      <div className="container mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="sticky top-[57px] z-30 bg-background/95 backdrop-blur-lg pb-4 -mx-4 px-4 mb-6 border-b border-border/50">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="market">Market Analysis</TabsTrigger>
+              <TabsTrigger value="sentiment">Social Sentiment</TabsTrigger>
+              <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* OVERVIEW TAB - PMF Score + Global Market Map */}
+          <TabsContent value="overview" className="space-y-6">
+            <HeroSection 
+              pmfScore={tiles.pmf_score}
+              loading={loading}
+              onGetScore={handleGetScore}
+              hasData={hasLoadedData || hasExistingAnalysis || !!tiles.pmf_score}
+              loadingTasks={loadingTasks}
+              currentTask={loadingTasks?.find(t => t.status === "loading")?.label}
+            />
+            
+            {hasLoadedData && (
+              <LazyWorldMap 
+                marketData={tiles.market_size}
+                loading={loading}
+              />
+            )}
+          </TabsContent>
+
+          {/* MARKET ANALYSIS TAB - Market Size, Trends, Google Trends, Competition */}
+          <TabsContent value="market" className="space-y-6">
+            {hasLoadedData && (
+              <div className="space-y-4">
+                <MainAnalysisGrid
+                  tiles={{
+                    market_size: tiles.market_size,
+                    market_trends: tiles.market_trends,
+                    google_trends: tiles.google_trends,
+                    competition: tiles.competition,
+                  }}
+                  loading={loading}
+                  viewMode="deep"
+                  onRefreshTile={refreshTile}
+                />
               </div>
             )}
-          </CardContent>
-        </Card>
+          </TabsContent>
+
+          {/* SOCIAL SENTIMENT TAB */}
+          <TabsContent value="sentiment" className="space-y-6">
+            {hasLoadedData && (
+              <div className="space-y-4">
+                <MainAnalysisGrid
+                  tiles={{
+                    twitter_sentiment: tiles.twitter_sentiment,
+                    youtube_analysis: tiles.youtube_analysis,
+                    reddit_sentiment: tiles.reddit_sentiment,
+                  }}
+                  loading={loading}
+                  viewMode="deep"
+                  onRefreshTile={refreshTile}
+                />
+              </div>
+            )}
+          </TabsContent>
+
+
+          {/* EVIDENCE TAB */}
+          <TabsContent value="evidence" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Evidence & Citations</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                View all data sources, citations, and evidence supporting the analysis.
+              </p>
+              <Button onClick={() => setEvidenceOpen(true)}>
+                Open Evidence Explorer
+              </Button>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {/* 6. EVIDENCE EXPLORER - Slide-out drawer */}
+      <EvidenceExplorer
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+        evidenceStore={indices?.EVIDENCE_STORE || []}
+        providerLog={indices?.PROVIDER_LOG || []}
+      />
     </div>
   );
 }

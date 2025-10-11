@@ -22,7 +22,8 @@ import {
   HelpCircle,
   LogOut,
   ChevronRight,
-  Brain
+  Brain,
+  LayoutDashboard
 } from "lucide-react";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useNavigate } from 'react-router-dom';
@@ -77,6 +78,12 @@ export function AppSidebar({ style, className }: AppSidebarProps = {}) {
       url: "/ai-insights", 
       icon: Brain,
       badge: "NEW"
+    },
+    { 
+      title: "Dashboard", 
+      url: "/dashboard", 
+      icon: LayoutDashboard,
+      badge: null
     },
   ];
 

@@ -12,7 +12,7 @@ interface LazyWorldMapProps {
 
 /**
  * LazyWorldMap mounts the real ProfessionalWorldMap only when scrolled into view.
- * Reduces initial bundle parse + execution cost on /enterprisehub and /deep-dive.
+ * Reduces initial bundle parse + execution cost on /dashboard and /deep-dive.
  */
 export function LazyWorldMap({ marketData, loading, minHeight = 420, threshold = 0.2 }: LazyWorldMapProps) {
   const ref = useRef<HTMLDivElement | null>(null);

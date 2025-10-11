@@ -1,2 +1,2 @@
-import EnterpriseHub from './EnterpriseHub';
-export default function Hub() { return <EnterpriseHub />; }
+import Dashboard from './Dashboard';
+export default function Hub() { return <Dashboard />; }
