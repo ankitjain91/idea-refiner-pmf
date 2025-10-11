@@ -1,7 +1,8 @@
 import { UsageWarnings } from "@/components/dashboard/UsageWarnings";
-import { OnDemandRecentIdeas } from "@/components/dashboard/OnDemandRecentIdeas";
-import { OnDemandCollaborationPanel } from "@/components/dashboard/OnDemandCollaborationPanel";
-import { OnDemandAICreditsUsageCard } from "@/components/dashboard/OnDemandAICreditsUsageCard";
+import { RecentIdeas } from "@/components/dashboard/RecentIdeas";
+import { CollaborationPanel } from "@/components/dashboard/CollaborationPanel";
+import { AICreditsUsageCard } from "@/components/dashboard/AICreditsUsageCard";
+import { LiveContextCard } from "@/components/ai/LiveContextCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, HelpCircle, MessageSquare, Badge as BadgeIcon, BarChart3, TrendingUp, DollarSign, Users, Sparkles, Crown } from "lucide-react";
@@ -12,7 +13,6 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { saveIdeaToLeaderboard } from "@/utils/saveIdeaToLeaderboard";
 import { useLockedIdea } from "@/hooks/useLockedIdea";
-import { OnDemandLiveContextCard } from "@/components/ai/OnDemandLiveContextCard";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -230,18 +230,18 @@ export default function Dashboard() {
         </div>
 
         {/* AI Credits Usage Card */}
-        <OnDemandAICreditsUsageCard />
+        <AICreditsUsageCard />
 
         {/* Live Context Card */}
         {currentIdea && ideaId && (
-          <OnDemandLiveContextCard ideaId={ideaId} />
+          <LiveContextCard ideaId={ideaId} />
         )}
 
         {/* Recent Ideas */}
-        <OnDemandRecentIdeas />
+        <RecentIdeas />
 
         {/* Collaboration (Pro+) */}
-        <OnDemandCollaborationPanel />
+        <CollaborationPanel />
 
         {/* Usage Warnings */}
         <UsageWarnings />

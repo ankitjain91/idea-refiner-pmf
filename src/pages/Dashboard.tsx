@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { useDataHubWrapper } from "@/hooks/useDataHubWrapper";
 import { useAuth } from "@/contexts/EnhancedAuthContext";
 import { useSession } from "@/contexts/SimpleSessionContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import { useRealTimeDataMode } from "@/hooks/useRealTimeDataMode";
-import { useIdeaContext } from '@/hooks/useIdeaContext';
 import { cleanIdeaText, cleanAllStoredIdeas } from '@/utils/ideaCleaner';
 import { lockedIdeaManager } from '@/lib/lockedIdeaManager';
 import { CacheRestorationService } from '@/services/cacheRestorationService';
@@ -18,13 +17,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Brain, RefreshCw, LayoutGrid, Eye, Database, Sparkles, MessageSquare, ChevronDown, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { HeroSection } from "@/components/hub/HeroSection";
-import { LazyWorldMap } from "@/components/hub/LazyWorldMap";
-import { MainAnalysisGrid } from "@/components/hub/MainAnalysisGrid";
-import { EvidenceExplorer } from "@/components/hub/EvidenceExplorer";
-import { CacheClearButton } from "@/components/hub/CacheClearButton";
-
-import { createConversationSummary } from "@/utils/conversationUtils";
 import { DashboardLoadingState } from "@/components/hub/DashboardLoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -34,6 +26,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+
+// Lazy-loaded components
+const HeroSection = lazy(() => import("@/components/hub/HeroSection"));
+const LazyWorldMap = lazy(() => import("@/components/hub/LazyWorldMap"));
+const MainAnalysisGrid = lazy(() => import("@/components/hub/MainAnalysisGrid"));
+const EvidenceExplorer = lazy(() => import("@/components/hub/EvidenceExplorer"));
 
 
 // Dashboard - Comprehensive market analysis and data hub
@@ -620,6 +618,8 @@ export default function Dashboard() {
                     className="scale-90"
                   />
                 </div>
+                
+                {/* Real-time Toggle */}
                 
                 {/* Real-time Toggle */}
                 <div className={cn(

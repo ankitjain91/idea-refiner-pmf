@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useLocation } from 'react-router-dom';
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/EnhancedAuthContext";
-import { SessionProvider } from "@/contexts/SessionContext";
+import { SessionProvider } from '@/contexts/SimpleSessionContext';
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AlertProvider } from "@/contexts/AlertContext";
 import { DataModeProvider } from "@/contexts/DataModeContext";
@@ -30,7 +30,6 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Hub = lazy(() => import('./pages/Hub'));
 const DeepDive = lazy(() => import('./pages/DeepDive'));
 const IdeaChat = lazy(() => import('./pages/EnhancedIdeaChatPage'));
-const EnterpriseHub = lazy(() => import('./pages/EnterpriseHub'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Logout = lazy(() => import('./pages/Logout'));
@@ -154,8 +153,8 @@ const App = () => {
                             </IdeasInitializer>
                           </AuthGate>
                           <StatusAnnouncer message={undefined} />
-                          <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
                         </div>
+                        <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
                       </FeatureFlagProvider>
                     </DataModeProvider>
                   </ThemeProvider>
