@@ -289,13 +289,13 @@ serve(async (req) => {
             value: parseFloat(value.replace(/[^\d.]/g, '')),
             tam: value,
             sam: `$${(parseFloat(value.replace(/[^\d.]/g, '')) * 0.4).toFixed(1)}B`,
-            som: `$${(parseFloat(value.replace(/[^\d.]/g, '')) * 0.04).toFixed(1)}B`
+            som: `$${(parseFloat(value.replace(/[^\d.]/g, '')) * 0.4 * 0.1).toFixed(1)}B`
           }));
           
           analysisResult.market_size.charts[1].series = Object.entries(analysisResult.market_size.metrics.segment_split).map(([segment, value]) => ({
             name: segment,
             sam: parseFloat(value.replace(/[^\d.]/g, '')) * 0.4,
-            som: parseFloat(value.replace(/[^\d.]/g, '')) * 0.04
+            som: parseFloat(value.replace(/[^\d.]/g, '')) * 0.4 * 0.1
           }));
           
           // Growth projection
