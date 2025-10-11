@@ -41,7 +41,7 @@ export class LockedIdeaManager {
       this.syncFromDatabase().catch(e => console.warn('[LockedIdeaManager] DB sync failed:', e));
     }
     
-    // If no idea found, check other known keys and migrate if found
+    // If no idea found, check other known keys - but DON'T migrate during getter
     if (!idea || idea.trim().length === 0) {
       const alternateKeys = [
         'ideaSummaryName',
@@ -56,10 +56,9 @@ export class LockedIdeaManager {
       for (const key of alternateKeys) {
         const altIdea = localStorage.getItem(key);
         if (altIdea && altIdea.trim().length > 0) {
-          // Found an idea in alternate storage, migrate it
+          // Found an idea in alternate storage - return it but don't migrate here
           idea = altIdea.trim();
-          this.setLockedIdea(idea); // This will clean up old keys
-          console.log(`[LockedIdeaManager] Migrated idea from ${key}:`, idea.slice(0, 50));
+          console.log(`[LockedIdeaManager] Found idea in ${key}:`, idea.slice(0, 50));
           break;
         }
       }
@@ -71,7 +70,6 @@ export class LockedIdeaManager {
         const parsed = JSON.parse(idea);
         if (parsed.summary) {
           idea = parsed.summary;
-          this.setLockedIdea(idea); // Store as plain text
         }
       } catch {}
     }
@@ -85,6 +83,41 @@ export class LockedIdeaManager {
     });
     
     return finalIdea;
+  }
+
+  /**
+   * Migrate ideas from alternate keys to primary key
+   * Should be called from useEffect, not during render
+   */
+  migrateAlternateIdeas(): void {
+    if (typeof window === 'undefined') return;
+    
+    const currentIdea = localStorage.getItem(LOCKED_IDEA_KEY);
+    if (currentIdea && currentIdea.trim().length >= 20) {
+      // Already have a primary idea, no need to migrate
+      return;
+    }
+    
+    const alternateKeys = [
+      'ideaSummaryName',
+      'pmf.user.idea',
+      'appIdea',
+      'dashboardIdea',
+      'currentIdea',
+      'userIdea',
+      'ideaText'
+    ];
+
+    for (const key of alternateKeys) {
+      const altIdea = localStorage.getItem(key);
+      if (altIdea && altIdea.trim().length > 0) {
+        // Found an idea in alternate storage, migrate it
+        const idea = altIdea.trim();
+        this.setLockedIdea(idea); // This will clean up old keys
+        console.log(`[LockedIdeaManager] Migrated idea from ${key}:`, idea.slice(0, 50));
+        break;
+      }
+    }
   }
 
   /**
@@ -404,6 +437,11 @@ export function useLockedIdea(): {
   useEffect(() => {
     const unsubscribe = manager.subscribe(setLockedIdeaState);
     return unsubscribe;
+  }, [manager]);
+
+  // Migrate alternate ideas on mount (not during render)
+  useEffect(() => {
+    manager.migrateAlternateIdeas();
   }, [manager]);
 
   // Poll for pinned status changes (since we don't have an event system for it yet)
