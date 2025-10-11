@@ -20,12 +20,12 @@ export const ConversationPinToggle: React.FC<ConversationPinToggleProps> = ({
     return null;
   }
 
-  const buttonText = isPinned ? "Locked In" : "Lock In Idea";
+  const buttonText = isPinned ? "Pinned" : "Pin Conversation";
   const tooltipText = disabled
-    ? "Keep chatting to generate a summary you can lock in"
+    ? "Keep chatting to generate a summary you can pin"
     : isPinned 
-    ? "Your idea summary is locked and will be used across the dashboard. Click to unlock."
-    : "Lock your conversation summary to use it as your finalized idea across the dashboard.";
+    ? "This conversation is pinned and won't be reset. Click to unpin."
+    : "Pin this conversation to prevent it from being reset when creating a new session.";
 
   return (
     <TooltipProvider>
